@@ -429,8 +429,11 @@ export const SCHAUBILD = `
     border-radius: 0.55em; white-space: nowrap;
   }
   .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
+  /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. Am Rand des Ausschnitts rückt sie so weit ein, dass sie ganz bleibt. */
   .schaubild .marke-wert.lagerraum {
-    font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(16px * var(--hn-schrift)));
+    background: none; padding: 0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
+    margin-left: max(0px, calc(var(--hn-kante, 0px) + 1.2em - var(--hn-links, 0%)));
+    font-size: clamp(calc(8px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(15px * var(--hn-schrift)));
   }
   /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
      Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */

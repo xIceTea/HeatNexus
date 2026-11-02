@@ -32,7 +32,7 @@ export const SchaubildWerteMixin = (Basis) =>
     _zahlwerte(anlage) {
       const lager = (anlage.schema_vorrat || [])
         .filter((eintrag) => eintrag.art === "lagerraum")
-        .map((eintrag) => ({ ...eintrag, name: this._t("Lagerraum"), beschriftung: this._t("Lagerraum"), lagerraum: true }));
+        .map((eintrag) => ({ ...eintrag, name: this._t("Lagerraum"), lagerraum: true }));
       return [...(anlage.schema_werte || []), ...lager];
     }
 
@@ -49,6 +49,11 @@ export const SchaubildWerteMixin = (Basis) =>
         marke.className = eintrag.lagerraum ? "marke-wert lagerraum" : "marke-wert";
         marke.style.left = eintrag.left;
         marke.style.top = eintrag.top;
+        // Im Bild steht beim Behälter nur die Zahl; der Name erscheint beim Überfahren.
+        if (eintrag.lagerraum) {
+          marke.title = eintrag.name;
+          marke.style.setProperty("--hn-links", eintrag.left);
+        }
         huelle.appendChild(this._klickbar(marke, eintrag.entity));
         this._bindungen.push(() => {
           // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein

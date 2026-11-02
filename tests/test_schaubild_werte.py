@@ -50,6 +50,9 @@ def test_mit_wertleiste_waechst_das_fenster(werte):
 def test_im_bild_gibt_es_keine_wertleiste(werte):
     assert werte["bild_leisten"] == [None, None]
     assert "COP 3.6" in werte["bild_marken"]
+    # Am Behälter steht im Bild nur die Zahl, ohne das Wort „Lagerraum“.
+    assert "63 %" in werte["bild_marken"]
+    assert not any("Lagerraum" in marke for marke in werte["bild_marken"])
 
 
 def test_automatisch_folgt_der_tatsaechlichen_breite(werte):

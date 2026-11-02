@@ -51,8 +51,8 @@ WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
     "waermepumpe": {"Vorlauf": (100, 140), "COP": (118, 266)},
 }
 
-# Der Befüllgrad des Lagerraums steht über dem Kessel, zwischen Vorlauf und Gehäuse.
-LAGERRAUM_STELLE = (100, 107)
+# Der Befüllgrad des Lagerraums steht mittig über dem Vorratsbehälter, abseits der Leitungen.
+LAGERRAUM_STELLE = (19, 127)
 
 # Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
 Buch = Callable[[str], str]

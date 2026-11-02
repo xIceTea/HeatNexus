@@ -199,6 +199,8 @@ export const SchaubildMixin = (Basis) =>
     if (leiste) leiste.style.marginTop = `${HOEHE * massstab}px`;
     huelle.style.width = `${breite * massstab}px`;
     huelle.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
+    // Wo der Ausschnitt in der Hülle beginnt; Marken am Rand rücken daran nach innen.
+    huelle.style.setProperty("--hn-kante", `${(RAND + erstes * MODUL) * massstab}px`);
     this._strangMarken(huelle, erstes, anzahl, breite);
     const bild = huelle.querySelector("img");
     if (bild && erstes > 0) bild.alt = "";

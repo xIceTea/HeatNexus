@@ -40,7 +40,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - BioWIN: Im Schaubild strömen BioWIN und AeroWIN nur, solange sie heizen.
 - BioWIN: Die Lampe des liefernden Erzeugers am Hybridmanager pulsiert grün.
 - BioWIN: Die Werte der AeroWIN stehen über dem Lüfter und im Anzeigefeld.
-- BioWIN: Das Schaubild zeigt den Befüllgrad des Lagerraums über dem Kessel.
+- BioWIN: Das Schaubild zeigt den Befüllgrad des Lagerraums über dem Vorratsbehälter.
 - PuroWIN: Im Schaubild füllt sich der Vorratsbehälter in drei Stufen.
 
 **Dashboard**
