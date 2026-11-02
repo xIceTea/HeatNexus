@@ -370,7 +370,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   flaeche._darstellungSetzen({ menue: "zeichen" });
 }
 
-// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick wirkt sofort.
+// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick zeigt die Wahl sofort als Vorschau.
 {
   const wurzel = flaeche.shadowRoot;
   const vorher = wurzel.querySelectorAll(".schleier").length;
@@ -398,6 +398,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
   zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  const kopfInDerVorschau = flaeche._kopfstil();
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
     kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
@@ -407,6 +408,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
     leisteNachKlick,
     kopfNachUebernehmen,
     leisteAnfangs,
+    kopfInDerVorschau,
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,

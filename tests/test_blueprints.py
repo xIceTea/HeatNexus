@@ -267,7 +267,9 @@ def test_jede_vorlage_hat_einen_anzeigenamen(modul):
 
 def test_nur_gewaehlte_vorlagen_werden_abgelegt(modul, tmp_path):
     ziel = tmp_path / "bp"
-    geschrieben, entfernt = modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+    geschrieben, entfernt, _ = modul._kopieren(
+        ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml"
+    )
 
     assert geschrieben == 1
     assert entfernt == 0
@@ -277,7 +279,7 @@ def test_nur_gewaehlte_vorlagen_werden_abgelegt(modul, tmp_path):
 def test_eine_abgewaehlte_vorlage_wird_entfernt(modul, tmp_path):
     ziel = tmp_path / "bp"
     modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
-    _, entfernt = modul._kopieren(ziel, "1.0.1", set(), tmp_path / "a.yaml")
+    _, entfernt, _ = modul._kopieren(ziel, "1.0.1", set(), tmp_path / "a.yaml")
 
     assert entfernt == 1
     assert not list(ziel.glob("*.yaml"))
@@ -292,10 +294,70 @@ def test_eine_benutzte_vorlage_bleibt_liegen(modul, tmp_path):
         "- use_blueprint:\n    path: heatnexus/stoerung_melden.yaml\n", encoding="utf-8"
     )
 
-    _, entfernt = modul._kopieren(ziel, "1.0.1", set(), automationen)
+    _, entfernt, _ = modul._kopieren(ziel, "1.0.1", set(), automationen)
 
     assert entfernt == 0
     assert (ziel / "stoerung_melden.yaml").is_file()
+
+
+def test_eine_geaenderte_vorlage_bleibt_beim_update_stehen(modul, tmp_path):
+    ziel = tmp_path / "bp"
+    modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+    datei = ziel / "stoerung_melden.yaml"
+    datei.write_text(datei.read_text(encoding="utf-8") + "# eigene Zeile\n", encoding="utf-8")
+
+    geschrieben, _, uebersprungen = modul._kopieren(
+        ziel, "1.0.1", {"stoerung_melden"}, tmp_path / "a.yaml"
+    )
+
+    assert geschrieben == 0
+    assert uebersprungen == ["stoerung_melden.yaml"]
+    assert datei.read_text(encoding="utf-8").endswith("# eigene Zeile\n")
+
+
+def test_eine_unveraenderte_vorlage_wird_beim_update_aufgefrischt(modul, tmp_path):
+    ziel = tmp_path / "bp"
+    modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+
+    geschrieben, _, uebersprungen = modul._kopieren(
+        ziel, "1.0.1", {"stoerung_melden"}, tmp_path / "a.yaml"
+    )
+
+    assert (geschrieben, uebersprungen) == (1, [])
+
+
+def test_eine_geaenderte_abgewaehlte_vorlage_bleibt_liegen(modul, tmp_path):
+    ziel = tmp_path / "bp"
+    modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+    (ziel / "stoerung_melden.yaml").write_text("eigene Fassung\n", encoding="utf-8")
+
+    _, entfernt, uebersprungen = modul._kopieren(ziel, "1.0.1", set(), tmp_path / "a.yaml")
+
+    assert (entfernt, uebersprungen) == (0, ["stoerung_melden.yaml"])
+    assert (ziel / "stoerung_melden.yaml").is_file()
+
+
+def test_nach_alter_marke_zaehlt_eine_ausgelieferte_fassung_als_unveraendert(modul, tmp_path):
+    """Die Marke älterer Fassungen trägt nur die Version; dann entscheidet die Liste ausgelieferter Fassungen."""
+    ziel = tmp_path / "bp"
+    ziel.mkdir()
+    (ziel / ".heatnexus-version").write_text("1.0.0", encoding="utf-8")
+    (ziel / "stoerung_melden.yaml").write_text("eigene Fassung\n", encoding="utf-8")
+    quelle = VORLAGEN / "vorrat_niedrig.yaml"
+    (ziel / "vorrat_niedrig.yaml").write_bytes(quelle.read_bytes())
+    gewaehlt = {"stoerung_melden", "vorrat_niedrig"}
+
+    geschrieben, _, uebersprungen = modul._kopieren(ziel, "1.0.1", gewaehlt, tmp_path / "a.yaml")
+
+    assert (geschrieben, uebersprungen) == (1, ["stoerung_melden.yaml"])
+
+
+def test_ausgelieferte_fassungen_sind_sha256():
+    import json
+    import re
+
+    liste = json.loads((VORLAGEN.parent.parent / "ausgeliefert.json").read_text(encoding="utf-8"))
+    assert liste and all(re.fullmatch(r"[0-9a-f]{64}", h) for h in liste)
 
 
 def test_ohne_auswahl_liest_der_executor_die_vorlagen(modul, tmp_path):

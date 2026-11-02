@@ -41,18 +41,27 @@ async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen
     antwort = await _senden(
         client,
         type="heatnexus/anordnung/einstellungen",
-        einstellungen={"kopf": "farbig", "menue": "taste", "alle": "zusammen"},
+        einstellungen={
+            "kopf": "farbig",
+            "menue": "taste",
+            "alle": "zusammen",
+            "strang": "verkleinern",
+            "strang_groesse": "gross",
+        },
     )
     assert antwort["success"], antwort
     gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]
     assert gelesen["einstellungen"]["kopf"] == "farbig"
     assert gelesen["einstellungen"]["menue"] == "taste"
     assert gelesen["einstellungen"]["alle"] == "zusammen"
+    assert gelesen["einstellungen"]["strang"] == "verkleinern"
+    assert gelesen["einstellungen"]["strang_groesse"] == "gross"
 
-    antwort = await _senden(
-        client, type="heatnexus/anordnung/einstellungen", einstellungen={"kopf": "bunt"}
-    )
-    assert not antwort["success"]
+    for fremd in ({"kopf": "bunt"}, {"strang": "falten"}, {"strang_groesse": "riesig"}):
+        antwort = await _senden(
+            client, type="heatnexus/anordnung/einstellungen", einstellungen=fremd
+        )
+        assert not antwort["success"], fremd
 
 
 async def test_unbekannter_reiter_wird_abgewiesen(hass, hass_ws_client):

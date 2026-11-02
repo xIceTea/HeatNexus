@@ -8,7 +8,8 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
+import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
+import { HOEHE, MODUL, RAND, reihenPlanen, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
   class extends Basis {
@@ -118,9 +119,98 @@ export const SchaubildMixin = (Basis) =>
     return huelle;
   }
 
+  /** Wie der Strang steht; null zeigt das Bild über die ganze Breite, wie in der Lovelace-Karte. */
+  _strangWahl() {
+    if (typeof this._stilwahl !== "function") return null;
+    const stufe = STRANGGROESSEN.find((eintrag) => eintrag.schluessel === this._stilwahl("strang_groesse"));
+    return { modus: this._stilwahl("strang"), groesse: stufe.pixel };
+  }
+
   _schaubild(anlage) {
     if (!anlage.schema_svg) return null;
     const karte = this._karte(this._bildtitel());
+    const wahl = this._strangWahl();
+    karte.appendChild(wahl ? this._strang(anlage, karte, wahl) : this._schaubildHuelle(anlage));
+    return karte;
+  }
+
+  /**
+   * Der Strang in Reihen nach der Breite der Karte. Jede Reihe hat ihre eigene Hülle
+   * mit eigenen Bindungen; neu gebaut wird nur, wenn sich die Aufteilung ändert.
+   */
+  _strang(anlage, karte, wahl) {
+    const rahmen = document.createElement("div");
+    rahmen.className = "schaubild-strang";
+    const breite = Number(anlage.schema_breite) || 0;
+    let bindungen = [];
+    let gebaut;
+    const ordnen = (verfuegbar) => {
+      const plan = breite && verfuegbar > 0
+        ? reihenPlanen({ teile: teileAus(breite), breite, verfuegbar, ...wahl })
+        : null;
+      const kennung = JSON.stringify(plan && plan.reihen);
+      if (kennung !== gebaut) {
+        gebaut = kennung;
+        bindungen = [];
+        rahmen.replaceChildren(...(plan ? plan.reihen : [null]).map(() => this._strangReihe(anlage, plan, bindungen)));
+        if (this._hass) bindungen.forEach((binden) => binden());
+      }
+      if (plan) [...rahmen.children].forEach((fenster, nr) => this._strangStellen(fenster, plan.reihen[nr], plan.massstab, breite));
+    };
+    this._bindungen.push(() => bindungen.forEach((binden) => binden()));
+    ordnen(0);
+    if (typeof ResizeObserver === "function") {
+      const beobachter = new ResizeObserver(([eintrag]) => ordnen(eintrag.contentRect.width));
+      beobachter.observe(karte);
+      this._aufbauAbbruch?.signal.addEventListener("abort", () => beobachter.disconnect());
+    }
+    return rahmen;
+  }
+
+  /** Eine Hülle; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
+  _strangReihe(anlage, plan, bindungen) {
+    const anfang = this._bindungen.length;
+    const huelle = this._schaubildHuelle(anlage);
+    bindungen.push(...this._bindungen.splice(anfang));
+    if (!plan) return huelle;
+    const fenster = document.createElement("div");
+    fenster.className = "strang-reihe";
+    fenster.appendChild(huelle);
+    return fenster;
+  }
+
+  /** Das Fenster schneidet genau an den Kanten der Anlagenteile, sonst ragt der Name des Nachbarn herein. */
+  _strangStellen(fenster, [erstes, anzahl], massstab, breite) {
+    fenster.style.width = `${anzahl * MODUL * massstab}px`;
+    fenster.style.height = `${HOEHE * massstab}px`;
+    const huelle = fenster.children[0];
+    huelle.style.width = `${breite * massstab}px`;
+    huelle.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
+    this._strangMarken(huelle, erstes, anzahl, breite);
+    const bild = huelle.querySelector("img");
+    if (bild && erstes > 0) bild.alt = "";
+  }
+
+  /** Marken außerhalb des Ausschnitts verlassen Tab-Reihenfolge und Vorlesebaum; `data-strang-tab` hält den Ausgangszustand. */
+  _strangMarken(huelle, erstes, anzahl, breite) {
+    const marken = new Set([...huelle.querySelectorAll("[tabindex]"), ...huelle.querySelectorAll('[role="button"]')]);
+    marken.forEach((marke) => {
+      const links = String(marke.style.left || "");
+      if (!links.endsWith("%")) return;
+      const teil = Math.floor(((parseFloat(links) / 100) * breite - RAND) / MODUL);
+      if (!("strangTab" in marke.dataset)) marke.dataset.strangTab = marke.getAttribute("tabindex") ?? "";
+      if (teil >= erstes && teil < erstes + anzahl) {
+        if (marke.dataset.strangTab) marke.setAttribute("tabindex", marke.dataset.strangTab);
+        else marke.removeAttribute("tabindex");
+        marke.removeAttribute("aria-hidden");
+      } else {
+        marke.setAttribute("tabindex", "-1");
+        marke.setAttribute("aria-hidden", "true");
+      }
+    });
+  }
+
+  _schaubildHuelle(anlage) {
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
@@ -629,7 +719,6 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    karte.appendChild(huelle);
-    return karte;
+    return huelle;
   }
   };
