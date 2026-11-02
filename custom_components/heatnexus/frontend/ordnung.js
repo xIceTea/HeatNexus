@@ -129,6 +129,17 @@ export const ALLESTILE = [
   { schluessel: "getrennt", titel: "Getrennt", hinweis: "Jede Anlage für sich, untereinander" },
   { schluessel: "zusammen", titel: "Zusammen", hinweis: "Gleiche Karten in einem Rahmen, ein Abschnitt je Anlage" },
 ];
+// Strang im Schaubild und Größe je Anlagenteil. Die Schlüssel decken sich mit
+// `STRANGSTILE` und `STRANGGROESSEN` in `anordnung.py`.
+export const STRANGSTILE = [
+  { schluessel: "umbrechen", titel: "Umbrechen", hinweis: "Was nicht in die Karte passt, steht in der nächsten Reihe" },
+  { schluessel: "verkleinern", titel: "Verkleinern", hinweis: "Bei wenig Platz werden die Anlagenteile kleiner" },
+];
+export const STRANGGROESSEN = [
+  { schluessel: "klein", titel: "Klein (80 px)", hinweis: "Jedes Anlagenteil ist 80 Pixel breit", pixel: 80 },
+  { schluessel: "mittel", titel: "Mittel (120 px)", hinweis: "Jedes Anlagenteil ist 120 Pixel breit", pixel: 120 },
+  { schluessel: "gross", titel: "Groß (160 px)", hinweis: "Jedes Anlagenteil ist 160 Pixel breit", pixel: 160 },
+];
 
 // Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
@@ -150,7 +161,17 @@ export const FARBSAETZE = [
 // Die Einstellungen im Fenster „Darstellung“: Schlüssel am Server, dazu die
 // erlaubten Werte. Der Browser merkt sich jede Wahl, weil der erste Aufbau
 // vor den Einstellungen vom Server steht und sonst umspringen würde.
-export const DARSTELLUNG = { farbsatz: FARBSAETZE, kopf: KOPFSTILE, menue: MENUESTILE, alle: ALLESTILE };
+export const DARSTELLUNG = {
+  farbsatz: FARBSAETZE,
+  kopf: KOPFSTILE,
+  menue: MENUESTILE,
+  alle: ALLESTILE,
+  strang: STRANGSTILE,
+  strang_groesse: STRANGGROESSEN,
+};
+
+// Wo der Standard nicht der erste Eintrag der Liste ist.
+export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel" };
 
 /** Wo eine Wahl der Darstellung im Browser liegt. */
 export function darstellungSpeicher(schluessel) {

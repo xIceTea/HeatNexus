@@ -103,6 +103,10 @@ MENUESTILE = ("zeichen", "taste")
 # Ob „Alle“ jede Anlage für sich zeigt oder Karten gleicher Art zusammenstellt.
 # Muss zu `ALLESTILE` in `frontend/ordnung.js` passen.
 ALLESTILE = ("getrennt", "zusammen")
+# Strang im Schaubild und Größe je Anlagenteil. Muss zu `STRANGSTILE` und
+# `STRANGGROESSEN` in `frontend/ordnung.js` passen.
+STRANGSTILE = ("umbrechen", "verkleinern")
+STRANGGROESSEN = ("klein", "mittel", "gross")
 
 # Farbsatz, Kopfzeile, Menütaste, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
@@ -111,6 +115,8 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
         vol.Optional("kopf"): vol.In(KOPFSTILE),
         vol.Optional("menue"): vol.In(MENUESTILE),
         vol.Optional("alle"): vol.In(ALLESTILE),
+        vol.Optional("strang"): vol.In(STRANGSTILE),
+        vol.Optional("strang_groesse"): vol.In(STRANGGROESSEN),
         vol.Optional("reiter"): REITERLISTE,
         vol.Optional("reiter_versteckt"): REITERLISTE,
     }

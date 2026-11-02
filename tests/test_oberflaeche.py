@@ -514,9 +514,9 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Eine Wahl bleibt Entwurf: „Übernehmen“ speichert sie, „Verwerfen“ lässt die alte stehen."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2]
-    assert darstellung["anfangs"][1:] == [["standard"], ["zeichen"]]
-    assert darstellung["nachKlick"][1:] == [["farbig"], ["zeichen"]]
+    assert darstellung["kacheln"] == [6, 4, 2, 2, 3]
+    assert darstellung["anfangs"][1:] == [["standard"], ["zeichen"], ["umbrechen"], ["mittel"]]
+    assert darstellung["nachKlick"][1:] == [["farbig"], ["zeichen"], ["umbrechen"], ["mittel"]]
     assert darstellung["kopfNachKlick"] == "standard"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
     assert darstellung["kopfNachUebernehmen"] == "farbig"

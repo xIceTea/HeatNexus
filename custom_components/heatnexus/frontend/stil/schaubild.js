@@ -26,6 +26,11 @@ export const SCHAUBILD = `
        bleibt davon unberührt. */
     --hn-schrift: 1;
   }
+  /* Strang in Reihen: Jede Reihe zeigt durch ein Fenster ihren Ausschnitt derselben Zeichnung. */
+  .schaubild-strang { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .schaubild-strang > .schaubild { align-self: stretch; }
+  .strang-reihe { position: relative; overflow: hidden; flex: none; }
+  .strang-reihe > .schaubild { position: absolute; top: 0; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
   /* --- Bewegung im Schaubild ------------------------------------------- */
