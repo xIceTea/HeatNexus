@@ -13,6 +13,11 @@ export const DarstellungMixin = (Basis) =>
      * Ein unbekannter Wert fällt auf den Standard zurück, sonst auf den ersten Eintrag der Liste.
      */
     _stilwahl(schluessel) {
+      return (this._vorschau && this._vorschau[schluessel]) || this._stilGespeichert(schluessel);
+    }
+
+    /** Die gespeicherte Wahl, ohne die Vorschau des offenen Fensters. */
+    _stilGespeichert(schluessel) {
       const stile = DARSTELLUNG[schluessel];
       const wert = this._einstellungen()[schluessel] || this._gemerkt(darstellungSpeicher(schluessel));
       if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
@@ -135,7 +140,15 @@ export const DarstellungMixin = (Basis) =>
       return schrift;
     }
 
-    /** Das Fenster „Darstellung“: Gewählt wird im Entwurf, „Übernehmen“ speichert, „Verwerfen“ lässt alles stehen. */
+    /** Die Oberfläche zeigt den Entwurf als Vorschau; `null` beendet sie. Gespeichert wird nichts. */
+    _vorschauZeigen(entwurf) {
+      if (!entwurf && !this._vorschau) return;
+      this._vorschau = entwurf ? { ...entwurf } : null;
+      this._gebaut = false;
+      if (!this._abgebaut) this._zeichnen();
+    }
+
+    /** Das Fenster „Darstellung“: Ein Klick zeigt die Wahl sofort, „Übernehmen“ speichert, „Verwerfen“ stellt zurück. */
     _darstellungOeffnen() {
       const schleier = document.createElement("div");
       schleier.className = "schleier";
@@ -151,8 +164,8 @@ export const DarstellungMixin = (Basis) =>
       dialog.append(ueberschrift, hinweis);
 
       const entwurf = {};
-      const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilwahl(schluessel));
-      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilwahl(schluessel));
+      const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilGespeichert(schluessel));
+      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel));
 
       const leiste = document.createElement("div");
       leiste.className = "dialog-leiste";
@@ -172,7 +185,7 @@ export const DarstellungMixin = (Basis) =>
       };
       leisteStellen();
 
-      const nachWahl = [leisteStellen];
+      const nachWahl = [leisteStellen, () => this._vorschauZeigen(entwurf)];
       const wahl = (name, art, schluessel) => {
         const waehlen = (stil) => {
           entwurf[schluessel] = stil;
@@ -206,11 +219,16 @@ export const DarstellungMixin = (Basis) =>
       dialog.appendChild(leiste);
 
       schleier.appendChild(dialog);
-      const weg = this._dialogOeffnen(schleier, { fokus: schliessen });
-      schliessen.addEventListener("click", weg);
+      const verwerfen = () => this._vorschauZeigen(null);
+      const weg = this._dialogOeffnen(schleier, { fokus: schliessen, beiAbbruch: verwerfen });
+      schliessen.addEventListener("click", () => {
+        weg();
+        verwerfen();
+      });
       uebernehmen.addEventListener("click", () => {
         const teil = Object.fromEntries(geaendert().map((schluessel) => [schluessel, entwurf[schluessel]]));
         weg();
+        this._vorschau = null;
         this._darstellungSetzen(teil);
       });
     }
