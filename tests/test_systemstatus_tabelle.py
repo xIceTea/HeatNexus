@@ -270,3 +270,22 @@ def test_der_lagerraum_steht_mit_namen_unter_dem_vorratsbehaelter():
         if re.search(lager.muster, n, re.IGNORECASE)
     ]
     assert treffer == ["Befüllgrad Lagerraum", "Vulniveau bunker"]
+
+
+def test_die_zeile_lagerraum_zeigt_den_befuellgrad_nicht_die_fehlerschwelle():
+    """Steht die Schwelle zuerst in der Liste, trägt die Zeile trotzdem den Befüllgrad."""
+    import re
+
+    geraete = load_standalone("geraete")
+    schema = load_standalone("schema")
+    [lager] = [z for z in geraete.statuszeilen.KESSEL if z.titel == "Lagerraum"]
+    entitaeten = [
+        {
+            "entity_id": "number.schwelle",
+            "name": "Schwelle Befüllgrad Lagerraum für Error",
+            "hat_wert": True,
+        },
+        {"entity_id": "sensor.lagerraum", "name": "Befüllgrad Lagerraum", "hat_wert": True},
+    ]
+    treffer = schema.treffer(entitaeten, (re.compile(lager.muster, re.IGNORECASE),))
+    assert [e["entity_id"] for e in treffer] == ["sensor.lagerraum"]
