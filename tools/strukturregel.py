@@ -33,10 +33,14 @@ def komplexitaeten() -> dict[tuple[str, int], int]:
         check=True,
     ).stdout
     ergebnis: dict[tuple[str, int], int] = {}
+    # Je Datei einmal: `resolve()` kostet auf einer Netzfreigabe eine Rundreise.
+    dateien: dict[str, str] = {}
     for fund in json.loads(ausgabe or "[]"):
         if m := re.search(r"\((\d+) > 0\)", fund["message"]):
-            datei = Path(fund["filename"]).resolve().relative_to(REPO).as_posix()
-            ergebnis[(datei, fund["location"]["row"])] = int(m.group(1))
+            name = fund["filename"]
+            if name not in dateien:
+                dateien[name] = Path(name).resolve().relative_to(REPO).as_posix()
+            ergebnis[(dateien[name], fund["location"]["row"])] = int(m.group(1))
     return ergebnis
 
 
