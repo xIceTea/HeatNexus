@@ -34,6 +34,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein kurzer Aussetzer der Steuerung löst kein Neueinlesen aus.
 - Ein Lesefehler legt den Sensor „Uhrabweichung“ nicht mehr still.
 - Nach einem gescheiterten Neustart der Automatik lernt das Hausmodell neu.
+- Ab Home Assistant 2026.11 meldet das Protokoll keine Abkündigung der Thermostate mehr.
 - Jede Wärmepumpe zeigt im Systemstatus Leistung, Vorlauf und Starts.
 - Am Rad der Übergabestation bleiben in Firefox keine Bruchstücke mehr stehen.
 - Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.

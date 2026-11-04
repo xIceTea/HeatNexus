@@ -210,14 +210,28 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
 
 
 class _Abkuendigungen(logging.Handler):
-    """Sammelt, was `homeassistant.helpers.frame` meldet."""
+    """Sammelt die Abkündigungsmeldungen von Home Assistant, gleich unter welchem Logger.
+
+    Abgekündigte Entitätsnamen meldet HA beim Laden der Klasse unter dem Logger des Moduls.
+    """
 
     def __init__(self) -> None:
         super().__init__(logging.WARNING)
         self.meldungen: list[str] = []
 
     def emit(self, record: logging.LogRecord) -> None:
-        self.meldungen.append(record.getMessage())
+        text = record.getMessage()
+        if (
+            record.name == "homeassistant.helpers.frame"
+            or "will stop working in home assistant" in text.lower()
+        ):
+            self.meldungen.append(text)
+
+
+# Schon beim Laden der conftest angehängt: Wer eine Plattform beim Sammeln
+# importiert, löst die Meldung aus, bevor die erste Fixture läuft.
+_ABKUENDIGUNGEN = _Abkuendigungen()
+logging.getLogger().addHandler(_ABKUENDIGUNGEN)
 
 
 @pytest.fixture(autouse=True)
@@ -225,14 +239,13 @@ def keine_abkuendigung_von_home_assistant():
     """Eine Abkündigungsmeldung von Home Assistant lässt den Test scheitern.
 
     Sie kündigt den Bruch in einer späteren Fassung an und fällt so vor dem Nutzer auf.
+    Was beim Sammeln anfiel, schlägt beim ersten Test an.
     """
-    logger = logging.getLogger("homeassistant.helpers.frame")
-    fang = _Abkuendigungen()
-    logger.addHandler(fang)
     yield
-    logger.removeHandler(fang)
-    if fang.meldungen:
-        pytest.fail("Home Assistant meldet eine Abkündigung:\n" + "\n".join(fang.meldungen))
+    meldungen = list(_ABKUENDIGUNGEN.meldungen)
+    _ABKUENDIGUNGEN.meldungen.clear()
+    if meldungen:
+        pytest.fail("Home Assistant meldet eine Abkündigung:\n" + "\n".join(meldungen))
 
 
 @pytest.fixture(scope="session", autouse=True)

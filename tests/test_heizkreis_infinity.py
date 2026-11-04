@@ -99,11 +99,19 @@ def test_ohne_raumfuehler_bleibt_die_isttemperatur_leer(thermostat, roh):
     if roh is not None:
         werte["/1/15/0/0/1/0"] = roh
     entitaet = thermostat(werte)
-    assert entitaet.current_temperature is None
-    assert entitaet.target_temperature == 20.0
+    assert _temperatur(entitaet, "current") is None
+    assert _temperatur(entitaet, "target") == 20.0
     assert entitaet.hvac_mode == "heat"
 
 
 def test_mit_raumfuehler_zeigt_das_thermostat_die_isttemperatur(thermostat):
     entitaet = thermostat({"/1/15/0/0/1/0": "21.1"})
-    assert entitaet.current_temperature == 21.1
+    assert _temperatur(entitaet, "current") == 21.1
+
+
+def _temperatur(entitaet, art: str) -> float | None:
+    """Ist- oder Sollwert unter dem Namen, den die laufende Fassung liest."""
+    from custom_components.heatnexus import climate
+
+    praefix = "native_" if climate.NATIVE_TEMPERATUREN else ""
+    return getattr(entitaet, f"{praefix}{art}_temperature")

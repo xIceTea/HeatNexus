@@ -59,6 +59,10 @@ OPTIMISTIC_MAX_AGE_S = 120
 RUECKSPRUNG_VERSUCHE = 3
 NAME_HOECHSTENS_BYTE = 20
 
+# Ab 2026.11 liest Home Assistant Einheit, Ist- und Sollwert unter `native_*`;
+# die alten Namen sind abgekündigt. Erkannt an der Schnittstelle, nicht an der Fassung.
+NATIVE_TEMPERATUREN = hasattr(ClimateEntity, "native_current_temperature")
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager climates from a config entry."""
@@ -104,7 +108,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     _attr_has_entity_name = True
     _attr_name = None
 
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    if NATIVE_TEMPERATUREN:
+        _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+    else:
+        _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = MIN_TEMP
     _attr_max_temp = MAX_TEMP
     _attr_target_temperature_step = 0.5
@@ -541,21 +548,25 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
 class WindhagerThermostatClimate(WindhagerBaseThermostat):
     """Windhager heating-circuit climate (Heizkreis)."""
 
-    @property
-    def current_temperature(self) -> float | None:
+    def _isttemperatur(self) -> float | None:
         # Gemessene Raumtemperatur (0/1). Ohne Raumfühler liefert das Gerät
         # "-.-" -> None, die Karte zeigt dann korrekt keine Ist-Temperatur.
         return self.get_oid_value("/0/1/0")
 
-    @property
-    def target_temperature(self) -> float | None:
-        # Aktiver Raum-Sollwert (1/1): zeigt im Heizprogramm die geplante
-        # Temperatur, im Heiz-/Absenkbetrieb den jeweiligen Sollwert und in
-        # Aus/WW-Betrieb korrekt den Frostwert. Direkt nach dem Setzen kurz der
+    def _solltemperatur(self) -> float | None:
+        # Aktiver Raum-Sollwert (1/1): im Heizprogramm der geplante Wert, in
+        # Aus/WW-Betrieb der Frostwert. Direkt nach dem Setzen kurz der
         # optimistische Wert, bis das Gerät 1/1 nachzieht.
         if self._optimistic_target is not None and self._optimistisch_gueltig(self._optimistic_ts):
             return self._optimistic_target
         return self.get_oid_value("/1/1/0")
+
+    if NATIVE_TEMPERATUREN:
+        native_current_temperature = property(_isttemperatur)
+        native_target_temperature = property(_solltemperatur)
+    else:
+        current_temperature = property(_isttemperatur)
+        target_temperature = property(_solltemperatur)
 
     async def async_umbenennen(self, name: str) -> None:
         """Den Funktionsnamen (Objekt 4/5) schreiben, wie ihn auch das Bediengerät zeigt."""
