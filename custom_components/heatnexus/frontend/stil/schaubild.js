@@ -26,11 +26,20 @@ export const SCHAUBILD = `
        bleibt davon unberührt. */
     --hn-schrift: 1;
   }
-  /* Strang in Reihen: Jede Reihe zeigt durch ein Fenster ihren Ausschnitt derselben Zeichnung. */
-  .schaubild-strang { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  /* Strang in Reihen: Jede Reihe zeigt durch ein Fenster ihren Ausschnitt derselben Zeichnung.
+     Geschnitten wird nur die Zeichnung. Namen und Zahlen liegen in einer eigenen Ebene darüber
+     und dürfen über die Kante ragen. Die Ebene ist so breit wie die ganze Zeichnung; der Rahmen
+     reicht deshalb bis an den Kartenrand und endet dort. */
+  .schaubild-strang {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    margin-inline: -16px; padding-inline: 16px; overflow-x: clip;
+  }
   .schaubild-strang > .schaubild { align-self: stretch; }
-  .strang-reihe { position: relative; overflow: hidden; flex: none; }
-  .strang-reihe > .schaubild { position: absolute; top: 0; }
+  .strang-reihe { position: relative; flex: none; }
+  .strang-ausschnitt { position: absolute; top: 0; left: 0; right: 0; overflow: hidden; }
+  .strang-ausschnitt > .schaubild, .strang-reihe > .schaubild { position: absolute; top: 0; }
+  .strang-schrift { pointer-events: none; }
+  .strang-schrift .marke-wert { pointer-events: auto; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
   /* --- Bewegung im Schaubild ------------------------------------------- */
@@ -432,14 +441,11 @@ export const SCHAUBILD = `
     border-radius: 0.55em; white-space: nowrap;
   }
   .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
-  /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. Am Rand des Ausschnitts rückt sie so weit ein, dass sie ganz bleibt. */
+  /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. */
   .schaubild .marke-wert.fuellgrad {
     background: none; padding: 0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
-    margin-left: max(0px, calc(var(--hn-kante, 0px) + 1.2em - var(--hn-links, 0%)));
     font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 13 * var(--hn-schrift)), calc(17px * var(--hn-schrift)));
   }
-  /* In einer anderen Reihe des Strangs bleibt sie an ihrer Stelle außerhalb des Ausschnitts. */
-  .schaubild .marke-wert.fuellgrad[aria-hidden="true"] { margin-left: 0; }
   /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
      Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */
   .schaubild .vorrat { position: absolute; pointer-events: auto; }

@@ -33,6 +33,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Am Rad der Übergabestation bleiben in Firefox keine Bruchstücke mehr stehen.
 - Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.
 - Im umgebrochenen Schaubild steht der Befüllgrad nur in der Reihe des Kessels.
+- Im umgebrochenen Schaubild ragen Namen und Zahlen ungeschnitten über die Kante einer Reihe.
 - BioWIN: An der AeroWIN liegt keine Glut mehr über der Betriebslampe.
 
 ## [1.15.0-beta.2] - 2026-11-02

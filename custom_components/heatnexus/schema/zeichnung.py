@@ -402,12 +402,13 @@ def _kasten(
     # Größer als die Messwerte darüber: Der Name des Anlagenteils ist das
     # erste, wonach man im Schaubild sucht, und die Karte skaliert das Bild
     # auf ihre Breite – bei vier Anlagenteilen wird daraus schnell Kleingedrucktes.
+    # `data-teil` lässt den Strang den Namen aus der geschnittenen Zeichnung nehmen.
     titel = (
-        f'<text x="{MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
+        f'<text data-teil="{platz}" x="{x + MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
         f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
         f"{_escape((buch or _gleich)(modul['titel']))}</text>"
     )
-    return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
+    return f'<g transform="translate({x},0)">{anschluss}{inhalt}</g>{titel}'
 
 
 # Arten, deren Werte ihre kurze Beschriftung mittragen: Am Heizkreis stehen

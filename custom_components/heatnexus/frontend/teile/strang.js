@@ -7,6 +7,26 @@ export const RAND = 24;
 export const MODUL = 200;
 export const HOEHE = 392;
 
+// Der Name eines Anlagenteils in der Zeichnung, siehe `_kasten` in `schema/zeichnung.py`.
+const NAME = /<text data-teil="(\d+)"[^>]*>[^<]*<\/text>/g;
+
+/** Die Zeichnung ohne die Namen; sie stehen im Strang ungeschnitten darüber. */
+export function ohneNamen(svg) {
+  return svg.replace(NAME, "");
+}
+
+/** Dasselbe Bildformat, aber nur mit den Namen der Teile `erstes` bis `erstes + anzahl - 1`. */
+export function nurNamen(svg, erstes, anzahl) {
+  const kopf = svg.slice(0, svg.indexOf(">") + 1);
+  const namen = [...svg.matchAll(NAME)].filter(([, teil]) => Number(teil) >= erstes && Number(teil) < erstes + anzahl);
+  return `${kopf}${namen.map(([text]) => text).join("")}</svg>`;
+}
+
+/** Zu welchem Anlagenteil eine Lage in Prozent der Zeichnungsbreite gehört. */
+export function teilAn(links, breite) {
+  return Math.floor(((parseFloat(links) / 100) * breite - RAND) / MODUL);
+}
+
 /** Wie viele Anlagenteile eine Zeichnung dieser Breite trägt; sie ist nie schmaler als 400. */
 export function teileAus(breite) {
   return Math.max(1, Math.floor((breite - 2 * RAND) / MODUL));

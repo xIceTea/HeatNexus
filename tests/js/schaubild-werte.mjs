@@ -103,6 +103,7 @@ ergebnis.unter_hoehe = unter.querySelectorAll(".strang-reihe").map((fenster) => 
 const bild = aufbauen({ werte_lage: "bild" }, 700);
 ergebnis.bild_leisten = leisten(bild);
 ergebnis.bild_marken = marken(bild);
+ergebnis.bild_je_reihe = bild.querySelectorAll(".strang-reihe").map(marken);
 
 // Verkleinern auf 700 px: ein Teil steht unter 100 px breit, die Zahlen rücken unter das Bild.
 ergebnis.auto_schmal = leisten(aufbauen({ strang: "verkleinern" }, 700)).length;

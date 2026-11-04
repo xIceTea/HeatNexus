@@ -55,6 +55,11 @@ def test_im_bild_gibt_es_keine_wertleiste(werte):
     assert not any("Vorratsbehälter" in marke for marke in werte["bild_marken"])
 
 
+def test_im_bild_steht_jede_zahl_nur_in_ihrer_reihe(werte):
+    """Die Zahlen liegen ungeschnitten über der Zeichnung und zeigen sich nur einmal."""
+    assert werte["bild_je_reihe"] == [["71.5 °C", "63 %"], ["COP 3.6"]]
+
+
 def test_automatisch_folgt_der_tatsaechlichen_breite(werte):
     """Beim Verkleinern zählt die Breite eines Teils, nicht die gewählte Größe."""
     assert werte["auto_schmal"] == 1

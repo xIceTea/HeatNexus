@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -63,6 +64,21 @@ def test_unsichtbare_marken_sind_nicht_fokussierbar(reihen):
     assert zweite["marken"] == [["50%", "-1", "true"], ["90%", "0", None]]
     assert erste["alt"] == "Anlagenschaubild"
     assert zweite["alt"] == ""
+
+
+def test_namen_stehen_ungeschnitten_nur_in_ihrer_reihe(reihen):
+    """Die Zeichnung trägt keinen Namen mehr, die Schriftebene nur die ihrer Reihe."""
+    assert reihen["namen"] == [
+        {"bilder": [[], ["Puffer"]], "geschnitten": "strang-ausschnitt"},
+        {"bilder": [[], ["Kreis"]], "geschnitten": "strang-ausschnitt"},
+    ]
+
+
+def test_nur_die_zeichnung_wird_geschnitten():
+    """Das Fenster selbst schneidet nicht, sonst endete die Schrift wieder an der Kante."""
+    stil = (FRONTEND / "stil" / "schaubild.js").read_text(encoding="utf-8")
+    assert "overflow" not in re.search(r"\.strang-reihe \{[^}]*\}", stil).group(0)
+    assert "overflow: hidden" in re.search(r"\.strang-ausschnitt \{[^}]*\}", stil).group(0)
 
 
 def test_gleiche_aufteilung_baut_nicht_neu(reihen):

@@ -10,7 +10,7 @@
 
 import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
 import { SchaubildWerteMixin } from "./schaubildwerte.js";
-import { HOEHE, MODUL, RAND, reihenPlanen, teileAus } from "./strang.js";
+import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
   class extends SchaubildWerteMixin(Basis) {
@@ -23,9 +23,9 @@ export const SchaubildMixin = (Basis) =>
    * `auto` folgt Home Assistant; ohne dessen Auskunft bleibt es beim dunklen
    * Satz, denn ein falsch geratenes Hell fiele stärker auf.
    */
-  _schemaBild(anlage) {
+  _schemaBild(anlage, svg = anlage.schema_svg) {
     const farben = anlage.schema_farben || {};
-    return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
+    return schaubildAdresse(farbenUmstellen(svg, farben[this._farbsatzGilt()]));
   }
 
   /** Wie groß die Marken im Schaubild stehen: nach der Darstellung. Die Karte überschreibt das. */
@@ -176,31 +176,48 @@ export const SchaubildMixin = (Basis) =>
     return rahmen;
   }
 
-  /** Eine Hülle, mit `unter` samt Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
+  /** Eine Hülle ohne `reihe`, sonst Ausschnitt, Schrift und mit `unter` die Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
   _strangReihe(anlage, reihe, bindungen, unter) {
     const anfang = this._bindungen.length;
-    const huelle = this._schaubildHuelle(anlage, unter);
+    const huelle = this._schaubildHuelle(anlage, Boolean(reihe));
+    const schrift = reihe ? this._strangSchrift(anlage, reihe, unter) : null;
     const leiste = unter ? this._wertleiste(anlage, reihe) : null;
     bindungen.push(...this._bindungen.splice(anfang));
     if (!reihe) return huelle;
     const fenster = document.createElement("div");
     fenster.className = "strang-reihe";
-    fenster.appendChild(huelle);
+    const ausschnitt = document.createElement("div");
+    ausschnitt.className = "strang-ausschnitt";
+    ausschnitt.appendChild(huelle);
+    fenster.append(ausschnitt, schrift);
     if (leiste) fenster.appendChild(leiste);
     return fenster;
   }
 
-  /** Das Fenster schneidet genau an den Kanten der Anlagenteile, sonst ragt der Name des Nachbarn herein. */
+  /** Die Schrift einer Reihe: Sie liegt über dem Ausschnitt und ragt ungeschnitten über dessen Kante. */
+  _strangSchrift(anlage, [erstes, anzahl], unter) {
+    const schrift = this._bildflaeche(anlage);
+    schrift.className = "schaubild strang-schrift";
+    schrift.appendChild(this._zeichnung(anlage, nurNamen(anlage.schema_svg, erstes, anzahl), ""));
+    if (!unter) this._wertmarken(schrift, anlage, this._werteDerReihe(anlage, erstes, anzahl));
+    return schrift;
+  }
+
+  /** Der Ausschnitt schneidet die Zeichnung an den Kanten der Anlagenteile, die Schrift steht deckungsgleich darüber. */
   _strangStellen(fenster, [erstes, anzahl], massstab, breite) {
     fenster.style.width = `${anzahl * MODUL * massstab}px`;
     // Mit Wertleiste wächst das Fenster um sie; die Leiste beginnt unter der Zeichnung.
-    const [huelle, leiste] = fenster.children;
-    fenster.style.height = leiste ? "" : `${HOEHE * massstab}px`;
-    if (leiste) leiste.style.marginTop = `${HOEHE * massstab}px`;
-    huelle.style.width = `${breite * massstab}px`;
-    huelle.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
-    // Wo der Ausschnitt in der Hülle beginnt; Marken am Rand rücken daran nach innen.
-    huelle.style.setProperty("--hn-kante", `${(RAND + erstes * MODUL) * massstab}px`);
+    const [ausschnitt, schrift, leiste] = fenster.children;
+    const hoehe = `${HOEHE * massstab}px`;
+    fenster.style.height = leiste ? "" : hoehe;
+    ausschnitt.style.height = hoehe;
+    schrift.style.height = hoehe;
+    if (leiste) leiste.style.marginTop = hoehe;
+    const huelle = ausschnitt.firstChild;
+    [huelle, schrift].forEach((flaeche) => {
+      flaeche.style.width = `${breite * massstab}px`;
+      flaeche.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
+    });
     this._strangMarken(huelle, erstes, anzahl, breite);
     const bild = huelle.querySelector("img");
     if (bild && erstes > 0) bild.alt = "";
@@ -212,7 +229,7 @@ export const SchaubildMixin = (Basis) =>
     marken.forEach((marke) => {
       const links = String(marke.style.left || "");
       if (!links.endsWith("%")) return;
-      const teil = Math.floor(((parseFloat(links) / 100) * breite - RAND) / MODUL);
+      const teil = teilAn(links, breite);
       if (!("strangTab" in marke.dataset)) marke.dataset.strangTab = marke.getAttribute("tabindex") ?? "";
       if (teil >= erstes && teil < erstes + anzahl) {
         if (marke.dataset.strangTab) marke.setAttribute("tabindex", marke.dataset.strangTab);
@@ -225,23 +242,27 @@ export const SchaubildMixin = (Basis) =>
     });
   }
 
-  /** Die Zeichnung mit ihren Marken; `ohneWerte` lässt die Zahlen für die Wertleiste weg. */
-  _schaubildHuelle(anlage, ohneWerte = false) {
-    const huelle = document.createElement("div");
-    huelle.className = "schaubild";
+  /** Eine leere Fläche im Maß der Zeichnung; alles darauf rechnet mit ihrer Einheit. */
+  _bildflaeche(anlage) {
+    const flaeche = document.createElement("div");
+    flaeche.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
     // Aufgesetzte rechnet damit und wächst mit dem Bild – in der schmalen
     // Vorschau wie im breiten Dashboard.
     if (anlage.schema_breite) {
-      huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
+      flaeche.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
     }
     // Das Schriftmaß der Marken: in der Karte aus dem Editor, in der Oberfläche aus der Darstellung.
-    huelle.style.setProperty("--hn-schrift", String(this._schriftmass()));
+    flaeche.style.setProperty("--hn-schrift", String(this._schriftmass()));
+    return flaeche;
+  }
+
+  /** Das Bild aus `svg`, das dem Farbsatz folgt. */
+  _zeichnung(anlage, svg, alt) {
     const bild = document.createElement("img");
-    const anfangsbild = this._schemaBild(anlage);
+    const anfangsbild = this._schemaBild(anlage, svg);
     bild.src = anfangsbild;
-    bild.alt = "Anlagenschaubild";
-    huelle.appendChild(bild);
+    bild.alt = alt;
 
     // **Der Farbsatz wird hier gewählt, nicht serverseitig.** Die Zeichnung
     // kommt einmal und wird hier eingefärbt; die Aufteilung entsteht in
@@ -253,13 +274,22 @@ export const SchaubildMixin = (Basis) =>
       // vermeintlicher Unterschied setzte die Quelle bei jedem Abgleich neu.
       let gezeigt = anfangsbild;
       this._bindungen.push(() => {
-        const gewuenscht = this._schemaBild(anlage);
+        const gewuenscht = this._schemaBild(anlage, svg);
         if (gewuenscht !== gezeigt) {
           gezeigt = gewuenscht;
           bild.src = gewuenscht;
         }
       });
     }
+    return bild;
+  }
+
+  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg. */
+  _schaubildHuelle(anlage, inReihe = false) {
+    const huelle = this._bildflaeche(anlage);
+    huelle.appendChild(
+      this._zeichnung(anlage, inReihe ? ohneNamen(anlage.schema_svg) : anlage.schema_svg, "Anlagenschaubild")
+    );
 
     // Strömung: zwei Bänder auf Vor- und Rücklauf. Sie laufen, solange
     // irgendeine Pumpe der Anlage fördert – steht alles, steht auch das Bild.
@@ -652,7 +682,7 @@ export const SchaubildMixin = (Basis) =>
     });
 
     this._vorratsbehaelter(huelle, anlage);
-    if (!ohneWerte) this._wertmarken(huelle, anlage);
+    if (!inReihe) this._wertmarken(huelle, anlage);
 
     // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
     // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob

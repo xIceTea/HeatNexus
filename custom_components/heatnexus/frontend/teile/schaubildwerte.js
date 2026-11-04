@@ -5,7 +5,7 @@
  */
 
 import { WERTEGROESSEN } from "../ordnung.js";
-import { MODUL, RAND } from "./strang.js";
+import { MODUL, teilAn } from "./strang.js";
 
 // Schmaler steht ein Anlagenteil, rücken seine Zahlen bei „Automatisch“ unter das Bild.
 const UNTER_AB = 100;
@@ -42,18 +42,24 @@ export const SchaubildWerteMixin = (Basis) =>
       return !eintrag.fuellgrad || (this._zahl(eintrag.entity) || 0) > 0;
     }
 
-    /** Die Zahlen als Marken in der Zeichnung. */
-    _wertmarken(huelle, anlage) {
-      this._zahlwerte(anlage).forEach((eintrag) => {
+    /** Die Zahlen an den Anlagenteilen einer Reihe. */
+    _werteDerReihe(anlage, erstes, anzahl) {
+      const breite = Number(anlage.schema_breite) || 0;
+      return this._zahlwerte(anlage).filter((eintrag) => {
+        const teil = teilAn(eintrag.left, breite);
+        return teil >= erstes && teil < erstes + anzahl;
+      });
+    }
+
+    /** Die Zahlen als Marken auf der Fläche `huelle`. */
+    _wertmarken(huelle, anlage, werte = this._zahlwerte(anlage)) {
+      werte.forEach((eintrag) => {
         const marke = document.createElement("div");
         marke.className = eintrag.fuellgrad ? "marke-wert fuellgrad" : "marke-wert";
         marke.style.left = eintrag.left;
         marke.style.top = eintrag.top;
         // Im Bild steht beim Behälter nur die Zahl; der Name erscheint beim Überfahren.
-        if (eintrag.fuellgrad) {
-          marke.title = eintrag.name;
-          marke.style.setProperty("--hn-links", eintrag.left);
-        }
+        if (eintrag.fuellgrad) marke.title = eintrag.name;
         huelle.appendChild(this._klickbar(marke, eintrag.entity));
         this._bindungen.push(() => {
           // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein
@@ -85,8 +91,7 @@ export const SchaubildWerteMixin = (Basis) =>
       for (let nr = 0; nr < anzahl; nr += 1) spalten.push(leiste.appendChild(document.createElement("div")));
       const breite = Number(anlage.schema_breite) || 0;
       this._zahlwerte(anlage).forEach((eintrag) => {
-        const teil = Math.floor(((parseFloat(eintrag.left) / 100) * breite - RAND) / MODUL);
-        const spalte = spalten[teil - erstes];
+        const spalte = spalten[teilAn(eintrag.left, breite) - erstes];
         if (!spalte) return;
         const zeile = document.createElement("div");
         zeile.className = "leiste-wert";
