@@ -52,7 +52,7 @@ FUNKTIONEN: dict[str, tuple[str, str]] = {
     "21": ("Puffer", "Puffertemperatur oben/mitte/unten, Beladegrad"),
     "24": ("Pumpe Wärmeerzeuger / Schichtladung", "Rücklaufhochhaltung, Mischer"),
     "25": ("Kessel (PuroWIN)", "Hackgut und Pellets"),
-    "26": ("Wärmepumpe (Energiemanagement)", "Stromtarife, PV-Eingang, SG Ready"),
+    "26": ("Hybridmanager", "Bivalenz, Umschaltventil, Stromtarife, PV-Eingang, SG Ready"),
     "27": ("Wärmepumpe", "Betriebsphase, Wärmemenge Heizen/Kühlen, E-Heizung"),
 }
 

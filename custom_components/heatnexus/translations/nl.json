@@ -1,9 +1,12 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "Deze installatie is al ingesteld",
       "reauth_successful": "Wachtwoord bijgewerkt",
-      "reconfigure_successful": "Adres gewijzigd"
+      "reconfigure_successful": "Adres gewijzigd",
+      "adresse_nachgefuehrt": "De regelaar antwoordt op een nieuw adres. De installatie is aangepast.",
+      "kein_umzug": "Op {host} antwoordt niet de regeling die nu zwijgt. Het adres blijft ongewijzigd."
     },
     "create_entry": {
       "default": "De installatie is ingericht. Laad de pagina één keer opnieuw, zodat de kaarten in het dashboard verschijnen."
@@ -89,6 +92,14 @@
         },
         "data_description": {
           "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in."
+        }
+      },
+      "umzug": {
+        "title": "Is de regeling verhuisd?",
+        "description": "Op {host} meldt zich een regeling, terwijl een ingestelde regeling op dit moment niet antwoordt. Is ze verhuisd, dan controleert HeatNexus met de opgeslagen toegang of op {host} dezelfde regeling antwoordt. Alleen kiezen als het apparaat op {host} bekend is.",
+        "menu_options": {
+          "umzug_pruefen": "Ja, adres bijwerken",
+          "user": "Nee, als nieuwe regeling instellen"
         }
       }
     }
@@ -483,6 +494,46 @@
       },
       "stoerspeicher": {
         "name": "Meldingen"
+      },
+      "uhrabweichung": {
+        "name": "Klokafwijking",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Tijd van de regeling"
+          }
+        }
+      },
+      "anlagenzustand": {
+        "name": "Installatiestatus",
+        "state": {
+          "in_ordnung": "In orde",
+          "info": "Infomelding",
+          "fehler": "Foutmelding",
+          "alarm": "Alarmmelding",
+          "nicht_erreichbar": "Regelaar niet bereikbaar",
+          "serviceausbrand": "Service-uitbranden loopt",
+          "nach_serviceausbrand": "Ketel uit na service-uitbranden",
+          "kaminkehrer": "Schoorsteenveger actief",
+          "lagerraum": "Opslagruimte vullen",
+          "sonderbetrieb": "Speciale werking",
+          "schaltet_ab": "Ketel schakelt uit",
+          "kessel_aus": "Ketel uitgeschakeld",
+          "brenner_gesperrt": "Brander geblokkeerd"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Meldingsniveau"
+          },
+          "kesselzustand": {
+            "name": "Ketelstatus"
+          },
+          "betriebsart": {
+            "name": "Bedrijfsstatus"
+          },
+          "betriebsphase": {
+            "name": "Bedrijfsfase"
+          }
+        }
       }
     },
     "binary_sensor": {
@@ -628,11 +679,20 @@
     "wert_abgelehnt": {
       "message": "De installatie heeft de nieuwe waarde niet aangenomen. De instelling is in de huidige toestand van de installatie vergrendeld of niet te wijzigen. Datapunt {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "De installatie {anlage} heeft de schrijfopdracht niet beantwoord: geen verbinding of tijd verstreken. Een latere poging lukt meestal. Datapunt {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "De installatie heeft de schrijfopdracht niet beantwoord. Een latere poging lukt meestal. Datapunt {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
       "message": "De installatie heeft het tijdprogramma niet aangenomen. Controleer de schakeltijden. Datapunt {oid}, HTTP {status}."
+    },
+    "name_abgelehnt": {
+      "message": "De installatie heeft de naam niet aangenomen. Datapunt {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "De naam is te lang. Toegestaan zijn hoogstens {hoechstens} bytes; een umlaut telt dubbel."
     },
     "voreinstellung_unbekannt": {
       "message": "De voorinstelling {voreinstellung} bestaat niet."
@@ -734,6 +794,16 @@
         "compensation": {
           "name": "Correctie",
           "description": "Wordt bij de gewenste kamertemperatuur opgeteld."
+        }
+      }
+    },
+    "heizkreis_umbenennen": {
+      "name": "Verwarmingscircuit hernoemen",
+      "description": "Schrijft de naam van het verwarmingscircuit naar de regeling. Het bedieningspaneel toont hem meteen. De functielijst van de webserver, en daarmee de apparaatnaam in Home Assistant, volgen na een herstart van de webserver en een nieuwe detectie.",
+      "fields": {
+        "name": {
+          "name": "Naam",
+          "description": "Hoogstens 20 bytes; een umlaut telt dubbel."
         }
       }
     },

@@ -370,7 +370,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   flaeche._darstellungSetzen({ menue: "zeichen" });
 }
 
-// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick wirkt sofort.
+// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick zeigt die Wahl sofort als Vorschau.
 {
   const wurzel = flaeche.shadowRoot;
   const vorher = wurzel.querySelectorAll(".schleier").length;
@@ -398,6 +398,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
   zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  const kopfInDerVorschau = flaeche._kopfstil();
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
     kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
@@ -407,6 +408,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
     leisteNachKlick,
     kopfNachUebernehmen,
     leisteAnfangs,
+    kopfInDerVorschau,
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,
@@ -1906,6 +1908,53 @@ bilanz.meldungBeimSpeichern = meldungen;
   const ohneAutomatik = flaeche._heizkreiszeile({ entity: "climate.heizkreis", titel: "HK" });
   bilanz.automatikAbzeichen = { imProgramm, sonnentag, reiter, ohne: !ohneAutomatik.querySelector(".automatik-abzeichen") };
   flaeche._reiter = vorherReiter;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
+// Kopf der Übersicht: Der Kesselzustand erscheint als zweites Abzeichen und
+// ersetzt „Anlage in Ordnung“, solange er etwas Besonderes meldet.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const setzen = (kennung, wert) => {
+    zustaende[kennung] = { entity_id: kennung, state: wert, attributes: {} };
+  };
+  const beschreibung = {
+    bezug: "sensor.kz_art",
+    betriebsart: "sensor.kz_art",
+    betriebswahl: "sensor.kz_wahl",
+    phase: "sensor.kz_phase",
+    serviceausbrand: ["Serviceausbrand"],
+    offline: { text: "Steuerung nicht erreichbar", symbol: "mdi:lan-disconnect" },
+    regeln: [
+      { quelle: "betriebsart", wenn: ["Kaminkehrerfunktion"], serviceausbrand: null, text: "Kaminkehrer aktiv", symbol: "mdi:account-hard-hat" },
+    ],
+  };
+  const kopf = (kesselzustandBeschreibung, stoerungen = []) => {
+    const vorher = flaeche._bindungen.length;
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen, kesselzustand: kesselzustandBeschreibung });
+    flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+    const [ok, sonder] = karte.querySelectorAll(".abzeichen");
+    return {
+      ok: { anzeige: ok.style.display, text: text(ok) },
+      sonder: { anzeige: sonder.style.display, text: text(sonder), symbol: sonder.firstChild.getAttribute("icon") },
+    };
+  };
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const kaminkehrer = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kessel-Temperatur");
+  const imBetrieb = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const ohneBeschreibung = kopf(null);
+  // Meldung und Kesselzustand zugleich: beide Abzeichen bleiben sichtbar.
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  setzen("sensor.kz_stoerung", "Fehler");
+  setzen("binary_sensor.kz_melder", "on");
+  const mitMeldung = kopf(beschreibung, [{ entity: "sensor.kz_stoerung", melder: "binary_sensor.kz_melder" }]);
+  bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung, mitMeldung };
+  for (const kennung of ["sensor.kz_art", "sensor.kz_stoerung", "binary_sensor.kz_melder"]) delete zustaende[kennung];
   flaeche._gebaut = false;
   flaeche._zeichnen();
 }

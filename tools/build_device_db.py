@@ -8,6 +8,10 @@ Die Dateien liegen öffentlich bereit und werden bei Bedarf geladen:
     en-parameters.json      englische Namen, Enum- und Störungstexte als Rückfall
     parameterLayer.json     Zuordnung der Datenpunkte zu den Bedienebenen
 
+Fehlt dem Hersteller ein fremdsprachiger Name, füllt `tools/datenpunktnamen.json`
+die Lücke. Dort steht je Adresse der deutsche Name, auf den sich die Übersetzung
+bezieht; ändert der Hersteller ihn, bleibt die Übersetzung draußen.
+
 Dazu kommt mit `--abhilfe` eine JSON-Datei mit den Abhilfetexten der
 Störungstabellen aus Windhagers Bedienungsanleitungen. Sie füllt das Feld
 `behebung` der deutschen Störungstexte; `info` bleibt der Herstellertext.
@@ -48,6 +52,7 @@ FREMDSPRACHEN = ("en", "nl")
 EBENEN = ("overview", "info", "operate", "service", "oem")
 REPO = Path(__file__).resolve().parent.parent
 ZIEL = REPO / "custom_components" / "heatnexus"
+EIGENE_NAMEN = Path(__file__).resolve().parent / "datenpunktnamen.json"
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -108,6 +113,17 @@ ENUM_PRAEZISIERUNG: dict[str, dict[str, dict[str, str]]] = {
             "nl": "Standby verwarmingsgrens",
         }
     },
+    # Der Hersteller nummeriert nur. Die Nummern sind die Betriebszustände des SG-Ready-Labels.
+    "54/49": {
+        "1": {"de": "Sperre", "en": "Blocked", "nl": "Blokkering"},
+        "2": {"de": "Normalbetrieb", "en": "Normal operation", "nl": "Normaal bedrijf"},
+        "3": {
+            "de": "Einschaltempfehlung",
+            "en": "Switch-on recommendation",
+            "nl": "Inschakeladvies",
+        },
+        "4": {"de": "Einschaltbefehl", "en": "Switch-on command", "nl": "Inschakelcommando"},
+    },
 }
 
 
@@ -132,6 +148,26 @@ def sammle_sprache(parameter: dict, geraetetexte: dict[str, str], sprache: str) 
     _uebernehmen(namen, geraetetexte)
     _uebernehmen(namen, parameter.get("oids", {}))
     return {"names": namen, "enums": sammle_enums(parameter, sprache)}
+
+
+def ergaenze_eigene_namen(
+    namen: dict[str, str], sprachen: dict[str, dict], eigene: dict[str, dict[str, str]]
+) -> tuple[dict[str, int], list[str]]:
+    """Lücken der Fremdsprachen mit der eigenen Übersetzung füllen.
+
+    Der Herstellertext geht vor. Passt der deutsche Bezug nicht mehr, gilt der Eintrag als veraltet.
+    """
+    ergaenzt = dict.fromkeys(sprachen, 0)
+    veraltet = []
+    for adresse, fassungen in eigene.items():
+        if namen.get(adresse) != fassungen.get("de"):
+            veraltet.append(adresse)
+            continue
+        for sprache, inhalt in sprachen.items():
+            if (text := fassungen.get(sprache)) and adresse not in inhalt["names"]:
+                inhalt["names"][adresse] = text
+                ergaenzt[sprache] += 1
+    return ergaenzt, veraltet
 
 
 def geraetetexte_fuer(deutsch: Path | None, sprache: str) -> Path | None:
@@ -503,6 +539,8 @@ def main() -> int:
         sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
         ergaenze_stoerungen(stoerungen[sprache], sprache)
+    eigene = json.loads(EIGENE_NAMEN.read_text(encoding="utf-8"))
+    eigen_ergaenzt, veraltet = ergaenze_eigene_namen(namen, sprachen, eigene)
 
     print(f"\nDatenpunktnamen : {len(namen)}")
     print(f"davon ergänzt   : {ergaenzt} (an der Anlage gemessen, siehe UEBERSTEUERUNG)")
@@ -513,6 +551,9 @@ def main() -> int:
     for sprache, inhalt in sprachen.items():
         print(f"Namen {sprache:<10}: {len(inhalt['names'])}, Enum-Tabellen {len(inhalt['enums'])}")
         print(f"Störungen {sprache:<6}: {len(stoerungen[sprache])}")
+        print(f"eigene {sprache:<9}: {eigen_ergaenzt[sprache]} (tools/datenpunktnamen.json)")
+    if veraltet:
+        print(f"veraltet        : {', '.join(veraltet)} (deutscher Name geändert)")
     for fct in sorted(ebenen, key=int):
         zaehler = {e: len(ebenen[fct].get(e, [])) for e in EBENEN if ebenen[fct].get(e)}
         gruppen = len(ebenen[fct].get("groups", {}))

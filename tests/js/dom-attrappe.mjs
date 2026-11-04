@@ -123,6 +123,9 @@ class Knoten {
   get firstChild() {
     return this.children[0] || null;
   }
+  get lastChild() {
+    return this.children[this.children.length - 1] || null;
+  }
   // Der Browser trennt Text- und Elementkinder; hier stehen beide in
   // `children`. Wer `childNodes` liest, bekommt dasselbe.
   get childNodes() {

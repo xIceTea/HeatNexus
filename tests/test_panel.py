@@ -1597,9 +1597,10 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
     ],
 )
 def test_zaehlermuster_treffen_nur_den_ganzen_namen(name, gesucht):
-    from custom_components.heatnexus.panel.muster import STATUS
+    from custom_components.heatnexus.geraete.statuszeilen import EINZELN
 
-    treffer = [titel for muster, titel, *_ in STATUS if re.search(muster, name.lower())]
+    zeilen = [z for z in EINZELN if z.panel]
+    treffer = [z.titel for z in zeilen if re.search(z.muster, name.lower())]
     assert treffer[:1] == ([gesucht] if gesucht else [])
 
 
@@ -1630,3 +1631,21 @@ def test_ein_vorlaufprogramm_ohne_optionstexte_folgt_seiner_nummer(panel):
     )
     (karte,) = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
     assert karte["wirkung"]["muster"] == "programm 2"
+
+
+def test_panel_daten_fuehren_den_kesselzustand(panel):
+    """Der Kopf der Übersicht braucht die Beschreibung des Kesselzustands."""
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet(
+                "sensor.art",
+                "Betriebsart",
+                adresse="2/59",
+                optionen={0: "Ausgeschaltet", 9: "Kaminkehrerfunktion"},
+            ),
+        ],
+    )
+    daten = panel.anlage_daten(anlage(kessel))
+    assert daten["kesselzustand"]["betriebsart"] == "sensor.art"

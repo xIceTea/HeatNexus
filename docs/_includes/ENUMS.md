@@ -1196,10 +1196,10 @@ Derzeit ist das bei keiner nötig.
 | Wert | Bedeutung |
 |---|---|
 | 0 | Aus |
-| 1 | Zustand 1 |
-| 2 | Zustand 2 |
-| 3 | Zustand 3 |
-| 4 | Zustand 4 |
+| 1 | Sperre |
+| 2 | Normalbetrieb |
+| 3 | Einschaltempfehlung |
+| 4 | Einschaltbefehl |
 
 ### `54/50`
 

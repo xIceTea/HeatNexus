@@ -83,7 +83,9 @@ def test_das_alte_eingabefeld_eines_fachparameters_wird_geloescht(hass):
     beschreibung = {"id": kennung, "type": "sensor", "level": "service", "enabled_default": True}
     koordinator = SimpleNamespace(
         data={"devices": [beschreibung]},
-        client=SimpleNamespace(_vollstaendig=True, writable_advanced=False),
+        client=SimpleNamespace(
+            steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True, writable_advanced=False
+        ),
     )
     try:
         stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})

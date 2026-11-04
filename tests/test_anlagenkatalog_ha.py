@@ -241,6 +241,7 @@ UEBERSICHT_ERWARTET = {
     "biowin-1403": ["leitwert", "kennwerte", *["tile", "kennwerte"] * 3],
     "biowin-1415-puffer": ["leitwert", "kennwerte", "puffer", "tile", "kennwerte"],
     "biowin-1415-touch2": ["leitwert", "kennwerte", "tile", "kennwerte"],
+    "biowin-hybrid": ["leitwert", "kennwerte", "puffer", *["tile", "kennwerte"] * 2],
     "duowin": [
         *["leitwert", "kennwerte"] * 2,
         "puffer",

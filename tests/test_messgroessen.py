@@ -27,6 +27,9 @@ def _sensor(**felder):
         ("°C", "°C"),
         ("%", "%"),
         ("h", "h"),
+        ("L/h", "L/h"),
+        ("g", "g"),
+        ("ms", "ms"),
     ],
 )
 def test_einheit_wird_auf_ha_schreibweise_gebracht(helpers, geraet, erwartet):
@@ -139,6 +142,14 @@ def test_ein_englischer_zaehler_wird_am_deutschen_namen_erkannt(helpers):
 def test_ein_messwert_ohne_einheit_bleibt_ohne_statistik(helpers):
     """Ein Zustand ohne Einheit ist kein Zähler."""
     assert helpers.messgroesse(_sensor(name="Betriebsphase", unit=None)).get("state_class") is None
+
+
+@pytest.mark.parametrize("name", ["COP aktuell", "Ø COP Heizen heute", "Grenz-COP"])
+def test_eine_leistungszahl_ohne_einheit_ist_ein_messwert(helpers, name):
+    """Ohne Statistikklasse zeigt Home Assistant „3.6“ als Text und zeichnet keine Kurve."""
+    beschreibung = helpers.messgroesse(_sensor(name=name, unit=None))
+    assert beschreibung["state_class"] == "measurement"
+    assert beschreibung["precision"] == 1
 
 
 def test_restlaufzeit_bleibt_messwert(helpers):

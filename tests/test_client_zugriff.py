@@ -141,6 +141,41 @@ async def test_die_steuerung_nennt_sich_selbst(client):
     assert c._session.anfragen[0][1].endswith("/api/1.0/info/deviceinfo")
 
 
+async def test_der_webserver_nennt_seine_lon_anwendung(client):
+    c = client(
+        _Antwort(200, b'{"device": "MB6621", "version": "0.10.1"}'),
+        _Antwort(200, b'{"name": "MB6611_LOP", "version": "V 1.02"}'),
+    )
+    await c._lese_geraeteinfo()
+    assert c.geraeteinfo["lonapp"] == "V 1.02"
+    assert c._session.anfragen[1][1].endswith("/WsFUP7030/api/1.0/info/LONApp")
+
+
+async def test_die_uhr_der_steuerung_wird_mit_home_assistant_verglichen(client, monkeypatch):
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.client import systemzeit
+
+    jetzt = datetime(2026, 11, 1, 12, 0, 0, tzinfo=dt_util.get_default_time_zone())
+    monkeypatch.setattr(systemzeit.dt_util, "now", lambda: jetzt)
+    c = client(_Antwort(200, b'{"dateTime": "2026-11-01T13:00:30"}'))
+
+    zeit = await c._systemzeit_lesen()
+
+    assert zeit["abweichung"] == 3630
+    assert c._session.anfragen[0][1].endswith("/WsAdmin/api/1.0/systemtime")
+
+
+async def test_ohne_uhr_fragt_der_client_nicht_weiter(client):
+    c = client(_Antwort(503, b"endpoint <WsAdmin> does not exist."))
+
+    assert await c._systemzeit_lesen() is None
+    assert await c._systemzeit_lesen() is None
+    assert len(c._session.anfragen) == 1
+
+
 async def test_ohne_auskunft_bleibt_die_geraeteinfo_leer(client):
     """Ältere Steuerungen kennen den Endpunkt nicht – das ist kein Fehler."""
     c = client(_Antwort(404, b"not found"))
@@ -260,6 +295,51 @@ async def test_ein_bleibender_gateway_fehler_heisst_ohne_antwort(client, monkeyp
     assert len(c._session.anfragen) == 3
 
 
+class _StrengeAntwort(_Antwort):
+    """`text()` wie aiohttp ohne Zeichensatz im Kopf: UTF-8, ohne Nachsicht."""
+
+    async def text(self) -> str:
+        return self._rohdaten.decode("utf-8")
+
+
+async def test_ein_fehlertext_in_der_dos_codepage_bleibt_ein_schreibfehler(client):
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    c = client(_StrengeAntwort(409, "Ungültig".encode("cp850")))
+    with pytest.raises(WindhagerWriteError) as fehler:
+        await c.update("/1/15/0/3/51/0", "21.5")
+    assert fehler.value.translation_key == "wert_abgelehnt"
+
+
+@pytest.mark.parametrize("ursache", ["verbindung", "zeit"])
+async def test_ohne_verbindung_beim_schreiben_kommt_eine_meldung(client, ursache):
+    """Statt eines Stapelauszugs von aiohttp steht an der Entität ein übersetzter Satz."""
+    import aiohttp
+
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    c = client()
+    fehler = aiohttp.ClientConnectionError("weg") if ursache == "verbindung" else TimeoutError()
+    c._session.request = _scheitert(fehler)
+    with pytest.raises(WindhagerWriteError) as gemeldet:
+        await c.update("/1/15/0/3/51/0", "21.5")
+    assert gemeldet.value.translation_key == "schreiben_nicht_erreichbar"
+
+
+async def test_entladen_waehrend_der_wiederholung_heisst_nicht_verbunden(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    c = client(_Antwort(502, b""), _Antwort(200, b""))
+
+    async def entladen_in_der_pause(_sekunden):
+        await c.close()
+
+    monkeypatch.setattr(transport.asyncio, "sleep", entladen_in_der_pause)
+    with pytest.raises(CannotConnect):
+        await c.update("/1/15/0/3/4/0", "21.5")
+
+
 # ---------------------------------------------------------------------------
 # object-Endpunkt (Zeitprogramme)
 # ---------------------------------------------------------------------------
@@ -320,6 +400,52 @@ async def test_ein_wert_kommt_ueber_den_datapoint_endpunkt(client):
     methode, url, _rumpf = c._session.anfragen[-1]
     assert methode == "GET"
     assert url.endswith("/api/1.0/datapoint/1/60/0/0/7/0")
+
+
+async def test_ein_gateway_fehler_beim_lesen_wird_einmal_wiederholt(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(502, b""), _Antwort(200, json.dumps({"value": "63.5"}).encode()))
+
+    assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", "63.5")
+    assert len(c._session.anfragen) == 2
+
+
+async def test_ein_bleibender_gateway_fehler_beim_lesen_laesst_den_wert_stehen(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(502, b""), _Antwort(502, b""))
+
+    _oid, wert = await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert wert is FEHLGESCHLAGEN
+    assert len(c._session.anfragen) == 2
+
+
+async def test_nach_504_wird_nicht_nachgefragt(client, monkeypatch):
+    """504 heißt: Das Gerät antwortet nicht; eine Wiederholung träfe den Suchlauf des Webservers."""
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(504, b""), _Antwort(200, json.dumps({"value": "63.5"}).encode()))
+
+    _oid, wert = await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert wert is FEHLGESCHLAGEN
+    assert len(c._session.anfragen) == 1
 
 
 async def test_eine_leermarke_wird_kein_messwert(client):

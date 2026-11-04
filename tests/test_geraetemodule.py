@@ -15,7 +15,16 @@ from .conftest import load_standalone
 ORDNER = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "geraete"
 
 # Bauteile, die das Schaubild zeichnen kann.
-ARTEN = {"kessel", "puffer", "heizkreis", "wasser", "solar", "pumpenmodul", "umschaltung"}
+ARTEN = {
+    "kessel",
+    "puffer",
+    "heizkreis",
+    "wasser",
+    "solar",
+    "pumpenmodul",
+    "umschaltung",
+    "hybridmanager",
+}
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +83,35 @@ def test_zusatzadressen_stehen_ohne_fuehrenden_schraegstrich(geraete):
     """Der Client hängt sie an das Präfix an; ein Strich zu viel bricht sie."""
     for eintraege in geraete.EXTRA_OIDS.values():
         assert all(not a.startswith("/") for a in eintraege)
+
+
+def test_jede_zusatzadresse_der_waermepumpe_hat_einen_namen(geraete):
+    """Gruppe 52 steht in keinem Menü; ohne Namen aus der Datenbank hieße der Wert nur nach der Adresse."""
+    import json
+    from pathlib import Path
+
+    db = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "device_db.json"
+    namen = json.loads(db.read_text(encoding="utf-8"))["names"]
+    for fct_type in (7, 26):
+        assert geraete.EXTRA_OIDS[fct_type]
+        assert all(gnmn in namen for gnmn in geraete.EXTRA_OIDS[fct_type]), fct_type
+
+
+def test_zaehler_unter_den_zusatzadressen_sind_anzeigen(geraete):
+    """Die Steuerung meldet Zählerstände ohne Schreibschutz; ohne Eintrag entstünde ein Eingabefeld."""
+    import json
+
+    db = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "device_db.json"
+    namen = json.loads(db.read_text(encoding="utf-8"))["names"]
+    woerter = ("betriebsstunden", "anzahl starts", "wärmemenge", "energiemenge")
+    fehlend = [
+        f"{fct_type} {gnmn}"
+        for fct_type, adressen in geraete.EXTRA_OIDS.items()
+        for gnmn in adressen
+        if any(wort in (namen.get(gnmn) or "").lower() for wort in woerter)
+        and gnmn not in geraete.NUR_ANZEIGE.get(fct_type, ())
+    ]
+    assert not fehlend, fehlend
 
 
 def test_schaltpunkte_nennen_ihren_funktionstyp(geraete):
@@ -152,3 +190,11 @@ def test_rundinstrumente_nennen_nur_bekannte_schluessel(geraete):
 def test_kessel_und_puffer_haben_zeigerinstrumente(geraete):
     assert [s for s, _ in geraete.RUNDINSTRUMENTE[25]] == ["boiler_temperature", "boiler_power"]
     assert [s for s, _ in geraete.RUNDINSTRUMENTE[16]] == ["buffer_top", "buffer_bottom"]
+
+
+def test_hybridmanager_nennt_waermepreis_und_grenz_cop():
+    """Interne Rechenwerte ohne Namen in Datenbank, App und Display; benannt nach Nachrechnung."""
+    from custom_components.heatnexus.client.erkennung import name_override
+
+    assert name_override(26, "54/3") == "Wärmepreis Pellets (ct/kWh)"
+    assert name_override(26, "54/4") == "Grenz-COP"

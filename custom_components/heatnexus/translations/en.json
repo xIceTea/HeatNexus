@@ -1,9 +1,12 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "This system is already configured",
       "reauth_successful": "Password updated",
-      "reconfigure_successful": "Address changed"
+      "reconfigure_successful": "Address changed",
+      "adresse_nachgefuehrt": "The controller answers at a new address. The system was updated.",
+      "kein_umzug": "The controller at {host} is not the silent one. Its address was not changed."
     },
     "create_entry": {
       "default": "The system is set up. Reload the page once so that the cards appear in the dashboard."
@@ -89,6 +92,14 @@
         },
         "data_description": {
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant."
+        }
+      },
+      "umzug": {
+        "title": "Has the controller moved?",
+        "description": "A controller answers at {host}, while a configured controller is currently silent. If it has moved, HeatNexus checks with its stored login whether the same controller answers at {host}. Only choose this if the device at {host} is known.",
+        "menu_options": {
+          "umzug_pruefen": "Yes, update the address",
+          "user": "No, set it up as a new controller"
         }
       }
     }
@@ -483,6 +494,46 @@
       },
       "stoerspeicher": {
         "name": "Messages"
+      },
+      "uhrabweichung": {
+        "name": "Clock offset",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Controller time"
+          }
+        }
+      },
+      "anlagenzustand": {
+        "name": "System status",
+        "state": {
+          "in_ordnung": "OK",
+          "info": "Info message",
+          "fehler": "Error message",
+          "alarm": "Alarm message",
+          "nicht_erreichbar": "Controller unreachable",
+          "serviceausbrand": "Service burn-off running",
+          "nach_serviceausbrand": "Boiler off after service burn-off",
+          "kaminkehrer": "Chimney sweep active",
+          "lagerraum": "Filling storage room",
+          "sonderbetrieb": "Special operation",
+          "schaltet_ab": "Boiler shutting down",
+          "kessel_aus": "Boiler off",
+          "brenner_gesperrt": "Burner blocked"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Message level"
+          },
+          "kesselzustand": {
+            "name": "Boiler state"
+          },
+          "betriebsart": {
+            "name": "Operating state"
+          },
+          "betriebsphase": {
+            "name": "Operating phase"
+          }
+        }
       }
     },
     "binary_sensor": {
@@ -628,11 +679,20 @@
     "wert_abgelehnt": {
       "message": "The system did not accept the new value. The setting is locked or cannot be changed in the current state of the system. Data point {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "The system {anlage} did not answer the write request: no connection or timed out. A later attempt usually succeeds. Data point {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "The system did not answer the write request. A later attempt usually succeeds. Data point {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
       "message": "The system did not accept the schedule. Please check the switching times. Data point {oid}, HTTP {status}."
+    },
+    "name_abgelehnt": {
+      "message": "The system did not accept the name. Datapoint {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "The name is too long. At most {hoechstens} bytes are allowed; an umlaut counts twice."
     },
     "voreinstellung_unbekannt": {
       "message": "The preset {voreinstellung} does not exist."
@@ -734,6 +794,16 @@
         "compensation": {
           "name": "Correction",
           "description": "Added to the room setpoint."
+        }
+      }
+    },
+    "heizkreis_umbenennen": {
+      "name": "Rename heating circuit",
+      "description": "Writes the heating circuit's name to the controller. The control panel shows it at once. The web server's function list, and with it the device name in Home Assistant, follow after a restart of the web server and a new discovery.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "At most 20 bytes; an umlaut counts twice."
         }
       }
     },

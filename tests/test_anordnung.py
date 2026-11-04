@@ -235,6 +235,10 @@ def test_jede_wahl_der_darstellung_darf_gespeichert_werden(tmp_path):
     assert im_browser["kopf"] == _liste_der_serverseite("KOPFSTILE")
     assert im_browser["menue"] == _liste_der_serverseite("MENUESTILE")
     assert im_browser["alle"] == _liste_der_serverseite("ALLESTILE")
+    assert im_browser["strang"] == _liste_der_serverseite("STRANGSTILE")
+    assert im_browser["strang_groesse"] == _liste_der_serverseite("STRANGGROESSEN")
+    assert im_browser["werte_groesse"] == _liste_der_serverseite("WERTEGROESSEN")
+    assert im_browser["werte_lage"] == _liste_der_serverseite("WERTELAGEN")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")

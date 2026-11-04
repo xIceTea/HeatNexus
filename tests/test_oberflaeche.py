@@ -512,15 +512,30 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 
 
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
-    """Eine Wahl bleibt Entwurf: „Übernehmen“ speichert sie, „Verwerfen“ lässt die alte stehen."""
+    """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2]
-    assert darstellung["anfangs"][1:] == [["standard"], ["zeichen"]]
-    assert darstellung["nachKlick"][1:] == [["farbig"], ["zeichen"]]
-    assert darstellung["kopfNachKlick"] == "standard"
+    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3]
+    assert darstellung["anfangs"][1:] == [
+        ["standard"],
+        ["zeichen"],
+        ["umbrechen"],
+        ["mittel"],
+        ["automatisch"],
+        ["mittel"],
+    ]
+    assert darstellung["nachKlick"][1:] == [
+        ["farbig"],
+        ["zeichen"],
+        ["umbrechen"],
+        ["mittel"],
+        ["automatisch"],
+        ["mittel"],
+    ]
+    assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
     assert darstellung["kopfNachUebernehmen"] == "farbig"
     assert darstellung["leisteAnfangs"] == {"text": "Schließen"}
+    assert darstellung["kopfInDerVorschau"] == "schlicht"
     assert darstellung["kopfNachVerwerfen"] == "farbig"
     assert darstellung["zu"] is True
 
@@ -1390,6 +1405,33 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     assert abzeichen["ohne"] is True
 
 
+def test_der_kesselzustand_ersetzt_im_kopf_die_meldung_in_ordnung(durchlauf):
+    """Kaminkehrer aktiv: Das Sonderabzeichen erscheint, „Anlage in Ordnung“ entfällt."""
+    kopf = durchlauf["kesselzustandKopf"]
+    assert kopf["kaminkehrer"]["ok"]["anzeige"] == "none"
+    assert kopf["kaminkehrer"]["sonder"] == {
+        "anzeige": "",
+        "text": "Kaminkehrer aktiv",
+        "symbol": "mdi:account-hard-hat",
+    }
+
+
+@pytest.mark.parametrize("fall", ["imBetrieb", "ohneBeschreibung"])
+def test_ohne_besonderen_kesselzustand_bleibt_anlage_in_ordnung(durchlauf, fall):
+    """Im Normalbetrieb und ohne Beschreibung vom Server bleibt nur das übliche Abzeichen."""
+    kopf = durchlauf["kesselzustandKopf"][fall]
+    assert kopf["ok"] == {"anzeige": "", "text": "Anlage in Ordnung"}
+    assert kopf["sonder"]["anzeige"] == "none"
+
+
+def test_meldung_und_kesselzustand_stehen_gemeinsam_im_kopf(durchlauf):
+    """Liegt eine Meldung an, bleibt sie neben dem Kesselzustand sichtbar."""
+    kopf = durchlauf["kesselzustandKopf"]["mitMeldung"]
+    assert kopf["ok"] == {"anzeige": "", "text": "Fehler-Meldung anliegend"}
+    assert kopf["sonder"]["anzeige"] == ""
+    assert kopf["sonder"]["text"] == "Kaminkehrer aktiv"
+
+
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
@@ -1425,3 +1467,76 @@ def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
 
 def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
     assert durchlauf["fokus"] == {"neuGezeichnet": True, "behalten": True}
+
+
+# Der Systemstatus ab zwei Erzeugern: Kopfzeile je Erzeuger, auf- und zuklappbar.
+ERZEUGER = Path(__file__).parent / "js" / "systemstatus-erzeuger.mjs"
+
+
+@pytest.fixture(scope="module")
+def erzeuger() -> dict:
+    lauf = subprocess.run(
+        ["node", str(ERZEUGER), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+def test_die_kopfzeile_reiht_die_kopfwerte_mit_vorsatz(erzeuger):
+    """Ein Wert ohne Zustand fällt weg, statt als „unavailable“ im Kopf zu stehen."""
+    assert erzeuger["namen"] == ["AeroWIN", "BioWIN"]
+    assert erzeuger["kopf_aero"] == "Heizen · 62 % · COP 3.6"
+    assert erzeuger["kopf_bio"] == "Standby"
+
+
+def test_der_name_des_erzeugers_wird_nicht_uebersetzt(erzeuger):
+    """Ein Gerätename wie „Wärmepumpe“ steht im Wörterbuch, gehört aber der Anlage."""
+    assert erzeuger["namen_roh"] == [True, True]
+
+
+def test_die_kopfwerte_stehen_nicht_noch_einmal_darunter(erzeuger):
+    assert erzeuger["zeilen_aero"] == ["Starts"]
+    assert erzeuger["oben"] == ["Außentemperatur"]
+
+
+def test_die_regelung_steht_unter_den_erzeugern(erzeuger):
+    """Heizkreise, Hybridmanager, SG Ready und zuletzt die Automatik."""
+    assert erzeuger["regelung_nach_erzeugern"] is True
+    assert erzeuger["regelung"] == [
+        "Regelung",
+        ["Heizkreise", "Heizen nach Programm"],
+        ["Hybridmanager", "Eco-Betrieb · AeroWIN heizt"],
+        ["SG Ready", "Normalbetrieb"],
+        ["Automatik", "beobachten"],
+    ]
+
+
+def test_heizkreise_nennen_nur_abweichende_kreise(erzeuger):
+    assert erzeuger["kreise_abweichend"] == "Kreis 2 sonnentag"
+
+
+def test_ein_klick_auf_die_automatik_oeffnet_ihren_reiter(erzeuger):
+    assert erzeuger["klick_automatik"] == ["automatik", True]
+
+
+def test_ohne_regelung_kein_abschnitt(erzeuger):
+    assert erzeuger["ohne_regelung"] == 0
+
+
+def test_je_anlage_offen_unter_alle_zu(erzeuger):
+    assert erzeuger["offen_je_anlage"] == [True, True]
+    assert erzeuger["offen_unter_alle"] == [False, False]
+
+
+def test_die_gemerkte_wahl_gilt_vor_der_vorgabe(erzeuger):
+    assert erzeuger["gemerkt"] == [True, False]
+
+
+def test_nur_ein_klick_wird_gespeichert(erzeuger):
+    """Auch das Setzen beim Aufbau meldet „toggle“; das darf nichts schreiben."""
+    assert erzeuger["ohne_klick_gespeichert"] == 0
+    assert erzeuger["nach_klick"] == [{"erzeuger": {"anlage:aero": False}}]

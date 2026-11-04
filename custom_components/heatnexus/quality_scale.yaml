@@ -54,16 +54,15 @@ rules:
   devices: done
   diagnostics: done
   discovery:
-    status: exempt
+    status: done
     comment: >-
-      Die Steuerung meldet sich weder über mDNS noch über SSDP oder DHCP an.
-      Sie wird über Adresse und Passwort eingerichtet.
+      Die InfoWIN Touch meldet sich per mDNS (`_workstation._tcp`, Name
+      `mb6620…`) und per DHCP an. Home Assistant bietet sie zur Einrichtung an.
   discovery-update-info:
-    status: exempt
+    status: done
     comment: >-
-      Ohne Erkennung im Netz gibt es nichts nachzuführen. Ein Adresswechsel
-      lässt sich über den Neu-Einrichten-Dialog erledigen; die Entitäten hängen
-      ohnehin an der Seriennummer der Anlage, nicht an der Adresse.
+      Antwortet eine verstummte Steuerung unter der gefundenen Adresse mit
+      ihrer Seriennummer, zieht der Eintrag an die neue Adresse um.
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done
@@ -72,10 +71,11 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
-    status: todo
+    status: done
     comment: >-
-      Neue Anlagenteile erscheinen erst nach heatnexus.rediscover oder einem
-      Neustart, nicht von allein.
+      Im langsamen Takt vergleicht HeatNexus den Aufbau der Anlage mit dem
+      Erkennungsstand. Kommt ein Anlagenteil dazu, liest es die Anlage im
+      Hintergrund neu ein; neue Geräte erscheinen ohne Neustart.
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done
@@ -92,11 +92,12 @@ rules:
   reconfiguration-flow: done
   repair-issues: done
   stale-devices:
-    status: todo
+    status: done
     comment: >-
-      Verschwundene Datenpunkte werden stillgelegt, aber nicht entfernt - das
-      ist Absicht (Verlauf und Benennung bleiben erhalten). Ein ganzes Gerät,
-      das die Anlage nicht mehr meldet, bleibt derzeit stehen.
+      Verschwundene Datenpunkte werden stillgelegt, aber nicht entfernt, damit
+      Verlauf und Benennung erhalten bleiben. Ein Gerät, an dem nach dem
+      Vollabzug nichts Gemeldetes mehr hängt, lässt sich in Home Assistant
+      löschen.
 
   # --------------------------------------------------------------- Platin
   async-dependency:

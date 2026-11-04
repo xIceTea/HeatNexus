@@ -1588,3 +1588,116 @@ def test_gleichnamige_kreise_stehen_in_der_reihenfolge_ihrer_kennung(anlagen):
     }
     anlagen._gruppe_abschliessen(gruppe)
     assert [t["kennung"] for t in gruppe["teile"]] == ["SN1-16-0-2", "SN1-16-0-10"]
+
+
+def test_kesselzustand_erscheint_als_badge_nur_im_sonderbetrieb(badges):
+    """Sonderbetrieb, Serviceausbrand und Ausfall je eine Badge mit Bedingung."""
+    kessel = {
+        **_kessel(),
+        "entitaeten": [
+            _e(
+                "sensor.art",
+                "Betriebsart",
+                adresse="2/59",
+                optionen={
+                    0: "Ausgeschaltet",
+                    1: "Abschaltvorgang",
+                    5: "Kessel-Temperatur",
+                    9: "Kaminkehrerfunktion",
+                },
+            ),
+            _e(
+                "sensor.wahl",
+                "Betriebswahl Kessel",
+                adresse="9/75",
+                optionen={1: "EIN", 6: "Serviceausbrand"},
+            ),
+        ],
+    }
+    liste = badges.uebersicht_anlagenbadges([_anlage(kessel)])
+    je_entitaet = {b["entity"]: b for b in liste if b["entity"] in ("sensor.art", "sensor.wahl")}
+    art_bedingungen = [b for b in liste if b["entity"] == "sensor.art"]
+    ausfall = next(b for b in art_bedingungen if b["visibility"][0].get("state") == "unavailable")
+    sonder = next(b for b in art_bedingungen if b is not ausfall)
+    assert set(sonder["visibility"][0]["state"]) == {
+        "Ausgeschaltet",
+        "Abschaltvorgang",
+        "Kaminkehrerfunktion",
+    }
+    assert sonder["visibility"][1] == {
+        "condition": "state",
+        "entity": "sensor.wahl",
+        "state_not": ["Serviceausbrand"],
+    }
+    assert je_entitaet["sensor.wahl"]["visibility"] == [
+        {"condition": "state", "entity": "sensor.wahl", "state": ["Serviceausbrand"]}
+    ]
+
+
+def test_anlage_ohne_kessel_bekommt_nur_die_ausfall_badge(badges):
+    kreis = {
+        **_kessel(),
+        "entitaeten": [_e("sensor.hk", "Betriebsart", adresse="2/9", optionen={3: "WW-Ladung"})],
+    }
+    eigene = [
+        b for b in badges.uebersicht_anlagenbadges([_anlage(kreis)]) if b["entity"] == "sensor.hk"
+    ]
+    assert [b["visibility"] for b in eigene] == [
+        [{"condition": "state", "entity": "sensor.hk", "state": "unavailable"}]
+    ]
+
+
+def test_die_ausfall_badge_zeigt_den_anlagenzustand(badges):
+    """Er bleibt verfügbar; ein Klick zeigt den Verlauf der Ausfälle."""
+    kreis = {
+        **_kessel(),
+        "entitaeten": [_e("sensor.hk", "Betriebsart", adresse="2/9", optionen={3: "WW-Ladung"})],
+    }
+    anlage = _anlage(kreis)
+    anlage["steuerung_entitaeten"] = [
+        {"entity_id": "sensor.anlagenzustand", "uebersetzung": "anlagenzustand"}
+    ]
+    eigene = [
+        b
+        for b in badges.uebersicht_anlagenbadges([anlage])
+        if b["entity"] == "sensor.anlagenzustand"
+    ]
+    assert [b["visibility"] for b in eigene] == [
+        [
+            {
+                "condition": "state",
+                "entity": "sensor.anlagenzustand",
+                "state": ["nicht_erreichbar", "unavailable"],
+            }
+        ]
+    ]
+
+
+def test_auch_eine_anlage_ohne_betriebsart_meldet_den_ausfall(badges):
+    """Ohne Kessel und Betriebsart bleibt der Anlagenzustand als Bezug."""
+    anlage = _anlage({**_kessel(), "entitaeten": []})
+    anlage["steuerung_entitaeten"] = [
+        {"entity_id": "sensor.anlagenzustand", "uebersetzung": "anlagenzustand"}
+    ]
+    eigene = [
+        b
+        for b in badges.uebersicht_anlagenbadges([anlage])
+        if b["entity"] == "sensor.anlagenzustand"
+    ]
+    assert len(eigene) == 1
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [("en", "Connection to controller"), ("nl", "Verbinding met regeling")],
+)
+def test_die_ausfall_badge_nennt_die_verbindung_zur_steuerung(badges, sprache, erwartet):
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    kreis = {
+        **_kessel(),
+        "entitaeten": [_e("sensor.hk", "Betriebsart", adresse="2/9", optionen={3: "WW-Ladung"})],
+    }
+    liste = badges.uebersicht_anlagenbadges([_anlage(kreis)], uebersetze=Woerterbuch(sprache))
+    namen = [b["name"] for b in liste if b["entity"] == "sensor.hk"]
+    assert [n.split(" · ")[-1] for n in namen] == [erwartet]

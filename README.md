@@ -64,7 +64,9 @@ Datenbank steht:
 | 🔵 | DuoWIN – Pellets und Scheitholz | an einer fremden Anlage geprüft |
 | 🔵 | Infinity PLUS Heizkreis und Warmwasser | an einer fremden Anlage geprüft |
 | 🔵 | Pufferspeicher am Kessel | an einer fremden Anlage geprüft |
-| ⚪ | AeroWIN und andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
+| 🔵 | AeroWIN – Wärmepumpe | an einer fremden Anlage geprüft |
+| 🔵 | Hybridmanager der BioWIN Hybrid | an einer fremden Anlage geprüft |
+| ⚪ | Andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
 | ⚪ | Gas- und Ölkessel, Brennwerttherme | eingebunden, ungeprüft |
 | ⚪ | Solar, Kaskade, Umschaltung, weitere Puffer | eingebunden, ungeprüft |
 
@@ -129,6 +131,10 @@ Assistant beendet ihn die Taste „beenden“.
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
+- **Anlagenzustand je Steuerung** als Sensor: in Ordnung, Info-, Fehler- oder
+  Alarm-Meldung, Sonderbetrieb des Kessels oder Steuerung nicht erreichbar. Er
+  bleibt auch bei einem Ausfall verfügbar und eignet sich als Auslöser für
+  Benachrichtigungen.
 - **Meldungsliste des Bediengeräts** in der Karte „Meldungen“: Einträge lassen
   sich zurücksetzen und löschen, auf Wunsch auch die Störung am Kessel.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
@@ -179,6 +185,13 @@ kopieren und Home Assistant neu starten.
 Oder von Hand: Einstellungen → Geräte & Dienste → Integration hinzufügen →
 **HeatNexus**. Erforderlich sind die IP-Adresse der Anlage, der Zugang und das
 zugehörige Passwort.
+
+Home Assistant findet ein InfoWIN Touch im Netz meist von selbst und bietet es
+unter *Geräte & Dienste* als gefunden an; die Adresse ist dann vorbelegt.
+Bezieht eine eingerichtete Steuerung später eine neue Adresse, fragt HeatNexus
+beim Fund unter *Geräte & Dienste*, ob sie umgezogen ist. Erst nach der
+Bestätigung meldet es sich an der neuen Adresse an und stellt den Eintrag um,
+wenn die Seriennummer passt.
 
 #### Zugang und Passwort
 
@@ -254,8 +267,9 @@ ein.
 
 Dort steht je Anlage auch der **Wärmeerzeuger**. Er wirkt nur auf die Zeichnung
 im Anlagenschaubild und ändert weder Entitäten noch Werte. Ab Werk steht er auf
-*automatisch erkennen*: HeatNexus nimmt zuerst den Brennstoff, den die Anlage
-meldet, sonst den Funktionstyp, sonst den Namen der Funktion. Passt das Ergebnis
+*automatisch erkennen*: Eine Wärmepumpe oder ein Gas-/Ölkessel ist am Funktionstyp
+erkannt. Sonst nimmt HeatNexus den Brennstoff, den die Anlage meldet, dann die
+Geräteklasse des Kessels, zuletzt den Namen der Funktion. Passt das Ergebnis
 nicht, lässt es sich hier fest setzen.
 
 #### Die erste Minute
@@ -276,6 +290,11 @@ oder über den Dienst `heatnexus.rediscover`. Eine neue Fassung von HeatNexus
 löst das **nicht** aus – sonst kostete jede Aktualisierung die volle Wartezeit
 von vorn. Stattdessen ist der gespeicherte Stand sofort da, und was neu
 dazugekommen ist, ergänzt HeatNexus im Hintergrund.
+
+Ändert sich der Aufbau der Anlage, etwa durch einen zusätzlichen Heizkreis,
+bemerkt HeatNexus das innerhalb einer Viertelstunde und liest die Anlage im
+Hintergrund neu ein. Ein Gerät, das die Anlage nicht mehr meldet, lässt sich
+danach auf seiner Geräteseite löschen.
 
 ## Dienste
 

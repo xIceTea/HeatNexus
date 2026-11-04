@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -18,6 +19,7 @@ HEIZKREIS = "SN1-2-0"
 class Coordinator:
     label = "Anlage A"
     host = "192.0.2.10"
+    client = SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1")
 
     def __init__(self) -> None:
         """Ein Heizkreis und ein Kessel mit Zählern."""

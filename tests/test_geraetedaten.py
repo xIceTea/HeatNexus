@@ -133,6 +133,22 @@ def test_steuerung_nennt_modell_und_firmwarestand():
     assert info["sw_version"] == "0.10.1"
 
 
+@pytest.mark.parametrize(
+    ("auskunft", "erwartet"),
+    [
+        ({"version": "0.10.1", "lonapp": "V 1.02"}, "0.10.1 (LON V 1.02)"),
+        (
+            {"version": "V 2.42", "vsnGui": "V 2.42", "vsnStack": "1.2.1.1"},
+            "V 2.42 (Stack 1.2.1.1)",
+        ),
+    ],
+)
+def test_steuerung_nennt_ihre_bausteine(auskunft, erwartet):
+    coordinator = _coordinator()
+    coordinator.client.geraeteinfo = {"device": "MB6621", **auskunft}
+    assert steuerung_info(coordinator)["sw_version"] == erwartet
+
+
 def test_steuerung_zeigt_keine_seriennummer():
     """Die Seriennummer bleibt von der Geräteseite fern.
 

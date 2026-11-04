@@ -290,7 +290,7 @@ von Hand gepflegt.
 | `einlesen.py` | Vollabzug im Hintergrund und die Meldungen dazu |
 | `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
 | `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
-| `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `badges` (Badges der Kopfzeile), `uebersicht` (Reiter Übersicht), `kacheln` (Karten der Übersicht je Anlagenteil nach Rolle), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Statistik), Zusammenbau und Anmeldung in `__init__` |
+| `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `badges` (Badges der Kopfzeile), `kesselzustand` (Sonderzustände des Kessels für Kopf und Kopfzeile), `uebersicht` (Reiter Übersicht), `kacheln` (Karten der Übersicht je Anlagenteil nach Rolle), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Statistik), Zusammenbau und Anmeldung in `__init__` |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, `daten` (Aufteilung je Anlage), je Reiter `uebersicht`, `steuerung`, `programme`, `wartung`; `suche` (Entitäten nach Muster), `muster`, `hilfe`, `marken` |
 | `frontend/` | die Oberfläche selbst (siehe unten) |
 | `schema/` | Anlagenschaubild: `farben`, `werte`, `bauteile`, `zeichnung`, `ebenen` (Überlagerungen je Bauteil), `karte` – aus den Bauteildateien in `anlagenteile/` |
