@@ -284,6 +284,7 @@
       "options": {
         "solar": "Solaranlage",
         "heizstab": "Heizstab",
+        "waermepumpe": "Wärmepumpe",
         "fremdquelle": "Fernwärme oder sonstige Quelle"
       }
     },

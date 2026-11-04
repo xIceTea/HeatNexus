@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from .. import geraete
-from ..const import KESSELART_AUTO, QUELLEN_ARTEN
+from ..const import KESSELART_AUTO, QUELLE_FREMD, QUELLE_WAERMEPUMPE, QUELLEN_ARTEN
 from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
@@ -288,11 +288,21 @@ def _art_aus_namen(*namen: object) -> str | None:
     return None
 
 
+def ist_waermepumpe_als_quelle(teil: dict[str, Any]) -> bool:
+    """Ob eine angelegte Wärmequelle eine Wärmepumpe ist: nach ihrer Art, sonst nach dem Namen."""
+    art = teil.get("art")
+    if art == QUELLE_WAERMEPUMPE:
+        return True
+    return art == QUELLE_FREMD and _art_aus_namen(teil.get("name")) == "waermepumpe"
+
+
 def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
     """Art eines Wärmeerzeugers: Funktionstyp, Brennstoff, Geräteklasse, Modell, Name.
 
     ``None`` heißt „neutral zeichnen" – nicht raten. Wirkt nur auf die Zeichnung.
     """
+    if ist_waermepumpe_als_quelle(teil):
+        return "waermepumpe"
     if _art(teil.get("fct_type")) != "kessel":
         return None
     with contextlib.suppress(TypeError, ValueError):
@@ -527,6 +537,14 @@ def _an_adresse(teil: dict[str, Any], tabelle: dict[int, str]) -> dict[str, Any]
     return next((e for e in teil["entitaeten"] if e.get("adresse") == adresse), None)
 
 
+def _bildart(teil: dict[str, Any]) -> str:
+    """Art im Schaubild. Jede Wärmepumpe steht dort als Wärmeerzeuger, auch eine fremde."""
+    if ist_waermepumpe_als_quelle(teil):
+        return "kessel"
+    # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen Funktionstyp.
+    return teil.get("art") or _art(teil.get("fct_type"))
+
+
 def _hauptmodul(
     teil: dict[str, Any],
     art: str,
@@ -551,7 +569,11 @@ def _hauptmodul(
         # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
         # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet
         # die Option, nicht der Datenpunkt.
-        "pumpe": (_pumpe(entitaeten, art) if modulpumpe or art != "pumpenmodul" else None),
+        "pumpe": (
+            _pumpe(entitaeten, teil.get("art") or art)
+            if modulpumpe or art != "pumpenmodul"
+            else None
+        ),
         # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
         # Pumpe: An ihr hängen Lampe und Fluss.
         "lieferung": _entitaet_wenn(ist_quelle, entitaeten, LIEFERUNG, "heat_delivery"),
@@ -631,9 +653,7 @@ def zeichenbare_module(
     """
     module: list[dict[str, Any]] = []
     for teil in teile:
-        # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
-        # Funktionstyp, weil sie nicht an der Steuerung hängt.
-        art = teil.get("art") or _art(teil.get("fct_type"))
+        art = _bildart(teil)
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue

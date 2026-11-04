@@ -72,9 +72,11 @@ AUTOMATIK_GERAET_ENDUNG = "-automatik"
 QUELLE_SOLAR = "solar"
 QUELLE_HEIZSTAB = "heizstab"
 QUELLE_FREMD = "fremdquelle"
+QUELLE_WAERMEPUMPE = "waermepumpe"
 QUELLEN_ARTEN = {
     QUELLE_SOLAR: "Solaranlage",
     QUELLE_HEIZSTAB: "Heizstab",
+    QUELLE_WAERMEPUMPE: "Wärmepumpe",
     QUELLE_FREMD: "Fernwärme oder sonstige Quelle",
 }
 
@@ -88,11 +90,12 @@ QUELLEN_MAX = 8
 # Platz im Schaubild und in der Geräteliste. Die Solaranlage steht neben der
 # gleichnamigen Windhager-Funktion, der Heizstab beim Puffer, alles Übrige
 # hinter dem Kessel.
-QUELLEN_RANG = {QUELLE_SOLAR: 44, QUELLE_HEIZSTAB: 22, QUELLE_FREMD: 16}
+QUELLEN_RANG = {QUELLE_SOLAR: 44, QUELLE_HEIZSTAB: 22, QUELLE_WAERMEPUMPE: 16, QUELLE_FREMD: 16}
 
 QUELLEN_SYMBOLE = {
     QUELLE_SOLAR: "mdi:solar-power-variant",
     QUELLE_HEIZSTAB: "mdi:heating-coil",
+    QUELLE_WAERMEPUMPE: "mdi:heat-pump",
     QUELLE_FREMD: "mdi:heat-wave",
 }
 

@@ -86,3 +86,8 @@ def test_der_befuellgrad_fuellt_den_behaelter_sonst_gilt_die_feste_hoehe(werte):
         ["anteil", False, "33.85%"],
         ["anteil", False, "33.85%"],
     ]
+
+
+def test_der_luefter_laeuft_an_der_leistung_oder_an_der_waermelieferung(werte):
+    """Eine fremde Wärmepumpe meldet keine Leistung; ihr Lüfter folgt der Wärmelieferung."""
+    assert werte["luefter"] == [[True, True], [False, False]]

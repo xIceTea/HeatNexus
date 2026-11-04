@@ -121,6 +121,29 @@ const lagerfuellung = (lager) => {
 };
 ergebnis.lagerfuellung = ["63", "0", "unavailable"].map(lagerfuellung);
 
+// Der Lüfter einer Wärmepumpe: an der Leistung (AeroWIN) oder an der Wärmelieferung (fremd).
+const lueftend = (lieferung, leistung) => {
+  const element = panel({});
+  element._hass.states["binary_sensor.wp_lieferung"] = zustand(lieferung);
+  element._hass.states["sensor.wp_leistung"] = zustand(leistung, "kW");
+  const lage = { left: "1%", top: "1%", breite: "1%", hoehe: "1%", rad_left: "1%", rad_top: "1%", rad_groesse: "1%" };
+  const karte = element._schaubild({
+    schema_svg: anlage.schema_svg,
+    schema_breite: 448,
+    schema_luefter: [
+      { ...lage, entity: "binary_sensor.wp_lieferung", titel: "Wärmepumpe" },
+      { ...lage, entity: "sensor.wp_leistung", titel: "AeroWIN" },
+    ],
+  });
+  beobachter.at(-1).melden(448);
+  element._bindungen.forEach((binden) => binden());
+  return karte
+    .querySelectorAll(".uebergabe-rad")
+    .filter((rad) => rad.classList.contains("luefter"))
+    .map((rad) => rad.classList.contains("an"));
+};
+ergebnis.luefter = [lueftend("on", "4.2"), lueftend("off", "0")];
+
 ergebnis.schrift = ["klein", "mittel", "gross", undefined].map((groesse) =>
   panel(groesse ? { werte_groesse: groesse } : {})._schriftmass()
 );

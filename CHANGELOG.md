@@ -12,6 +12,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Unter dem Schaubild steht jedes Anlagenteil mit Werten in einem Kasten.
 - Die Reparaturen melden eine Zirkulationspumpe, deren Schaltzeiten alle auf Aus stehen.
+- Eine Wärmepumpe als eigene Wärmequelle erscheint im Schaubild wie die AeroWIN.
 - BioWIN: Der Systemstatus zeigt den Befüllgrad des Lagerraums.
 
 ### Geändert

@@ -1888,6 +1888,60 @@ def test_der_luefter_der_waermepumpe_haengt_an_ihrer_leistung(karte):
     assert bild["luefter"][0]["titel"] == "AeroWIN"
 
 
+@pytest.mark.parametrize(
+    ("name", "art"),
+    [("Buderus WLW", "waermepumpe"), ("Wärmepumpe", "fremdquelle"), ("Heat pump", "fremdquelle")],
+)
+def test_eine_fremde_waermepumpe_steht_als_waermeerzeuger_im_bild(werte, name, art):
+    """Die Bauart Wärmepumpe oder ihr Name macht eine Quelle zum Erzeuger wie die AeroWIN."""
+    modul = werte.zeichenbare_module([_quelle(name, art)])[0]
+
+    assert (modul["art"], modul["kesselart"]) == ("kessel", "waermepumpe")
+    assert modul["lieferung"] == "binary_sensor.solar_waermelieferung"
+    assert modul["pumpe"] is None
+
+
+def test_eine_sonstige_quelle_bleibt_ohne_waermepumpe_im_namen_ein_kasten(werte):
+    modul = werte.zeichenbare_module([_quelle("Fernwärme", "fremdquelle")])[0]
+
+    assert (modul["art"], modul["kesselart"]) == ("fremdquelle", None)
+
+
+def _lage(eintrag: dict) -> tuple[str, str]:
+    return eintrag["left"], eintrag["top"]
+
+
+def test_eine_fremde_waermepumpe_zeigt_ihren_betrieb_wie_die_aerowin(karte):
+    """Zeichnung, Lüfter und Lampe gleichen der AeroWIN; beide hängen an der Wärmelieferung."""
+    lieferung = "binary_sensor.solar_waermelieferung"
+    puffer = _anlage_mit_ladepumpe()[1]
+    aerowin = _teil(
+        "AeroWIN", 7, [("sensor.wp_vl", "Vorlauftemperatur"), ("sensor.wp_l", "Aktuelle Leistung")]
+    )
+    fremd = karte.anlagenschema([_quelle("Wärmepumpe", "waermepumpe"), puffer])
+    vorbild = karte.anlagenschema([aerowin, puffer])
+    fernwaerme = karte.anlagenschema([_quelle("Fernwärme", "fremdquelle"), puffer])
+
+    assert 'luft"' in fremd["svg"] and 'luft"' not in fernwaerme["svg"]
+    assert [e["entity"] for e in fremd["luefter"]] == [lieferung]
+    assert _lage(fremd["luefter"][0]) == _lage(vorbild["luefter"][0])
+    lampe = next(e for e in fremd["lampen"] if e["entity"] == lieferung)
+    lampe_vorbild = next(e for e in vorbild["lampen"] if e["entity"] == "sensor.wp_l")
+    assert lampe["zweck"] == "erzeuger"
+    assert _lage(lampe) == _lage(lampe_vorbild)
+    assert fremd["brenner"] == [] and fremd["waerme"] == []
+
+
+def test_die_fremde_waermepumpe_treibt_ihren_strang_selbst(karte):
+    """Ihr Strang hängt an der Wärmelieferung, nicht zusätzlich an der Pufferladepumpe."""
+    teile = [*_anlage_mit_ladepumpe(), _quelle("Wärmepumpe", "waermepumpe")]
+
+    straenge = [p for p in karte.anlagenschema(teile)["pumpen"] if p["titel"] == "Wärmepumpe"]
+
+    assert [p["entity"] for p in straenge] == ["binary_sensor.solar_waermelieferung"]
+    assert straenge[0]["erzeuger"]
+
+
 def _hybridanlage():
     return [
         _teil("BioWIN", 9, [("sensor.k", "Kesseltemperatur Ist"), ("sensor.kl", "Kesselleistung")]),

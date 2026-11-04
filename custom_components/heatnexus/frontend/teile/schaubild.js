@@ -606,8 +606,9 @@ export const SchaubildMixin = (Basis) =>
       huelle.appendChild(this._klickbar(rad, eintrag.entity));
 
       this._bindungen.push(() => {
+        // Eine fremde Wärmepumpe meldet keine Leistung, sondern ihre Wärmelieferung.
         const leistung = this._zahl(eintrag.entity);
-        const an = leistung !== null && leistung > 0;
+        const an = leistung !== null ? leistung > 0 : this._istAn(eintrag.entity);
         feld.classList.toggle("an", an);
         rad.classList.toggle("an", an);
         rad.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;

@@ -142,9 +142,11 @@ Geräteseite öffnet dieselben Angaben wieder, „Löschen" entfernt sie.
 
 Je Quelle werden angegeben:
 
-- **Name** und **Bauart** (Solaranlage, Heizstab, Fernwärme oder sonstige
-  Quelle). Die Bauart wählt das Symbol und den Platz im Schaubild: Der Heizstab
-  liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen Kasten.
+- **Name** und **Bauart** (Solaranlage, Heizstab, Wärmepumpe, Fernwärme oder
+  sonstige Quelle). Die Bauart wählt das Symbol und den Platz im Schaubild: Der
+  Heizstab liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen
+  Kasten. Eine Wärmepumpe erscheint wie die AeroWIN, mit Lüfter und
+  Betriebslampe. Das gilt auch für eine sonstige Quelle mit „Wärmepumpe“ im Namen.
 - **Bedingung**, wann die Quelle Wärme liefert — ein Zustand („an"), eine
   Schwelle (ab diesem Wert) oder die Differenz zweier Entitäten, etwa Kollektor
   minus Puffer — und die Entität, die darüber entscheidet.

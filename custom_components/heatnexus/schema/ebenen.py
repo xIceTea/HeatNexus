@@ -171,7 +171,8 @@ def _kesselstrang(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     hybrid = any(m["art"] == "hybridmanager" for m in module)
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
-        if modul["art"] != "kessel" or modul.get("pumpe"):
+        # Eine Quelle, die als Erzeuger steht, treibt ihren Strang selbst.
+        if modul["art"] != "kessel" or modul.get("pumpe") or modul.get("lieferung"):
             continue
         antrieb = modul.get("leistung") if hybrid else ladepumpe
         if antrieb:
@@ -250,10 +251,12 @@ def lampen_der_erzeuger(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     for platz, modul in enumerate(module):
         links = _links(platz)
         if modul.get("lieferung"):
-            punkt = lampenpunkt(modul["art"], zeichnung=modul.get("zeichnung"))
+            punkt = lampenpunkt(modul["art"], modul.get("kesselart"), modul.get("zeichnung"))
             if punkt is not None:
                 lampe = _lampe(modul["lieferung"], punkt, links, rahmen)
-                lampe.update({"art": "betrieb", "zweck": "quelle", "titel": modul["titel"]})
+                # Eine Quelle, die als Erzeuger steht, zeigt ihren Betrieb wie dieser.
+                zweck = "erzeuger" if modul["art"] == "kessel" else "quelle"
+                lampe.update({"art": "betrieb", "zweck": zweck, "titel": modul["titel"]})
                 ergebnis.append(lampe)
         if modul["art"] != "kessel":
             continue
@@ -463,19 +466,21 @@ def pumpenmodule(module: list[dict[str, Any]], rahmen: Rahmen) -> tuple[Ebene, E
 def luefter(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     """Der Lüfter der Wärmepumpe: Er leuchtet und dreht sich, solange sie Leistung bringt.
 
-    Nur über der eigenen Zeichnung; eine von Hand gewählte hat den Lüfter woanders.
+    Eine fremde Wärmepumpe meldet statt der Leistung ihre Wärmelieferung. Nur über
+    der eigenen Zeichnung; eine von Hand gewählte hat den Lüfter woanders.
     """
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
         if not (modul["art"] == "kessel" and modul.get("kesselart") == "waermepumpe"):
             continue
-        if not modul.get("leistung") or modul.get("zeichnung") not in (None, "kessel-waermepumpe"):
+        betrieb = modul.get("leistung") or modul.get("lieferung")
+        if not betrieb or modul.get("zeichnung") not in (None, "kessel-waermepumpe"):
             continue
         x = _links(platz)
         lx, ly, gitter, fluegel = WP_LUEFTER
         ergebnis.append(
             {
-                "entity": modul["leistung"],
+                "entity": betrieb,
                 **_stelle(x + lx - gitter, ly - gitter, rahmen),
                 "breite": _pct(2 * gitter, rahmen.breite),
                 "hoehe": _pct(2 * gitter, HOEHE),

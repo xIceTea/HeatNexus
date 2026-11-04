@@ -733,7 +733,7 @@ def test_eine_vollstaendige_quelle_bleibt_erhalten():
     [
         {"id": ""},
         {"name": " "},
-        {"art": "waermepumpe"},
+        {"art": "kernreaktor"},
         {"bedingung": {"art": "differenz", "quelle": "sensor.kollektor", "ein": 8}},
         {"bedingung": {"art": "schwelle", "quelle": "sensor.kollektor"}},
         {"bedingung": {"art": "unfug", "quelle": "sensor.kollektor", "ein": 8}},

@@ -284,6 +284,7 @@
       "options": {
         "solar": "Solar system",
         "heizstab": "Heating element",
+        "waermepumpe": "Heat pump",
         "fremdquelle": "District heating or other source"
       }
     },
