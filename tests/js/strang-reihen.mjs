@@ -31,7 +31,7 @@ const PUMPE = "binary_sensor.pumpe";
 const anlage = {
   schema_svg:
     "<svg xmlns='http://www.w3.org/2000/svg'><rect/>" +
-    '<text data-teil="3" x="724">Puffer</text><text data-teil="6" x="1324">Kreis</text></svg>',
+    '<text data-teil="3" x="724">Puffer</text><text data-teil="6" x="1324"><tspan x="1324">Langer</tspan><tspan x="1324" dy="22">Kreis</tspan></text></svg>',
   schema_breite: 48 + 7 * 200,
   schema_pumpen: [
     { titel: "Puffer", entity: PUMPE, left: "50%", top: "60%" },
@@ -61,7 +61,8 @@ ergebnis.fokus = karte.querySelectorAll(".strang-reihe").map((fenster) => ({
   alt: fenster.querySelector("img").alt,
 }));
 // Die erste Grafik ist die geschnittene Zeichnung, die zweite trägt die Namen der Reihe.
-const namenIn = (bild) => [...decodeURIComponent(bild.src).matchAll(/<text[^>]*>([^<]*)</g)].map((treffer) => treffer[1]);
+const namenIn = (bild) => [...decodeURIComponent(bild.src).matchAll(/<text[^>]*>(.*?)<\/text>/g)]
+  .map((treffer) => treffer[1].replace(/<\/tspan><tspan[^>]*>/g, " ").replace(/<[^>]*>/g, ""));
 ergebnis.namen = karte.querySelectorAll(".strang-reihe").map((fenster) => ({
   bilder: fenster.querySelectorAll("img").map(namenIn),
   geschnitten: fenster.children[0].className,

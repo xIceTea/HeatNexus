@@ -8,7 +8,7 @@ export const MODUL = 200;
 export const HOEHE = 392;
 
 // Der Name eines Anlagenteils in der Zeichnung, siehe `_kasten` in `schema/zeichnung.py`.
-const NAME = /<text data-teil="(\d+)"[^>]*>[^<]*<\/text>/g;
+const NAME = /<text data-teil="(\d+)"[^>]*>.*?<\/text>/gs;
 
 /** Die Zeichnung ohne die Namen; sie stehen im Strang ungeschnitten darüber. */
 export function ohneNamen(svg) {

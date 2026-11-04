@@ -497,6 +497,55 @@ def test_das_bild_beschriftet_in_der_sprache_der_anlage(karte):
     assert not set(texte) & set(ENGLISCH)
 
 
+def _name_im_bild(karte, name: str) -> str:
+    teile = [_teil(name, 14, [("sensor.vorlauf", "Vorlauftemperatur Ist")])]
+    svg = karte.schaubild_nutzdaten({"id": "anlage-1", "name": "Anlage", "teile": teile})[
+        "schema_svg"
+    ]
+    return re.search(r"<text data-teil=.*?</text>", svg).group()
+
+
+def _zeilen(text: str) -> list[str]:
+    return re.findall(r"<tspan[^>]*>([^<]*)</tspan>", text)
+
+
+def test_ein_kurzer_name_bleibt_einzeilig(karte):
+    text = _name_im_bild(karte, "HK1 OG1/2")
+    assert "<tspan" not in text
+    assert 'y="376"' in text
+
+
+def test_ein_langer_name_bricht_vor_dem_nachbarn_um(karte):
+    text = _name_im_bild(karte, "Sehr langer Name dieses Anlagenteils")
+    assert _zeilen(text) == ["Sehr langer Name", "dieses Anlagenteils"]
+    assert 'y="365"' in text
+
+
+def test_ein_bindestrich_erlaubt_den_umbruch(karte):
+    text = _name_im_bild(karte, "Warmwasser-Zirkulationspumpe")
+    assert _zeilen(text) == ["Warmwasser-", "Zirkulationspumpe"]
+
+
+def test_mehr_als_zwei_zeilen_werden_gekuerzt(karte):
+    zeilen = _zeilen(
+        _name_im_bild(karte, "Fußbodenheizung im Erdgeschoss des großen Wohnhauses am Hang")
+    )
+    assert len(zeilen) == 2
+    assert zeilen[1].endswith("…")
+
+
+def test_ein_einzelnes_langes_wort_wird_gekuerzt(karte):
+    text = _name_im_bild(karte, "Warmwasserbereitungszirkulationspumpensteuerung")
+    assert "<tspan" not in text
+    assert "…</text>" in text
+
+
+def test_ein_umbrochener_name_bleibt_entschaerft(karte):
+    zeilen = " ".join(_zeilen(_name_im_bild(karte, "Heizkreis im Keller <Haus> & Garage")))
+    assert "&lt;Haus&gt;" in zeilen
+    assert "&amp;" in zeilen
+
+
 def test_die_karte_beschriftet_jede_anlage_mit_ihrem_woerterbuch(karte):
     """Das feste Bild der Lovelace-Karte trägt dieselben Namen."""
     bild = karte.anlagenschema(

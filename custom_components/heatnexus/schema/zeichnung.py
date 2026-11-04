@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Callable
+import re
 from typing import Any
 
 from .bauteile import aus_datei
@@ -29,6 +30,12 @@ VORLAUF_Y = 92
 
 
 RUECKLAUF_Y = 318
+
+# Grundlinie eines einzeiligen Namens. Eine Zeile bleibt im Modul und berührt den Nachbarn nicht.
+NAME_Y = RUECKLAUF_Y + 58
+NAME_BREITE = MODUL_BREITE - 8
+NAME_ZEILENABSTAND = 22
+_SCHMALE_ZEICHEN = frozenset("fijlrtI.,:;'!|-/ ")
 
 
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
@@ -361,6 +368,55 @@ def _ersatzform(art: str) -> str:
     )
 
 
+def _namensbreite(text: str) -> float:
+    """Breite eines Namens; die Schrift wählt das Gerät, darum nur eine Schätzung."""
+    return sum(
+        6.2 if zeichen in _SCHMALE_ZEICHEN else 13 if zeichen.isupper() or zeichen in "mw" else 10.2
+        for zeichen in text
+    )
+
+
+def _gekuerzt(text: str) -> str:
+    """Der Text, mit „…“ am Ende auf die Breite einer Namenszeile gekürzt."""
+    if _namensbreite(text) <= NAME_BREITE:
+        return text
+    while _namensbreite(f"{text}…") > NAME_BREITE:
+        text = text[:-1]
+    return f"{text.rstrip()}…"
+
+
+def _namenszeilen(name: str) -> list[str]:
+    """Bricht einen langen Namen um; unter der Leitung ist Platz für zwei Zeilen."""
+    if _namensbreite(name) <= NAME_BREITE:
+        return [name]
+    stuecke = re.findall(r"\S+?(?:-(?=\S)|\s+|$)", name)
+    erste = ""
+    while stuecke and _namensbreite(erste + stuecke[0].rstrip()) <= NAME_BREITE:
+        erste += stuecke.pop(0)
+    if not erste:
+        return [_gekuerzt(name)]
+    return [erste.rstrip(), _gekuerzt("".join(stuecke).rstrip())]
+
+
+def _name(platz: int, x: int, name: str) -> str:
+    """Name eines Anlagenteils; `data-teil` lässt den Strang ihn aus der Zeichnung nehmen."""
+    # Größer als die Messwerte darüber: Der Name ist das erste, wonach man im Schaubild
+    # sucht, und die Karte skaliert das Bild auf ihre Breite.
+    zeilen = _namenszeilen(name)
+    y = NAME_Y if len(zeilen) == 1 else NAME_Y - NAME_ZEILENABSTAND // 2
+    inhalt = _escape(zeilen[0])
+    if len(zeilen) > 1:
+        inhalt = (
+            f'<tspan x="{x}">{inhalt}</tspan>'
+            f'<tspan x="{x}" dy="{NAME_ZEILENABSTAND}">{_escape(zeilen[1])}</tspan>'
+        )
+    return (
+        f'<text data-teil="{platz}" x="{x}" y="{y}" text-anchor="middle" '
+        f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
+        f"{inhalt}</text>"
+    )
+
+
 def _kasten(
     x: int, platz: int, modul: dict[str, Any], mischer: bool = True, buch: Buch | None = None
 ) -> str:
@@ -399,15 +455,7 @@ def _kasten(
         f'<rect x="{MITTE - 2}" y="{unten}" width="4" height="{RUECKLAUF_Y - unten}" '
         f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
     )
-    # Größer als die Messwerte darüber: Der Name des Anlagenteils ist das
-    # erste, wonach man im Schaubild sucht, und die Karte skaliert das Bild
-    # auf ihre Breite – bei vier Anlagenteilen wird daraus schnell Kleingedrucktes.
-    # `data-teil` lässt den Strang den Namen aus der geschnittenen Zeichnung nehmen.
-    titel = (
-        f'<text data-teil="{platz}" x="{x + MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
-        f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
-        f"{_escape((buch or _gleich)(modul['titel']))}</text>"
-    )
+    titel = _name(platz, x + MITTE, (buch or _gleich)(modul["titel"]))
     return f'<g transform="translate({x},0)">{anschluss}{inhalt}</g>{titel}'
 
 

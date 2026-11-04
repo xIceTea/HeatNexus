@@ -34,6 +34,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.
 - Im umgebrochenen Schaubild steht der Befüllgrad nur in der Reihe des Kessels.
 - Im umgebrochenen Schaubild ragen Namen und Zahlen ungeschnitten über die Kante einer Reihe.
+- Lange Namen im Schaubild brechen in eine zweite Zeile um.
 - Die Laufräder der Pumpen sitzen auch in schmalen Reihen mittig.
 - BioWIN: An der AeroWIN liegt keine Glut mehr über der Betriebslampe.
 

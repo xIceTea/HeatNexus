@@ -70,7 +70,7 @@ def test_namen_stehen_ungeschnitten_nur_in_ihrer_reihe(reihen):
     """Die Zeichnung trägt keinen Namen mehr, die Schriftebene nur die ihrer Reihe."""
     assert reihen["namen"] == [
         {"bilder": [[], ["Puffer"]], "geschnitten": "strang-ausschnitt"},
-        {"bilder": [[], ["Kreis"]], "geschnitten": "strang-ausschnitt"},
+        {"bilder": [[], ["Langer Kreis"]], "geschnitten": "strang-ausschnitt"},
     ]
 
 
