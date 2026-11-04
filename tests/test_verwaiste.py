@@ -139,7 +139,7 @@ def test_entfernen_ohne_bestand_ruehrt_nichts_an(modul, hass):
     assert er.async_get(hass).async_get(entitaet) is not None
 
 
-async def test_der_reparaturablauf_entfernt_nach_bestaetigung(hass):
+async def test_der_reparaturablauf_loescht_auf_wunsch(hass):
     from homeassistant.data_entry_flow import FlowResultType
     from homeassistant.helpers import entity_registry as er
 
@@ -153,7 +153,9 @@ async def test_der_reparaturablauf_entfernt_nach_bestaetigung(hass):
     ablauf.hass = hass
 
     formular = await ablauf.async_step_init()
+    assert formular["type"] is FlowResultType.MENU
     assert formular["step_id"] == "confirm"
+    assert formular["menu_options"] == ["loeschen", "behalten"]
     platzhalter = formular["description_placeholders"]
     assert platzhalter["anzahl"] == "1"
     assert platzhalter["liste_anfang"] == "<details><summary>"
@@ -161,7 +163,7 @@ async def test_der_reparaturablauf_entfernt_nach_bestaetigung(hass):
     assert f"- `{verwaist}`" in platzhalter["liste_ende"]
     assert platzhalter["liste_ende"].endswith("\n\n</details>")
 
-    ergebnis = await ablauf.async_step_confirm({})
+    ergebnis = await ablauf.async_step_loeschen()
     assert ergebnis["type"] is FlowResultType.CREATE_ENTRY
     assert er.async_get(hass).async_get(verwaist) is None
 
@@ -624,3 +626,133 @@ def test_ein_lesefehler_der_uhr_verwaist_ihren_sensor_nicht(monkeypatch):
     )
 
     assert uhrzeit.kennungen({"a": unbekannt, "b": ohne_uhr}) == {"a-uhrabweichung"}
+
+
+async def _behalten_waehlen(hass, eintrag, koordinatoren):
+    """Den Reparaturablauf bis „Behalten“ durchgehen."""
+    from custom_components.heatnexus import repairs, verwaiste
+
+    eintrag.runtime_data = {"coordinators": koordinatoren}
+    ablauf = await repairs.async_create_fix_flow(
+        hass, verwaiste.HINWEIS.format(entry_id=eintrag.entry_id), {"entry_id": eintrag.entry_id}
+    )
+    ablauf.hass = hass
+    await ablauf.async_step_init()
+    return await ablauf.async_step_behalten()
+
+
+async def test_behalten_merkt_die_entitaet_und_der_hinweis_bleibt_weg(hass, modul):
+    from homeassistant.data_entry_flow import FlowResultType
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import stilllegung
+
+    eintrag, entitaet = _eintrag_mit_entitaet(hass)
+    koordinatoren = {"a": _koordinator(["fremd"])}
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+    assert _hinweis(hass, eintrag, modul) is not None
+
+    ergebnis = await _behalten_waehlen(hass, eintrag, koordinatoren)
+    assert ergebnis["type"] is FlowResultType.CREATE_ENTRY
+
+    zeile = er.async_get(hass).async_get(entitaet)
+    assert modul.behalten(zeile)
+    assert modul.finden(hass, eintrag, koordinatoren) == []
+    assert [e.entity_id for e in modul.finden(hass, eintrag, koordinatoren, behaltene=True)] == [
+        entitaet
+    ]
+    # Nach dem Abschluss nimmt Home Assistant den Hinweis zurück.
+    modul.hinweis_pflegen(hass, eintrag, 0)
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+    assert _hinweis(hass, eintrag, modul) is None
+    assert zeile.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_behalten_merkt_nur_die_gezeigten(hass, modul):
+    """Eine Waise, die erst nach dem Öffnen des Dialogs entsteht, bleibt gemeldet."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import repairs
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, gezeigt = _eintrag_mit_entitaet(hass)
+    eintrag.runtime_data = {"coordinators": {"a": _koordinator(["fremd"])}}
+    ablauf = await repairs.async_create_fix_flow(
+        hass, modul.HINWEIS.format(entry_id=eintrag.entry_id), {"entry_id": eintrag.entry_id}
+    )
+    ablauf.hass = hass
+    await ablauf.async_step_init()
+    registry = er.async_get(hass)
+    spaeter = registry.async_get_or_create(
+        "sensor", DOMAIN, "SN1-0-0-9-0", config_entry=eintrag
+    ).entity_id
+
+    await ablauf.async_step_behalten()
+
+    assert modul.behalten(registry.async_get(gezeigt))
+    assert not modul.behalten(registry.async_get(spaeter))
+
+
+async def test_ein_zurueckgekehrter_datenpunkt_loescht_das_merkmal(hass, modul):
+    """Dieselbe Zeile läuft weiter; fällt der Datenpunkt erneut weg, meldet der Hinweis ihn."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, entitaet = _eintrag_mit_entitaet(hass)
+    registry = er.async_get(hass)
+    ohne = {"a": _koordinator(["fremd"])}
+    mit = {"a": _koordinator(["SN1-0-0-7-0"])}
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, ohne)
+    kennung = registry.async_get(entitaet).unique_id
+    await _behalten_waehlen(hass, eintrag, ohne)
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, mit)
+
+    zeile = registry.async_get(entitaet)
+    assert zeile.unique_id == kennung
+    assert zeile.disabled_by is None
+    assert not modul.behalten(zeile)
+    assert DOMAIN not in zeile.options
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, ohne)
+    assert _hinweis(hass, eintrag, modul).translation_placeholders == {"anzahl": "1"}
+
+
+async def test_eine_neue_waise_meldet_der_hinweis_neben_einer_behaltenen(hass, modul):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, behalten = _eintrag_mit_entitaet(hass)
+    registry = er.async_get(hass)
+    neu = registry.async_get_or_create(
+        "sensor", DOMAIN, "SN1-0-0-8-0", config_entry=eintrag
+    ).entity_id
+    vorher = {"a": _koordinator(["SN1-0-0-8-0"])}
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, vorher)
+    await _behalten_waehlen(hass, eintrag, vorher)
+
+    nachher = {"a": _koordinator(["fremd"])}
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, nachher)
+
+    assert [e.entity_id for e in modul.finden(hass, eintrag, nachher)] == [neu]
+    assert _hinweis(hass, eintrag, modul).translation_placeholders == {"anzahl": "1"}
+    assert modul.behalten(registry.async_get(behalten))
+
+
+def test_eine_abwahl_loescht_auch_eine_behaltene(hass, modul):
+    """Die Abwahl ist eine bewusste Entscheidung; das Behalten galt dem fehlenden Datenpunkt."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import stilllegung
+
+    eintrag, entitaet = _eintrag_mit_entitaet(hass)
+    modul.merken(hass, [er.async_get(hass).async_get(entitaet)])
+    hass.data.setdefault("heatnexus", {})["_abwahl"] = {eintrag.entry_id: {"SN1-0-0-7-0": None}}
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
+
+    assert er.async_get(hass).async_get(entitaet) is None

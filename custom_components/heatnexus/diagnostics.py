@@ -143,6 +143,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     verwaist = sorted(e.unique_id for e in ohne_datenpunkt)
     # Verwaist und trotzdem aktiv: Diese Zeilen stehen wirklich im Weg.
     verwaist_aktiv = [e.unique_id for e in ohne_datenpunkt if e.disabled_by is None]
+    alle_ohne = verwaiste.finden(hass, entry, eintrag.get("coordinators", {}), behaltene=True)
     # Ab Werk aus, aber eingeschaltet – das war jemand von Hand.
     manuell = sorted(
         e.unique_id
@@ -160,6 +161,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
         "verwaist": len(verwaist),
         "verwaist_aktiv": len(verwaist_aktiv),
         "verwaiste_kennungen": verwaist[:20],
+        "verwaist_behalten": len(alle_ohne) - len(verwaist),
         "manuell_eingeschaltet": len(manuell),
         "manuelle_kennungen": manuell[:20],
     }

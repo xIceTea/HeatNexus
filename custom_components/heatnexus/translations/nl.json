@@ -581,13 +581,17 @@
       "fix_flow": {
         "step": {
           "confirm": {
-            "title": "Entiteiten zonder datapunt verwijderen",
-            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt.\n\n{liste_anfang}Entiteiten tonen{liste_ende}"
+            "title": "Entiteiten zonder datapunt",
+            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nSommige waarden levert de installatie alleen in bepaalde bedrijfsmodi. Zulke entiteiten kun je behouden. Deze reparatie meldt ze dan niet meer. Levert de installatie de waarde weer, dan loopt de entiteit met haar geschiedenis door.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt.\n\n{liste_anfang}Entiteiten tonen{liste_ende}",
+            "menu_options": {
+              "loeschen": "Entiteiten verwijderen",
+              "behalten": "Entiteiten behouden"
+            }
           }
         },
         "abort": {
           "nicht_geladen": "De installatie is op dit moment niet geladen. Probeer het later opnieuw.",
-          "nichts_verwaist": "Alle entiteiten hebben hun datapunt weer. Er hoeft niets te worden verwijderd."
+          "nichts_verwaist": "Alle entiteiten hebben hun datapunt weer. Er hoeft niets te gebeuren."
         }
       }
     },

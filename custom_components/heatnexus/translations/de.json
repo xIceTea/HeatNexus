@@ -581,13 +581,17 @@
       "fix_flow": {
         "step": {
           "confirm": {
-            "title": "Entitäten ohne Datenpunkt entfernen",
-            "description": "Zu {anzahl} Entitäten liefert die Anlage keinen Wert mehr. Sie sind bereits abgeschaltet und kosten keine Abfrage.\n\nBeim Entfernen gehen eigener Name, Symbol, Bereichszuordnung und Verlauf verloren. Liefert die Anlage den Wert wieder, entsteht die Entität neu.\n\n{liste_anfang}Entitäten anzeigen{liste_ende}"
+            "title": "Entitäten ohne Datenpunkt",
+            "description": "Zu {anzahl} Entitäten liefert die Anlage keinen Wert mehr. Sie sind bereits abgeschaltet und kosten keine Abfrage.\n\nManche Werte liefert die Anlage nur in bestimmten Betriebsarten. Solche Entitäten lassen sich behalten. Diese Reparatur meldet sie dann nicht mehr. Liefert die Anlage den Wert wieder, läuft die Entität mit ihrem Verlauf weiter.\n\nBeim Löschen gehen eigener Name, Symbol, Bereichszuordnung und Verlauf verloren. Liefert die Anlage den Wert wieder, entsteht die Entität neu.\n\n{liste_anfang}Entitäten anzeigen{liste_ende}",
+            "menu_options": {
+              "loeschen": "Entitäten löschen",
+              "behalten": "Entitäten behalten"
+            }
           }
         },
         "abort": {
           "nicht_geladen": "Die Anlage ist gerade nicht geladen. Bitte später erneut versuchen.",
-          "nichts_verwaist": "Alle Entitäten haben wieder ihren Datenpunkt. Es ist nichts zu entfernen."
+          "nichts_verwaist": "Alle Entitäten haben wieder ihren Datenpunkt. Es ist nichts zu tun."
         }
       }
     },

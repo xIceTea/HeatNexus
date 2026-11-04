@@ -23,6 +23,8 @@ _LOGGER = logging.getLogger(__name__)
 
 SCHLUESSEL = "verwaiste_entitaeten"
 HINWEIS = SCHLUESSEL + "_{entry_id}"
+# Merkmal in den Entitätsoptionen der Registrierung: Der Nutzer behält die Entität.
+BEHALTEN = "behalten"
 
 
 def _automatik(hass: HomeAssistant | None, entry: ConfigEntry) -> dict[str, str]:
@@ -131,11 +133,13 @@ def erwartete_domaenen(
 
 
 @callback
-def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[er.RegistryEntry]:
+def finden(
+    hass: HomeAssistant, entry: ConfigEntry, coordinators: dict, *, behaltene: bool = False
+) -> list[er.RegistryEntry]:
     """Einträge, deren Kennung fehlt oder in einer anderen Domäne steht.
 
-    Der Plattformwechsel eines Datenpunkts lässt die alte Zeile stehen: Die
-    Kennung gibt es weiter, nur unter `switch.` statt `sensor.`.
+    Der Plattformwechsel eines Datenpunkts lässt die alte Zeile stehen. Was der
+    Nutzer behalten will, zählt nur mit `behaltene=True`.
     """
     if not coordinators or not abzug_steht(coordinators):
         return []
@@ -150,6 +154,8 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
         # Ohne gelesenen Store ist eine Automatik unbekannt, nicht verwaist.
         if not geladen and AUTOMATIK_MARKE in eintrag.unique_id:
             continue
+        if not behaltene and behalten(eintrag):
+            continue
         if eintrag.unique_id not in bekannt:
             verwaist.append(eintrag)
             continue
@@ -157,6 +163,34 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
         if erwartet and eintrag.domain != erwartet:
             verwaist.append(eintrag)
     return verwaist
+
+
+def behalten(eintrag: er.RegistryEntry) -> bool:
+    """Ob der Nutzer die Entität ohne Datenpunkt behalten will."""
+    return bool(eintrag.options.get(DOMAIN, {}).get(BEHALTEN))
+
+
+@callback
+def merken(hass: HomeAssistant, eintraege: list[er.RegistryEntry]) -> None:
+    """Die Entitäten behalten: Der Hinweis zählt sie nicht mehr."""
+    registry = er.async_get(hass)
+    for eintrag in eintraege:
+        optionen = {**eintrag.options.get(DOMAIN, {}), BEHALTEN: True}
+        registry.async_update_entity_options(eintrag.entity_id, DOMAIN, optionen)
+
+
+@callback
+def merkliste_aufraeumen(hass: HomeAssistant, entry: ConfigEntry, verwaist: set[str]) -> None:
+    """Das Merkmal bei Entitäten löschen, deren Datenpunkt wieder da ist.
+
+    Fällt der Datenpunkt später erneut weg, fragt der Hinweis wieder nach.
+    """
+    registry = er.async_get(hass)
+    for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if eintrag.entity_id in verwaist or not behalten(eintrag):
+            continue
+        optionen = {k: v for k, v in eintrag.options[DOMAIN].items() if k != BEHALTEN}
+        registry.async_update_entity_options(eintrag.entity_id, DOMAIN, optionen or None)
 
 
 def _bestehende_geraete(entry: ConfigEntry, coordinators: dict) -> set[str]:

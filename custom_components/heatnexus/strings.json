@@ -581,13 +581,17 @@
       "fix_flow": {
         "step": {
           "confirm": {
-            "title": "Remove entities without a datapoint",
-            "description": "The system no longer provides a value for {anzahl} entities. They are already disabled and cost no request.\n\nRemoving them discards your own name, icon, area and history. If the system delivers the value again, the entity is created anew.\n\n{liste_anfang}Show entities{liste_ende}"
+            "title": "Entities without a datapoint",
+            "description": "The system no longer provides a value for {anzahl} entities. They are already disabled and cost no request.\n\nThe system provides some values only in certain operating modes. You can keep such entities. This repair then no longer reports them. If the system delivers the value again, the entity continues with its history.\n\nDeleting them discards your own name, icon, area and history. If the system delivers the value again, the entity is created anew.\n\n{liste_anfang}Show entities{liste_ende}",
+            "menu_options": {
+              "loeschen": "Delete entities",
+              "behalten": "Keep entities"
+            }
           }
         },
         "abort": {
           "nicht_geladen": "The system is not loaded right now. Please try again later.",
-          "nichts_verwaist": "Every entity has its data point again. Nothing needs to be removed."
+          "nichts_verwaist": "Every entity has its data point again. Nothing needs to be done."
         }
       }
     },
