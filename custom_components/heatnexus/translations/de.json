@@ -5,7 +5,8 @@
       "already_configured": "Diese Anlage ist bereits eingerichtet",
       "reauth_successful": "Passwort aktualisiert",
       "reconfigure_successful": "Adresse geändert",
-      "adresse_nachgefuehrt": "Die Steuerung antwortet unter einer neuen Adresse. Die Anlage wurde umgestellt."
+      "adresse_nachgefuehrt": "Die Steuerung antwortet unter einer neuen Adresse. Die Anlage wurde umgestellt.",
+      "kein_umzug": "Unter {host} antwortet nicht die Steuerung, die gerade schweigt. Ihre Adresse bleibt unverändert."
     },
     "create_entry": {
       "default": "Die Anlage ist eingerichtet. Damit die Karten im Dashboard erscheinen, die Seite einmal neu laden."
@@ -91,6 +92,14 @@
         },
         "data_description": {
           "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein."
+        }
+      },
+      "umzug": {
+        "title": "Ist die Steuerung umgezogen?",
+        "description": "Unter {host} meldet sich eine Steuerung, während eine eingerichtete gerade nicht antwortet. Ist sie umgezogen, prüft HeatNexus mit ihrem gespeicherten Zugang, ob unter {host} dieselbe Steuerung antwortet. Nur wählen, wenn das Gerät unter {host} bekannt ist.",
+        "menu_options": {
+          "umzug_pruefen": "Ja, Adresse nachführen",
+          "user": "Nein, als neue Steuerung einrichten"
         }
       }
     }
