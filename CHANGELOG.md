@@ -11,17 +11,21 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Unter dem Schaubild steht jedes Anlagenteil mit Werten in einem Kasten.
+- Die Reparaturen melden eine Zirkulationspumpe, deren Schaltzeiten alle auf Aus stehen.
 - BioWIN: Der Systemstatus zeigt den Befüllgrad des Lagerraums.
 
 ### Geändert
 
 - Die Zahl über dem Vorratsbehälter ist größer.
+- Der Reiter Zeitprogramme warnt, wenn alle Schaltzeiten der Zirkulation auf Aus stehen.
+- Sensoren von Schaltprogrammen zeigen Ein und Aus statt Grad.
 - Die Übergabestation zeigt eine Anforderung mit Ringen, die nacheinander aufleuchten.
 - BioWIN: Füllhöhe und Zahl am Vorratsbehälter folgen dem gemeldeten Befüllgrad.
 
 ### Behoben
 
 - Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
+- Das Zeitprogramm der Zirkulation gilt im Reiter auch bei Impulssteuerung als aktiv.
 - „Anlage neu erkennen“ und „Dashboard als YAML ausgeben“ sind nur für Administratoren aufrufbar.
 - Vor dem Nachführen einer neuen Adresse fragt HeatNexus, ob die Steuerung umgezogen ist.
 - Eine gescheiterte Prüfung nach einem Umzug nennt die richtige Ursache.

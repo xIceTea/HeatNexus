@@ -283,6 +283,12 @@ export function istSchaltprogramm(bloecke) {
   return werte.length > 0 && werte.every((wert) => wert === 0 || wert === 1);
 }
 
+/** Ein Schaltprogramm, dessen Schaltzeiten alle auf Aus stehen. */
+export function schaltetNie(bloecke) {
+  const werte = (bloecke || []).flatMap((block) => block.punkte.map((punkt) => punkt.wert));
+  return istSchaltprogramm(bloecke) && werte.every((wert) => wert === 0);
+}
+
 /** Feste Farbskalen: gleiche Temperatur, gleiche Farbe, in jedem Programm. */
 export const SKALEN = {
   raum: { min: 14, max: 24 },

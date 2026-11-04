@@ -188,8 +188,8 @@ UEBERSTEUERUNG_TEMPERATUR = namensmuster(r"^(eco/comfort )?temperatur$")
 UEBERSTEUERUNG_DAUER = namensmuster(r"^(eco/comfort )?dauer$")
 # Das Zirkulationsprogramm und der Datenpunkt, der darüber entscheidet, ob es
 # überhaupt etwas tut: `5/6` „WW-Zirkulationspumpe" mit den Werten Aus, Mit
-# Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Nur bei
-# „Mit Zeitsteuerung" richtet sich die Pumpe nach dem Programm.
+# Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Welches
+# der beiden Programme gilt, steht in `programme.py`.
 ZIRKULATIONSPROGRAMM = namensmuster(r"zirkulations?programm")
 ZIRKULATIONSPUMPE = namensmuster(r"zirkulationspumpe")
 # Die Einmalladung: der einzige Warmwasser-Eingriff, den man täglich anfasst.

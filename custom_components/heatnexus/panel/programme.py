@@ -206,7 +206,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     **Die Anlage führt zwei Zirkulationsprogramme.** In der Herstellerdatei
     heißen sie wortgleich „WW-Zirkulationsprogramm"; auseinanderhalten lassen
     sie sich nur an der Adresse. `5/65` gilt, wenn die Zirkulationspumpe
-    (`5/6`) auf **Zeitsteuerung** steht, `5/64` bei **Temperatursteuerung**.
+    (`5/6`) auf **Zeit- oder Impulssteuerung** steht, `5/64` bei **Temperatursteuerung**.
     Ohne diese Unterscheidung standen zwei gleichnamige Karten nebeneinander,
     und keine sagte, welche gerade wirkt.
 
@@ -234,13 +234,18 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     wirkung = {
         "entity": pumpe["entity_id"],
         "muster": _auswahltext(pumpe, 1, "zeitsteuerung"),
-        "hinweis": "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.",
+        "muster_auch": _auswahltext(pumpe, 3, "impulssteuerung"),
+        "hinweis": (
+            "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ "
+            "oder „Mit Impulssteuerung“ steht."
+        ),
     }
     # Welche Art dieses Programm ist, sagt allein sein Schlüssel – der Name
     # taugt dafür nicht, beide heißen gleich.
     schluessel = programm.get("schluessel")
     if schluessel == "dhw_circulation_program_temperature":
         wirkung["muster"] = _auswahltext(pumpe, 2, "temperatursteuerung")
+        del wirkung["muster_auch"]
         wirkung["hinweis"] = (
             "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."
         )

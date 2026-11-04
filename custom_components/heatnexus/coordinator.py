@@ -24,6 +24,7 @@ from .const import (
 )
 from .exceptions import mit_text
 from .texte import woerterbuch
+from .zirkulation import steht_still
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,6 +124,25 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self.hass, DOMAIN, f"nicht_erreichbar_{self.config_entry.entry_id}_{self.host}"
         )
 
+    def _zirkulation_pruefen(self, daten: dict) -> None:
+        """Ein Reparatureintrag, solange die Zirkulationspumpe nach ihren Schaltzeiten nie läuft."""
+        stillstand = steht_still(daten)
+        if stillstand is None:
+            return
+        kennung = f"zirkulation_ohne_ein_{self.config_entry.entry_id}_{self.host}"
+        if not stillstand:
+            ir.async_delete_issue(self.hass, DOMAIN, kennung)
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            kennung,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="zirkulation_ohne_ein",
+            translation_placeholders={"anlage": self.label or self.host},
+        )
+
     def _strukturaenderung_weitergeben(self) -> None:
         """Eine geänderte Anlagenstruktur an den Vollabzug weiterreichen.
 
@@ -149,6 +169,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()
                 self._stoerung_zuruecknehmen()
+                self._zirkulation_pruefen(data)
                 return data
         except TimeoutError as err:
             self._langsamer_fragen()

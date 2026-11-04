@@ -605,6 +605,10 @@
     "automatik_prognose": {
       "title": "Automation {heizkreis}: no weather forecast",
       "description": "For the automation of the heating circuit **{heizkreis}**, the weather entity **{wetter}** has provided no forecast for several hours. Without a forecast it makes no new decisions.\n\nPlease check that the weather entity is available and provides a daily or hourly forecast, or choose a different weather entity in the automation settings. This message disappears as soon as a forecast arrives."
+    },
+    "zirkulation_ohne_ein": {
+      "title": "Circulation pump of {anlage} does not run",
+      "description": "The circulation pump of **{anlage}** is set to time or pulse control, but all switching times in its time program are set to Off. The pump therefore never runs.\n\nSet at least one switching time to On in the time program or choose another control mode. This notice then disappears on its own."
     }
   },
   "config_subentries": {
@@ -832,7 +836,7 @@
       "fields": {
         "switch_points": {
           "name": "Switching points",
-          "description": "List of switching points with time and value. time as HH:MM, value = target temperature. Applies to the block from weekdays."
+          "description": "List of switching points with time and value. time as HH:MM, value = target temperature, or 1 for on and 0 for off in a switching program. Applies to the block from weekdays."
         },
         "weekdays": {
           "name": "Weekdays",

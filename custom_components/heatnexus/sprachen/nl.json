@@ -347,7 +347,7 @@
   "lädt …": "laden …",
   "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.": "Werkt pas als de bedrijfsmodus op dit programma staat.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht.": "Werkt pas als de circulatiepomp op „Met temperatuursturing“ staat.",
-  "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.": "Werkt pas als de circulatiepomp op „Met tijdsturing“ staat.",
+  "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ oder „Mit Impulssteuerung“ steht.": "Werkt pas als de circulatiepomp op „Met tijdsturing“ of „Met impulssturing“ staat.",
   "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.": "Werkt niet zolang de bedrijfsmodus op „Stand-by“ staat.",
   "Wochenprogramm von Montag bis Sonntag. Tage lassen sich einzeln verwenden oder zu Blöcken zusammenfassen; je Tag oder Block sind bis zu sechs Schaltzeiten mit je einem Temperaturwert möglich.": "Weekprogramma van maandag tot zondag. Dagen kunnen afzonderlijk worden gebruikt of tot blokken worden samengevoegd; per dag of blok zijn tot zes schakeltijden met elk één temperatuurwaarde mogelijk.",
   "Wurde die Hauptreinigung durchgeführt und wurden die Aschetonnen entleert? Die Anlage setzt beide Zähler zurück.": "Is de hoofdreiniging uitgevoerd en zijn de ascontainers geleegd? De installatie zet beide tellers terug.",
@@ -1202,5 +1202,6 @@
   "Große Schrift für einen Bildschirm in der Ferne": "Grote tekst voor een scherm op afstand",
   "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Onder het schema zodra een onderdeel smaller is dan 100 px",
   "Die Werte stehen immer in der Zeichnung": "De waarden staan altijd in de tekening",
-  "Die Werte stehen immer mit Namen unter der Zeichnung": "De waarden staan altijd met hun naam onder de tekening"
+  "Die Werte stehen immer mit Namen unter der Zeichnung": "De waarden staan altijd met hun naam onder de tekening",
+  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "Alle schakeltijden van de tijdsturing staan op Uit. De circulatiepomp draait daardoor niet."
 }

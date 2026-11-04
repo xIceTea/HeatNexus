@@ -347,7 +347,7 @@
   "lädt …": "loading …",
   "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.": "Takes effect only when the operating mode is set to this program.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht.": "Takes effect only when the circulation pump is „With temperature control“.",
-  "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.": "Takes effect only when the circulation pump is „With time control“.",
+  "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ oder „Mit Impulssteuerung“ steht.": "Takes effect only when the circulation pump is „With time control“ or „With pulse control“.",
   "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.": "Has no effect while the operating mode is set to „Standby“.",
   "Wochenprogramm von Montag bis Sonntag. Tage lassen sich einzeln verwenden oder zu Blöcken zusammenfassen; je Tag oder Block sind bis zu sechs Schaltzeiten mit je einem Temperaturwert möglich.": "Weekly program from Monday to Sunday. Days can be used individually or combined into blocks; per day or block up to six switching times with one temperature value each are possible.",
   "Wurde die Hauptreinigung durchgeführt und wurden die Aschetonnen entleert? Die Anlage setzt beide Zähler zurück.": "Was the main cleaning carried out and were the ash bins emptied? The system resets both counters.",
@@ -1197,5 +1197,6 @@
   "Große Schrift für einen Bildschirm in der Ferne": "Large text for a screen viewed from a distance",
   "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Below the diagram as soon as a component is narrower than 100 px",
   "Die Werte stehen immer in der Zeichnung": "The values always appear in the drawing",
-  "Die Werte stehen immer mit Namen unter der Zeichnung": "The values always appear with their names below the drawing"
+  "Die Werte stehen immer mit Namen unter der Zeichnung": "The values always appear with their names below the drawing",
+  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "All switching times of the time control are set to Off. The circulation pump does not run with them."
 }

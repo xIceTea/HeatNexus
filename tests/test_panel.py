@@ -679,9 +679,8 @@ def test_zeitprogramme_tragen_ihren_anlagenteil(panel):
 def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     """`5/6` entscheidet, ob die Pumpe dem Programm überhaupt folgt.
 
-    Steht sie auf Temperatur- oder Impulssteuerung, läuft das schönste
-    Zirkulationsprogramm ins Leere. Versteckt wird die Karte trotzdem nicht –
-    vorbereiten können muss man es.
+    Das Programm gilt bei Zeit- und Impulssteuerung. Bei Temperatursteuerung
+    bleibt die Karte sichtbar, damit es sich vorbereiten lässt.
     """
     kreis = teil(
         "UMLZ HEIZKREIS",
@@ -696,6 +695,7 @@ def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     wirkung = programme["WW-Zirkulationsprogramm"]["wirkung"]
     assert wirkung["entity"] == "select.ww_zirkulationspumpe"
     assert wirkung["muster"] == "zeitsteuerung"
+    assert wirkung["muster_auch"] == "impulssteuerung"
     # Das Heizprogramm hängt an nichts – es wirkt immer.
     assert "wirkung" not in programme["Programm 1"]
 

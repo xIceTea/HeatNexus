@@ -605,6 +605,10 @@
     "automatik_prognose": {
       "title": "Automatik {heizkreis}: keine Wettervorhersage",
       "description": "Für die Automatik des Heizkreises **{heizkreis}** liefert die Wetter-Entität **{wetter}** seit einigen Stunden keine Vorhersage. Ohne Vorhersage trifft sie keine neuen Entscheidungen.\n\nBitte prüfen, ob die Wetter-Entität verfügbar ist und eine Tages- oder Stundenvorhersage liefert, oder in den Einstellungen der Automatik eine andere Wetter-Entität wählen. Die Meldung verschwindet, sobald wieder eine Vorhersage ankommt."
+    },
+    "zirkulation_ohne_ein": {
+      "title": "Zirkulationspumpe von {anlage} läuft nicht",
+      "description": "Die Zirkulationspumpe von **{anlage}** steht auf Zeit- oder Impulssteuerung, aber alle Schaltzeiten in ihrem Zeitprogramm stehen auf Aus. Die Pumpe läuft dadurch nie.\n\nStelle im Zeitprogramm mindestens eine Schaltzeit auf Ein oder wähle eine andere Steuerungsart. Der Hinweis verschwindet danach von selbst."
     }
   },
   "config_subentries": {
@@ -832,7 +836,7 @@
       "fields": {
         "switch_points": {
           "name": "Schaltpunkte",
-          "description": "Liste von Schaltpunkten mit time und value. time im Format HH:MM, value = Soll-Temperatur. Gilt für den Block aus weekdays."
+          "description": "Liste von Schaltpunkten mit time und value. time im Format HH:MM, value = Soll-Temperatur, bei einem Schaltprogramm 1 für Ein und 0 für Aus. Gilt für den Block aus weekdays."
         },
         "weekdays": {
           "name": "Wochentage",

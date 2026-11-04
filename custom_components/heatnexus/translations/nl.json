@@ -605,6 +605,10 @@
     "automatik_prognose": {
       "title": "Automatisering {heizkreis}: geen weersverwachting",
       "description": "Voor de automatisering van het verwarmingscircuit **{heizkreis}** levert de weerentiteit **{wetter}** al enkele uren geen verwachting. Zonder verwachting neemt ze geen nieuwe beslissingen.\n\nControleer of de weerentiteit beschikbaar is en een dag- of uurverwachting levert, of kies in de instellingen van de automatisering een andere weerentiteit. Deze melding verdwijnt zodra er weer een verwachting binnenkomt."
+    },
+    "zirkulation_ohne_ein": {
+      "title": "Circulatiepomp van {anlage} draait niet",
+      "description": "De circulatiepomp van **{anlage}** staat op tijd- of impulssturing, maar alle schakeltijden in het tijdprogramma staan op Uit. De pomp draait daardoor nooit.\n\nZet in het tijdprogramma minstens één schakeltijd op Aan of kies een andere sturing. Deze melding verdwijnt daarna vanzelf."
     }
   },
   "config_subentries": {
@@ -832,7 +836,7 @@
       "fields": {
         "switch_points": {
           "name": "Schakelpunten",
-          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur. Geldt voor het blok uit weekdays."
+          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur, of 1 voor aan en 0 voor uit bij een schakelprogramma. Geldt voor het blok uit weekdays."
         },
         "weekdays": {
           "name": "Weekdagen",

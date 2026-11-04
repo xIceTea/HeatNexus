@@ -31,6 +31,25 @@ def sensoren():
 
 
 # ---------------------------------------------------------------------------
+# Zeitprogramm-Sensor – Schaltprogramme tragen Ein und Aus, keine Grad
+# ---------------------------------------------------------------------------
+def test_schaltprogramm_zeigt_ein_und_aus(sensoren):
+    bloecke = [{"switchPoints": [{"time": "00:00", "value": 0}, {"time": "05:00", "value": 1}]}]
+    klasse = sensoren.WindhagerTimeProgramSensor
+    assert klasse._schaltet(bloecke) is True
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "de", True) == "00:00→Aus, 05:00→Ein"
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "en", True) == "00:00→Off, 05:00→On"
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "nl", True) == "00:00→Uit, 05:00→Aan"
+
+
+def test_temperaturprogramm_bleibt_in_grad(sensoren):
+    punkte = [{"time": "06:00", "value": 21}, {"time": "22:00", "value": 0}]
+    klasse = sensoren.WindhagerTimeProgramSensor
+    assert klasse._schaltet([{"switchPoints": punkte}]) is False
+    assert klasse._fmt_points(punkte) == "06:00→21°, 22:00→0°"
+
+
+# ---------------------------------------------------------------------------
 # Enum-Sensor – die Tabelle ist die Anzeige, nicht die Auswahl
 # ---------------------------------------------------------------------------
 def test_enum_sensor_zeigt_auch_werte_die_nicht_waehlbar_sind(sensoren):

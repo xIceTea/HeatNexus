@@ -57,6 +57,16 @@ Verlauf.
 Eine **abgewählte Bedienebene** ist etwas anderes: Das ist eine Entscheidung,
 ihre Entitäten werden gleich entfernt und beim Wiederdazuwählen neu angelegt.
 
+## Die Zirkulationspumpe läuft nicht
+
+Zeit- und Impulssteuerung folgen den Schaltzeiten im Zeitprogramm der
+Zirkulation. Jede Schaltzeit steht dort auf Ein oder Aus. Stehen alle auf Aus,
+läuft die Pumpe nie.
+
+HeatNexus meldet das unter *Einstellungen → System → Reparaturen* und im Reiter
+Zeitprogramme. Der Eintrag verschwindet, sobald eine Schaltzeit auf Ein steht
+oder die Pumpe eine andere Steuerungsart nutzt.
+
 ## Ein Wert bleibt leer
 
 Antwortet die Steuerung auf einen Datenpunkt mit `404` oder mit `409` und
