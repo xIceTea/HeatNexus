@@ -354,7 +354,9 @@ class AbrufMixin:
             self._objekte_offen = []
         self.time_programs = [tp for tp in objekte if tp.get("type") == "time_program"]
         self.objekt_texte = [tp for tp in objekte if tp.get("type") != "time_program"]
-        return objects
+        # Ein neues Einlesen kann Objekte gestrichen haben.
+        bekannt = {tp["oid"] for tp in objekte}
+        return {oid: wert for oid, wert in objects.items() if oid in bekannt}
 
     # Antworten, mit denen die Anlage ein Objekt ausdrücklich nicht führt.
     _OBJEKT_ABSAGE = (404, 409)

@@ -520,6 +520,7 @@ class Verwaltung:
         if neu is None:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
         neu = konfig_modul.klima_vorgabe(neu, alt["raeume"])
+        gescheitert: Exception | None = None
         if (laufzeit := self.laufzeiten.get(device_id)) is not None:
             schreibt_alt = alt["aktiv"] and alt["modus"] != "beobachten"
             schreibt_neu = neu["aktiv"] and neu["modus"] != "beobachten"
@@ -538,19 +539,19 @@ class Verwaltung:
                 laufzeit.beobachtet_seit = dt_util.now()
             if gewechselt:
                 laufzeit.ruhe_loesen()
+            # Ein Fehler beim Neustart zählt danach: Die Laufzeit hat die neue Konfiguration schon.
             try:
                 await laufzeit.neu_starten(neu)
-            except Exception:
-                # Die Laufzeit hat die neue Konfiguration schon; gespeichert wird dieselbe.
-                eintrag["konfig"] = neu
-                self.speichern()
-                raise
+            except Exception as fehler:
+                gescheitert = fehler
             # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
             if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
                 laufzeit.modell_neu_lernen()
         eintrag["konfig"] = neu
         self.speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
+        if gescheitert is not None:
+            raise gescheitert
         return neu
 
     async def heizgrenzen(self, device_id: str, werte: dict[str, float]) -> None:

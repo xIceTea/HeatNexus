@@ -121,7 +121,6 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
         ),
     ),
     # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
-    # Der Hybridmanager nennt seinen Fühler nur „Puffertemperatur“.
     # Der Hybridmanager speichert nichts; seine Puffertemperatur gehört dem Puffer.
     "hybridmanager": (),
     "umschaltung": (

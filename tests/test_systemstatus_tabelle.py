@@ -54,6 +54,15 @@ async def test_einkessel_anlage_zeigt_panel_und_karte_unveraendert(hass):
         await _abbauen(hass, eintrag)
 
 
+def test_die_direkte_waermepumpe_zeigt_leistung_vorlauf_und_starts():
+    import re
+
+    geraete = load_standalone("geraete")
+    muster = [z.muster for z in geraete.STATUSZEILEN[27]]
+    for name in ("aktuelle leistung", "vorlauftemperatur", "anzahl starts"):
+        assert any(re.search(m, name) for m in muster), name
+
+
 def test_jeder_erzeuger_im_schaubild_fuehrt_statuszeilen():
     """Ein Erzeuger ohne Zeilen fiele aus dem Systemstatus."""
     geraete = load_standalone("geraete")

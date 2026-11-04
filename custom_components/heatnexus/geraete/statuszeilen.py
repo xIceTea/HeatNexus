@@ -24,6 +24,11 @@ class Statuszeile:
     vorsatz: str = ""
     regelung: bool = False
 
+    @property
+    def zeile(self) -> tuple[str, str, str, tuple[str, ...]]:
+        """Die Zeile als Eintrag einer Mustervorlage."""
+        return (self.muster, self.titel, self.symbol, self.schluessel)
+
 
 # Wie ein Erzeuger gerade läuft. Die Laufzeit entsteht aus dem Zustand: Sie
 # zählt, solange das Aggregat läuft, und bleibt danach als Dauer des letzten Laufs.

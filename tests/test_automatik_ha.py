@@ -911,6 +911,26 @@ async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(hass,
     assert verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
 
 
+async def test_ein_gescheiterter_neustart_verwirft_das_hausmodell_trotzdem(hass, anlage):
+    """Die neue Konfiguration steht schon; ein zweiter Versuch sähe keinen Unterschied mehr."""
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    echt = laufzeit.starten
+    verworfen: list = []
+    laufzeit.modell_neu_lernen = lambda: verworfen.append(True)
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    laufzeit.starten = scheitert
+    with pytest.raises(RuntimeError):
+        await verwaltung.einstellen(HEIZKREIS, {"wetter": "weather.andere"})
+    laufzeit.starten = echt
+
+    assert verworfen == [True]
+    assert verwaltung.konfig(HEIZKREIS)["wetter"] == "weather.andere"
+
+
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 

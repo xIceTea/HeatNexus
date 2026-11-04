@@ -6,7 +6,8 @@
       "reauth_successful": "Wachtwoord bijgewerkt",
       "reconfigure_successful": "Adres gewijzigd",
       "adresse_nachgefuehrt": "De regelaar antwoordt op een nieuw adres. De installatie is aangepast.",
-      "kein_umzug": "Op {host} antwoordt niet de regeling die nu zwijgt. Het adres blijft ongewijzigd."
+      "kein_umzug": "Op {host} antwoordt niet de regeling die nu zwijgt. Het adres blijft ongewijzigd.",
+      "umzug_nicht_geprueft": "De regeling op {host} kon niet worden gecontroleerd. Het adres blijft ongewijzigd."
     },
     "create_entry": {
       "default": "De installatie is ingericht. Laad de pagina één keer opnieuw, zodat de kaarten in het dashboard verschijnen."

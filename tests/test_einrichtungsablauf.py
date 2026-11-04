@@ -505,6 +505,17 @@ async def test_eine_fremde_seriennummer_zieht_nicht_um(hass, eintrag):
     assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
 
 
+async def test_eine_gescheiterte_anmeldung_nennt_keine_fremde_steuerung(hass, eintrag):
+    from custom_components.heatnexus.exceptions import InvalidAuth
+
+    ergebnis, _ = await _gefunden(hass, _mdns())
+
+    ablauf, _ = await _umzug_bestaetigen(hass, ergebnis, _verbindung(fehler=InvalidAuth()))
+
+    assert ablauf["reason"] == "umzug_nicht_geprueft"
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
 async def test_ein_fund_laesst_sich_als_neue_steuerung_einrichten(hass, eintrag):
     ergebnis, verbindung = await _gefunden(hass, _mdns())
 

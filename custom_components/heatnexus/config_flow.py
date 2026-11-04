@@ -221,6 +221,8 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         self._systeme: list[dict[str, Any]] = []
         # Adresse einer im Netz gefundenen Steuerung, vorbelegt im ersten Formular.
         self._gefunden: str = ""
+        # Ob die gefundene Adresse beim Prüfen eines Umzugs eine Anmeldung angenommen hat.
+        self._umzug_geantwortet: bool = False
 
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
         """Eine Steuerung, die sich per mDNS anmeldet."""
@@ -243,9 +245,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if kennung:
             await self.async_set_unique_id(kennung)
             self._abort_if_unique_id_configured()
-        eintraege = [
-            e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by
-        ]
+        eintraege = self._aktive_eintraege()
         if any(s.get(CONF_HOST) == host for e in eintraege for s in e.data.get(CONF_SYSTEMS, [])):
             return self.async_abort(reason="already_configured")
         self._gefunden = host
@@ -273,14 +273,16 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Bestätigter Umzug: an der neuen Adresse mit dem Zugang der schweigenden Steuerung fragen."""
-        eintraege = [
-            e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by
-        ]
-        if umzug := await self._umzug_nachfuehren(eintraege, self._gefunden):
+        if umzug := await self._umzug_nachfuehren(self._aktive_eintraege(), self._gefunden):
             return umzug
         return self.async_abort(
-            reason="kein_umzug", description_placeholders={"host": self._gefunden}
+            reason="kein_umzug" if self._umzug_geantwortet else "umzug_nicht_geprueft",
+            description_placeholders={"host": self._gefunden},
         )
+
+    def _aktive_eintraege(self) -> list[ConfigEntry]:
+        """Die eingerichteten Einträge ohne ignorierte und abgeschaltete."""
+        return [e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by]
 
     def _funde_schliessen(self, adressen: set[str]) -> None:
         """Offene Funde der eben eingerichteten Steuerungen schließen; ihre Kennung ist die MAC."""
@@ -306,6 +308,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 if zugang not in antworten:
                     antworten[zugang] = await _verbindung_pruefen(host, zugang[1], benutzer)
                 struktur, fehler = antworten[zugang]
+                self._umzug_geantwortet = self._umzug_geantwortet or not fehler
                 if not fehler and _dieselbe_steuerung(entry, system, struktur or []):
                     return await self._adresse_umstellen(
                         entry, system[CONF_HOST], host, benutzer, "adresse_nachgefuehrt"

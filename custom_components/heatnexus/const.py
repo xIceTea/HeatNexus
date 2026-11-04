@@ -549,6 +549,8 @@ MENU_WIEDERHOLPAUSE_S = 2.0
 # Ein Schreibvorgang mit Gateway-Fehler wird mit wachsender Pause wiederholt.
 SCHREIB_WIEDERHOLUNGEN = 2
 SCHREIB_WIEDERHOLPAUSE_S = 3.0
+# Höchste Pause in langsamen Takten, bevor eine Strukturänderung erneut einliest.
+STRUKTUR_WARTETAKTE_MAX = 16
 # Ein gelesener Wert mit Gateway-Fehler wird einmal nachgefragt; die kurze Pause hält den Takt.
 # Nicht nach 504: Das Gerät antwortete nicht, und der Webserver sucht dann selbst nach Geräten.
 LESE_WIEDERHOLBAR = frozenset({502, 503})

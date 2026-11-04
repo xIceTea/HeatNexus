@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..schema.werte import ART_JE_FCT, kesselart_des_teils
-from .suche import erster
+from .suche import kennung as _kennung
 
 HYBRIDMANAGER = 26
 # Tage, die das Balkendiagramm der Wärmemengen zurückblickt.
@@ -37,11 +37,6 @@ def _entitaeten_je_rolle(anlage: dict[str, Any]) -> dict[str, list[dict[str, Any
         if art := rolle(teil):
             je_rolle[art].extend(teil["entitaeten"])
     return je_rolle
-
-
-def _kennung(entitaeten: list[dict[str, Any]], muster: str) -> str | None:
-    treffer = erster(entitaeten, muster)
-    return treffer["entity_id"] if treffer else None
 
 
 def _liste(*kennungen: str | None) -> list[str]:

@@ -24,6 +24,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
 - „Anlage neu erkennen“ und „Dashboard als YAML ausgeben“ sind nur für Administratoren aufrufbar.
 - Vor dem Nachführen einer neuen Adresse fragt HeatNexus, ob die Steuerung umgezogen ist.
+- Eine gescheiterte Prüfung nach einem Umzug nennt die richtige Ursache.
+- Das Schaubild zeigt nur Entitäten, die der Benutzer sehen darf.
+- Ein kurzer Aussetzer der Steuerung löst kein Neueinlesen aus.
+- Ein Lesefehler legt den Sensor „Uhrabweichung“ nicht mehr still.
+- Nach einem gescheiterten Neustart der Automatik lernt das Hausmodell neu.
+- Jede Wärmepumpe zeigt im Systemstatus Leistung, Vorlauf und Starts.
 - Am Rad der Übergabestation bleiben in Firefox keine Bruchstücke mehr stehen.
 - Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.
 - Im umgebrochenen Schaubild steht der Befüllgrad nur in der Reihe des Kessels.

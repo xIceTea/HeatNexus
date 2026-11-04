@@ -196,6 +196,9 @@ class ErkennungMixin:
         """
         daten, status = await self._get(f"http://{self.host}/api/1.0/info/deviceinfo")
         self.geraeteinfo = daten if status == 200 and isinstance(daten, dict) else {}
+        # Bleibt die Auskunft leer, fragt der nächste Lauf neu; die LON-Fassung allein füllte sie.
+        if not self.geraeteinfo:
+            return
         # Der Webserver 0.10.x nennt die Fassung seiner LON-Anwendung nur hier.
         lon, status = await self._get(f"http://{self.host}/WsFUP7030/api/1.0/info/LONApp")
         if status == 200 and isinstance(lon, dict) and lon.get("version"):
@@ -422,7 +425,7 @@ class ErkennungMixin:
         return sorted(abdruck)
 
     async def _struktur_pruefen(self, antwort: list | None = None) -> None:
-        """`/1` mit dem Erkennungsstand vergleichen und eine neue Abweichung vormerken.
+        """`/1` mit dem Erkennungsstand vergleichen; erst zwei gleiche Abweichungen zählen.
 
         Ohne mitgegebene Antwort fragt der Client selbst; ein Fehlschlag ändert nichts.
         Während eines Einlesens setzt dessen Lauf den Abdruck; verglichen wird nicht.
@@ -442,7 +445,18 @@ class ErkennungMixin:
             # Ein Stand ohne Abdruck übernimmt die erste Antwort als Vergleichsstand.
             self._struktur = abdruck
             return
-        if abdruck in (self._struktur, self._struktur_gemeldet):
+        if abdruck == self._struktur:
+            self._struktur_kandidat = None
+            self._struktur_pause = self._struktur_wartetakte = 0
+            return
+        if self._struktur_wartetakte:
+            self._struktur_wartetakte -= 1
+            return
+        if abdruck == self._struktur_gemeldet:
+            return
+        if abdruck != self._struktur_kandidat:
+            # Ein Busteilnehmer kann kurz fehlen; ein Vollabzug ist dafür zu teuer.
+            self._struktur_kandidat = abdruck
             return
         self._struktur_gemeldet = abdruck
         self._struktur_geaendert = True
@@ -454,6 +468,10 @@ class ErkennungMixin:
         """Sagen, ob seit der letzten Frage eine geänderte Struktur auffiel, und quittieren."""
         geaendert, self._struktur_geaendert = self._struktur_geaendert, False
         return geaendert
+
+    def strukturaenderung_zurueckstellen(self) -> None:
+        """Eine abgeholte Meldung liegen lassen; der nächste Takt meldet die Abweichung erneut."""
+        self._struktur_gemeldet = None
 
     def _seriennummern_sammeln(self, json_devices: list[dict]) -> None:
         """Erst die Seriennummern einsammeln – alle Kennungen hängen daran."""

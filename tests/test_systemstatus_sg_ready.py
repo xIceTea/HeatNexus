@@ -19,10 +19,10 @@ def _e(entity_id: str, name: str) -> dict:
 
 
 def _titel(entitaeten: list[dict]) -> dict[str, str]:
-    from custom_components.heatnexus.panel.daten import status_vorlage
+    from custom_components.heatnexus.panel.daten import STATUS_EINZELN
     from custom_components.heatnexus.panel.suche import zeilen_aus
 
-    vorlage = status_vorlage({"teile": [{"fct_type": 9}]})
+    vorlage = STATUS_EINZELN
     return {z["titel"]: z["entity"] for z in zeilen_aus(entitaeten, vorlage)}
 
 

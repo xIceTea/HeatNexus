@@ -6,7 +6,8 @@
       "reauth_successful": "Passwort aktualisiert",
       "reconfigure_successful": "Adresse geändert",
       "adresse_nachgefuehrt": "Die Steuerung antwortet unter einer neuen Adresse. Die Anlage wurde umgestellt.",
-      "kein_umzug": "Unter {host} antwortet nicht die Steuerung, die gerade schweigt. Ihre Adresse bleibt unverändert."
+      "kein_umzug": "Unter {host} antwortet nicht die Steuerung, die gerade schweigt. Ihre Adresse bleibt unverändert.",
+      "umzug_nicht_geprueft": "Die Steuerung unter {host} ließ sich nicht prüfen. Die Adresse bleibt unverändert."
     },
     "create_entry": {
       "default": "Die Anlage ist eingerichtet. Damit die Karten im Dashboard erscheinen, die Seite einmal neu laden."

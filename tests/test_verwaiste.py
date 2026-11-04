@@ -612,3 +612,15 @@ async def test_ohne_hinweis_legt_das_loeschen_keinen_an(modul, hass):
     modul.hinweis_ohne_geraet(hass, eintrag, {"a": koordinator}, geraet)
 
     assert _hinweis(hass, eintrag, modul) is None
+
+
+def test_ein_lesefehler_der_uhr_verwaist_ihren_sensor_nicht(monkeypatch):
+    from custom_components.heatnexus.sensor import uhrzeit
+
+    monkeypatch.setattr(uhrzeit, "steuerung_kennung", lambda c: c.kennung)
+    unbekannt = SimpleNamespace(kennung="a", data={}, client=SimpleNamespace())
+    ohne_uhr = SimpleNamespace(
+        kennung="b", data={}, client=SimpleNamespace(systemzeit_vorhanden=False)
+    )
+
+    assert uhrzeit.kennungen({"a": unbekannt, "b": ohne_uhr}) == {"a-uhrabweichung"}

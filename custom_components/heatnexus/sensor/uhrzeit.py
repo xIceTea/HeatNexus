@@ -23,11 +23,11 @@ def kennung(coordinator: Any) -> str:
 
 
 def kennungen(coordinators: dict) -> set[str]:
-    """Die Sensoren der Steuerungen, die ihre Uhrzeit melden."""
+    """Die Sensoren aller Steuerungen, die nicht als ohne Uhr gelten; ein Lesefehler ändert das nicht."""
     return {
         kennung(coordinator)
         for coordinator in coordinators.values()
-        if (coordinator.data or {}).get("systemzeit") is not None
+        if getattr(coordinator.client, "systemzeit_vorhanden", None) is not False
     }
 
 

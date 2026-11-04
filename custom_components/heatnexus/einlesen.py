@@ -282,6 +282,7 @@ def _nach_strukturaenderung(
     if anlage.host in offen or any(
         not aufgabe.done() and aufgabe.get_name() == name for aufgabe in hintergrund
     ):
+        anlage.client.strukturaenderung_zurueckstellen()
         return
     offen.add(anlage.host)
     hintergrund[:] = [aufgabe for aufgabe in hintergrund if not aufgabe.done()]

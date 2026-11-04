@@ -61,8 +61,8 @@ rules:
   discovery-update-info:
     status: done
     comment: >-
-      Antwortet eine verstummte Steuerung unter der gefundenen Adresse mit
-      ihrer Seriennummer, zieht der Eintrag an die neue Adresse um.
+      Schweigt eine Steuerung, fragt ein Fund, ob sie umgezogen ist. Nach der
+      Bestätigung zieht der Eintrag um, wenn ihre Seriennummer passt.
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done

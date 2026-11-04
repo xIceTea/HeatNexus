@@ -6,7 +6,8 @@
       "reauth_successful": "Password updated",
       "reconfigure_successful": "Address changed",
       "adresse_nachgefuehrt": "The controller answers at a new address. The system was updated.",
-      "kein_umzug": "The controller at {host} is not the silent one. Its address was not changed."
+      "kein_umzug": "The controller at {host} is not the silent one. Its address was not changed.",
+      "umzug_nicht_geprueft": "The controller at {host} could not be checked. Its address was not changed."
     },
     "create_entry": {
       "default": "The system is set up. Reload the page once so that the cards appear in the dashboard."

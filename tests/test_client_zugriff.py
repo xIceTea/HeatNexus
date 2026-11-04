@@ -151,6 +151,30 @@ async def test_der_webserver_nennt_seine_lon_anwendung(client):
     assert c._session.anfragen[1][1].endswith("/WsFUP7030/api/1.0/info/LONApp")
 
 
+async def test_ohne_geraeteinfo_bleibt_sie_fuer_den_naechsten_lauf_leer(client):
+    """Die LON-Fassung allein füllte die Auskunft, und `deviceinfo` würde nie neu gelesen."""
+    c = client(_Antwort(503, b""), _Antwort(200, b'{"version": "V 1.02"}'))
+
+    await c._lese_geraeteinfo()
+
+    assert c.geraeteinfo == {}
+    assert len(c._session.anfragen) == 1
+
+
+async def test_gestrichene_objekte_fallen_aus_dem_stand(client):
+    c = client()
+    bekannt, gestrichen = "/1/15/0/4/1/0", "/1/15/1/4/1/0"
+    c.time_programs = [{"oid": bekannt, "type": "time_program"}]
+    c._letzte_objekte = {bekannt: [1], gestrichen: [2]}
+
+    async def lesen(oid):
+        return None, 0
+
+    c.fetch_object = lesen
+
+    assert await c._fetch_time_programs() == {bekannt: [1]}
+
+
 async def test_die_uhr_der_steuerung_wird_mit_home_assistant_verglichen(client, monkeypatch):
     from datetime import datetime
 
@@ -169,11 +193,29 @@ async def test_die_uhr_der_steuerung_wird_mit_home_assistant_verglichen(client, 
 
 
 async def test_ohne_uhr_fragt_der_client_nicht_weiter(client):
-    c = client(_Antwort(503, b"endpoint <WsAdmin> does not exist."))
+    c = client(_Antwort(404, b""))
 
     assert await c._systemzeit_lesen() is None
     assert await c._systemzeit_lesen() is None
     assert len(c._session.anfragen) == 1
+
+
+async def test_nach_drei_absagen_gilt_die_steuerung_als_ohne_uhr(client):
+    c = client(_Antwort(503, b"endpoint <WsAdmin> does not exist."))
+
+    for _ in range(5):
+        assert await c._systemzeit_lesen() is None
+
+    assert len(c._session.anfragen) == 3
+    assert c.systemzeit_vorhanden is False
+
+
+async def test_eine_einzelne_503_laesst_die_uhr_bestehen(client):
+    c = client(_Antwort(503, b""), _Antwort(200, b'{"dateTime": "2026-11-01T13:00:30"}'))
+
+    assert await c._systemzeit_lesen() is None
+    assert c.systemzeit_vorhanden is None
+    assert (await c._systemzeit_lesen())["uhrzeit"].startswith("2026-11-01T13:00:30")
 
 
 async def test_ohne_auskunft_bleibt_die_geraeteinfo_leer(client):

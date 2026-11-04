@@ -63,16 +63,15 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
     return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
 
 
-def status_vorlage(anlage: dict[str, Any]) -> tuple[Zeile, ...]:
-    """Die Zeilen des Systemstatus mit höchstens einem Erzeuger."""
-    return tuple((z.muster, z.titel, z.symbol, z.schluessel) for z in EINZELN if z.panel)
+# Die Zeilen des Systemstatus mit höchstens einem Erzeuger.
+STATUS_EINZELN: tuple[Zeile, ...] = tuple(z.zeile for z in EINZELN if z.panel)
 
 
 def _zeilen(entitaeten: list[dict[str, Any]], zeilen: list[Statuszeile]) -> list[dict[str, str]]:
     """Je Statuszeile der erste Treffer, mit dem Vorsatz für die Kopfzeile."""
     gefunden = []
     for z in zeilen:
-        for treffer in zeilen_aus(entitaeten, ((z.muster, z.titel, z.symbol, z.schluessel),)):
+        for treffer in zeilen_aus(entitaeten, (z.zeile,)):
             gefunden.append({**treffer, "vorsatz": z.vorsatz} if z.vorsatz else treffer)
     return gefunden
 
@@ -89,7 +88,7 @@ def systemstatus(
     marken = list(marken_status or [])
     erzeuger = erzeuger_von(anlage["teile"])
     if len(erzeuger) < 2:
-        return zeilen_aus(alle, status_vorlage(anlage)) + marken, []
+        return zeilen_aus(alle, STATUS_EINZELN) + marken, []
     bloecke = []
     for teil in erzeuger:
         zeilen = [z for z in STATUSZEILEN[teil["fct_type"]] if z.panel]

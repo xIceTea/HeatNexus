@@ -34,6 +34,13 @@ def _mit_funktion(funktion: dict) -> list[dict]:
 NEUER_HEIZKREIS = {"fctId": 2, "fctType": 14, "name": "Heizkreis 2"}
 
 
+async def _zweimal_pruefen(client, antwort: list[dict]) -> None:
+    """Dieselbe Abweichung in zwei langsamen Takten: Erst das zählt als Änderung."""
+    client.antworten = [antwort, antwort]
+    await client._struktur_pruefen()
+    await client._struktur_pruefen()
+
+
 @pytest.fixture
 def client():
     from custom_components.heatnexus.client import WindhagerHttpClient
@@ -71,9 +78,7 @@ async def test_bei_gleicher_struktur_bleibt_es_ruhig(client):
 
 
 async def test_eine_neue_funktion_wird_einmal_gemeldet(client):
-    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
-
-    await client._struktur_pruefen()
+    await _zweimal_pruefen(client, _mit_funktion(NEUER_HEIZKREIS))
 
     assert client.strukturaenderung_abholen() is True
     assert client.strukturaenderung_abholen() is False
@@ -82,11 +87,30 @@ async def test_eine_neue_funktion_wird_einmal_gemeldet(client):
 async def test_eine_weggefallene_funktion_wird_gemeldet(client):
     weniger = copy.deepcopy(STRUKTUR)
     weniger[0]["functions"].pop()
-    client.antworten = [weniger]
-
-    await client._struktur_pruefen()
+    await _zweimal_pruefen(client, weniger)
 
     assert client.strukturaenderung_abholen() is True
+
+
+async def test_ein_kurzer_aussetzer_bleibt_ohne_meldung(client):
+    """Ein Busteilnehmer fehlt für einen Takt; ein Vollabzug wäre umsonst."""
+    weniger = copy.deepcopy(STRUKTUR)
+    weniger[0]["functions"].pop()
+    client.antworten = [weniger, STRUKTUR, weniger]
+
+    for _ in range(3):
+        await client._struktur_pruefen()
+
+    assert client.strukturaenderung_abholen() is False
+
+
+async def test_erst_die_gleiche_abweichung_zaehlt(client):
+    client.antworten = [_mit_funktion(NEUER_HEIZKREIS), _mit_funktion({"fctId": 3, "fctType": 14})]
+
+    await client._struktur_pruefen()
+    await client._struktur_pruefen()
+
+    assert client.strukturaenderung_abholen() is False
 
 
 async def test_eine_gesperrte_funktion_zaehlt_nicht(client):
@@ -106,9 +130,7 @@ async def test_eine_unbekannte_funktionsart_zaehlt_nicht(client):
 
 
 async def test_ein_neuer_knoten_wird_gemeldet(client):
-    client.antworten = [[*STRUKTUR, {"nodeId": 15, "functions": []}]]
-
-    await client._struktur_pruefen()
+    await _zweimal_pruefen(client, [*STRUKTUR, {"nodeId": 15, "functions": []}])
 
     assert client.strukturaenderung_abholen() is True
 
@@ -135,13 +157,25 @@ async def test_ein_fehlgeschlagener_strukturabruf_aendert_nichts(client, antwort
 async def test_dieselbe_abweichung_wird_nicht_zweimal_gemeldet(client):
     """Bleibt der Vollabzug erfolglos, startet derselbe Aufbau ihn nicht alle Viertelstunde."""
     neu = _mit_funktion(NEUER_HEIZKREIS)
-    client.antworten = [neu, neu]
 
-    await client._struktur_pruefen()
+    await _zweimal_pruefen(client, neu)
     client.strukturaenderung_abholen()
-    await client._struktur_pruefen()
+    await _zweimal_pruefen(client, neu)
 
     assert client.strukturaenderung_abholen() is False
+
+
+async def test_eine_zurueckgestellte_meldung_kommt_im_naechsten_takt(client):
+    """Lief gerade ein Einlesen, ging die Meldung ins Leere; die Abweichung gilt weiter."""
+    neu = _mit_funktion(NEUER_HEIZKREIS)
+    await _zweimal_pruefen(client, neu)
+    client.strukturaenderung_abholen()
+
+    client.strukturaenderung_zurueckstellen()
+    client.antworten = [neu]
+    await client._struktur_pruefen()
+
+    assert client.strukturaenderung_abholen() is True
 
 
 async def test_vor_der_erkennung_wird_nicht_verglichen(client):
@@ -211,27 +245,82 @@ async def test_ein_gescheiterter_lauf_behaelt_den_abdruck(client, monkeypatch):
     assert client._struktur == vorher
 
 
-async def test_nach_gescheitertem_lauf_meldet_die_pruefung_erneut(client, monkeypatch):
-    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
-    await client._struktur_pruefen()
+async def _takte_bis_zur_meldung(client, neu: list[dict]) -> int:
+    for takt in range(1, 40):
+        client.antworten = [neu]
+        await client._struktur_pruefen()
+        if client.strukturaenderung_abholen():
+            return takt
+    raise AssertionError("Keine Meldung")
+
+
+async def test_nach_gescheitertem_lauf_meldet_die_pruefung_mit_wachsender_pause(
+    client, monkeypatch
+):
+    from custom_components.heatnexus.const import STRUKTUR_WARTETAKTE_MAX
+
+    neu = _mit_funktion(NEUER_HEIZKREIS)
+    await _zweimal_pruefen(client, neu)
     assert client.strukturaenderung_abholen() is True
 
     async def discover(nur_kern=False):
         raise OSError("Leitung weg")
 
     monkeypatch.setattr(client, "_discover", discover)
-    with pytest.raises(OSError):
-        await client.async_init(erzwingen=True)
+    pausen = []
+    for _ in range(7):
+        with pytest.raises(OSError):
+            await client.async_init(erzwingen=True)
+        pausen.append(await _takte_bis_zur_meldung(client, neu) - 1)
 
-    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
+    assert pausen == [1, 2, 4, 8, 16, 16, 16]
+    assert max(pausen) == STRUKTUR_WARTETAKTE_MAX
+
+
+async def test_eine_gelungene_aenderung_setzt_die_pause_zurueck(client, monkeypatch):
+    neu = _mit_funktion(NEUER_HEIZKREIS)
+    client._strukturlauf_gescheitert()
+    client._strukturlauf_gescheitert()
+
+    client._struktur = client._strukturabdruck(neu)
+    client.antworten = [neu]
     await client._struktur_pruefen()
-    assert client.strukturaenderung_abholen() is True
+
+    assert (client._struktur_pause, client._struktur_wartetakte) == (0, 0)
+
+
+def _viele(praefix: str, anzahl: int = 40) -> list[str]:
+    return [f"{praefix}/3/{nummer}/0" for nummer in range(anzahl)]
+
+
+def test_der_magerschutz_nimmt_nur_entfallene_funktionen_heraus(client):
+    """Ein Kessel, den `/1` nie nennt, zählt weiter: Fehlt er, ist der Lauf zu mager."""
+    alt = client._strukturabdruck(STRUKTUR)
+    gesucht, kreis = _viele("/1/60/9"), _viele("/1/60/1", 5)
+    client._struktur = client._strukturabdruck(
+        [{**STRUKTUR[0], "functions": STRUKTUR[0]["functions"][:1]}]
+    )
+    client.oids = set(kreis[:0])
+
+    assert client._noch_vorhanden([*gesucht, *kreis], alt) == gesucht
+    assert client._erkennung_zu_mager({"oids": [*gesucht, *kreis], "struktur": alt}) is True
+
+
+def test_mit_einem_knoten_entfallen_auch_seine_gesuchten_funktionen(client):
+    alt = [*client._strukturabdruck(STRUKTUR), "15"]
+    client._struktur = client._strukturabdruck(STRUKTUR)
+    bleibt = _viele("/1/60/0", 2)
+
+    assert client._noch_vorhanden([*bleibt, *_viele("/1/15/9", 2)], alt) == bleibt
 
 
 # ---------------------------------------------------------------------------
 # Takt
 # ---------------------------------------------------------------------------
 async def test_die_pruefung_nutzt_die_antwort_der_meldungen(client):
+    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
+    await client._struktur_pruefen()
+    client.gefragt.clear()
     client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
 
     await client.fetch_all()
@@ -255,7 +344,7 @@ async def test_im_langsamen_takt_wird_verglichen(client):
 
     await client.fetch_all()
 
-    assert client.strukturaenderung_abholen() is True
+    assert client._struktur_kandidat == client._strukturabdruck(_mit_funktion(NEUER_HEIZKREIS))
 
 
 async def test_ohne_meldungssensor_fragt_nur_der_langsame_takt_nach(client):
@@ -304,8 +393,18 @@ def test_der_empfaenger_erhaelt_die_meldung(client):
 # Start des Vollabzugs
 # ---------------------------------------------------------------------------
 class _Anlage(SimpleNamespace):
+    def __init__(self, **felder):
+        zurueckgestellt: list = []
+        super().__init__(
+            client=SimpleNamespace(
+                zurueckgestellt=zurueckgestellt,
+                strukturaenderung_zurueckstellen=lambda: zurueckgestellt.append(True),
+            ),
+            **felder,
+        )
+
     def _replace(self, **felder):
-        return _Anlage(**{**vars(self), **felder})
+        return _Anlage(**{k: v for k, v in {**vars(self), **felder}.items() if k != "client"})
 
 
 @pytest.fixture
@@ -345,6 +444,7 @@ def test_ein_laufender_vollabzug_verhindert_einen_zweiten(einlesen):
     einlesen._nach_strukturaenderung(None, _eintrag({"192.0.2.10"}, []), anlage, {}, "1.0")
 
     assert einlesen.gestartet == []
+    assert anlage.client.zurueckgestellt == [True]
 
 
 async def test_eine_laufende_aufgabe_verhindert_einen_zweiten(einlesen):
@@ -358,6 +458,7 @@ async def test_eine_laufende_aufgabe_verhindert_einen_zweiten(einlesen):
         await aufgabe
 
     assert einlesen.gestartet == []
+    assert anlage.client.zurueckgestellt == [True]
 
 
 def test_eine_andere_anlage_startet_trotz_laufendem_vollabzug(einlesen):

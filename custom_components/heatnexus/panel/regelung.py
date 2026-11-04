@@ -11,15 +11,11 @@ from typing import Any
 from ..dashboard.anlagen import erzeuger_von
 from ..geraete.statuszeilen import GEMEINSAM
 from .hybrid import rolle
-from .suche import erster, zeilen_aus
+from .suche import kennung as _kennung
+from .suche import zeilen_aus
 
 # Woran die Zeile des Hybridmanagers erkennt, welcher Erzeuger gerade liefert.
 LEISTUNG = r"kesselleistung|^aktuelle leistung$"
-
-
-def _kennung(entitaeten: list[dict[str, Any]], muster: str) -> str | None:
-    treffer = erster(entitaeten, muster)
-    return treffer["entity_id"] if treffer else None
 
 
 def _hybridmanager(anlage: dict[str, Any], erzeuger: list[dict[str, Any]]) -> dict | None:
@@ -44,9 +40,7 @@ def regelung(anlage: dict[str, Any]) -> dict[str, Any] | None:
     if len(erzeuger) < 2:
         return None
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
-    vorlage = tuple(
-        (z.muster, z.titel, z.symbol, z.schluessel) for z in GEMEINSAM if z.panel and z.regelung
-    )
+    vorlage = tuple(z.zeile for z in GEMEINSAM if z.panel and z.regelung)
     return {
         "hybrid": _hybridmanager(anlage, erzeuger),
         "zeilen": zeilen_aus(alle, vorlage),

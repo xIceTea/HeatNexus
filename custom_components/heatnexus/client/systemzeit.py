@@ -10,6 +10,8 @@ from homeassistant.util import dt as dt_util
 _LOGGER = logging.getLogger(__name__)
 
 PFAD = "/WsAdmin/api/1.0/systemtime"
+# Absagen in Folge, ab denen eine Steuerung als ohne Uhr gilt. Eine 503 kann auch ein Aussetzer sein.
+ABSAGEN_OHNE_UHR = 3
 
 
 def _zeit(roh) -> datetime | None:
@@ -24,6 +26,7 @@ class SystemzeitMixin:
 
     systemzeit_vorhanden: bool | None = None
     _systemzeit: dict | None = None
+    _systemzeit_absagen: int = 0
 
     async def _systemzeit_lesen(self) -> dict | None:
         """Uhrzeit und Abweichung zu Home Assistant in Sekunden; `None` ohne Uhr an der Steuerung."""
@@ -35,7 +38,9 @@ class SystemzeitMixin:
             _LOGGER.debug("Uhrzeit von %s nicht lesbar: %s", self.host, fehler)
             return self._systemzeit
         if status in (404, 503) and not self.systemzeit_vorhanden:
-            self.systemzeit_vorhanden = False
+            self._systemzeit_absagen += 1
+            if status == 404 or self._systemzeit_absagen >= ABSAGEN_OHNE_UHR:
+                self.systemzeit_vorhanden = False
             return None
         zeit = _zeit(daten.get("dateTime")) if status == 200 and isinstance(daten, dict) else None
         if zeit is None:
