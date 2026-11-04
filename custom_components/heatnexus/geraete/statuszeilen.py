@@ -111,6 +111,15 @@ KESSEL: tuple[Statuszeile, ...] = (
         panel=True,
         karte=True,
     ),
+    # Der Lagerraum steht neben dem Vorratsbehälter; das Schaubild zeigt nur den Behälter am Kessel.
+    # Am Anfang verankert: „Schwelle Befüllgrad Lagerraum für Error“ ist eine Einstellung.
+    Statuszeile(
+        r"^(bef(ü|ue)llgrad lagerraum|vulniveau bunker)",
+        "Lagerraum",
+        "mdi:warehouse",
+        panel=True,
+        karte=True,
+    ),
     Statuszeile(
         r"^(anzahl der )?brennerstarts$",
         "Brennerstarts",

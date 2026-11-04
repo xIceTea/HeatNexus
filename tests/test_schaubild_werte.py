@@ -37,7 +37,7 @@ def werte() -> dict:
 def test_unter_dem_bild_steht_jede_zahl_in_der_spalte_ihres_anlagenteils(werte):
     """Zwei Reihen zu 4 und 3 Teilen; jede Zahl trägt ihren Namen."""
     assert werte["unter_leisten"] == [
-        [["Lagerraum63 %"], [], [], ["Kessel71.5 °C"]],
+        [["Vorratsbehälter63 %"], [], [], ["Kessel71.5 °C"]],
         [[], [], ["COP3.6"]],
     ]
     assert werte["unter_marken"] == []
@@ -50,9 +50,9 @@ def test_mit_wertleiste_waechst_das_fenster(werte):
 def test_im_bild_gibt_es_keine_wertleiste(werte):
     assert werte["bild_leisten"] == [None, None]
     assert "COP 3.6" in werte["bild_marken"]
-    # Am Behälter steht im Bild nur die Zahl, ohne das Wort „Lagerraum“.
+    # Am Behälter steht im Bild nur die Zahl, ohne das Wort „Vorratsbehälter“.
     assert "63 %" in werte["bild_marken"]
-    assert not any("Lagerraum" in marke for marke in werte["bild_marken"])
+    assert not any("Vorratsbehälter" in marke for marke in werte["bild_marken"])
 
 
 def test_automatisch_folgt_der_tatsaechlichen_breite(werte):
@@ -62,7 +62,7 @@ def test_automatisch_folgt_der_tatsaechlichen_breite(werte):
     assert werte["auto_breit_leiste"] is False
 
 
-def test_der_lagerraum_bleibt_bei_null_prozent_weg(werte):
+def test_der_befuellgrad_bleibt_bei_null_prozent_weg(werte):
     assert werte["lager_null"] == ["71.5 °C", "COP 3.6"]
 
 
@@ -73,3 +73,11 @@ def test_der_behaelter_zeigt_seine_stufe_mit_koernung_und_umriss(werte):
 def test_die_groesse_der_werte_setzt_das_schriftmass(werte):
     """„Mittel“ ist das bisherige Maß und gilt ohne Wahl."""
     assert werte["schrift"] == [1, 1.25, 1.5, 1.25]
+
+
+def test_der_befuellgrad_fuellt_den_behaelter_sonst_gilt_die_feste_hoehe(werte):
+    assert werte["lagerfuellung"] == [
+        ["anteil", False, "37%"],
+        ["anteil", False, "33.85%"],
+        ["anteil", False, "33.85%"],
+    ]

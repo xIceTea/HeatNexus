@@ -43,7 +43,19 @@ const anlage = {
       hoehe: "27%",
       bild: "<svg><g class='koerner-flaeche'></g><path class='umriss-linie'/></svg>",
     },
-    { art: "lagerraum", entity: "sensor.lager", titel: "BioWIN", left: "5%", top: "27%" },
+    { art: "fuellgrad", entity: "sensor.lager", titel: "BioWIN", left: "5%", top: "27%" },
+    {
+      art: "behaelter",
+      entity: "sensor.lager",
+      titel: "BioWIN",
+      anteil: true,
+      fest: "33.85%",
+      left: "4%",
+      top: "36%",
+      breite: "2%",
+      hoehe: "27%",
+      bild: "<svg><g class='koerner-flaeche'></g><path class='umriss-linie'/></svg>",
+    },
   ],
 };
 
@@ -101,6 +113,12 @@ ergebnis.lager_null = marken(aufbauen({ werte_lage: "bild" }, 2000, "0"));
 
 const behaelter = aufbauen({}, 2000).querySelector(".vorrat");
 ergebnis.behaelter = [behaelter.dataset.stufe, behaelter.hidden, behaelter.children.map((teil) => teil.className)];
+
+const lagerfuellung = (lager) => {
+  const flaeche = aufbauen({}, 2000, lager).querySelectorAll(".vorrat")[1];
+  return [flaeche.dataset.stufe, flaeche.hidden, flaeche.style["--hn-leer"]];
+};
+ergebnis.lagerfuellung = ["63", "0", "unavailable"].map(lagerfuellung);
 
 ergebnis.schrift = ["klein", "mittel", "gross", undefined].map((groesse) =>
   panel(groesse ? { werte_groesse: groesse } : {})._schriftmass()

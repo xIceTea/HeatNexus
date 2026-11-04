@@ -575,9 +575,9 @@ def _hauptmodul(
         "brennkammer": _entitaet_wenn(
             art == "kessel", entitaeten, BRENNKAMMER_IST, "combustion_chamber_temperature"
         ),
-        # Füllstand: Vorratsbehälter in Stufen (PuroWIN), Lagerraum in Prozent (BioWIN).
+        # Füllstand des Vorratsbehälters: in Stufen (PuroWIN) oder in Prozent (BioWIN).
         "behaelter": _an_adresse(teil, geraete.BEHAELTER) if art == "kessel" else None,
-        "lagerraum": _an_adresse(teil, geraete.LAGERRAUM) if art == "kessel" else None,
+        "fuellgrad": _an_adresse(teil, geraete.FUELLGRAD) if art == "kessel" else None,
     }
 
 

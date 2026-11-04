@@ -6,13 +6,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unreleased]
+## [1.15.0]
+
+### Neu
+
+- Unter dem Schaubild steht jedes Anlagenteil mit Werten in einem Kasten.
+- BioWIN: Der Systemstatus zeigt den Befüllgrad des Lagerraums.
+
+### Geändert
+
+- Die Zahl über dem Vorratsbehälter ist größer.
+- Die Übergabestation zeigt eine Anforderung mit Ringen, die nacheinander aufleuchten.
+- BioWIN: Füllhöhe und Zahl am Vorratsbehälter folgen dem gemeldeten Befüllgrad.
 
 ### Behoben
 
 - Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
 - „Anlage neu erkennen“ und „Dashboard als YAML ausgeben“ sind nur für Administratoren aufrufbar.
 - Vor dem Nachführen einer neuen Adresse fragt HeatNexus, ob die Steuerung umgezogen ist.
+- Am Rad der Übergabestation bleiben in Firefox keine Bruchstücke mehr stehen.
+- Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.
+- Im umgebrochenen Schaubild steht der Befüllgrad nur in der Reihe des Kessels.
+- BioWIN: An der AeroWIN liegt keine Glut mehr über der Betriebslampe.
 
 ## [1.15.0-beta.2] - 2026-11-02
 

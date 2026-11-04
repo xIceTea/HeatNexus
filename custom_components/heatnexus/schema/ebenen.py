@@ -20,6 +20,7 @@ from .werte import (
 )
 from .zeichnung import (
     ENTNAHME_ARTEN,
+    FUELLGRAD_STELLE,
     GLUTBETT_BREITE,
     GLUTBETT_Y,
     HEIZKOERPER_ANZAHL,
@@ -40,7 +41,6 @@ from .zeichnung import (
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
-    LAGERRAUM_STELLE,
     MISCHER_JE_ART,
     MISCHER_MARKE,
     MODUL_BREITE,
@@ -283,8 +283,23 @@ def lampen_der_erzeuger(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
 BEHAELTER_STUFEN = {0: "fehler", 1: "leer", 2: "teil", 3: "voll"}
 
 
+def _fuellflaeche(
+    entity: str, modul: dict[str, Any], flaeche: dict[str, Any], links: float, rahmen: Rahmen
+) -> dict[str, Any]:
+    """Lage und Bild der Fläche, die sich im Vorratsbehälter füllt."""
+    return {
+        "art": "behaelter",
+        "entity": entity,
+        "titel": modul["titel"],
+        **_stelle(links + flaeche["x"], flaeche["y"], rahmen),
+        "breite": _pct(flaeche["breite"], rahmen.breite),
+        "hoehe": _pct(flaeche["hoehe"], HOEHE),
+        "bild": flaeche["bild"],
+    }
+
+
 def vorrat(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
-    """Füllstand am Kessel: der Vorratsbehälter in Stufen, der Lagerraum als Zahl.
+    """Füllstand des Vorratsbehälters am Kessel, in Stufen oder in Prozent mit Zahl darüber.
 
     Der Behälter füllt sich nur, wo die Zeichnung seine Innenfläche markiert. Die
     Stufe folgt dem Text des Zustands; `stufen` ordnet jeden Text seiner Stufe zu.
@@ -292,33 +307,28 @@ def vorrat(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
         links = _links(platz)
-        behaelter = modul.get("behaelter")
+        behaelter, fuellgrad = modul.get("behaelter"), modul.get("fuellgrad")
         flaeche = vorratsflaeche(modul.get("kesselart"), modul.get("zeichnung"))
         if behaelter and flaeche:
             optionen = behaelter.get("optionen") or {}
+            stufen = {
+                text: BEHAELTER_STUFEN[int(wert)]
+                for wert, text in optionen.items()
+                if str(wert).isdigit() and int(wert) in BEHAELTER_STUFEN
+            }
+            fuellung = _fuellflaeche(behaelter["entity_id"], modul, flaeche, links, rahmen)
+            ergebnis.append({**fuellung, "stufen": stufen})
+        elif fuellgrad and flaeche:
+            # Ohne Füllgrad steht der Brennstoff wie in der Zeichnung bis zur festen Höhe.
+            fuellung = _fuellflaeche(fuellgrad["entity_id"], modul, flaeche, links, rahmen)
+            ergebnis.append({**fuellung, "anteil": True, "fest": _pct(flaeche["fest"], 1)})
+        if fuellgrad:
             ergebnis.append(
                 {
-                    "art": "behaelter",
-                    "entity": behaelter["entity_id"],
+                    "art": "fuellgrad",
+                    "entity": fuellgrad["entity_id"],
                     "titel": modul["titel"],
-                    "stufen": {
-                        text: BEHAELTER_STUFEN[int(wert)]
-                        for wert, text in optionen.items()
-                        if str(wert).isdigit() and int(wert) in BEHAELTER_STUFEN
-                    },
-                    **_stelle(links + flaeche["x"], flaeche["y"], rahmen),
-                    "breite": _pct(flaeche["breite"], rahmen.breite),
-                    "hoehe": _pct(flaeche["hoehe"], HOEHE),
-                    "bild": flaeche["bild"],
-                }
-            )
-        if lagerraum := modul.get("lagerraum"):
-            ergebnis.append(
-                {
-                    "art": "lagerraum",
-                    "entity": lagerraum["entity_id"],
-                    "titel": modul["titel"],
-                    **_stelle(links + LAGERRAUM_STELLE[0], LAGERRAUM_STELLE[1], rahmen),
+                    **_stelle(links + FUELLGRAD_STELLE[0], FUELLGRAD_STELLE[1], rahmen),
                 }
             )
     return ergebnis
@@ -387,7 +397,8 @@ def brenner(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     """
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
-        if modul["art"] != "kessel":
+        # Die Wärmepumpe verbrennt nichts; ihren Betrieb zeigen Lüfter und Lampe.
+        if modul["art"] != "kessel" or modul.get("kesselart") == "waermepumpe":
             continue
         leistung, ersatz = modul.get("leistung"), modul.get("brennkammer")
         if not (leistung or ersatz):

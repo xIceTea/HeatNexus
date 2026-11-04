@@ -290,16 +290,19 @@ export const SCHAUBILD = `
     opacity: 0; transition: opacity 0.8s ease;
   }
   .schaubild .uebergabe.an { opacity: 1; }
+  /* „height: auto“ hebt die feste Höhe des Glutbetts auf; sonst läge statt
+     eines runden Scheins ein flaches Band hinter der Scheibe. */
   .schaubild .uebergabe .glut {
-    position: absolute; left: 50%; top: 53%; width: 112%; aspect-ratio: 1.15;
+    position: absolute; left: 50%; top: 53%; width: 112%; height: auto; aspect-ratio: 1.15;
     transform: translate(-50%, -50%); border-radius: 50%;
     background: radial-gradient(circle, var(--hn-uebergabe) 0%,
       color-mix(in srgb, var(--hn-uebergabe) 55%, transparent) 45%,
       transparent 72%);
     animation: uebergabe-glimmen 3.4s ease-in-out infinite;
   }
+  /* Der zweite Schein liegt mittig wie das Rad; versetzt wanderte das Licht beim Pulsieren um die Scheibe. */
   .schaubild .uebergabe .glut.zwei {
-    left: 32%; top: 40%; width: 74%;
+    width: 74%;
     animation-duration: 2.1s; animation-direction: reverse;
   }
   @keyframes uebergabe-glimmen {
@@ -307,20 +310,20 @@ export const SCHAUBILD = `
     45% { opacity: 0.40; }
     70% { opacity: 0.22; }
   }
-  /* Die Wellen liegen im Gehäuse und werden am Rand beschnitten: Sie sollen
-     die Abgabe andeuten, nicht über die Nachbarn im Bild laufen. */
+  /* Drei feste Ringe um die Scheibe leuchten nacheinander von innen nach außen auf.
+     Wachsende Ringe neben dem drehenden Rad hinterließen in Firefox Bruchstücke auf dem Rad. */
   .schaubild .uebergabe .welle {
-    position: absolute; left: 50%; top: 53%; width: 90%; aspect-ratio: 1;
+    position: absolute; left: 50%; top: 53%; width: 62%; aspect-ratio: 1;
     transform: translate(-50%, -50%); border-radius: 50%;
     border: 2px solid var(--hn-uebergabe); opacity: 0;
     animation: uebergabe-abgabe 3s ease-out infinite;
   }
-  .schaubild .uebergabe .welle:nth-child(4) { animation-delay: 1s; }
-  .schaubild .uebergabe .welle:nth-child(5) { animation-delay: 2s; }
+  .schaubild .uebergabe .welle:nth-child(4) { width: 86%; animation-delay: 1s; }
+  .schaubild .uebergabe .welle:nth-child(5) { width: 110%; animation-delay: 2s; }
   @keyframes uebergabe-abgabe {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    25% { opacity: 0.5; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); }
+    0%, 100% { opacity: 0; }
+    25% { opacity: 0.55; }
+    55% { opacity: 0; }
   }
   /* Das eigene Laufrad über dem gezeichneten. Es dreht sich viel langsamer
      als eine Pumpe: Hier fließt keine Fördermenge, hier geht Wärme über. */
@@ -430,11 +433,13 @@ export const SCHAUBILD = `
   }
   .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
   /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. Am Rand des Ausschnitts rückt sie so weit ein, dass sie ganz bleibt. */
-  .schaubild .marke-wert.lagerraum {
+  .schaubild .marke-wert.fuellgrad {
     background: none; padding: 0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
     margin-left: max(0px, calc(var(--hn-kante, 0px) + 1.2em - var(--hn-links, 0%)));
-    font-size: clamp(calc(8px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(15px * var(--hn-schrift)));
+    font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 13 * var(--hn-schrift)), calc(17px * var(--hn-schrift)));
   }
+  /* In einer anderen Reihe des Strangs bleibt sie an ihrer Stelle außerhalb des Ausschnitts. */
+  .schaubild .marke-wert.fuellgrad[aria-hidden="true"] { margin-left: 0; }
   /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
      Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */
   .schaubild .vorrat { position: absolute; pointer-events: auto; }
@@ -443,6 +448,7 @@ export const SCHAUBILD = `
   .schaubild .vorrat .koerner .umriss-linie, .schaubild .vorrat .umriss .koerner-flaeche { display: none; }
   .schaubild .vorrat .koerner { clip-path: inset(100% 0 0 0); transition: clip-path 0.4s ease; }
   .schaubild .vorrat[data-stufe="voll"] .koerner { clip-path: inset(0); }
+  .schaubild .vorrat[data-stufe="anteil"] .koerner { clip-path: inset(var(--hn-leer, 50%) 0 0 0); }
   .schaubild .vorrat[data-stufe="teil"] .koerner { clip-path: inset(50% 0 0 0); }
   .schaubild .vorrat .umriss { visibility: hidden; }
   .schaubild .vorrat[data-stufe="fehler"] .umriss { visibility: visible; }
@@ -455,6 +461,10 @@ export const SCHAUBILD = `
   /* Werte unter dem Bild: je Anlagenteil eine Spalte, jede Zahl mit ihrem Namen. */
   .wertleiste { display: grid; gap: 4px; padding: 6px 0 2px; font-size: calc(11px * var(--hn-schrift)); }
   .wertleiste > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  /* Jedes Anlagenteil mit Werten bekommt einen Kasten in den Farben des Themas. */
+  .wertleiste > div:has(> .leiste-wert:not([hidden])) {
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie); border-radius: 8px; padding: 5px 4px;
+  }
   .leiste-wert { display: flex; flex-direction: column; align-items: center; max-width: 100%; line-height: 1.2; text-align: center; }
   .leiste-name { font-size: 0.85em; opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .leiste-zahl { font-weight: 600; white-space: nowrap; }

@@ -51,8 +51,8 @@ WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
     "waermepumpe": {"Vorlauf": (100, 140), "COP": (118, 266)},
 }
 
-# Der Befüllgrad des Lagerraums steht mittig über dem Vorratsbehälter, abseits der Leitungen.
-LAGERRAUM_STELLE = (19, 127)
+# Der Befüllgrad steht mittig über dem Vorratsbehälter, abseits der Leitungen.
+FUELLGRAD_STELLE = (19, 127)
 
 # Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
 Buch = Callable[[str], str]
@@ -368,7 +368,8 @@ def _kasten(
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
     # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
-    zusatz = {"vorrat": "0"} if modul.get("behaelter") else {}
+    # Den gezeichneten Brennstoff ersetzt die Oberfläche, sobald sie den Behälter selbst füllt.
+    zusatz = {"vorrat": "0"} if modul.get("behaelter") or modul.get("fuellgrad") else {}
     if (masse := SPEICHER_ARTEN.get(art)) is not None:
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
     inhalt = aus_datei(
