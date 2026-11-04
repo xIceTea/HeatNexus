@@ -410,6 +410,13 @@ export const SCHAUBILD = `
     transform-origin: 50% 50%;
   }
   .schaubild .pumpe .rad svg { display: block; width: 100%; height: 100%; }
+  /* Kasten und Rad stehen auf geraden Pixelmaßen. So bleibt der Abstand dazwischen
+     ganzzahlig, und beide runden beim Zeichnen in dieselbe Richtung. Bei krummen Maßen,
+     wie sie eine schmale Reihe ergibt, sitzt das Rad am Handy sonst neben der Mitte. */
+  @supports (width: round(1px, 2px)) {
+    .schaubild .pumpe { width: round(var(--hn-marke), 2px); }
+    .schaubild .pumpe .rad { width: round(calc((var(--hn-marke) - 2px) * 0.62), 2px); }
+  }
   /* Die laufende Pumpe tritt hervor. Der Faktor bleibt klein: Eine Marke, die
      doppelt so groß wird, ragte in Kessel und Speicher hinein. */
   .schaubild .pumpe.laeuft {

@@ -81,6 +81,13 @@ def test_nur_die_zeichnung_wird_geschnitten():
     assert "overflow: hidden" in re.search(r"\.strang-ausschnitt \{[^}]*\}", stil).group(0)
 
 
+def test_laufrad_steht_auf_geraden_pixelmassen():
+    """Kasten und Rad runden auf gerade Pixel, damit der Abstand ganzzahlig bleibt."""
+    stil = (FRONTEND / "stil" / "schaubild.js").read_text(encoding="utf-8")
+    assert ".schaubild .pumpe { width: round(var(--hn-marke), 2px); }" in stil
+    assert re.search(r"\.pumpe \.rad \{ width: round\(.*, 2px\); \}", stil)
+
+
 def test_gleiche_aufteilung_baut_nicht_neu(reihen):
     assert reihen["ohneNeubau"] is True
 
