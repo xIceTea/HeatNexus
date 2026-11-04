@@ -6,7 +6,7 @@ Schreibrecht folgen den Metadaten, die BioWIN-Anlagen tatsächlich melden.
 
 from __future__ import annotations
 
-from . import quittung
+from . import quittung, statuszeilen
 
 FCT_TYPE = 9
 MODELL = "BioWIN Pelletskessel"
@@ -21,6 +21,9 @@ RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
     ("boiler_power", {"min": 0, "max": 100}),
 )
 
+STATUSZEILEN = statuszeilen.KESSEL
+# Befüllgrad des Vorratsbehälters am Kessel in Prozent; das Schaubild füllt ihn danach.
+FUELLGRAD = "43/42"
 EXTRA_OIDS: tuple[str, ...] = ()
 
 # Was diese Baureihe nur über den LON-Bus hergibt. Die Brennkammertemperatur

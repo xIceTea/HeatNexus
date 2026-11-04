@@ -6,6 +6,8 @@ Ohne kuratierte Tabelle: Alles kommt aus den Menü-Ebenen der Anlage. Die
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 10
 MODELL = "Automatik-/Zusatzkessel"
 # Geräteklasse aus der `programId`. Die Klasse 2009 ist der LogWIN.
@@ -14,6 +16,7 @@ RANG = 14
 SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"
 
+STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
 

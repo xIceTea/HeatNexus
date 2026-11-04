@@ -8,10 +8,12 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
+import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { SchaubildWerteMixin } from "./schaubildwerte.js";
+import { HOEHE, MODUL, RAND, reihenPlanen, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
-  class extends Basis {
+  class extends SchaubildWerteMixin(Basis) {
   // -------------------------------------------------------------------
   // Schaubild
   // -------------------------------------------------------------------
@@ -26,13 +28,9 @@ export const SchaubildMixin = (Basis) =>
     return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
   }
 
-  /**
-   * Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das.
-   * Die Oberfläche zeigt das Bild über die volle Breite, dort tragen die
-   * Werte die größere Stufe.
-   */
+  /** Wie groß die Marken im Schaubild stehen: nach der Darstellung. Die Karte überschreibt das. */
   _schriftmass() {
-    return schriftmass("gross");
+    return this._werteFaktor();
   }
 
   /** Ob die Pumpen als Marke im Bild stehen. Die Karte darf sie abwählen. */
@@ -118,9 +116,117 @@ export const SchaubildMixin = (Basis) =>
     return huelle;
   }
 
+  /** Wie der Strang steht; null zeigt das Bild über die ganze Breite, wie in der Lovelace-Karte. */
+  _strangWahl() {
+    if (typeof this._stilwahl !== "function") return null;
+    const stufe = STRANGGROESSEN.find((eintrag) => eintrag.schluessel === this._stilwahl("strang_groesse"));
+    return { modus: this._stilwahl("strang"), groesse: stufe.pixel };
+  }
+
   _schaubild(anlage) {
     if (!anlage.schema_svg) return null;
     const karte = this._karte(this._bildtitel());
+    const wahl = this._strangWahl();
+    karte.appendChild(wahl ? this._strang(anlage, karte, wahl) : this._schaubildHuelle(anlage));
+    return karte;
+  }
+
+  /**
+   * Der Strang in Reihen nach der Breite der Karte. Jede Reihe hat ihre eigene Hülle
+   * mit eigenen Bindungen; neu gebaut wird nur, wenn sich die Aufteilung ändert.
+   */
+  _strang(anlage, karte, wahl) {
+    const rahmen = document.createElement("div");
+    rahmen.className = "schaubild-strang";
+    const breite = Number(anlage.schema_breite) || 0;
+    let bindungen = [];
+    let gebaut;
+    const ordnen = (verfuegbar) => {
+      const plan = breite && verfuegbar > 0
+        ? reihenPlanen({ teile: teileAus(breite), breite, verfuegbar, ...wahl })
+        : null;
+      const unter = Boolean(plan) && this._werteUnter(plan.massstab);
+      const kennung = JSON.stringify([plan && plan.reihen, unter]);
+      if (kennung !== gebaut) {
+        gebaut = kennung;
+        bindungen = [];
+        const reihen = plan ? plan.reihen : [null];
+        rahmen.replaceChildren(...reihen.map((reihe) => this._strangReihe(anlage, reihe, bindungen, unter)));
+        if (this._hass) bindungen.forEach((binden) => binden());
+      }
+      if (plan) [...rahmen.children].forEach((fenster, nr) => this._strangStellen(fenster, plan.reihen[nr], plan.massstab, breite));
+    };
+    this._bindungen.push(() => bindungen.forEach((binden) => binden()));
+    ordnen(0);
+    if (typeof ResizeObserver === "function") {
+      // Gebaut wird im nächsten Bild: Ein Umbau im Rückruf löst sonst die Meldung über eine Schleife aus.
+      const signal = this._aufbauAbbruch?.signal;
+      let zuletzt = -1;
+      const beobachter = new ResizeObserver(([eintrag]) => {
+        const verfuegbar = eintrag.contentRect.width;
+        if (verfuegbar === zuletzt) return;
+        zuletzt = verfuegbar;
+        requestAnimationFrame(() => {
+          if (!signal?.aborted) ordnen(verfuegbar);
+        });
+      });
+      beobachter.observe(karte);
+      signal?.addEventListener("abort", () => beobachter.disconnect());
+    }
+    return rahmen;
+  }
+
+  /** Eine Hülle, mit `unter` samt Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
+  _strangReihe(anlage, reihe, bindungen, unter) {
+    const anfang = this._bindungen.length;
+    const huelle = this._schaubildHuelle(anlage, unter);
+    const leiste = unter ? this._wertleiste(anlage, reihe) : null;
+    bindungen.push(...this._bindungen.splice(anfang));
+    if (!reihe) return huelle;
+    const fenster = document.createElement("div");
+    fenster.className = "strang-reihe";
+    fenster.appendChild(huelle);
+    if (leiste) fenster.appendChild(leiste);
+    return fenster;
+  }
+
+  /** Das Fenster schneidet genau an den Kanten der Anlagenteile, sonst ragt der Name des Nachbarn herein. */
+  _strangStellen(fenster, [erstes, anzahl], massstab, breite) {
+    fenster.style.width = `${anzahl * MODUL * massstab}px`;
+    // Mit Wertleiste wächst das Fenster um sie; die Leiste beginnt unter der Zeichnung.
+    const [huelle, leiste] = fenster.children;
+    fenster.style.height = leiste ? "" : `${HOEHE * massstab}px`;
+    if (leiste) leiste.style.marginTop = `${HOEHE * massstab}px`;
+    huelle.style.width = `${breite * massstab}px`;
+    huelle.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
+    // Wo der Ausschnitt in der Hülle beginnt; Marken am Rand rücken daran nach innen.
+    huelle.style.setProperty("--hn-kante", `${(RAND + erstes * MODUL) * massstab}px`);
+    this._strangMarken(huelle, erstes, anzahl, breite);
+    const bild = huelle.querySelector("img");
+    if (bild && erstes > 0) bild.alt = "";
+  }
+
+  /** Marken außerhalb des Ausschnitts verlassen Tab-Reihenfolge und Vorlesebaum; `data-strang-tab` hält den Ausgangszustand. */
+  _strangMarken(huelle, erstes, anzahl, breite) {
+    const marken = new Set([...huelle.querySelectorAll("[tabindex]"), ...huelle.querySelectorAll('[role="button"]')]);
+    marken.forEach((marke) => {
+      const links = String(marke.style.left || "");
+      if (!links.endsWith("%")) return;
+      const teil = Math.floor(((parseFloat(links) / 100) * breite - RAND) / MODUL);
+      if (!("strangTab" in marke.dataset)) marke.dataset.strangTab = marke.getAttribute("tabindex") ?? "";
+      if (teil >= erstes && teil < erstes + anzahl) {
+        if (marke.dataset.strangTab) marke.setAttribute("tabindex", marke.dataset.strangTab);
+        else marke.removeAttribute("tabindex");
+        marke.removeAttribute("aria-hidden");
+      } else {
+        marke.setAttribute("tabindex", "-1");
+        marke.setAttribute("aria-hidden", "true");
+      }
+    });
+  }
+
+  /** Die Zeichnung mit ihren Marken; `ohneWerte` lässt die Zahlen für die Wertleiste weg. */
+  _schaubildHuelle(anlage, ohneWerte = false) {
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
@@ -129,8 +235,7 @@ export const SchaubildMixin = (Basis) =>
     if (anlage.schema_breite) {
       huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
     }
-    // Das Schriftmaß der Marken. Die Karte gibt es vor, die Oberfläche bleibt
-    // beim Normalmaß.
+    // Das Schriftmaß der Marken: in der Karte aus dem Editor, in der Oberfläche aus der Darstellung.
     huelle.style.setProperty("--hn-schrift", String(this._schriftmass()));
     const bild = document.createElement("img");
     const anfangsbild = this._schemaBild(anlage);
@@ -450,6 +555,67 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Der Lüfter der Wärmepumpe: dieselbe Glut und dasselbe Laufrad wie an der
+    // Übergabe, rund über dem Gitter und schneller, solange sie Leistung bringt.
+    (anlage.schema_luefter || []).forEach((eintrag) => {
+      const feld = document.createElement("div");
+      feld.className = "uebergabe luefter";
+      feld.style.left = eintrag.left;
+      feld.style.top = eintrag.top;
+      feld.style.width = eintrag.breite;
+      feld.style.height = eintrag.hoehe;
+      feld.innerHTML = '<span class="glut"></span><span class="glut zwei"></span>';
+      huelle.appendChild(feld);
+
+      const rad = document.createElement("div");
+      rad.className = "uebergabe-rad luefter";
+      rad.style.left = eintrag.rad_left;
+      rad.style.top = eintrag.rad_top;
+      rad.style.width = eintrag.rad_groesse;
+      rad.appendChild(this._laufrad());
+      huelle.appendChild(this._klickbar(rad, eintrag.entity));
+
+      this._bindungen.push(() => {
+        const leistung = this._zahl(eintrag.entity);
+        const an = leistung !== null && leistung > 0;
+        feld.classList.toggle("an", an);
+        rad.classList.toggle("an", an);
+        rad.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;
+      });
+    });
+
+    // Das Ventil des Hybridmanagers leuchtet zu dem Erzeuger hin, der gerade
+    // Leistung bringt; laufen beide, leuchten beide Eingänge.
+    // Ein Klick aufs Ventil öffnet die Betriebsart, einer auf eine Lampe die
+    // Leistung ihres Erzeugers.
+    (anlage.schema_hybrid || []).forEach((eintrag) => {
+      eintrag.teile.forEach((teil) => {
+        const feld = document.createElement("div");
+        feld.className = `hybrid-teil ${teil.form}`;
+        feld.style.left = teil.left;
+        feld.style.top = teil.top;
+        feld.style.width = teil.breite;
+        if (teil.hoehe) feld.style.height = teil.hoehe;
+        huelle.appendChild(teil.form === "lampe" ? this._klickbar(feld, teil.entities[0]) : feld);
+        this._bindungen.push(() => {
+          feld.classList.toggle("an", teil.entities.some((entity) => this._foerdert(entity)));
+        });
+      });
+      if (!eintrag.entity) return;
+      const ventil = document.createElement("div");
+      ventil.className = "hybrid-ventil";
+      Object.assign(ventil.style, {
+        left: eintrag.ventil.left,
+        top: eintrag.ventil.top,
+        width: eintrag.ventil.breite,
+        height: eintrag.ventil.hoehe,
+      });
+      huelle.appendChild(this._klickbar(ventil, eintrag.entity));
+      this._bindungen.push(() => {
+        ventil.title = `${eintrag.titel} – ${this._text(eintrag.entity)}`;
+      });
+    });
+
     // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
     // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
     (anlage.schema_waerme || []).forEach((eintrag) => {
@@ -485,20 +651,8 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    (anlage.schema_werte || []).forEach((eintrag) => {
-      const marke = document.createElement("div");
-      marke.className = "marke-wert";
-      marke.style.left = eintrag.left;
-      marke.style.top = eintrag.top;
-      huelle.appendChild(this._klickbar(marke, eintrag.entity));
-      this._bindungen.push(() => {
-        // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein
-        // Symbol und nicht wie ein fehlender Messwert.
-        const da = this._hatWert(eintrag.entity);
-        marke.hidden = !da;
-        marke.textContent = da ? this._text(eintrag.entity) : "";
-      });
-    });
+    this._vorratsbehaelter(huelle, anlage);
+    if (!ohneWerte) this._wertmarken(huelle, anlage);
 
     // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
     // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob
@@ -558,7 +712,6 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    karte.appendChild(huelle);
-    return karte;
+    return huelle;
   }
   };

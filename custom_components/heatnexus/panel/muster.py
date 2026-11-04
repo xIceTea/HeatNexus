@@ -70,60 +70,6 @@ KENNWERT: tuple[Zeile, ...] = (
     (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe", ("return_temperature",)),
 )
 
-# Systemstatus rechts: Zeile für Zeile, in dieser Reihenfolge.
-STATUS: tuple[Zeile, ...] = (
-    (r"betriebsphase", "Betriebszustand", "mdi:state-machine", ("operating_phase",)),
-    # Die Laufzeit entsteht aus dem Zustand und steht deshalb direkt darunter.
-    # Sie zählt mit, solange das Aggregat läuft, und bleibt danach als Dauer
-    # des letzten Laufs stehen.
-    (
-        r"^laufzeit(?: aktuell)?$",
-        "Laufzeit",
-        "mdi:timer-play-outline",
-        ("operating_phase_runtime",),
-    ),
-    (
-        r"^laufzeit heute$",
-        "Laufzeit heute",
-        "mdi:timer-outline",
-        ("operating_phase_runtime_today",),
-    ),
-    (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
-    (r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",)),
-    (
-        r"brenn(er)?kammertemperatur",
-        "Brennkammertemperatur",
-        "mdi:fireplace",
-        ("combustion_chamber_temperature",),
-    ),
-    (r"abgastemperatur", "Abgastemperatur", "mdi:smoke", ("flue_gas_temperature",)),
-    (r"aktueller brennstoff", "Brennstoff", "mdi:sack", ("fuel_current",)),
-    (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70", ("fuel_storage_status",)),
-    (r"^(anzahl der )?brennerstarts$", "Brennerstarts", "mdi:restart", ("burner_starts",)),
-    (r"^brennerstarts heute$", "Brennerstarts heute", "mdi:restart", ("burner_starts_today",)),
-    (r"^betriebsstunden$", "Betriebsstunden", "mdi:clock-outline", ("operating_hours",)),
-    (
-        r"^betriebsstunden heute$",
-        "Betriebsstunden heute",
-        "mdi:clock-outline",
-        ("operating_hours_today",),
-    ),
-    (
-        r"laufzeit bis ascheentleerung",
-        "Bis Ascheentleerung",
-        "mdi:delete-clock-outline",
-        ("maintenance_ash_hours",),
-    ),
-    # Der BioWIN kennt keine Aschetonne, aber eine Reinigung. Die Zeile
-    # erscheint nur, wo es den Datenpunkt gibt – am PuroWIN bleibt sie weg.
-    (
-        r"laufzeit bis reinigung",
-        "Bis Reinigung",
-        "mdi:broom",
-        ("maintenance_cleaning_hours",),
-    ),
-)
-
 # Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
 # Die Wortgrenze ist nötig – ohne sie zählte auch die Abgas-Re*zirkulation* des
 # Kessels als Warmwasserwert.

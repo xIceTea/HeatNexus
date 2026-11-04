@@ -12,6 +12,7 @@ from typing import Any
 
 from .bauteile import aus_datei
 from .farben import FARBE_RAHMEN, FARBE_RUECKLAUF, FARBE_TITEL, FARBE_VORLAUF, FARBEN, SCHRIFT
+from .werte import WERTE_JE_ART
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
 # sind also Verhältnisse, keine Bildpunkte.
@@ -43,6 +44,15 @@ WERT_HOEHEN_STANDARD = (170, 250)
 
 
 WERT_HOEHE_EINZELN = 206
+
+# Feste Stellen (x im Modul, y) je Kesselart und Beschriftung, wo die Zeichnung
+# dafür freie Fläche hat: an der Wärmepumpe über dem Lüfter und im Anzeigefeld.
+WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
+    "waermepumpe": {"Vorlauf": (100, 140), "COP": (118, 266)},
+}
+
+# Der Befüllgrad steht mittig über dem Vorratsbehälter, abseits der Leitungen.
+FUELLGRAD_STELLE = (19, 127)
 
 # Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
 Buch = Callable[[str], str]
@@ -133,6 +143,7 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "pumpenmodul": (150, 266),
     "solar": (158, 244),
     "umschaltung": (132, 284),
+    "hybridmanager": (140, 282),
     "modul": (132, 280),
     "heizstab": (150, 270),
     "fremdquelle": (152, 264),
@@ -304,6 +315,26 @@ ZSP_GEHAEUSE = (52, 150, 96, 116)
 ZSP_PUMPE = (100, 212, 26)
 
 
+# Dreiwegeventil und Lampen des Hybridmanagers, wörtlich aus `hybridmanager.svg`:
+# je Rolle das Rechteck um ihr Dreieck (x, y, Breite, Höhe) und die Spitze.
+HYBRID_DREIECKE = {
+    "kessel": (60, 172, 40, 32, "rechts"),
+    "waermepumpe": (100, 172, 40, 32, "links"),
+    "ausgang": (84, 188, 32, 36, "oben"),
+}
+
+
+HYBRID_LAMPEN = {"kessel": (70, 268, 5), "waermepumpe": (134, 268, 5)}
+
+
+# Fläche um Antrieb und Ventil, über die man die Betriebsart öffnet.
+HYBRID_VENTIL = (56, 146, 88, 80)
+
+
+# Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.
+WP_LUEFTER = (110, 196, 44, 34)
+
+
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
 
@@ -337,7 +368,8 @@ def _kasten(
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
     # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
-    zusatz = {}
+    # Den gezeichneten Brennstoff ersetzt die Oberfläche, sobald sie den Behälter selbst füllt.
+    zusatz = {"vorrat": "0"} if modul.get("behaelter") or modul.get("fuellgrad") else {}
     if (masse := SPEICHER_ARTEN.get(art)) is not None:
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
     inhalt = aus_datei(
@@ -378,9 +410,21 @@ def _kasten(
     return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
 
 
-def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str, Any]]:
+# Arten, deren Werte ihre kurze Beschriftung mittragen: Am Heizkreis stehen
+# Vorlauf und Raum als zwei ähnliche Temperaturen übereinander. Selbst gewählte
+# Werte tragen ihren langen Namen und bleiben ohne.
+BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art in ("heizkreis",)}
+
+
+# Eine Zahl ohne Einheit braucht ihren Namen, gleich an welchem Anlagenteil.
+IMMER_BESCHRIFTET = frozenset({"COP"})
+
+
+def beschriftungen(
+    x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
+) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
-    mitte = x + MODUL_BREITE // 2
+    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
         WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
@@ -388,16 +432,26 @@ def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str,
         else (WERT_HOEHE_EINZELN,)
     )
 
+    stellen = WERT_STELLEN.get(modul.get("kesselart") or "", {})
     elemente = []
     for wert, y in zip(modul["werte"], hoehen, strict=False):
+        dx, y = stellen.get(wert.get("beschriftung"), (MODUL_BREITE // 2, y))
         elemente.append(
             {
                 "type": "state-label",
                 "entity": wert["entity_id"],
-                "prefix": "",
+                "prefix": (
+                    f"{(buch or _gleich)(wert['beschriftung'])} "
+                    if wert.get("beschriftung") in kurz
+                    else ""
+                ),
+                # Der kurze Name des Werts; unter dem Bild steht jede Zahl mit ihm.
+                "name": (buch or _gleich)(wert["beschriftung"])
+                if wert.get("beschriftung")
+                else None,
                 "style": {
                     "top": f"{y / HOEHE * 100:.1f}%",
-                    "left": f"{mitte / breite * 100:.1f}%",
+                    "left": f"{(x + dx) / breite * 100:.1f}%",
                     "transform": "translate(-50%, -50%)",
                     "color": "#ffffff",
                     "font-size": "15px",

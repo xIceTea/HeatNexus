@@ -1,4 +1,4 @@
-"""Registrierte Entitäten ohne Datenpunkt finden, melden und entfernen.
+"""Registrierte Entitäten und Geräte ohne Datenpunkt finden, melden und entfernen.
 
 Eine verwaiste Entität entsteht, wenn die Anlage einen Datenpunkt nicht mehr
 liefert oder eine neue Fassung ihn nicht mehr anlegt. Stillgelegt wird sie
@@ -12,6 +12,7 @@ import re
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 
@@ -40,6 +41,20 @@ def _stoerspeicher(coordinators: dict) -> dict[str, str]:
     return dict.fromkeys(kennungen(coordinators), "sensor")
 
 
+def _uhrzeit(coordinators: dict) -> dict[str, str]:
+    # Die Uhrabweichung hängt an der Steuerung, nicht an einem Datenpunkt.
+    from .sensor.uhrzeit import kennungen
+
+    return dict.fromkeys(kennungen(coordinators), "sensor")
+
+
+def _anlagenzustand(coordinators: dict) -> dict[str, str]:
+    # Den Anlagenzustand legt jede Steuerung an; er hängt an keinem Datenpunkt.
+    from .sensor.anlagenzustand import kennung
+
+    return {kennung(coordinator): "sensor" for coordinator in coordinators.values()}
+
+
 def _befund(entry: ConfigEntry) -> dict[str, str]:
     # Die Befund-Sensoren stehen in keinem Abzug; sie folgen den Heizkreisen und Kesseln.
     from .befund.laufzeit import kennungen
@@ -62,7 +77,13 @@ def bekannte_kennungen(
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
-    eigene = {**_automatik(hass, entry), **_befund(entry), **_stoerspeicher(coordinators)}
+    eigene = {
+        **_automatik(hass, entry),
+        **_befund(entry),
+        **_stoerspeicher(coordinators),
+        **_anlagenzustand(coordinators),
+        **_uhrzeit(coordinators),
+    }
     return bekannt | quellen | dict.fromkeys(eigene, True)
 
 
@@ -99,7 +120,13 @@ def erwartete_domaenen(
         if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
-    eigene = _automatik(hass, entry) | _befund(entry) | _stoerspeicher(coordinators)
+    eigene = (
+        _automatik(hass, entry)
+        | _befund(entry)
+        | _stoerspeicher(coordinators)
+        | _anlagenzustand(coordinators)
+        | _uhrzeit(coordinators)
+    )
     return domaenen | quellen | eigene
 
 
@@ -130,6 +157,46 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
         if erwartet and eintrag.domain != erwartet:
             verwaist.append(eintrag)
     return verwaist
+
+
+def _bestehende_geraete(entry: ConfigEntry, coordinators: dict) -> set[str]:
+    """Gerätekennungen, die der Eintrag heute anlegt, auch ohne eine Entität daran."""
+    from .automatik.verwaltung import system_kennung
+    from .entity import steuerung_kennung
+
+    kennungen = {entry.entry_id, system_kennung(entry.entry_id)}
+    for coordinator in coordinators.values():
+        kennungen.add(steuerung_kennung(coordinator))
+        kennungen.update(
+            beschreibung.get("device_id")
+            for beschreibung in (coordinator.data or {}).get("devices", [])
+        )
+    return kennungen
+
+
+@callback
+def geraet_entfernbar(
+    hass: HomeAssistant, entry: ConfigEntry, coordinators: dict, geraet: dr.DeviceEntry
+) -> bool:
+    """Ob der Nutzer das Gerät löschen darf: Die Anlage meldet nichts mehr, was daran hängt.
+
+    Vor dem Vollabzug bleibt jedes Gerät. Ein Baustein, der nur schweigt,
+    sähe sonst aus wie ein entfernter.
+    """
+    from .automatik.verwaltung import verwaltung_holen
+
+    if not coordinators or not abzug_steht(coordinators) or not verwaltung_holen(hass).geladen:
+        return False
+    eigene = {wert for bereich, wert in geraet.identifiers if bereich == DOMAIN}
+    if not eigene or eigene & _bestehende_geraete(entry, coordinators):
+        return False
+    bekannt = bekannte_kennungen(entry, coordinators, hass)
+    entitaeten = er.async_entries_for_device(
+        er.async_get(hass), geraet.id, include_disabled_entities=True
+    )
+    return not any(
+        e.unique_id in bekannt for e in entitaeten if e.config_entry_id == entry.entry_id
+    )
 
 
 def liste(eintraege: list[er.RegistryEntry]) -> str:
@@ -163,6 +230,17 @@ def hinweis_pflegen(hass: HomeAssistant, entry: ConfigEntry, anzahl: int) -> Non
         translation_placeholders={"anzahl": str(anzahl)},
         data={"entry_id": entry.entry_id},
     )
+
+
+@callback
+def hinweis_ohne_geraet(
+    hass: HomeAssistant, entry: ConfigEntry, coordinators: dict, geraet: dr.DeviceEntry
+) -> None:
+    """Einen bestehenden Hinweis ohne die Entitäten des Geräts neu zählen, das gleich wegfällt."""
+    if ir.async_get(hass).async_get_issue(DOMAIN, HINWEIS.format(entry_id=entry.entry_id)) is None:
+        return
+    rest = [e for e in finden(hass, entry, coordinators) if e.device_id != geraet.id]
+    hinweis_pflegen(hass, entry, len(rest))
 
 
 @callback

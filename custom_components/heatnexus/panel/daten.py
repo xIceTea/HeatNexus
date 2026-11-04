@@ -15,19 +15,24 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ..dashboard.anlagen import trifft
+from ..dashboard.anlagen import erzeuger_von, steuerungsentitaet, trifft
+from ..dashboard.kesselzustand import kesselzustand
+from ..geraete import STATUSZEILEN
+from ..geraete.statuszeilen import EINZELN, GEMEINSAM, Statuszeile
 from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
 from . import uebersicht
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
+from .hybrid import hybrid
 from .muster import (
     AUSSENTEMPERATUR,
-    STATUS,
     VERLAUF,
     VERLAUF_MAX,
     VERLAUF_SCHLUESSEL,
+    Zeile,
 )
 from .programme import zeitprogramme
+from .regelung import regelung
 from .steuerung import (
     steuerung,
     warmwasser_zeilen,
@@ -58,6 +63,48 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
     return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
 
 
+def status_vorlage(anlage: dict[str, Any]) -> tuple[Zeile, ...]:
+    """Die Zeilen des Systemstatus mit höchstens einem Erzeuger."""
+    return tuple((z.muster, z.titel, z.symbol, z.schluessel) for z in EINZELN if z.panel)
+
+
+def _zeilen(entitaeten: list[dict[str, Any]], zeilen: list[Statuszeile]) -> list[dict[str, str]]:
+    """Je Statuszeile der erste Treffer, mit dem Vorsatz für die Kopfzeile."""
+    gefunden = []
+    for z in zeilen:
+        for treffer in zeilen_aus(entitaeten, ((z.muster, z.titel, z.symbol, z.schluessel),)):
+            gefunden.append({**treffer, "vorsatz": z.vorsatz} if z.vorsatz else treffer)
+    return gefunden
+
+
+def systemstatus(
+    anlage: dict[str, Any], marken_status: list[dict[str, str]] | None = None
+) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+    """Die Zeilen des Systemstatus und, ab zwei Erzeugern, je Erzeuger Kopf und Zeilen.
+
+    Ab zwei Erzeugern sucht jeder seine Zeilen nur unter seinen eigenen
+    Entitäten; oben bleibt, was für die ganze Anlage gilt.
+    """
+    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
+    marken = list(marken_status or [])
+    erzeuger = erzeuger_von(anlage["teile"])
+    if len(erzeuger) < 2:
+        return zeilen_aus(alle, status_vorlage(anlage)) + marken, []
+    bloecke = []
+    for teil in erzeuger:
+        zeilen = [z for z in STATUSZEILEN[teil["fct_type"]] if z.panel]
+        bloecke.append(
+            {
+                "id": teil["id"],
+                "name": teil["name"],
+                "kopf": _zeilen(teil["entitaeten"], [z for z in zeilen if z.kopf]),
+                "zeilen": _zeilen(teil["entitaeten"], [z for z in zeilen if not z.kopf]),
+            }
+        )
+    oben = [z for z in GEMEINSAM if z.panel and not z.regelung]
+    return _zeilen(alle, oben) + marken, bloecke
+
+
 def anlage_daten(
     anlage: dict[str, Any],
     aussen_gewaehlt: str | None = None,
@@ -80,6 +127,7 @@ def anlage_daten(
         kennung_suchen(alle, AUSSENTEMPERATUR, ("sensor",), "outdoor_temperature")
         or aussen_gewaehlt
     )
+    status, erzeuger = systemstatus(anlage, marken_status)
     nutzdaten = {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
         # Kennung teilten sich zwei Anlagen eines Eintrags eine Reihenfolge.
@@ -96,19 +144,19 @@ def anlage_daten(
         "steuerung": steuerung(anlage),
         "zeitprogramme": zeitprogramme(anlage),
         "wartung": wartung(anlage),
+        # Karte „Hybridmanager“ und ihre Diagramme; ohne Hybridmanager `None`.
+        "hybrid": hybrid(anlage),
         "kennwerte": uebersicht.kennwerte(anlage),
-        "status": zeilen_aus(alle, STATUS) + list(marken_status or []),
+        "status": status,
+        "erzeuger": erzeuger,
+        # Abschnitt „Regelung“ unter den Erzeugern; mit einem Erzeuger `None`.
+        "regelung": regelung(anlage),
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),
-        "stoerspeicher": next(
-            (
-                e["entity_id"]
-                for e in anlage.get("steuerung_entitaeten", [])
-                if e.get("uebersetzung") == "stoerspeicher"
-            ),
-            None,
-        ),
+        "kesselzustand": kesselzustand(anlage),
+        "stoerspeicher": steuerungsentitaet(anlage, "stoerspeicher"),
+        "anlagenzustand": steuerungsentitaet(anlage, "anlagenzustand"),
         "schnellzugriff": uebersicht.schnellzugriff(anlage, alle),
         # Nur Messwerte: Ein Einsteller trägt oft denselben Namen wie der
         # Wert, den er begrenzt, und gehört nicht als Linie in den Verlauf.

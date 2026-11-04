@@ -293,7 +293,8 @@ def abgewaehlte_entitaeten_stilllegen(
             wieder_an += _zusatzwert_nachziehen(
                 registry, eintrag, standardmaessig_an[eintrag.unique_id]
             )
-        elif standardmaessig_an[eintrag.unique_id] and eintrag.disabled_by is von_integration:
+        # Was an keinem Datenpunkt hängt (Anlagenzustand), bleibt, wie es ist.
+        elif standardmaessig_an.get(eintrag.unique_id) and eintrag.disabled_by is von_integration:
             # Wieder dazugewählt – die eigene Stilllegung wird aufgehoben.
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)

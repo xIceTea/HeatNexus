@@ -65,6 +65,11 @@ def _table(sprache: str = "de") -> dict:
         return {}
 
 
+def meldungscodes(raw: str | None) -> list[tuple[str, int]]:
+    """Kennbuchstabe (E, A, I) und Code jeder Meldung in einem FE01msg, ohne Texte."""
+    return [(buchstabe, int(code)) for buchstabe, code in _CODE_RE.findall(raw or "")]
+
+
 def _lookup(cat: str, code: int, sprache: str = "de") -> dict:
     """Eintrag zu Kategorie+Code, mit Fallback über alle Kategorien und auf Deutsch."""
     for table in (_table(sprache), _table("de")):
@@ -94,7 +99,7 @@ def parse_messages(raw: str | None, zusatz: dict | None = None, sprache: str = "
     if not treffer:
         return []
     out: list[dict] = []
-    seen: set[int] = set()
+    seen: set[tuple[str, int]] = set()
     # Nach dem Ablegen als JSON sind die Schlüssel Text statt Zahl. Die Tabelle
     # der Anlage umfasst alle Codes ihrer Baureihe; sie erst hier umzuschreiben
     # hält den Normalfall – keine Störung – frei von dieser Arbeit.
@@ -102,13 +107,14 @@ def parse_messages(raw: str | None, zusatz: dict | None = None, sprache: str = "
     sprache = textsprache(sprache)
     for letter, num in treffer:
         code = int(num)
-        if code in seen:
+        if (letter, code) in seen:
             continue
-        seen.add(code)
+        seen.add((letter, code))
         entry = _lookup(_KATEGORIE.get(letter, "FE"), code, sprache)
         out.append(
             {
                 "code": code,
+                "symbol": letter,
                 "kind": _ART[sprache].get(letter, _ART[sprache]["E"]),
                 "text": vom_geraet.get(code) or entry.get("text", _UNBEKANNT[sprache]),
                 "info": entry.get("info"),

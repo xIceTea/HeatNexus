@@ -1,7 +1,8 @@
 """Warmwasser (fctType 2).
 
 Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage, dazu die Kernwerte des
+Herstellers.
 """
 
 from __future__ import annotations
@@ -12,7 +13,14 @@ RANG = 42
 SYMBOL = "mdi:water-boiler"
 SCHAUBILD = "wasser"
 
-EXTRA_OIDS: tuple[str, ...] = ()
+# Kernwerte, die der Hersteller über seine Modbus-Schnittstelle ausgibt; nur Anzeigewerte.
+EXTRA_OIDS: tuple[str, ...] = (
+    "0/4",
+    "1/4",
+    "0/118",
+    "1/118",
+    "2/9",
+)
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

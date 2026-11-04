@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import timedelta
 import logging
 
@@ -61,6 +62,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         # Ob der Ausfall schon im Protokoll steht. Eine Anlage, die über Nacht
         # weg ist, schriebe sonst je Abruf eine Zeile.
         self._ausfall_gemeldet = False
+        # Startet den Vollabzug, wenn sich der Aufbau der Anlage ändert; gesetzt beim Einbinden.
+        self.bei_strukturaenderung: Callable[[], None] | None = None
 
     def _langsamer_fragen(self) -> None:
         """Nach einem Fehlschlag den Abstand verdoppeln.
@@ -120,6 +123,14 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self.hass, DOMAIN, f"nicht_erreichbar_{self.config_entry.entry_id}_{self.host}"
         )
 
+    def _strukturaenderung_weitergeben(self) -> None:
+        """Eine geänderte Anlagenstruktur an den Vollabzug weiterreichen.
+
+        Ohne Empfänger bleibt die Meldung beim Client, bis einer angeschlossen ist.
+        """
+        if self.bei_strukturaenderung is not None and self.client.strukturaenderung_abholen():
+            self.bei_strukturaenderung()
+
     async def _async_update_data(self):
         """Werte der Anlage holen."""
         # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
@@ -134,6 +145,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # eine Anlage, die gar nicht mehr antwortet.
             async with asyncio.timeout(fenster):
                 data = await self.client.fetch_all(budget=fenster - ABRUF_RESERVE)
+                self._strukturaenderung_weitergeben()
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()
                 self._stoerung_zuruecknehmen()

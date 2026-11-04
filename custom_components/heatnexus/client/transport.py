@@ -19,6 +19,9 @@ from ..const import (
     ANFRAGE_TIMEOUT,
     FETCH_CONCURRENCY,
     GATEWAY_FEHLER,
+    LESE_WIEDERHOLBAR,
+    LESE_WIEDERHOLPAUSE_S,
+    LESE_WIEDERHOLUNGEN,
     POLL_CONCURRENCY,
     SCHREIB_WIEDERHOLPAUSE_S,
     SCHREIB_WIEDERHOLUNGEN,
@@ -215,9 +218,7 @@ class TransportMixin:
         stehen, statt die Anzeige zu leeren.
         """
         try:
-            data, status = await self._get(
-                f"http://{self.host}/api/1.0/datapoint{oid}", self._poll_semaphore
-            )
+            data, status = await self._datapoint_lesen(oid)
             if self._abmelden(oid, data, status):
                 return oid, None
             if status in (0, 401, 403) or status >= 500:
@@ -237,13 +238,35 @@ class TransportMixin:
             self._letzter_lesefehler = e
             return oid, FEHLGESCHLAGEN
 
-    async def _put(self, url, rumpf: bytes) -> tuple[int, str]:
-        """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort."""
-        await self._ensure_session()
+    async def _datapoint_lesen(self, oid) -> tuple[object, int]:
+        """GET auf `datapoint`; 502 und 503 werden nach kurzer Pause einmal wiederholt.
+
+        Der vorgeschaltete Webserver weist vereinzelt eine Anfrage ab, die gleich danach gelingt.
+        """
+        url = f"http://{self.host}/api/1.0/datapoint{oid}"
+        for versuch in range(LESE_WIEDERHOLUNGEN + 1):
+            data, status = await self._get(url, self._poll_semaphore)
+            if status not in LESE_WIEDERHOLBAR or versuch == LESE_WIEDERHOLUNGEN:
+                break
+            await asyncio.sleep(LESE_WIEDERHOLPAUSE_S)
+        return data, status
+
+    async def _put(self, url, rumpf: bytes, oid: str) -> tuple[int, str]:
+        """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort.
+
+        Die Sitzung wird je Versuch geholt: Wer in der Pause entlädt, bekommt `CannotConnect`.
+        """
         for versuch in range(SCHREIB_WIEDERHOLUNGEN + 1):
-            async with self._semaphore, self._session.request("PUT", url, data=rumpf) as ret:
-                status = ret.status
-                body = await ret.text() if status >= 400 else ""
+            try:
+                async with self._semaphore:
+                    await self._ensure_session()
+                    async with self._session.request("PUT", url, data=rumpf) as ret:
+                        status = ret.status
+                        body = self._decode(await ret.read()) if status >= 400 else ""
+            except (aiohttp.ClientError, TimeoutError) as fehler:
+                raise mit_text(
+                    WindhagerWriteError, "schreiben_nicht_erreichbar", oid=oid, anlage=self.host
+                ) from fehler
             if status not in GATEWAY_FEHLER or versuch == SCHREIB_WIEDERHOLUNGEN:
                 break
             await asyncio.sleep(SCHREIB_WIEDERHOLPAUSE_S * (versuch + 1))
@@ -255,7 +278,7 @@ class TransportMixin:
             {"OID": oid, "value": str(value)}, separators=(",", ":"), ensure_ascii=False
         )
         url = f"http://{self.host}/api/1.0/datapoint"
-        status, body = await self._put(url, rumpf.encode())
+        status, body = await self._put(url, rumpf.encode(), oid)
         if status >= 400:
             _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, status, body)
             schluessel = "schreiben_ohne_antwort" if status >= 500 else "wert_abgelehnt"
@@ -295,15 +318,17 @@ class TransportMixin:
             _LOGGER.debug("Objekt %s nicht lesbar: %s", full_oid, e)
             return None, 0
 
-    async def write_object(self, full_oid, payload: dict):
-        """PUT a structured object (Zeitprogramm) via ?OID=<full_oid>."""
+    async def write_object(
+        self, full_oid, payload: dict, abgelehnt: str = "zeitprogramm_abgelehnt"
+    ):
+        """PUT a structured object (Zeitprogramm, Name) via ?OID=<full_oid>."""
         rumpf = bytes(json.dumps(payload), "utf-8")
-        status, body = await self._put(self._object_url(full_oid), rumpf)
+        status, body = await self._put(self._object_url(full_oid), rumpf, full_oid)
         if status >= 400:
             _LOGGER.debug(
                 "Schreiben auf Objekt %s scheitert mit HTTP %s: %s", full_oid, status, body
             )
-            schluessel = "schreiben_ohne_antwort" if status >= 500 else "zeitprogramm_abgelehnt"
+            schluessel = "schreiben_ohne_antwort" if status >= 500 else abgelehnt
             raise mit_text(WindhagerWriteError, schluessel, oid=full_oid, status=status)
         _LOGGER.debug("Auf Objekt %s geschrieben: %s", full_oid, payload)
 

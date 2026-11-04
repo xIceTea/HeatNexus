@@ -34,6 +34,7 @@ import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
 from ..auslieferung import async_dateien_ausliefern, async_fassung
+from ..automatik.verwaltung import system_unique_id
 from ..automatik.verwaltung import unique_id as automatik_kennung
 from ..automatik.websocket import async_register_automatik
 from ..befund.websocket import async_register_befund
@@ -164,9 +165,15 @@ def _ohne_hilfe(anlage: dict[str, Any]) -> None:
         wasser["taste"].pop("hilfe", None)
 
 
-def _automatik_zuordnen(hass: HomeAssistant, nutzdaten: dict[str, Any]) -> None:
-    """Jeder Heizkreis der Übersicht erfährt den Zustandssensor seiner Automatik, falls eingerichtet."""
+def _automatik_zuordnen(
+    hass: HomeAssistant, anlage: dict[str, Any], nutzdaten: dict[str, Any]
+) -> None:
+    """Heizkreise und Regelung erfahren die Zustandssensoren der Automatik, falls eingerichtet."""
     register = er.async_get(hass)
+    if (regelung := nutzdaten.get("regelung")) and (eintrag := anlage.get("eintrag")):
+        regelung["automatik"] = register.async_get_entity_id(
+            "sensor", DOMAIN, system_unique_id(eintrag, "status")
+        )
     for kreis in nutzdaten.get("heizkreise") or []:
         kreis["automatik"] = register.async_get_entity_id(
             "sensor", DOMAIN, automatik_kennung(kreis.pop("geraet"), "zustand")
@@ -190,7 +197,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     for anlage in anlagen_lesen(hass, benutzer):
         buch = woerterbuch_der_anlage(hass, anlage)
         nutzdaten = anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch)
-        _automatik_zuordnen(hass, nutzdaten)
+        _automatik_zuordnen(hass, anlage, nutzdaten)
         if not mit_hilfe:
             # Abgewählt: Die Texte gar nicht erst mitschicken.
             _ohne_hilfe(nutzdaten)

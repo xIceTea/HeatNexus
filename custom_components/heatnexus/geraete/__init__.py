@@ -24,6 +24,7 @@ from . import (
     purowin,
     solar,
     solar_es,
+    statuszeilen,
     umschaltung,
     waermepumpe,
     waermepumpe_direkt,
@@ -53,6 +54,9 @@ KANNFELDER = (
     "MODELLE_JE_KLASSE",
     "RUNDINSTRUMENTE",
     "NUR_ANZEIGE",
+    "STATUSZEILEN",
+    "BEHAELTER",
+    "FUELLGRAD",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -79,7 +83,7 @@ MODULE: tuple[ModuleType, ...] = (
 )
 
 # Dateien, die mehrere Baureihen teilen; selbst keine Baureihe.
-HILFSMODULE: tuple[str, ...] = ("quittung",)
+HILFSMODULE: tuple[str, ...] = ("quittung", "statuszeilen")
 
 # Was für ein Anlagenteil das ist – für die Geräteseite in Home Assistant. Der
 # Name der Anlage taugt dafür nicht: Er ist oft von Hand vergeben und
@@ -131,11 +135,35 @@ NUR_ANZEIGE: dict[int, frozenset[str]] = {
     m.FCT_TYPE: frozenset(m.NUR_ANZEIGE) for m in MODULE if getattr(m, "NUR_ANZEIGE", None)
 }
 
+# Zeilen des Systemstatus je Erzeuger, ab zwei Erzeugern in dessen Block.
+STATUSZEILEN: dict[int, tuple[statuszeilen.Statuszeile, ...]] = {
+    m.FCT_TYPE: m.STATUSZEILEN for m in MODULE if getattr(m, "STATUSZEILEN", None)
+}
+
+
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.
 NAMEN: dict[int, dict[str, str]] = {m.FCT_TYPE: m.NAMEN for m in MODULE if m.NAMEN}
 
+# Füllstand im Schaubild: Vorratsbehälter in Stufen oder in Prozent.
+BEHAELTER: dict[int, str] = {
+    m.FCT_TYPE: m.BEHAELTER for m in MODULE if getattr(m, "BEHAELTER", None)
+}
+FUELLGRAD: dict[int, str] = {
+    m.FCT_TYPE: m.FUELLGRAD for m in MODULE if getattr(m, "FUELLGRAD", None)
+}
+
 # Wo der Funktionstyp die Bauart des Wärmeerzeugers schon festlegt.
 KESSELARTEN: dict[int, str] = {m.FCT_TYPE: m.KESSELART for m in MODULE if m.KESSELART}
+
+# Bauart je Geräteklasse, wie die Kesselwahl der Steuerung sie zuordnet. Sie
+# gilt für den Kessel selbst; ein PuroWIN verbrennt Hackgut oder Pellets.
+KESSELART_JE_KLASSE: dict[str, str] = {
+    **dict.fromkeys(("1403", "1407", "140a", "140b", "140c", "1415", "1416", "2015"), "pellets"),
+    **dict.fromkeys(("1414", "2014"), "hackgut"),
+    **dict.fromkeys(("1404", "1409", "2009"), "scheitholz"),
+    "1203": "gas_oel",
+    "2016": "waermepumpe",
+}
 
 SCHALTPUNKTE: tuple[dict[str, object], ...] = tuple(
     eintrag for m in MODULE for eintrag in getattr(m, "SCHALTPUNKTE", ())

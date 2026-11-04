@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+from typing import Any
 
 from .farben import FARBEN
 
@@ -96,7 +97,11 @@ def _ids_eindeutig(fragment: str, praefix: str) -> str:
 #
 # `koerper`  Füllung des Speicherkörpers: der neutrale Verlauf, oder `none`,
 #            wenn die Oberfläche die gemessene Schichtung darunterlegt.
-ZUSATZ_PLATZHALTER = frozenset({"koerper"})
+# `vorrat`   Deckkraft des gezeichneten Brennstoffs im Vorratsbehälter: `0`,
+#            wenn die Oberfläche den gemeldeten Füllstand darüberlegt.
+ZUSATZ_PLATZHALTER = frozenset({"koerper", "vorrat"})
+# Was gilt, solange der Aufrufer nichts anderes einsetzt.
+ZUSATZ_STANDARD = {"vorrat": "1"}
 
 
 # Der Punkt in der Glutfarbe, den jede Kesselzeichnung trägt: im Bild eine rote
@@ -173,6 +178,54 @@ def waermeflaeche(art: str, zeichnung: str | None = None) -> dict[str, float] | 
     return None
 
 
+# Die Innenform des Vorratsbehälters und die Körnung, die ihn füllt.
+_VORRATSMARKE = re.compile(r'<path[^>]*\sdata-vorrat[^>]*\sd="([^"]+)"')
+_KOERNUNG = re.compile(r'<g id="koernung"[^>]*>(.*?)</g>', re.S)
+# Die feste Höhe, bis zu der die Zeichnung den Brennstoff ohne gemeldeten Füllstand zeigt.
+_FESTE_HOEHE = re.compile(r'<clipPath id="fest"><rect[^>]*\sy="([\d.]+)"')
+# Die Warnfarbe des Panels für einen Behälter, der einen Fehler meldet.
+VORRAT_WARNFARBE = "#f59e0b"
+
+
+def _vorratsbild(form: str, koernung: str, rahmen: tuple[float, ...], kennung: str) -> str:
+    """Körnung und Umriss als eigenes Bild über der Innenform, für die Füllung nach Stufe."""
+    x, y, breite, hoehe = rahmen
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x:g} {y:g} {breite:g} {hoehe:g}" '
+        'preserveAspectRatio="none" overflow="visible">'
+        f'<clipPath id="{kennung}"><path d="{form}"/></clipPath>'
+        f'<g class="koerner-flaeche" clip-path="url(#{kennung})">{koernung}</g>'
+        f'<path class="umriss-linie" d="{form}" fill="none" stroke="{VORRAT_WARNFARBE}" '
+        'stroke-width="2" vector-effect="non-scaling-stroke"/></svg>'
+    )
+
+
+def vorratsflaeche(kesselart: str | None, zeichnung: str | None = None) -> dict[str, Any] | None:
+    """Innenfläche des Vorratsbehälters samt Bild der Körnung; ohne Behälter `None`."""
+    for dateiname in _bauteil_dateien("kessel", kesselart, zeichnung):
+        fragment = bauteil(dateiname)
+        if fragment is None or (marke := _VORRATSMARKE.search(fragment)) is None:
+            continue
+        zahlen = [float(z) for z in re.findall(r"-?[\d.]+", marke.group(1))]
+        xs, ys = zahlen[0::2], zahlen[1::2]
+        rahmen = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+        koernung = _KOERNUNG.search(einfaerben(fragment))
+        kennung = f"vorrat-{dateiname.removesuffix('.svg')}"
+        fest = _FESTE_HOEHE.search(fragment)
+        return {
+            "x": rahmen[0],
+            "y": rahmen[1],
+            "breite": rahmen[2],
+            "hoehe": rahmen[3],
+            # Leerer Anteil über der festen Höhe, von oben gemessen.
+            "fest": (float(fest.group(1)) - rahmen[1]) / rahmen[3] if fest else 0.5,
+            "bild": _vorratsbild(
+                marke.group(1), koernung.group(1).strip() if koernung else "", rahmen, kennung
+            ),
+        }
+    return None
+
+
 def kessellampe(
     kesselart: str | None, zeichnung: str | None = None
 ) -> tuple[float, float, float] | None:
@@ -207,7 +260,7 @@ def aus_datei(
     """
     for dateiname in _bauteil_dateien(art, kesselart, zeichnung):
         if (fragment := bauteil(dateiname)) is not None:
-            for name, wert in (zusatz or {}).items():
+            for name, wert in {**ZUSATZ_STANDARD, **(zusatz or {})}.items():
                 fragment = fragment.replace("{{" + name + "}}", wert)
             return _ids_eindeutig(einfaerben(fragment), praefix)
     return None

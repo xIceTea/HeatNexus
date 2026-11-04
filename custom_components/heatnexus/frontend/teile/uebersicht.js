@@ -18,6 +18,7 @@ import {
   RUECKMELDUNG_MS,
   SPERRE_MS,
 } from "../ordnung.js";
+import { kesselzustand } from "./kesselzustand.js";
 import { uhrzeitText } from "./zeit.js";
 
 // Symbol je Zustand der Automatik (`automatik_zustand`), für das Abzeichen am Heizkreis.
@@ -123,6 +124,14 @@ export const UebersichtMixin = (Basis) =>
   // -------------------------------------------------------------------
   // Linke Spalte: Marke, Zustand, Kennwerte
   // -------------------------------------------------------------------
+  /** Ein Abzeichen: Symbol und Text, gefüllt von einer Bindung. */
+  _abzeichenKnoten(symbol) {
+    const knoten = document.createElement("div");
+    knoten.className = "abzeichen";
+    knoten.append(this._symbolKnoten(symbol), document.createElement("span"));
+    return knoten;
+  }
+
   _seite(anlage) {
     // Eine Überschrift wie jede andere Karte. Marke und Logo standen hier ein
     // zweites Mal, obwohl beide in der Kopfleiste darüber stehen; der Name der
@@ -130,17 +139,26 @@ export const UebersichtMixin = (Basis) =>
     // Reiter oben rechts.
     const karte = this._karte("Heizungsübersicht");
 
-    const abzeichen = document.createElement("div");
-    abzeichen.className = "abzeichen";
-    abzeichen.appendChild(this._symbolKnoten("mdi:check-circle-outline"));
-    const abzeichenText = document.createElement("span");
-    abzeichen.appendChild(abzeichenText);
-    karte.appendChild(abzeichen);
+    const abzeichen = this._abzeichenKnoten("mdi:check-circle-outline");
+    const sonder = this._abzeichenKnoten("mdi:information-outline");
+    sonder.classList.add("sonderbetrieb");
+    // Beide öffnen den Sensor „Anlagenzustand“ mit seinem Verlauf.
+    this._klickbar(abzeichen, anlage.anlagenzustand);
+    this._klickbar(sonder, anlage.anlagenzustand);
+    karte.append(abzeichen, sonder);
     this._bindungen.push(() => {
       const stufe = this._stoerungsstufe(anlage);
+      const zustand = kesselzustand(anlage.kesselzustand, (kennung) => this._zustand(kennung));
       for (const name of ["info", "fehler", "alarm"]) abzeichen.classList.toggle(name, stufe === name);
-      abzeichenText.textContent = this._t(STUFEN[stufe].abzeichen);
+      abzeichen.lastChild.textContent = this._t(STUFEN[stufe].abzeichen);
       abzeichen.firstChild.setAttribute("icon", STUFEN[stufe].abzeichenSymbol);
+      // „Anlage in Ordnung“ nur, wenn auch der Kessel nichts Besonderes meldet.
+      abzeichen.style.display = stufe === "ok" && zustand ? "none" : "";
+      sonder.style.display = zustand ? "" : "none";
+      if (zustand) {
+        sonder.lastChild.textContent = zustand.uebersetzen ? this._t(zustand.text) : zustand.text;
+        sonder.firstChild.setAttribute("icon", zustand.symbol);
+      }
     });
 
     const liste = document.createElement("div");
@@ -323,7 +341,8 @@ export const UebersichtMixin = (Basis) =>
   // -------------------------------------------------------------------
   // Systemstatus und Störungen
   // -------------------------------------------------------------------
-  _statuszeile(entity, titel, symbol) {
+  /** Eine Zeile des Systemstatus; `text` setzt den Wert zusammen, `klick` öffnet die Detailansicht. */
+  _statuszeile(entity, titel, symbol, { text = () => this._text(entity), klick = true } = {}) {
     const zeile = document.createElement("div");
     zeile.className = "status-zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -334,21 +353,21 @@ export const UebersichtMixin = (Basis) =>
     wert.className = "wert";
     zeile.append(links, wert);
     this._bindungen.push(() => {
-      const text = this._text(entity);
-      wert.textContent = text;
-      wert.title = text;
+      const inhalt = text();
+      wert.textContent = inhalt;
+      wert.title = inhalt;
       // Farbe nach Art des Wertes: kurze Zustände grün, Leistungen orange,
       // Zahlen blau – so wie im Muster. Ein langer Text bleibt neutral, sonst
       // leuchtet die halbe Karte.
-      const zustand = this._zustand(entity);
+      const zustand = entity && this._zustand(entity);
       const einheit = zustand && zustand.attributes.unit_of_measurement;
       wert.className = "wert";
       if (einheit === "%" || einheit === "kW") wert.classList.add("warm");
-      else if (!einheit && this._hatWert(entity) && text.length <= 20) {
+      else if (!einheit && zustand && this._hatWert(entity) && inhalt.length <= 20) {
         wert.classList.add("zustand");
       }
     });
-    return this._klickbar(zeile, entity);
+    return klick ? this._klickbar(zeile, entity) : zeile;
   }
 
   /**
@@ -359,16 +378,118 @@ export const UebersichtMixin = (Basis) =>
    *
    * Kein dritter Störungshinweis: Derselbe Zustand steht in der
    * Anlagenübersicht („Anlage in Ordnung") und in der Störungskarte.
+   *
+   * Ab zwei Erzeugern steht unter den Zeilen der Anlage je Erzeuger ein Block
+   * mit Kopfzeile zum Auf- und Zuklappen.
    */
   _statuskarte(anlage) {
     const karte = this._karte("Systemstatus");
     (anlage.status || []).forEach((eintrag) => {
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
     });
-    if (!(anlage.status || []).length) {
+    (anlage.erzeuger || []).forEach((block) => karte.appendChild(this._erzeugerblock(block)));
+    if (anlage.regelung) this._regelung(karte, anlage);
+    if (!(anlage.status || []).length && !(anlage.erzeuger || []).length) {
       karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
     return karte;
+  }
+
+  /** Ein Erzeuger im Systemstatus: Name, Kopfwerte und Pfeil; offen je Anlage, unter „Alle“ zu. */
+  _erzeugerblock(block) {
+    const schluessel = `${this._alleAnlagen() ? "alle" : "anlage"}:${block.id}`;
+    const bereich = document.createElement("details");
+    bereich.className = "status-erzeuger";
+    bereich.open = this._erzeugerOffen(schluessel, !this._alleAnlagen());
+    const kopf = document.createElement("summary");
+    const name = document.createElement("span");
+    name.className = "erzeuger-name";
+    // Der Name kommt von der Anlage; im Wörterbuch stehende wie „Wärmepumpe“ bleiben, wie sie sind.
+    name.dataset.roh = "";
+    name.textContent = block.name;
+    const werte = document.createElement("span");
+    werte.className = "erzeuger-werte";
+    kopf.append(name, werte, this._symbolKnoten("mdi:chevron-down", "pfeil"));
+    bereich.appendChild(kopf);
+    (block.zeilen || []).forEach((eintrag) => {
+      bereich.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
+    });
+    this._bindungen.push(() => {
+      werte.textContent = (block.kopf || [])
+        .filter((eintrag) => this._hatWert(eintrag.entity))
+        .map((eintrag) => [eintrag.vorsatz, this._text(eintrag.entity)].filter(Boolean).join(" "))
+        .join(" · ");
+    });
+    // Auch das Setzen beim Aufbau löst „toggle“ aus; gemerkt wird nur ein Klick.
+    let stand = bereich.open;
+    bereich.addEventListener("toggle", () => {
+      if (bereich.open === stand) return;
+      stand = bereich.open;
+      this._erzeugerMerken(schluessel, stand);
+    });
+    return bereich;
+  }
+
+  /** Abschnitt „Regelung“ unter den Erzeugern: Heizkreise, Hybridmanager, SG Ready, zuletzt die Automatik. */
+  _regelung(karte, anlage) {
+    const { hybrid, zeilen = [], automatik } = anlage.regelung;
+    const kreise = (anlage.heizkreise || []).filter((kreis) => kreis.automatik);
+    const inhalt = [];
+    if (automatik && kreise.length) {
+      const zeile = this._statuszeile(null, "Heizkreise", "mdi:radiator", { text: () => this._kreiseText(kreise) });
+      inhalt.push(this._zurAutomatik(zeile));
+    }
+    if (hybrid) {
+      inhalt.push(this._statuszeile(hybrid.betriebsart, "Hybridmanager", "mdi:valve", { text: () => this._hybridText(hybrid) }));
+    }
+    zeilen.forEach((eintrag) => inhalt.push(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol)));
+    if (automatik) {
+      inhalt.push(this._zurAutomatik(this._statuszeile(automatik, "Automatik", "mdi:robot-outline", { klick: false })));
+    }
+    if (!inhalt.length) return;
+    inhalt.forEach((zeile) => zeile.classList.add("umbruch"));
+    const kopf = document.createElement("div");
+    kopf.className = "status-abschnitt";
+    kopf.textContent = "Regelung";
+    karte.append(kopf, ...inhalt);
+  }
+
+  /** Nur die Kreise, an denen die Automatik vom Programm abweicht; sonst „Heizen nach Programm“. */
+  _kreiseText(kreise) {
+    const ruhig = ["programm", "aus", "keine_daten", "unknown", "unavailable"];
+    const abweichend = kreise
+      .filter((kreis) => !ruhig.includes((this._zustand(kreis.automatik) || {}).state || "unknown"))
+      .map((kreis) => `${kreis.titel} ${this._text(kreis.automatik)}`);
+    return abweichend.length ? abweichend.join(" · ") : this._t("Heizen nach Programm");
+  }
+
+  /** Betriebsart und welcher Erzeuger gerade Leistung bringt. */
+  _hybridText(hybrid) {
+    const heizen = hybrid.lieferanten.filter((eintrag) => this._foerdert(eintrag.entity)).map((eintrag) => eintrag.name);
+    const wer = heizen.length
+      ? this._tMit(heizen.length > 1 ? "{erzeuger} heizen" : "{erzeuger} heizt", { erzeuger: heizen.join(" + ") })
+      : this._t("Kein Erzeuger heizt");
+    return hybrid.betriebsart && this._hatWert(hybrid.betriebsart) ? `${this._text(hybrid.betriebsart)} · ${wer}` : wer;
+  }
+
+  /** Ein Klick auf die Zeile öffnet den Reiter Automatik. */
+  _zurAutomatik(zeile) {
+    zeile.classList.add("klickbar");
+    zeile.setAttribute("role", "button");
+    zeile.setAttribute("tabindex", "0");
+    zeile.title = this._t("Zur Automatik");
+    const oeffnen = () => {
+      this._reiter = "automatik";
+      this._gebaut = false;
+      this._zeichnen();
+    };
+    zeile.addEventListener("click", oeffnen);
+    zeile.addEventListener("keydown", (ereignis) => {
+      if (ereignis.key !== "Enter" && ereignis.key !== " ") return;
+      ereignis.preventDefault();
+      oeffnen();
+    });
+    return zeile;
   }
 
   _stoerungskarte(anlage) {

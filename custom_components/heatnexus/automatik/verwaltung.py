@@ -185,6 +185,8 @@ class Verwaltung:
         self._prognose_sperre = asyncio.Lock()
         # Je Wetter-Entität und Vorhersageart der letzte Fehler, bis ein Abruf gelingt.
         self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
+        # Je Heizkreis eine Sperre: Zwei Änderungen zugleich rechneten sonst mit demselben alten Stand.
+        self._sperren: dict[str, asyncio.Lock] = {}
 
     async def laden(self) -> None:
         """Den Store einmal lesen; zwei Einträge, die zugleich starten, warten aufeinander."""
@@ -398,10 +400,10 @@ class Verwaltung:
         if treffer is None or eintrag is None:
             return False
         coordinator, beschreibung = treffer
-        # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
-        self._system_anlegen(entry)
         kennung = f"automatik_start_{device_id}"
         try:
+            # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
+            self._system_anlegen(entry)
             laufzeit = Laufzeit(
                 self.hass,
                 coordinator,
@@ -492,6 +494,8 @@ class Verwaltung:
             del self._daten["heizkreise"][device_id]
             # Die Antwort an das Panel nennt den Fehler; eine Reparaturmeldung bliebe ohne Automatik stehen.
             ir.async_delete_issue(self.hass, DOMAIN, f"automatik_start_{device_id}")
+            if not self.kennungen(entry.entry_id):
+                self._system_entfernen(entry.entry_id)
             raise ValueError("Die Automatik ließ sich nicht starten.") from fehler
         if not gestartet:
             del self._daten["heizkreise"][device_id]
@@ -499,8 +503,15 @@ class Verwaltung:
         self.speichern()
         return konfig
 
+    def _sperre(self, device_id: str) -> asyncio.Lock:
+        return self._sperren.setdefault(device_id, asyncio.Lock())
+
     async def einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         """Einstellungen ändern; ein Wechsel weg von „Automatisch" nimmt laufende Eingriffe zurück."""
+        async with self._sperre(device_id):
+            return await self._einstellen(device_id, aenderung)
+
+    async def _einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         eintrag = self._daten["heizkreise"].get(device_id)
         if eintrag is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
@@ -527,7 +538,13 @@ class Verwaltung:
                 laufzeit.beobachtet_seit = dt_util.now()
             if gewechselt:
                 laufzeit.ruhe_loesen()
-            await laufzeit.neu_starten(neu)
+            try:
+                await laufzeit.neu_starten(neu)
+            except Exception:
+                # Die Laufzeit hat die neue Konfiguration schon; gespeichert wird dieselbe.
+                eintrag["konfig"] = neu
+                self.speichern()
+                raise
             # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
             if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
                 laufzeit.modell_neu_lernen()
@@ -567,11 +584,18 @@ class Verwaltung:
         laufzeit.modell_neu_lernen()
 
     async def entfernen(self, device_id: str) -> None:
-        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
+        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten und Meldungen abräumen."""
+        async with self._sperre(device_id):
+            await self._entfernen(device_id)
+        self._sperren.pop(device_id, None)
+
+    async def _entfernen(self, device_id: str) -> None:
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
             laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
+        for art in ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start"):
+            ir.async_delete_issue(self.hass, DOMAIN, f"{art}_{device_id}")
         await lernablage.entfernen(self.hass, device_id)
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"

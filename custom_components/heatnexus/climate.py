@@ -55,6 +55,9 @@ ATTR_MODUS_DAVOR = "modus_vor_vorgabe"
 # Sicherheits-Fallback: spätestens nach dieser Zeit wird der optimistische
 # Sollwert verworfen, auch wenn das Gerät ihn nie exakt bestätigt.
 OPTIMISTIC_MAX_AGE_S = 120
+# So oft in Folge versucht der Rücksprung zu schreiben, bevor er aufgibt.
+RUECKSPRUNG_VERSUCHE = 3
+NAME_HOECHSTENS_BYTE = 20
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
@@ -82,6 +85,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             ),
         },
         "async_set_vorgabe",
+    )
+
+    platform.async_register_entity_service(
+        "heizkreis_umbenennen",
+        {vol.Required("name"): vol.All(str, vol.Strip, vol.Length(min=1))},
+        "async_umbenennen",
     )
 
     async_setup_entities(hass, entry, async_add_entities, {"climate": WindhagerThermostatClimate})
@@ -141,6 +150,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Wurde die vorgemerkte Vorgabe überhaupt schon einmal als laufend
         # gelesen? Vorher kann sie nicht abgelaufen sein.
         self._vorgabe_gesehen = False
+        self._ruecksprung_fehler = 0
         self._ablauf_abbrechen = None
         self._device_info = geraet_info(coordinator, device_info)
 
@@ -216,11 +226,21 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self._im_hintergrund(self._modus_schreiben(ziel), "ruecksprung")
 
     async def _modus_schreiben(self, modus: int) -> None:
-        """Die Betriebswahl setzen; ein Fehler darf die Anzeige nicht zerreißen."""
+        """Die Betriebswahl setzen; scheitert es, versucht es der nächste Abruf noch einmal."""
         try:
             await self.client.update(f"{self._prefix}/3/50/0", str(modus))
-        except Exception as err:  # pragma: no cover - Gerätefehler
-            _LOGGER.warning("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+        except Exception as err:
+            self._optimistic_mode = None
+            self._ruecksprung_fehler += 1
+            if self._ruecksprung_fehler < RUECKSPRUNG_VERSUCHE:
+                _LOGGER.debug("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+                self._modus_davor, self._vorgabe_gesehen = modus, True
+            else:
+                _LOGGER.warning("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+                self._ruecksprung_fehler = 0
+            self.async_write_ha_state()
+            return
+        self._ruecksprung_fehler = 0
 
     async def async_added_to_hass(self) -> None:
         """Einen vorgemerkten Rücksprung über den Neustart hinweg übernehmen.
@@ -536,6 +556,19 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
         if self._optimistic_target is not None and self._optimistisch_gueltig(self._optimistic_ts):
             return self._optimistic_target
         return self.get_oid_value("/1/1/0")
+
+    async def async_umbenennen(self, name: str) -> None:
+        """Den Funktionsnamen (Objekt 4/5) schreiben, wie ihn auch das Bediengerät zeigt."""
+        # Die Steuerung füllt auf genau 20 Byte auf; ein längerer Name bringt ihren Webserver aus dem Tritt.
+        if len(name.encode("utf-8")) > NAME_HOECHSTENS_BYTE:
+            raise mit_text(
+                WindhagerValueError, "name_zu_lang", hoechstens=str(NAME_HOECHSTENS_BYTE)
+            )
+        oid = f"{self._prefix}/4/5/0"
+        await self.client.write_object(
+            oid, {"OID": oid, "typeId": 30, "subtypeId": 9, "value": name}, "name_abgelehnt"
+        )
+        _LOGGER.info("Heizkreis %s heißt jetzt „%s“", oid, name)
 
     async def set_current_temp_compensation(self, compensation: float) -> None:
         """Set the heating-curve comfort correction (Behaglichkeit, 3/58)."""

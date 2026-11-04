@@ -54,14 +54,31 @@ export const ZEILEN = `
     max-width: 60%; text-align: right;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  /* In der Regelung bleibt der Name ganz; ein langer Wert bricht um. */
+  .status-zeile.umbruch .titel { flex: none; }
+  .status-zeile.umbruch .wert { flex: 1; max-width: none; white-space: normal; }
   .status-zeile .wert.zustand { color: #7bd88f; }
   .status-zeile .wert.warm { color: #ffab6f; }
+  .status-erzeuger + .status-erzeuger { border-top: 1px solid var(--hn-flaeche); }
+  .status-erzeuger > summary {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; list-style: none;
+  }
+  .status-erzeuger > summary::-webkit-details-marker { display: none; }
+  .status-erzeuger[open] > summary { border-bottom: 1px solid var(--hn-flaeche); }
+  .status-erzeuger > summary:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; border-radius: 6px; }
+  .erzeuger-name { font-weight: 600; font-size: 14px; flex: none; }
+  .erzeuger-werte {
+    flex: 1; min-width: 0; text-align: right; font-weight: 600; font-size: 14px; color: #ffab6f;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .status-erzeuger .pfeil { --mdc-icon-size: 20px; opacity: 0.6; transform: rotate(-90deg); transition: transform 0.15s; }
+  .status-erzeuger[open] > summary .pfeil { transform: none; }
   .abhilfe {
     font-size: 13px; color: var(--hn-gedaempft);
     padding: 0 0 8px; white-space: pre-line;
   }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
-  .stoerspeicher-kopf {
+  .stoerspeicher-kopf, .status-abschnitt {
     margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-flaeche);
     font-size: 13px; font-weight: 600; color: var(--hn-gedaempft);
   }
