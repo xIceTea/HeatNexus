@@ -54,6 +54,18 @@ export const FELDER = [
   { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose lernen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
+// Symbol je Zustand der Automatik (`automatik_zustand`), für Abzeichen und Schaubild.
+export const AUTOMATIK_SYMBOLE = {
+  sonnentag: "mdi:weather-sunny",
+  heizpause: "mdi:pause-circle-outline",
+  nur_ww: "mdi:water-boiler",
+  abwesend: "mdi:home-export-outline",
+  pausiert: "mdi:timer-pause-outline",
+  fenster: "mdi:window-open-variant",
+  sicherheit: "mdi:shield-alert-outline",
+  keine_daten: "mdi:cloud-question-outline",
+};
+
 export const ZUSTAENDE = {
   programm: "Heizen nach Programm",
   sonnentag: "Sonnentag",

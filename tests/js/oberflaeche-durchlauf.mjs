@@ -1959,4 +1959,83 @@ bilanz.meldungBeimSpeichern = meldungen;
   flaeche._zeichnen();
 }
 
+// ---------------------------------------------------------------------------
+// Automatik im Schaubild: Pille hinter dem Titel, Begründung darunter, Marke am
+// Heizkörper; eine offene Empfehlung bringt ihre Tasten mit.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const setzen = (kennung, state, attributes = {}) => {
+    zustaende[kennung] = { entity_id: kennung, state, attributes };
+  };
+  const kreis = {
+    entity: "climate.hk",
+    titel: "HK",
+    vorlauf: "sensor.hk_vorlauf",
+    automatik: "sensor.hk_zustand",
+    automatik_empfehlung: "sensor.hk_empfehlung",
+    automatik_tasten: { uebernehmen: "button.hk_uebernehmen", verwerfen: "button.hk_verwerfen" },
+  };
+  const anlage = { name: "A", heizkreise: [kreis, { entity: "climate.ohne", titel: "Ohne" }] };
+  const vorher = flaeche._bindungen.length;
+  const karte = flaeche._karte("Anlagenübersicht");
+  flaeche._automatikImBild(anlage, karte);
+  const huelle = document.createElement("div");
+  flaeche._automatikMarke(anlage, { entity: "sensor.hk_vorlauf", titel: "HK", left: "40%", top: "30%", breite: "10%" }, huelle);
+  const binden = () => flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+  const kopf = karte.querySelector(".kartenkopf");
+  const pille = kopf.querySelector(".im-bild");
+  const zeile = karte.querySelector(".bild-automatik-zeile");
+  const marke = huelle.querySelector(".automatik-bildmarke");
+  const [uebernehmen, verwerfen] = zeile.querySelectorAll(".automatik-knopf");
+  const stand = () => ({
+    pille: pille.hidden ? null : String(pille.querySelector("span").textContent),
+    zustand: pille.dataset.zustand || null,
+    grund: zeile.hidden ? null : String(zeile.querySelector(".grund").textContent),
+    tasten: !uebernehmen.hidden && !verwerfen.hidden,
+    marke: marke.hidden ? null : marke.dataset.zustand,
+  });
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "Sonnenquote 48 % unter 55 % – keine Absenkung." });
+  setzen("sensor.hk_empfehlung", "keine");
+  setzen("button.hk_uebernehmen", "unknown");
+  setzen("button.hk_verwerfen", "unknown");
+  binden();
+  const programm = stand();
+  setzen("sensor.hk_zustand", "sonnentag", { kurz: "Sonnentag · 19,5 °C", begruendung: "Sonnenquote 72 % – 19,5 °C bis 15:30." });
+  binden();
+  const sonnentag = stand();
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "" });
+  setzen("sensor.hk_empfehlung", "sonnentag", { begruendung: "Sonnenquote 72 % – Absenkung vorgeschlagen." });
+  binden();
+  const empfehlung = stand();
+  const vorAufruf = dienstAufrufe.length;
+  uebernehmen.ausloesen("click");
+  const gedrueckt = dienstAufrufe.slice(vorAufruf);
+  setzen("sensor.hk_zustand", "aus");
+  binden();
+  const aus = stand();
+  const vorherReiter = flaeche._reiter;
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "x" });
+  binden();
+  pille.ausloesen("click");
+  const reiter = flaeche._reiter;
+  bilanz.automatikImBild = {
+    nachTitel: kopf.children.indexOf(pille) === kopf.children.indexOf(kopf.querySelector("h2")) + 1,
+    markeOeffnet: marke.getAttribute("role") === "button" && marke.getAttribute("tabindex") === "0",
+    pillen: kopf.querySelectorAll(".im-bild").length,
+    programm,
+    sonnentag,
+    empfehlung,
+    gedrueckt,
+    aus,
+    reiter,
+  };
+  for (const kennung of ["sensor.hk_zustand", "sensor.hk_empfehlung", "button.hk_uebernehmen", "button.hk_verwerfen"]) {
+    delete zustaende[kennung];
+  }
+  flaeche._reiter = vorherReiter;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
 console.log(JSON.stringify(bilanz));

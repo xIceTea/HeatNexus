@@ -18,20 +18,9 @@ import {
   RUECKMELDUNG_MS,
   SPERRE_MS,
 } from "../ordnung.js";
+import { AUTOMATIK_SYMBOLE } from "./automatik.js";
 import { kesselzustand } from "./kesselzustand.js";
 import { uhrzeitText } from "./zeit.js";
-
-// Symbol je Zustand der Automatik (`automatik_zustand`), für das Abzeichen am Heizkreis.
-const AUTOMATIK_SYMBOLE = {
-  sonnentag: "mdi:weather-sunny",
-  heizpause: "mdi:pause-circle-outline",
-  nur_ww: "mdi:water-boiler",
-  abwesend: "mdi:home-export-outline",
-  pausiert: "mdi:timer-pause-outline",
-  fenster: "mdi:window-open-variant",
-  sicherheit: "mdi:shield-alert-outline",
-  keine_daten: "mdi:cloud-question-outline",
-};
 
 // Großes Symbol und Abzeichen je Stufe, in den Farben der Meldungsarten von Windhager:
 // Info blau, Fehler gelb, Alarm rot.

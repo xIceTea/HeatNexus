@@ -9,11 +9,12 @@
  */
 
 import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { SchaubildAutomatikMixin } from "./schaubildautomatik.js";
 import { SchaubildWerteMixin } from "./schaubildwerte.js";
 import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
-  class extends SchaubildWerteMixin(Basis) {
+  class extends SchaubildAutomatikMixin(SchaubildWerteMixin(Basis)) {
   // -------------------------------------------------------------------
   // Schaubild
   // -------------------------------------------------------------------
@@ -128,6 +129,7 @@ export const SchaubildMixin = (Basis) =>
     const karte = this._karte(this._bildtitel());
     const wahl = this._strangWahl();
     karte.appendChild(wahl ? this._strang(anlage, karte, wahl) : this._schaubildHuelle(anlage));
+    this._automatikImBild(anlage, karte);
     return karte;
   }
 
@@ -410,6 +412,7 @@ export const SchaubildMixin = (Basis) =>
         glieder.push(glied);
       }
       huelle.appendChild(koerper);
+      this._automatikMarke(anlage, eintrag, huelle);
 
       this._bindungen.push(() => {
         const grad = this._zahl(eintrag.entity);

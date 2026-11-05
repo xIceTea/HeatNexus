@@ -31,6 +31,27 @@ export const AUTOMATIK = `
   .automatik-marke.z-sicherheit, .automatik-marke.z-keine_daten {
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
+  /* Automatik im Schaubild: Pille im Kopf, Begründung darunter, Marke am Heizkörper. */
+  .kartenkopf:has(.im-bild) h2 { flex: 0 1 auto; }
+  .kartenkopf:has(.im-bild) .fragezeichen { margin-left: auto; }
+  .automatik-marke.im-bild { border: none; font-family: inherit; cursor: pointer; --mdc-icon-size: 15px; }
+  .automatik-marke.im-bild::before { display: none; }
+  .automatik-marke.z-empfehlung { background: color-mix(in srgb, var(--hn-akzent) 15%, transparent); color: var(--hn-akzent); }
+  .bild-automatik { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 10px; }
+  .bild-automatik-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--hn-gedaempft); }
+  .bild-automatik-zeile .automatik-knopf { padding: 4px 12px; border-radius: 999px; font-size: 12px; }
+  .automatik-marke.im-bild[hidden], .bild-automatik-zeile[hidden], .bild-automatik-zeile [hidden],
+  .automatik-bildmarke[hidden] { display: none; }
+  .schaubild .automatik-bildmarke {
+    position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer; color: var(--hn-akzent);
+    background: color-mix(in srgb, currentColor 22%, var(--hn-karte));
+    box-shadow: 0 0 0 2px var(--hn-karte);
+  }
+  .schaubild .automatik-bildmarke ha-icon { width: 64%; height: 64%; display: flex; --mdc-icon-size: 100%; }
+  .schaubild .automatik-bildmarke[data-zustand="sonnentag"] { color: var(--hn-sonne); }
+  .schaubild .automatik-bildmarke[data-zustand="heizpause"] { color: var(--hn-at); }
+  .schaubild .automatik-bildmarke[data-zustand="nur_ww"] { color: var(--hn-ww); }
   .automatik-meta {
     display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 6px 0 0;
     font-size: 13px; color: var(--hn-gedaempft);

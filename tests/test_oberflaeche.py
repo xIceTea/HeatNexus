@@ -1405,6 +1405,36 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     assert abzeichen["ohne"] is True
 
 
+def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
+    """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung."""
+    bild = durchlauf["automatikImBild"]
+    assert bild["nachTitel"] is True
+    assert bild["markeOeffnet"] is True
+    assert bild["pillen"] == 1
+    assert bild["programm"] == {
+        "pille": "Automatik · Heizen nach Programm",
+        "zustand": "programm",
+        "grund": "Sonnenquote 48 % unter 55 % – keine Absenkung.",
+        "tasten": False,
+        "marke": None,
+    }
+    assert bild["sonnentag"]["pille"] == "Sonnentag · 19,5 °C"
+    assert bild["sonnentag"]["marke"] == "sonnentag"
+    assert bild["sonnentag"]["tasten"] is False
+    assert bild["empfehlung"] == {
+        "pille": "Empfehlung · Sonnentag",
+        "zustand": "empfehlung",
+        "grund": "Sonnenquote 72 % – Absenkung vorgeschlagen.",
+        "tasten": True,
+        "marke": "empfehlung",
+    }
+    assert bild["gedrueckt"] == [
+        {"dienst": "button.press", "angaben": {"entity_id": "button.hk_uebernehmen"}}
+    ]
+    assert bild["aus"]["pille"] is None and bild["aus"]["marke"] is None
+    assert bild["reiter"] == "automatik"
+
+
 def test_der_kesselzustand_ersetzt_im_kopf_die_meldung_in_ordnung(durchlauf):
     """Kaminkehrer aktiv: Das Sonderabzeichen erscheint, „Anlage in Ordnung“ entfällt."""
     kopf = durchlauf["kesselzustandKopf"]
