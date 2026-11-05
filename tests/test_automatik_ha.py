@@ -3477,3 +3477,45 @@ async def test_ohne_programm_misst_die_kachel_nicht_gegen_den_frostschutz(
     (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
     assert (kreis["kennwerte"]["soll"], kreis["kennwerte"]["abweichung"]) == (None, None)
     assert AutomatikAbweichung._wert(None, laufzeit) is None
+
+
+async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(hass, hass_ws_client, anlage):
+    """Weicht jedes Feld unter „Erweitert“ vom Profil ab, nimmt das Speichern trotzdem alle an."""
+    from custom_components.heatnexus.automatik.konfig import EIGENE_FELDER
+
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    eigene = {
+        "grenze_versatz": 0,
+        "hysterese": 1,
+        "tau_h": 5,
+        "mindestdauer_h": 12,
+        "beginn_art": "aufgang",
+        "beginn_uhrzeit": "07:00",
+        "beginn_laeufe": 2,
+        "ende_laeufe": 4,
+        "halten_min": 30,
+        "absenkung_k": 1,
+        "rueckkehr_k": 0.5,
+        "sonne_frost_at": 0,
+        "sonne_voll_at": 10,
+        "raum_fehlt_min": 15,
+        "spielraum_k": 0.2,
+        "sonnenquote": 55,
+        "sonnentag": True,
+        "stark": True,
+        "stark_k": 1,
+        "ruhe_h": 2,
+        "budget": 4,
+        "fenster_k_je_h": 3,
+        "anpassen": True,
+        "melden": True,
+        "lernfenster": 14,
+    }
+    assert set(eigene) == EIGENE_FELDER
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, eigene=eigene
+    )
+
+    assert antwort["success"], antwort

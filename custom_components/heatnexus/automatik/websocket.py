@@ -432,7 +432,8 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         vol.Optional("modus"): vol.In(MODI),
         vol.Optional("eigene"): vol.All(
             {vol.In(EIGENE_FELDER): vol.Any(int, float, str, bool)},
-            vol.Length(max=20),
+            # Jedes Feld darf abweichen; eine feste Zahl sperrte das Speichern, sobald es mehr Felder gibt.
+            vol.Length(max=len(EIGENE_FELDER)),
         ),
     }
     | EINSTELLUNGEN
