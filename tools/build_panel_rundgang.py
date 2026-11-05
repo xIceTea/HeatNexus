@@ -100,7 +100,7 @@ AUFTRITTE = [
     {
         "reiter": "uebersicht",
         "ziel": "Anlagenübersicht",
-        "bilder": 10,
+        "bilder": 16,
         "takt": 110,
         "titel": "Schaubild in Bewegung",
     },
@@ -287,6 +287,13 @@ element._gebaut = false;
 element._zeichnen();
 // Manche Reiter holen ihre Daten erst beim Öffnen; erst danach stehen ihre Karten.
 await new Promise((fertig) => setTimeout(fertig, 300));
+
+// Die Oberfläche wohnt im Schattenbaum; Regeln aus dem Dokument erreichen sie nicht.
+const schritt = document.createElement("style");
+schritt.textContent =
+  "* { animation-play-state: paused !important; transition: none !important;" +
+  " animation-delay: -" + PHASE + "s !important; }";
+(element.shadowRoot || element).appendChild(schritt);
 
 // Die Verlaufskarte braucht das Frontend von Home Assistant; leer stünde sie als Falschaussage im Bild.
 for (const karte of (element.shadowRoot || element).querySelectorAll(".karte")) {
