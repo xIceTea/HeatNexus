@@ -480,6 +480,28 @@ def _fenster(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entsch
     return Entscheidung(Zustand.FENSTER, (), "Fenster offen – Entscheidungen ausgesetzt.", g)
 
 
+def _rueckkehr_ohne_prognose(
+    lage: Lage, g: Gedaechtnis, soll: float, w: Werte
+) -> Entscheidung | None:
+    """Das Ende eines laufenden Eingriffs braucht nur Messwerte; es wartet nicht auf die Vorhersage."""
+    if g.saison == NUR_WW:
+        entscheidung = _saison_nur_ww(lage, g, soll, w)
+        return entscheidung if entscheidung.aktionen else None
+    if not absenkung_laeuft(g, lage.jetzt):
+        return None
+    if g.absenkung_art == PAUSE:
+        if (grund := _pause_ende(lage, g, soll, w)) is None:
+            return None
+        neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
+        return Entscheidung(
+            Zustand.PROGRAMM, (Aktion("absenkung_ende"),), f"{grund} – Heizpause beendet.", neu
+        )
+    if g.absenkung_art == SONNE and (abstand := abweichung(lage, soll)) < -w.rueckkehr_k:
+        text = f"Räume {kelvin(abstand)} unter Ziel – Absenkung beendet."
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+    return None
+
+
 def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
     fehlen = lage.raeume_fehlen_seit or (lage.jetzt if lage.raum is None else None)
     if lage.daten_ok and fehlen is None and soll is not None:
@@ -496,6 +518,9 @@ def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entschei
             "Raumwerte fehlen – Absenkung beendet.",
             ohne_absenkung(g),
         )
+    rueckkehr = None if fehlen or soll is None else _rueckkehr_ohne_prognose(lage, g, soll, w)
+    if rueckkehr is not None:
+        return rueckkehr
     teile = [
         name
         for name, fehlt in (

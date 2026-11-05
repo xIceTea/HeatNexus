@@ -1596,3 +1596,40 @@ def test_raeume_zum_ziel_ohne_programm_ohne_frostschutz(m, felder, g, erwartet):
     gedaechtnis = nur_ww(m, timedelta(hours=1)) if g == "nur_ww" else m.Gedaechtnis()
     bezug, abstand = m.raeume_zum_ziel(lage(m, **felder), gedaechtnis)
     assert (bezug, None if abstand is None else round(abstand, 2)) == erwartet
+
+
+def test_ohne_prognose_endet_ein_sehr_sonniger_tag_zur_gesetzten_zeit(m, w):
+    alt = replace(nur_ww(m, timedelta(hours=2)), stark_bis=MORGEN + timedelta(hours=1))
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=2), daten_ok=False)
+    e = m.entscheiden(stand, alt, w)
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+def test_ohne_prognose_endet_nur_warmwasser_in_kalten_raeumen(m, w):
+    stand = lage(m, raum=19.8, daten_ok=False)
+    e = m.entscheiden(stand, nur_ww(m, timedelta(hours=2)), w)
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+def test_ohne_prognose_bleibt_nur_warmwasser_ohne_anlass(m, w):
+    alt = nur_ww(m, timedelta(hours=2))
+    e = m.entscheiden(lage(m, daten_ok=False), alt, w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert e.aktionen == ()
+    assert e.gedaechtnis == alt
+
+
+def test_ohne_prognose_endet_die_absenkung_in_kalten_raeumen(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=20.0, daten_ok=False)
+    e = m.entscheiden(stand, sonnentag(m), w)
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_ohne_prognose_endet_die_heizpause_bei_waermebedarf(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), ruhig=False, daten_ok=False)
+    e = m.entscheiden(stand, pause(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.pause_sperre == stand.jetzt.date().isoformat()
