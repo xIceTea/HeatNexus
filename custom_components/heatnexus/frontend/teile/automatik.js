@@ -376,7 +376,7 @@ export const AutomatikMixin = (Basis) =>
 
     /** Neu aufbauen; der Neuaufbau leert die Seite kurz, ohne Merken spränge sie nach oben. */
     _automatikNeuZeichnen() {
-      const lagen = this._automatikScrollLagen();
+      const lagen = this._scrollLagen();
       this._gebaut = false;
       this._zeichnen();
       lagen.forEach(([element, oben]) => {
@@ -385,7 +385,7 @@ export const AutomatikMixin = (Basis) =>
     }
 
     /** Alle gescrollten Vorfahren, auch über Shadow-Grenzen, mit ihrer Lage. */
-    _automatikScrollLagen() {
+    _scrollLagen() {
       const lagen = [];
       let element = this;
       while (element) {
