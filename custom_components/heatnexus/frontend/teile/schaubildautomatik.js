@@ -137,9 +137,9 @@ export const SchaubildAutomatikMixin = (Basis) =>
       const marke = document.createElement("div");
       marke.className = "automatik-bildmarke";
       marke.hidden = true;
-      marke.style.left = `calc(${eintrag.left} + ${eintrag.breite})`;
-      marke.style.top = eintrag.top;
-      marke.style.width = `calc(${eintrag.breite} * 0.3)`;
+      marke.style.setProperty("--bild-links", `calc(${eintrag.left} + ${eintrag.breite})`);
+      marke.style.setProperty("--bild-oben", eintrag.top);
+      marke.style.setProperty("--bild-groesse", `calc(${eintrag.breite} * 0.3)`);
       const symbol = this._symbolKnoten("mdi:robot-outline");
       marke.appendChild(symbol);
       huelle.appendChild(this._klickbar(marke, kreis.automatik));

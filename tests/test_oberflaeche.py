@@ -1414,6 +1414,13 @@ def test_die_marke_am_heizkoerper_nimmt_klicks_an():
     assert any(":hover" in kopf and "background-color" in inhalt for kopf, inhalt in marke)
 
 
+def test_das_zeichen_der_marke_teilt_den_kasten_der_scheibe():
+    """Gleicher Kasten und gerade Maße: Sonst runden Scheibe und Zeichen verschieden."""
+    stil = (PANEL_JS.parent / "stil" / "automatik.js").read_text(encoding="utf-8")
+    assert re.search(r"automatik-bildmarke ha-icon \{[^}]*inset: 0;[^}]*transform: scale\(", stil)
+    assert "width: round(var(--bild-groesse), 2px)" in stil
+
+
 def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
     """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung."""
     bild = durchlauf["automatikImBild"]

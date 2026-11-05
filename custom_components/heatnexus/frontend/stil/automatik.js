@@ -47,13 +47,20 @@ export const AUTOMATIK = `
   .automatik-bildmarke[hidden] { display: none; }
   .schaubild .automatik-bildmarke {
     position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
-    display: grid; place-items: center; cursor: pointer; color: var(--hn-akzent);
+    left: var(--bild-links); top: var(--bild-oben); width: var(--bild-groesse);
+    cursor: pointer; color: var(--hn-akzent);
     background: color-mix(in srgb, currentColor 22%, var(--hn-karte));
     box-shadow: 0 0 0 2px var(--hn-karte);
   }
   /* Die Scheibe bleibt beim Überfahren sichtbar; die Marken des Schaubilds werden dort sonst durchsichtig. */
   .schaubild .automatik-bildmarke.klickbar:hover { background-color: color-mix(in srgb, currentColor 22%, var(--hn-karte)); }
-  .schaubild .automatik-bildmarke ha-icon { width: 64%; height: 64%; display: flex; --mdc-icon-size: 100%; }
+  /* Gerades Maß, ganzer Pixel und ein gemeinsamer Kasten: So runden Scheibe und Zeichen gleich, und das Zeichen bleibt mittig. */
+  @supports (width: round(1px, 2px)) {
+    .schaubild .automatik-bildmarke {
+      left: round(var(--bild-links), 1px); top: round(var(--bild-oben), 1px); width: round(var(--bild-groesse), 2px);
+    }
+  }
+  .schaubild .automatik-bildmarke ha-icon { position: absolute; inset: 0; display: flex; transform: scale(0.64); --mdc-icon-size: 100%; }
   .schaubild .automatik-bildmarke[data-zustand="sonnentag"] { color: var(--hn-sonne); }
   .schaubild .automatik-bildmarke[data-zustand="heizpause"] { color: var(--hn-at); }
   .schaubild .automatik-bildmarke[data-zustand="nur_ww"] { color: var(--hn-ww); }
