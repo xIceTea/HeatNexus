@@ -12,7 +12,7 @@
   document.documentElement.classList.add("js");
   try { var t = localStorage.getItem("heatnexus.ton"); if (t === "hell" || t === "dunkel") document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
-<link rel="icon" href="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png">
+<link rel="icon" href="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png?v=2">
 <link rel="preload" as="font" type="font/woff2" crossorigin href="{{ '/assets/fonts/Manrope-latin.woff2' | relative_url }}">
 {% comment %}
 Die Bauzeit hängt an Stilblatt und Skript. Ohne sie liefert der Browser nach
@@ -22,7 +22,7 @@ einer Änderung tagelang die alte Datei aus.
 <link rel="stylesheet" href="{{ '/assets/css/heatnexus.css' | relative_url }}?{{ stand }}">
 <meta property="og:title" content="{{ page.titel | default: site.title }}">
 <meta property="og:description" content="{{ page.beschreibung | default: site.description }}">
-<meta property="og:image" content="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png?v=2">
 </head>
 <body>
 
@@ -32,7 +32,7 @@ einer Änderung tagelang die alte Datei aus.
 <header class="kopf">
   <div class="kopf-innen">
   <a class="marke" href="{{ '/' | relative_url }}">
-    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png" alt="" width="26" height="26">
+    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png?v=2" alt="" width="26" height="26">
     <span>HeatNexus</span>
   </a>
   {% comment %}

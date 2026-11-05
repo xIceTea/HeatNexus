@@ -1,7 +1,7 @@
 # Anlagenschaubild als Karte
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif"
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif?v=2"
        alt="Anlagenschaubild in Bewegung: der Kessel startet, der Puffer lädt, Heizkreis und Warmwasser werden warm"
        width="900">
 </p>
@@ -46,7 +46,7 @@ type: custom:heatnexus-schaubild
 `auto` folgt dem Erscheinungsbild von Home Assistant. Die Schrift der Marken
 wächst mit der Kartenbreite; `schrift` verschiebt das Maß nach oben oder unten.
 
-![Dieselbe Anlage in allen fünf Farbsätzen: Dunkel, Hell, Terrakotta, Petrol, Pflaume](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif)
+![Dieselbe Anlage in allen fünf Farbsätzen: Dunkel, Hell, Terrakotta, Petrol, Pflaume](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif?v=2)
 
 Ein Farbsatz färbt Gehäuse, Rahmen und Schrift. Vor- und Rücklauf bleiben in
 jedem Satz rot und blau — das ist eine Auskunft, keine Gestaltung.

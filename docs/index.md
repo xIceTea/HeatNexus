@@ -21,21 +21,23 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <linearGradient id="ring-verlauf" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#f28a3a"/><stop offset=".45" stop-color="#e5533d"/><stop offset="1" stop-color="#4ba3e3"/>
       </linearGradient>
-      <linearGradient id="ring-balken" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0" stop-color="#e5533d"/><stop offset="1" stop-color="#f28a3a"/>
-      </linearGradient>
     </defs>
     <circle cx="260" cy="270" r="190" fill="none" stroke="url(#ring-verlauf)" stroke-width="10"/>
     <circle class="fluss" cx="260" cy="270" r="190" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".5"/>
-    <g class="haus" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M180 260 L260 192 L340 260"/>
-      <path d="M198 248 V340 a10 10 0 0 0 10 10 H312 a10 10 0 0 0 10-10 V248"/>
+    <!-- zeichen:anfang -->
+    <defs><linearGradient id="ring-glut" gradientUnits="userSpaceOnUse" x1="0" y1="15.1" x2="0" y2="22.57"><stop offset="0" stop-color="#f7a83b"/><stop offset="1" stop-color="#ef5530"/></linearGradient></defs>
+    <g transform="translate(260 270) scale(10) translate(-16 -16.6)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g id="ring-haus" fill="none" stroke-width="1.2">
+<path class="haus" d="M7.18 14.28L16.0 6.65L24.74 14.41"/>
+<path class="haus" d="M7.87 14.28V22.57Q7.87 24.37 9.67 24.37H22.41Q24.21 24.37 24.21 22.57V16.0"/>
+</g>
+      <g id="ring-heizkoerper" stroke-width="1.6">
+<path d="M11.83 15.96V21.76M14.65 15.96V21.76M17.43 15.96V21.76" stroke="url(#ring-glut)"/>
+<path d="M20.25 17.18V21.76" stroke="#3bb4f2"/>
+<circle cx="20.25" cy="14.57" r="0.98" fill="#3bb4f2" stroke="none"/>
+</g>
     </g>
-    <rect x="222" y="280" width="11" height="50" rx="4" fill="url(#ring-balken)"/>
-    <rect x="241" y="270" width="11" height="60" rx="4" fill="url(#ring-balken)"/>
-    <rect x="260" y="286" width="11" height="44" rx="4" fill="url(#ring-balken)"/>
-    <rect x="279" y="300" width="11" height="30" rx="4" fill="#4ba3e3"/>
-    <circle cx="284.5" cy="286" r="6" fill="#4ba3e3"/>
+    <!-- zeichen:ende -->
     <g font-size="19">
       <circle class="knoten" cx="260" cy="80" r="15" stroke="#f0703a" stroke-width="6"/>
       <text class="name" x="260" y="28" text-anchor="middle">Kessel</text>
@@ -69,7 +71,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <p>Schaubild, Kennwerte, Heizkreise, Warmwasser, Wartung, Verlauf, Zeitprogramme und Auswertung liegen an einem Ort in der Seitenleiste.</p>
     </div>
     <figure class="schirm">
-      <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif"
+      <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif?v=2"
            alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" loading="lazy">
     </figure>
   </div>
@@ -87,9 +89,9 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <h3>Das Schaubild zeigt die echte Anlage.</h3>
         <p>Pumpen drehen sich, solange sie fördern. Der Puffer färbt sich nach seinen Fühlern. Als Karte steht es auch in eigenen Dashboards.</p>
         <div class="bild">
-          <img class="nur-dunkel" src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif"
+          <img class="nur-dunkel" src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif?v=2"
                alt="Anlagenschaubild in Bewegung: der Kessel startet, der Puffer lädt, Heizkreis und Warmwasser werden warm" loading="lazy">
-          <img class="nur-hell" src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation_hell.gif"
+          <img class="nur-hell" src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation_hell.gif?v=2"
                alt="Anlagenschaubild in Bewegung: der Kessel startet, der Puffer lädt, Heizkreis und Warmwasser werden warm" loading="lazy">
         </div>
       </a>
