@@ -241,6 +241,9 @@ Stand bewusst nicht — das kostete jedes Mal einen vollen Neuabzug. Stattdessen
 wird der gespeicherte Stand sofort hergestellt und im Hintergrund abgeglichen;
 neue Entitäten melden sich, sobald sie da sind.
 
-`heatnexus.rediscover` braucht es nur nach einem **Umbau an der Heizung** — ein
-neuer Heizkreis, ein neues Modul. Der Dienst meldet danach je Anlage zurück,
-was gefunden wurde.
+Einen **Umbau an der Heizung** erkennt HeatNexus von selbst: Neue und entfernte
+Anlagenteile erscheinen ohne Neustart. `heatnexus.rediscover` erzwingt das Einlesen
+sofort und meldet je Anlage zurück, was gefunden wurde.
+
+**Ändert sich die Adresse der Steuerung**, findet Home Assistant sie im Netz und
+fragt nach, ob HeatNexus der neuen Adresse folgen soll.

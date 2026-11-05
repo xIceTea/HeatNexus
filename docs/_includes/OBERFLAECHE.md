@@ -19,7 +19,8 @@ Integration erst installieren zu müssen.
 das Bediengerät der Anlage ihn zeigt — am Kessel die Kesseltemperatur, am
 Puffer die obere, am Heizkreis die Raumtemperatur. Sonderzustände des Kessels
 wie Serviceausbrand oder Kaminkehrer erscheinen im Kopf der Übersicht; ist die
-Steuerung nicht erreichbar, steht dort eine Meldung. Darunter das
+Steuerung nicht erreichbar, steht dort eine Meldung. Für Automationen meldet der
+Sensor **Anlagenzustand** je Steuerung Störung, Sonderbetrieb und Ausfall. Darunter das
 Anlagenschaubild, dann der Systemstatus mit Betriebszustand,
 Außentemperatur, Kesselleistung, Brennstoff, Vorratsbehälter und den
 Restlaufzeiten.
@@ -115,6 +116,19 @@ rechnet HeatNexus die vergangenen Tage aus der Langzeitstatistik nach.
 
 Jeder Kennwert steht auch als Sensor bereit. Auffällige Ergebnisse lassen sich
 auf Wunsch als Hinweis in der Seitenleiste melden.
+
+## Fenster „Darstellung“
+
+Das Fenster gilt nur für den eigenen Benutzer. Ein Klick zeigt die Wahl sofort,
+„Übernehmen“ speichert sie.
+
+- **Schaubild:** Bei wenig Platz brechen die Anlagenteile in Reihen um oder
+  werden kleiner. Die Größe je Anlagenteil lässt sich wählen.
+- **Werte:** Die Zahlen stehen im Bild oder in Kästen darunter. `Automatisch`
+  wählt die Kästen, sobald ein Anlagenteil schmaler als 100 px steht.
+- **Beschriftung:** Farbfelder legen Hintergrund und Schrift fest, ein eigenes
+  Feld nimmt jede andere Farbe. Sind beide kaum zu unterscheiden, erscheint ein
+  Hinweis.
 
 ## Eigene Werte über Labels
 

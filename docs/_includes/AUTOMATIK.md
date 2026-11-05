@@ -93,7 +93,9 @@ und legt fest, wie weit die Automatik von der Heizgrenze der Steuerung abweicht:
   Räume erst nach drei Stunden ruhig.
 
 Unter „Erweitert“ lässt sich jeder Wert einzeln ändern; eigene Werte gehen der
-Ausrichtung vor.
+Ausrichtung vor. Ein Wechsel von Profil, Ausrichtung oder Heizflächen ändert nur
+Werte ohne eigene Vorgabe. „Profilwerte wiederherstellen“ nimmt alle eigenen
+Werte zurück.
 
 ## Modus und Grenzen
 
@@ -133,6 +135,18 @@ Weitere Regeln:
   3 °C außen schaltet sie „nur Warmwasser“ sofort zurück. Den Frostschutz der
   Anlage ersetzt sie nicht.
 - Wird die Automatik ausgeschaltet, nimmt sie ihre eigenen Eingriffe zurück.
+
+## Wenn die Wettervorhersage fehlt
+
+Die Automatik merkt sich die letzte Vorhersage, auch über einen Neustart hinweg,
+und rechnet bis zu sechs Stunden damit weiter. Liefert die Wetter-Entität nichts,
+fragt sie alle zwei Minuten neu nach.
+
+Ist die Vorhersage älter, steht die Automatik auf **Keine Daten** und beginnt
+keinen neuen Eingriff. Ein laufender Eingriff endet weiter, wenn die Messwerte es
+verlangen, etwa bei kalten Räumen oder zum Sonnenuntergang. Nur Warmwasser endet
+spätestens nach zwei Stunden. Nach drei Stunden ohne Vorhersage erscheint eine
+Reparaturmeldung.
 
 ## Prognose an den Standort anpassen
 
