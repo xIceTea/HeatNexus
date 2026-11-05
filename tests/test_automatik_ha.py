@@ -3347,6 +3347,105 @@ async def test_reparaturmeldung_verschwindet_wenn_die_vorhersage_wieder_kommt(
     assert verwaltung.prognose_fehler == {}
 
 
+async def _neu_gestartet(hass, verwaltung, laufzeit):
+    """Eine zweite Verwaltung liest die Ablage; die Laufzeit beginnt ohne Vorhersage."""
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    await verwaltung._prognose_store.async_save(verwaltung._prognosen_abzug())
+    neu = Verwaltung(hass)
+    await neu.laden()
+    laufzeit._prognose_quelle = neu.prognose
+    laufzeit._prognose_gesichert = neu.prognose_gesichert
+    laufzeit.stunden = []
+    laufzeit._prognose_zeit = None
+    return neu
+
+
+async def test_die_vorhersage_uebersteht_einen_neustart_ohne_wetterdienst(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    stand = dt_util.now()
+    _ohne_vorhersage(hass)
+
+    freezer.tick(timedelta(hours=2))
+    neu = await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit.stunden
+    assert laufzeit._prognose_zeit == stand
+    assert laufzeit.prognose_frisch is True
+    assert laufzeit.zustand.value != "keine_daten"
+    assert sorted(neu.prognose_fehler) == [("weather.home", "daily"), ("weather.home", "hourly")]
+
+
+async def test_eine_gesicherte_vorhersage_altert_weiter(hass, anlage, freezer):
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    _ohne_vorhersage(hass)
+
+    freezer.tick(timedelta(hours=7))
+    await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit.prognose_frisch is False
+    assert laufzeit.zustand.value == "keine_daten"
+
+
+async def test_eine_neue_vorhersage_ersetzt_die_gesicherte(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+
+    freezer.tick(timedelta(hours=2))
+    await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit._prognose_zeit == dt_util.now()
+
+
+async def test_unlesbare_eintraege_der_prognoseablage_fallen_weg(hass, hass_storage):
+    from custom_components.heatnexus.automatik import prognoseablage
+
+    gut = {
+        "wetter": "weather.home",
+        "art": "hourly",
+        "zeit": "2026-01-01T08:00:00+00:00",
+        "daten": [{"a": 1}],
+    }
+    hass_storage[prognoseablage.SCHLUESSEL] = {
+        "version": prognoseablage.FASSUNG,
+        "key": prognoseablage.SCHLUESSEL,
+        "data": {
+            "prognosen": [
+                gut,
+                "kaputt",
+                {**gut, "zeit": "gestern"},
+                {**gut, "art": "daily", "daten": []},
+                {**gut, "art": "daily", "daten": "nein"},
+            ]
+        },
+    }
+
+    prognosen = await prognoseablage.laden(prognoseablage.ablage(hass))
+
+    assert list(prognosen) == [("weather.home", "hourly")]
+
+
 async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, anlage, freezer):
     from datetime import timedelta
 

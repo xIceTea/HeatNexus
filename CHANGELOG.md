@@ -59,6 +59,7 @@ HeatNexus liest Wärmepumpen und den Hybridmanager des BioWIN Hybrid ein und zei
 - Zwei Änderungen der Einstellungen zugleich gehen beide ein.
 - Mehr als 20 eigene Werte der Automatik lassen sich speichern.
 - An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+- Nach einem Neustart gilt die letzte Wettervorhersage bis zu sechs Stunden weiter.
 
 **Home Assistant**
 - Ab Home Assistant 2026.11 meldet das Protokoll keine Abkündigung der Thermostate mehr.

@@ -167,6 +167,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         entry_id: str,
         prognose: Callable[[str, str], Awaitable[list[dict[str, Any]] | None]],
         speichern_ruhig: Callable[[], None] | None = None,
+        prognose_gesichert: Callable[[str, str], tuple[datetime, list[dict[str, Any]]] | None]
+        | None = None,
     ) -> None:
         self.hass = hass
         self.coordinator = coordinator
@@ -181,6 +183,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._speichern_ruhig = speichern_ruhig or speichern
         self._gespeichert: tuple[Any, ...] | None = None
         self._prognose_quelle = prognose
+        self._prognose_gesichert = prognose_gesichert or (lambda _wetter, _art: None)
         z = zustand or {}
         self.gedaechtnis = regel.gedaechtnis_aus_dict(z.get("gedaechtnis"))
         self.steller = Steller(
@@ -401,8 +404,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     async def _anlaufen(self) -> None:
         """Erste Prognose und erster Lauf; fehlt die Prognose, wird sie bald noch einmal gefragt."""
         try:
+            self._prognose_wiederherstellen()
+            gesichert = self._prognose_zeit
             await self._prognose_holen()
-            if not self.prognose_frisch:
+            if self._prognose_zeit == gesichert:
                 self._abmelden.append(
                     async_call_later(self.hass, PROGNOSE_WIEDERHOLEN_S, self._prognose_takt)
                 )

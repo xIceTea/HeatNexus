@@ -38,7 +38,7 @@ from ..registrierung import (
 )
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
-from . import lernablage
+from . import lernablage, prognoseablage
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
 _LOGGER = logging.getLogger(__name__)
@@ -181,7 +181,8 @@ class Verwaltung:
         self._geladen = False
         self._geplant = False
         self.laufzeiten: dict[str, Laufzeit] = {}
-        self._prognosen: dict[tuple[str, str], tuple[datetime, list[dict[str, Any]]]] = {}
+        self._prognose_store: Store = prognoseablage.ablage(hass)
+        self._prognosen: prognoseablage.Prognosen = {}
         self._prognose_sperre = asyncio.Lock()
         # Je Wetter-Entität und Vorhersageart der letzte Fehler, bis ein Abruf gelingt.
         self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
@@ -198,6 +199,7 @@ class Verwaltung:
             for eintrag in self._daten["heizkreise"].values():
                 if neu := konfig_modul.pruefen(eintrag["konfig"]):
                     eintrag["konfig"] = neu
+            self._prognosen = await prognoseablage.laden(self._prognose_store)
             self._geladen = True
 
     async def _roh_laden(self) -> Any:
@@ -365,7 +367,17 @@ class Verwaltung:
             self.prognose_fehler.pop((wetter, art), None)
             daten = list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
             self._prognosen[(wetter, art)] = (jetzt, daten)
+            self._prognose_store.async_delay_save(self._prognosen_abzug, SPEICHER_RUHIG_S)
             return daten
+
+    def _prognosen_abzug(self) -> dict[str, Any]:
+        return prognoseablage.abzug(self._prognosen)
+
+    def prognose_gesichert(
+        self, wetter: str, art: str
+    ) -> tuple[datetime, list[dict[str, Any]]] | None:
+        """Die letzte Vorhersage mit ihrer Zeit; sie kann aus der Ablage stammen."""
+        return self._prognosen.get((wetter, art))
 
     # --- je Eintrag ----------------------------------------------------------
     async def eintrag_starten(self, entry: ConfigEntry) -> None:
@@ -414,6 +426,7 @@ class Verwaltung:
                 entry.entry_id,
                 self.prognose,
                 self.speichern_ruhig,
+                self.prognose_gesichert,
             )
             self.laufzeiten[device_id] = laufzeit
             async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
@@ -455,6 +468,7 @@ class Verwaltung:
         for laufzeit in gestoppt:
             self.laufzeiten.pop(laufzeit.device_id, None)
         await self._store.async_save(self._daten)
+        await self._prognose_store.async_save(self._prognosen_abzug())
 
     async def untereintrag_pruefen(self, entry: ConfigEntry) -> None:
         """Fehlt „HeatNexus Automatik“, obwohl Automatiken eingerichtet sind, hat der Nutzer sie gelöscht.
