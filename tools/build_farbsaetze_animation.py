@@ -115,6 +115,7 @@ def _seite(
         regeln.append(f".satz-{satz}{{{werte}background:{paletten[satz]['--hn-karte']}}}")
     return (
         "<!doctype html><meta charset='utf-8'><style>"
+        "body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}"
         "html,body{margin:0;padding:0}"
         f".rahmen{{width:{bewegung.BREITE}px;height:{bewegung.HOEHE}px;"
         "overflow:hidden;position:relative}"
