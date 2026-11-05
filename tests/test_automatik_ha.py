@@ -3644,3 +3644,36 @@ async def test_das_laden_behaelt_eigene_werte_gleich_der_vorgabe(hass, anlage):
     await neu.laden()
 
     assert neu._daten["heizkreise"][HEIZKREIS]["konfig"]["eigene"] == {"stark": True}
+
+
+async def test_ohne_vorhersage_fragt_die_automatik_bald_wieder(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.core import SupportsResponse
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    aufrufe = _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    anfangs = len(aufrufe)
+
+    for _ in range(3):
+        freezer.tick(timedelta(seconds=121))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert len(aufrufe) >= anfangs + 6
+
+    async def liefern(call):
+        return {"weather.home": {"forecast": [{"datetime": "2026-01-01T00:00:00+00:00"}]}}
+
+    hass.services.async_register(
+        "weather", "get_forecasts", liefern, supports_response=SupportsResponse.ONLY
+    )
+    freezer.tick(timedelta(seconds=121))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert laufzeit.prognose_frisch is True
+    assert laufzeit._prognose_versuch is None

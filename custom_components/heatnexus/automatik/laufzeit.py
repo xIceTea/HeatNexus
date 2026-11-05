@@ -61,7 +61,7 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 PROGNOSE_TAKT = timedelta(hours=1)
 PROGNOSE_MAX_ALTER = timedelta(hours=6)
-# Fehlt die Prognose beim Start, wird sie nach dieser Zeit noch einmal gefragt.
+# Bleibt die Prognose aus, wird sie in diesem Abstand wieder gefragt, bis eine kommt.
 PROGNOSE_WIEDERHOLEN_S = 120
 ABWESEND_NACH = timedelta(minutes=30)
 # Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
@@ -219,6 +219,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._tage: list[tuple[date, float | None, float | None]] = []
         self._sonnenzeiten = {}
         self._prognose_zeit: datetime | None = None
+        self._prognose_versuch: Callable[[], None] | None = None
         self._prognose_fehlt_seit: datetime | None = None
         self._verlauf: deque[tuple[float, float]] = deque(maxlen=VERLAUF_LAENGE)
         self._fenster_bis: datetime | None = None
@@ -355,7 +356,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         if im_hintergrund:
             self._aufgabe(self._anlaufen(), hintergrund=True)
         else:
-            await self._prognose_holen()
+            await self._prognose_takt(self._gestartet)
             await self.auswerten()
         self._nebenlaeufe_starten(self._gestartet.date())
 
@@ -400,17 +401,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._abmelden.append(
             async_track_time_interval(self.hass, self._prognose_takt, PROGNOSE_TAKT)
         )
+        self._abmelden.append(self._prognose_versuch_abbrechen)
 
     async def _anlaufen(self) -> None:
-        """Erste Prognose und erster Lauf; fehlt die Prognose, wird sie bald noch einmal gefragt."""
+        """Erste Prognose und erster Lauf; die gesicherte Prognose gilt, bis eine neue kommt."""
         try:
             self._prognose_wiederherstellen()
-            gesichert = self._prognose_zeit
-            await self._prognose_holen()
-            if self._prognose_zeit == gesichert:
-                self._abmelden.append(
-                    async_call_later(self.hass, PROGNOSE_WIEDERHOLEN_S, self._prognose_takt)
-                )
+            await self._prognose_takt(dt_util.now())
             await self.auswerten()
         except Exception:  # der Takt versucht es wieder; das Setup bleibt davon unberührt
             _LOGGER.exception("Automatik %s: Erster Lauf nach dem Start gescheitert", self.name)
@@ -489,7 +486,22 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         await self.auswerten(takt=True)
 
     async def _prognose_takt(self, _jetzt: datetime) -> None:
-        await self._prognose_holen()
+        """Die Prognose holen; ohne Antwort bald noch einmal, bis eine kommt."""
+        geliefert = await self._prognose_holen()
+        if geliefert or not self.aktiv or self._prognose_versuch is not None:
+            return
+        self._prognose_versuch = async_call_later(
+            self.hass, PROGNOSE_WIEDERHOLEN_S, self._prognose_nochmal
+        )
+
+    async def _prognose_nochmal(self, jetzt: datetime) -> None:
+        self._prognose_versuch = None
+        await self._prognose_takt(jetzt)
+
+    def _prognose_versuch_abbrechen(self) -> None:
+        if self._prognose_versuch is not None:
+            self._prognose_versuch()
+            self._prognose_versuch = None
 
     # --- Ablauf --------------------------------------------------------------
     async def auswerten(self, takt: bool = False) -> None:
