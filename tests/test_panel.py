@@ -1649,3 +1649,48 @@ def test_panel_daten_fuehren_den_kesselzustand(panel):
     )
     daten = panel.anlage_daten(anlage(kessel))
     assert daten["kesselzustand"]["betriebsart"] == "sensor.art"
+
+
+async def test_die_automatik_haengt_an_der_kennung_des_heizkreises(hass, panel):
+    """Die Automatik kennt den Heizkreis unter seiner HeatNexus-Kennung, das Panel unter der Geräte-ID."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.automatik.verwaltung import unique_id
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="automatikeintrag", data={}, options={})
+    eintrag.add_to_hass(hass)
+    kreis_geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id, identifiers={(DOMAIN, "SN1-1-0")}, name="Heizkreis"
+    )
+    register = er.async_get(hass)
+    erwartet = {
+        art: register.async_get_or_create(
+            domaene, DOMAIN, unique_id("SN1-1-0", art), config_entry=eintrag
+        ).entity_id
+        for art, domaene in (
+            ("zustand", "sensor"),
+            ("empfehlung", "sensor"),
+            ("empfehlung_uebernehmen", "button"),
+            ("empfehlung_verwerfen", "button"),
+        )
+    }
+    nutzdaten = {
+        "heizkreise": [
+            {"titel": "Heizkreis", "geraet": kreis_geraet.id},
+            {"titel": "Ohne", "geraet": "fehlt"},
+        ]
+    }
+
+    panel._automatik_zuordnen(hass, {}, nutzdaten)
+
+    mit, ohne = nutzdaten["heizkreise"]
+    assert mit["automatik"] == erwartet["zustand"]
+    assert mit["automatik_empfehlung"] == erwartet["empfehlung"]
+    assert mit["automatik_tasten"] == {
+        "uebernehmen": erwartet["empfehlung_uebernehmen"],
+        "verwerfen": erwartet["empfehlung_verwerfen"],
+    }
+    assert ohne["automatik"] is None and "geraet" not in ohne

@@ -165,19 +165,35 @@ def _ohne_hilfe(anlage: dict[str, Any]) -> None:
         wasser["taste"].pop("hilfe", None)
 
 
+def _automatik_kennung(hass: HomeAssistant, geraet_id: str, art: str, domaene: str) -> str | None:
+    """Die Entität der Automatik eines Heizkreises; sie hängt an seiner HeatNexus-Kennung, nicht an der Geräte-ID."""
+    geraet = dr.async_get(hass).async_get(geraet_id)
+    register = er.async_get(hass)
+    for bereich, wert in geraet.identifiers if geraet else ():
+        if bereich == DOMAIN and (
+            entity_id := register.async_get_entity_id(domaene, DOMAIN, automatik_kennung(wert, art))
+        ):
+            return entity_id
+    return None
+
+
 def _automatik_zuordnen(
     hass: HomeAssistant, anlage: dict[str, Any], nutzdaten: dict[str, Any]
 ) -> None:
-    """Heizkreise und Regelung erfahren die Zustandssensoren der Automatik, falls eingerichtet."""
+    """Heizkreise und Regelung erfahren Zustand, Empfehlung und Tasten der Automatik, falls eingerichtet."""
     register = er.async_get(hass)
     if (regelung := nutzdaten.get("regelung")) and (eintrag := anlage.get("eintrag")):
         regelung["automatik"] = register.async_get_entity_id(
             "sensor", DOMAIN, system_unique_id(eintrag, "status")
         )
     for kreis in nutzdaten.get("heizkreise") or []:
-        kreis["automatik"] = register.async_get_entity_id(
-            "sensor", DOMAIN, automatik_kennung(kreis.pop("geraet"), "zustand")
-        )
+        geraet = kreis.pop("geraet")
+        kreis["automatik"] = _automatik_kennung(hass, geraet, "zustand", "sensor")
+        kreis["automatik_empfehlung"] = _automatik_kennung(hass, geraet, "empfehlung", "sensor")
+        kreis["automatik_tasten"] = {
+            art: _automatik_kennung(hass, geraet, f"empfehlung_{art}", "button")
+            for art in ("uebernehmen", "verwerfen")
+        }
 
 
 def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
