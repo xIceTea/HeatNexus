@@ -1405,6 +1405,15 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     assert abzeichen["ohne"] is True
 
 
+def test_die_marke_am_heizkoerper_nimmt_klicks_an():
+    """Keine Regel mit dem Klassennamen der Marke darf Klicks abschalten."""
+    stil = (PANEL_JS.parent / "stil" / "automatik.js").read_text(encoding="utf-8")
+    regeln = re.findall(r"([^{}]+)\{([^{}]*)\}", stil)
+    marke = [(kopf.strip(), inhalt) for kopf, inhalt in regeln if "automatik-bildmarke" in kopf]
+    assert [kopf for kopf, inhalt in marke if "pointer-events: none" in inhalt] == []
+    assert any(":hover" in kopf and "background-color" in inhalt for kopf, inhalt in marke)
+
+
 def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
     """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung."""
     bild = durchlauf["automatikImBild"]

@@ -51,6 +51,8 @@ export const AUTOMATIK = `
     background: color-mix(in srgb, currentColor 22%, var(--hn-karte));
     box-shadow: 0 0 0 2px var(--hn-karte);
   }
+  /* Die Scheibe bleibt beim Überfahren sichtbar; die Marken des Schaubilds werden dort sonst durchsichtig. */
+  .schaubild .automatik-bildmarke.klickbar:hover { background-color: color-mix(in srgb, currentColor 22%, var(--hn-karte)); }
   .schaubild .automatik-bildmarke ha-icon { width: 64%; height: 64%; display: flex; --mdc-icon-size: 100%; }
   .schaubild .automatik-bildmarke[data-zustand="sonnentag"] { color: var(--hn-sonne); }
   .schaubild .automatik-bildmarke[data-zustand="heizpause"] { color: var(--hn-at); }
@@ -322,12 +324,12 @@ export const AUTOMATIK = `
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   }
   .automatik-tag-bild svg { display: block; width: 100%; height: 190px; }
-  .automatik-bildmarke {
+  .automatik-tagesmarke {
     position: absolute; transform: translateY(-110%); font-size: 11px; line-height: 1;
     color: var(--hn-gedaempft); pointer-events: none;
   }
-  .automatik-bildmarke.achse { left: 4px; }
-  .automatik-bildmarke.grenze { right: 4px; }
+  .automatik-tagesmarke.achse { left: 4px; }
+  .automatik-tagesmarke.grenze { right: 4px; }
   .automatik-zeiger {
     position: absolute; top: 0; bottom: 0; width: 0; pointer-events: none;
     border-left: 1px solid var(--hn-text); opacity: 0.6;
