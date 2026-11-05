@@ -94,6 +94,7 @@ Reiter Automatik oder mit den Tasten **Empfehlung übernehmen** und
 | `stoerung_quittieren` | Sensor | Setzt einen Eintrag der Meldungsliste zurück. |
 | `stoerung_loeschen` | Sensor | Löscht einen erledigten Eintrag aus der Meldungsliste. |
 | `stoerung_zuruecksetzen` | Sensor | Setzt eine anliegende Störung am Kessel zurück; nur mit eingeschalteter Option. |
+| `heizkreis_umbenennen` | Thermostat | Schreibt den Namen des Heizkreises in die Steuerung, höchstens 20 Byte. |
 | `dashboard_ausgeben` | — | Gibt das mitgelieferte Dashboard als YAML zurück. |
 
 ### Befristete Vorgabe

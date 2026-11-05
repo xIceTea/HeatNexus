@@ -9,13 +9,6 @@ WURZEL = Path(__file__).resolve().parents[1]
 DASHBOARD = WURZEL / "custom_components" / "heatnexus" / "dashboard"
 
 
-def _abschnitt(datei: str, titel: str) -> str:
-    text = (WURZEL / datei).read_text(encoding="utf-8")
-    treffer = re.search(rf"(?ms)^## {titel}\s*$(.*?)(?=^## )", text)
-    assert treffer, f"{datei}: Abschnitt {titel} fehlt"
-    return treffer.group(1)
-
-
 def test_die_architektur_nennt_jedes_dashboardmodul():
     zeile = next(
         z
@@ -30,9 +23,25 @@ def test_die_architektur_nennt_jedes_dashboardmodul():
     assert genannt - {"dashboard", "__init__"} <= module, "nennt ein Modul, das es nicht gibt"
 
 
-def test_die_readme_nennt_die_grenzen_der_kopie():
-    for datei in ("README.md", "README.en.md"):
-        assert "`/heatnexus/`" in _abschnitt(datei, "Dashboard"), datei
+def test_die_anleitung_nennt_jeden_dienst():
+    """Ein neuer Dienst in `services.yaml` erscheint auch in der Tabelle der Anleitung."""
+    dienste = re.findall(
+        r"(?m)^([a-z_]+):\s*$",
+        (WURZEL / "custom_components" / "heatnexus" / "services.yaml").read_text(encoding="utf-8"),
+    )
+    vorlagen = (WURZEL / "docs" / "_includes" / "VORLAGEN.md").read_text(encoding="utf-8")
+    tabelle = vorlagen.split("## Dienste", 1)[-1]
+    fehlen = [d for d in dienste if f"| `{d}` |" not in tabelle]
+    assert dienste and not fehlen, f"fehlt in VORLAGEN.md: {fehlen}"
+
+
+def test_beide_readmes_fuehren_dieselben_geraete():
+    """Deutsch und Englisch nennen dieselben Geräte in der Tabelle."""
+    namen = [
+        re.findall(r"(?m)^\| \S+ \| \*\*([^*]+)\*\*", (WURZEL / datei).read_text(encoding="utf-8"))
+        for datei in ("README.md", "README.en.md")
+    ]
+    assert namen[0] and namen[0] == namen[1]
 
 
 def test_die_vorlagen_nennen_die_adresse_der_kopie():

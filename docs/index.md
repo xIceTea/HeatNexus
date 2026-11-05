@@ -155,7 +155,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
   <div class="huelle">
     <div class="abschnitt-kopf">
       <h2 class="titel">Passt das zu<br>meiner Anlage?</h2>
-      <p>Nötig ist ein <strong>InfoWIN Touch</strong> mit Netzwerkanschluss und das Service-Passwort. Öffne <code>http://&lt;IP der Anlage&gt;</code> im Browser. Erscheint die Weboberfläche, passt es.</p>
+      <p>Nötig ist ein <strong>InfoWIN Touch</strong> oder <strong>InfoWIN Plus</strong> mit Netzwerkanschluss und das Service-Passwort. Öffne <code>http://&lt;IP der Anlage&gt;</code> im Browser. Erscheint die Weboberfläche, passt es.</p>
     </div>
 
     <svg class="symbolvorrat" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -165,11 +165,11 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
     </svg>
 
     <div class="zug">
-      <div class="serie"><svg><use href="#sym-flamme"/></svg><h3>PuroWIN</h3><p>Hackgut, wahlweise Pellets</p><span class="stand geprueft">An der Anlage geprüft</span></div>
-      <div class="serie"><svg><use href="#sym-flamme"/></svg><h3>BioWIN</h3><p>Pellets, auch BioWIN 2 und PelletsWIN</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
-      <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>LogWIN</h3><p>Scheitholz, auch VarioWIN</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
-      <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>DuoWIN</h3><p>Pellets und Scheitholz</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
-      <div class="serie"><svg><use href="#sym-waermepumpe"/></svg><h3>AeroWIN</h3><p>Wärmepumpe</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
+      <div class="serie"><svg><use href="#sym-flamme"/></svg><h3>PuroWIN</h3><p>Hackgut, wahlweise Pellets</p><span class="stand geprueft">Geprüft</span></div>
+      <div class="serie"><svg><use href="#sym-flamme"/></svg><h3>BioWIN</h3><p>Pellets, auch BioWIN 2 und PelletsWIN</p><span class="stand fremd">Bei Nutzern im Einsatz</span></div>
+      <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>LogWIN</h3><p>Scheitholz, auch VarioWIN</p><span class="stand fremd">Bei Nutzern im Einsatz</span></div>
+      <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>DuoWIN</h3><p>Pellets und Scheitholz</p><span class="stand fremd">Bei Nutzern im Einsatz</span></div>
+      <div class="serie"><svg><use href="#sym-waermepumpe"/></svg><h3>AeroWIN</h3><p>Wärmepumpe</p><span class="stand fremd">Bei Nutzern im Einsatz</span></div>
     </div>
 
     <details class="alle">
@@ -180,39 +180,42 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
           <table class="tabelle">
             <thead><tr><th>Baureihe</th><th>Brennstoff</th><th>Stand</th></tr></thead>
             <tbody>
-              <tr><td>PuroWIN</td><td>Hackgut, wahlweise Pellets</td><td><span class="stand geprueft">An der Anlage geprüft</span></td></tr>
-              <tr><td>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>AeroWIN</td><td>Strom</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>Andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
-              <tr><td>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
-              <tr><td>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
+              <tr><td>PuroWIN</td><td>Hackgut, wahlweise Pellets</td><td><span class="stand geprueft">Geprüft</span></td></tr>
+              <tr><td>BioWIN, BioWIN 2, BioWIN 2 Deluxe, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>LogWIN Klassik und Premium, VarioWIN</td><td>Scheitholz</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>AeroWIN</td><td>Strom</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>BioWIN Alpha</td><td>Pellets</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+<tr><td>Andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
             </tbody>
           </table>
         </div>
         <div>
-          <h4>Module und Kreise</h4>
+          <h4>Bediengeräte, Module und Kreise</h4>
           <table class="tabelle">
             <thead><tr><th>Anlagenteil</th><th>Stand</th></tr></thead>
             <tbody>
-              <tr><td>UML / UMLZ Heizkreismodul</td><td><span class="stand geprueft">An der Anlage geprüft</span></td></tr>
-              <tr><td>B-PLMi Pufferlademodul</td><td><span class="stand geprueft">An der Anlage geprüft</span></td></tr>
-              <tr><td>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">An der Anlage geprüft</span></td></tr>
-              <tr><td>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>Pufferspeicher am Kessel</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>Hybridmanager der BioWIN Hybrid</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
+              <tr><td>InfoWIN Touch</td><td><span class="stand geprueft">Geprüft</span></td></tr>
+<tr><td>InfoWIN Plus</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+<tr><td>UML / UMLZ Heizkreismodul</td><td><span class="stand geprueft">Geprüft</span></td></tr>
+              <tr><td>B-PLMi Pufferlademodul</td><td><span class="stand geprueft">Geprüft</span></td></tr>
+              <tr><td>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">Geprüft</span></td></tr>
+              <tr><td>Infinity PLUS und Infinity PLUS Wall</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>Pufferspeicher am Kessel</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>Hybridmanager der BioWIN Hybrid</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
+              <tr><td>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
             </tbody>
           </table>
         </div>
       </div>
       <p class="nachsatz">
-        „Eingebunden“ heißt: Die Funktion steht mit Namen, Einheiten und Auswahlwerten in der
-        mitgelieferten Datenbank und wird erkannt. Nachgemessen hat sie noch niemand.
-        „Fremde Anlage geprüft“ heißt: Das Auslesen ist an einem beigesteuerten Abzug belegt,
-        das Bedienen noch nicht.
-      </p>
+        „Geprüft“ heißt: im täglichen Betrieb an der Entwickleranlage.
+„Bei Nutzern im Einsatz“ heißt: Nutzer betreiben das Gerät mit HeatNexus, Rückmeldungen liegen vor.
+„Ohne Rückmeldung“ heißt: Das Gerät steht mit Namen, Einheiten und Auswahlwerten in der
+mitgelieferten Datenbank und wird erkannt, eine Rückmeldung fehlt noch.
+</p>
     </details>
 
     <p class="nachsatz">
@@ -232,7 +235,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
     </div>
     <div>
       <ol class="schritte">
-        <li><span><b>HACS öffnen</b>HeatNexus als Repository der Kategorie Integration hinzufügen.</span></li>
+        <li><span><b>HACS öffnen</b>In HACS nach HeatNexus suchen.</span></li>
         <li><span><b>Herunterladen</b>Herunterladen und Home Assistant neu starten.</span></li>
         <li><span><b>Einrichten</b>Unter Einstellungen, Geräte &amp; Dienste die Integration HeatNexus hinzufügen. Gebraucht werden die IP der Steuerung, der Benutzer <code>USER</code> und das Passwort, ab Werk <code>123</code>.</span></li>
         <li><span><b>Warten</b>Der erste Durchlauf liest die ganze Anlage ein. Danach stehen Geräte, Oberfläche und Dashboard bereit.</span></li>

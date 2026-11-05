@@ -10,8 +10,31 @@ Weboberfläche. Es ist derselbe Zugang, mit dem man sich auch im Browser an der
 Anlage anmeldet — kein Konto bei Windhager, kein Portal.
 
 Ob der Weg frei ist, zeigt ein Blick in den Browser: Unter
-`http://<IP der Anlage>` muss die Weboberfläche des InfoWIN Touch erscheinen.
+`http://<IP der Anlage>` muss die Weboberfläche von InfoWIN Touch oder InfoWIN Plus
+erscheinen.
 Kommt sie, stimmen IP und Zugang.
+
+### Was vom Bediengerät abhängt
+
+Nicht jedes Bediengerät bietet dasselbe an. HeatNexus fragt beim Start, was die
+Steuerung kann, und zeigt nur das. Was erkannt wurde, steht im Diagnose-Export
+unter `faehigkeiten`.
+
+| | InfoWIN Touch 0.10 | InfoWIN Touch ab 2 | InfoWIN Plus |
+|---|---|---|---|
+| Meldungsliste lesen | 🟢 | ⚪ | ⚪ |
+| Zurücksetzen schließt die Meldung am Bediengerät | 🟢 | ⚪ | – eigene Anzeige |
+| Störung am Kessel zurücksetzen | – | ⚪ | ⚪ |
+| Eine Anforderung aus Home Assistant öffnet die Seite am Bediengerät | – | – | – |
+
+🟢 an der Anlage geprüft · ⚪ aus der Bedienoberfläche des Herstellers abgeleitet,
+an der Anlage nicht geprüft · – gibt es nicht.
+
+Ohne Meldungsliste des Bediengeräts sammelt HeatNexus die Meldungen selbst.
+Fordert Home Assistant die Lagerraumbefüllung oder den Kaminkehrer an, zeigt das
+Bediengerät die neue Betriebsart in der Statuszeile, öffnet aber keine eigene
+Seite. Die Seite am Gerät beendet den Vorgang beim Verlassen; aus Home
+Assistant beendet ihn die Taste „beenden“.
 
 ### Welches Passwort
 
@@ -118,6 +141,14 @@ Betriebsstunden ändern sich nicht in dreißig Sekunden, egal wo sie stehen.
 Ein kürzeres Intervall bringt deshalb wenig und kostet: Die Steuerung
 beantwortet Anfragen nacheinander, mehr Gleichzeitigkeit verkürzt einen
 Durchlauf nicht.
+
+## Die erste Minute
+
+Nach dem Einrichten entsteht zuerst ein Grundstock an Entitäten. Danach liest
+HeatNexus die Anlage im Hintergrund ein; je nach Anlage dauert das 30 bis 120
+Sekunden, und in dieser Zeit kommen laufend Entitäten dazu. Direkt nach dem
+Einrichten sind also erst wenige Werte zu sehen. Der Stand wird gespeichert und
+ist nach einem Neustart sofort da.
 
 ## Was zusätzlich angelegt wird
 
