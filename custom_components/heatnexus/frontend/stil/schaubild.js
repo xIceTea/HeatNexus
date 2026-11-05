@@ -245,7 +245,7 @@ export const SCHAUBILD = `
       calc(18px * var(--hn-schrift))
     );
     font-weight: 700; letter-spacing: 0.3px;
-    background: rgba(10, 14, 19, 0.78);
+    background: var(--hn-marke-grund, rgba(10, 14, 19, 0.78));
     pointer-events: none; white-space: nowrap;
     opacity: 0; transition: opacity 0.4s ease;
   }
@@ -437,7 +437,7 @@ export const SCHAUBILD = `
   }
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);
-    background: rgba(10, 14, 19, 0.72); color: #fff;
+    background: var(--hn-marke-grund, rgba(10, 14, 19, 0.72)); color: var(--hn-marke-schrift, #fff);
     font-size: clamp(
       calc(10px * var(--hn-schrift)),
       calc(var(--hn-einheit) * 15 * var(--hn-schrift)),

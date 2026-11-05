@@ -1435,6 +1435,17 @@ def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
     assert bild["reiter"] == "automatik"
 
 
+def test_die_beschriftung_folgt_der_darstellung(durchlauf):
+    """Eigene Farben färben Marken und Namen; ohne Wahl bleibt das Schaubild wie ausgeliefert."""
+    farben = durchlauf["beschriftung"]
+    assert farben["ausgeliefert"] == {"farben": {}, "grund": ""}
+    assert farben["grund"] == "color-mix(in srgb, #ffffff 40%, transparent)"
+    assert farben["schrift"] == "#ff69b4"
+    assert farben["namePink"] is True
+    assert farben["andererTextBleibt"] is True
+    assert farben["nurSchrift"] == {"schrift": "#ff69b4"}
+
+
 def test_der_kesselzustand_ersetzt_im_kopf_die_meldung_in_ordnung(durchlauf):
     """Kaminkehrer aktiv: Das Sonderabzeichen erscheint, „Anlage in Ordnung“ entfällt."""
     kopf = durchlauf["kesselzustandKopf"]

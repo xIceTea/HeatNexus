@@ -2038,4 +2038,30 @@ bilanz.meldungBeimSpeichern = meldungen;
   flaeche._zeichnen();
 }
 
+// ---------------------------------------------------------------------------
+// Farben der Beschriftung: Hintergrund und Schrift der Marken, Namen in der
+// Zeichnung; ausgeliefert bleibt alles wie bisher.
+// ---------------------------------------------------------------------------
+{
+  const svg = '<svg><text data-teil="0" x="1" y="2" text-anchor="middle" fill="#e6edf3">Kessel</text><text fill="#e6edf3">x</text></svg>';
+  const anlage = { schema_svg: svg, schema_breite: 400 };
+  const vorherVorschau = flaeche._vorschau;
+  flaeche._vorschau = null;
+  const ausgeliefert = { farben: flaeche._beschriftung(), grund: flaeche._bildflaeche(anlage).style["--hn-marke-grund"] || "" };
+  flaeche._vorschau = { beschriftung_grund: "#ffffff", beschriftung_deckkraft: "40", beschriftung_schrift: "#ff69b4" };
+  const flaecheNeu = flaeche._bildflaeche(anlage);
+  const bild = decodeURIComponent(flaeche._schemaBild(anlage));
+  flaeche._vorschau = { beschriftung_schrift: "#ff69b4" };
+  const nurSchrift = flaeche._beschriftung();
+  bilanz.beschriftung = {
+    ausgeliefert,
+    grund: flaecheNeu.style["--hn-marke-grund"] || "",
+    schrift: flaecheNeu.style["--hn-marke-schrift"] || "",
+    namePink: bild.includes('data-teil="0" x="1" y="2" text-anchor="middle" fill="#ff69b4"'),
+    andererTextBleibt: bild.includes('<text fill="#e6edf3">x</text>'),
+    nurSchrift,
+  };
+  flaeche._vorschau = vorherVorschau;
+}
+
 console.log(JSON.stringify(bilanz));

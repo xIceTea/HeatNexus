@@ -153,6 +153,20 @@ export const WERTELAGEN = [
   { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
 ];
 
+// Farben der Beschriftung im Schaubild: frei gewählt, als Text gespeichert. Die Werte hier
+// sind der ausgelieferte Stand. Die Schlüssel decken sich mit `anordnung.py`.
+export const BESCHRIFTUNG = {
+  beschriftung_grund: "#0a0e13",
+  beschriftung_deckkraft: "72",
+  beschriftung_schrift: "#ffffff",
+};
+
+/** Ob ein Wert für eine Farbe der Beschriftung taugt: `#rrggbb` oder eine Deckkraft von 0 bis 100. */
+export function beschriftungGueltig(schluessel, wert) {
+  const muster = schluessel === "beschriftung_deckkraft" ? /^(100|[1-9]?[0-9])$/ : /^#[0-9a-fA-F]{6}$/;
+  return typeof wert === "string" && muster.test(wert);
+}
+
 // Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
 export const SCHAUBILD_SPEICHER = "heatnexus.schaubild";

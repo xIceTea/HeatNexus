@@ -3,7 +3,16 @@
  * Die Einstellungen gelten für alle Reiter und stehen deshalb nicht in „Ansicht bearbeiten“.
  */
 
-import { DARSTELLUNG, DARSTELLUNG_STANDARD, ERZEUGER_MAX, KOPFSTILE, PALETTEN, darstellungSpeicher } from "../ordnung.js";
+import {
+  BESCHRIFTUNG,
+  DARSTELLUNG,
+  DARSTELLUNG_STANDARD,
+  ERZEUGER_MAX,
+  KOPFSTILE,
+  PALETTEN,
+  beschriftungGueltig,
+  darstellungSpeicher,
+} from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
@@ -21,8 +30,9 @@ export const DarstellungMixin = (Basis) =>
 
     /** Die gespeicherte Wahl, ohne die Vorschau des offenen Fensters. */
     _stilGespeichert(schluessel) {
-      const stile = DARSTELLUNG[schluessel];
       const wert = this._einstellungen()[schluessel] || this._gemerkt(darstellungSpeicher(schluessel));
+      if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
+      const stile = DARSTELLUNG[schluessel];
       if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
       return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
     }
@@ -39,7 +49,7 @@ export const DarstellungMixin = (Basis) =>
     _einstellungenMerken() {
       const einstellungen = this._einstellungen();
       try {
-        for (const schluessel of Object.keys(DARSTELLUNG)) {
+        for (const schluessel of [...Object.keys(DARSTELLUNG), ...Object.keys(BESCHRIFTUNG)]) {
           const wert = einstellungen[schluessel];
           if (wert) window.localStorage.setItem(darstellungSpeicher(schluessel), wert);
           else window.localStorage.removeItem(darstellungSpeicher(schluessel));
@@ -237,6 +247,14 @@ export const DarstellungMixin = (Basis) =>
           this._t("Legt fest, wo und wie groß die Zahlen im Schaubild stehen."),
           ...this._werteWahl(wahl),
         ],
+        [
+          this._t("Beschriftung"),
+          this._t("Legt Hintergrund und Schriftfarbe der Werte und Namen im Schaubild fest."),
+          this._beschriftungWahl(wert, (schluessel, neu) => {
+            entwurf[schluessel] = neu;
+            nachWahl.forEach((stellen) => stellen());
+          }),
+        ],
       ];
       if (this._anlagen().length > 1) {
         zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
@@ -257,6 +275,53 @@ export const DarstellungMixin = (Basis) =>
         this._vorschau = null;
         this._darstellungSetzen(teil);
       });
+    }
+
+    /** Farbwähler für Hintergrund und Schrift, ein Regler für die Deckkraft; „Wie ausgeliefert“ stellt alle drei zurück. */
+    _beschriftungWahl(wert, setzen) {
+      const block = document.createElement("div");
+      block.className = "beschriftung-wahl";
+      const felder = [
+        ["beschriftung_grund", "Hintergrund", "color"],
+        ["beschriftung_deckkraft", "Deckkraft", "range"],
+        ["beschriftung_schrift", "Schriftfarbe", "color"],
+      ].map(([schluessel, name, art]) => {
+        const zeile = document.createElement("label");
+        zeile.className = "beschriftung-feld";
+        const titel = document.createElement("span");
+        titel.textContent = this._t(name);
+        const feld = document.createElement("input");
+        feld.type = art;
+        if (art === "range") Object.assign(feld, { min: "0", max: "100", step: "5" });
+        const anzeige = document.createElement("span");
+        anzeige.className = "beschriftung-zahl";
+        const zeigen = () => {
+          feld.value = wert(schluessel);
+          anzeige.textContent = art === "range" ? `${feld.value} %` : "";
+        };
+        // Erst beim Loslassen: Jede Vorschau baut die Oberfläche neu auf.
+        feld.addEventListener("change", () => {
+          setzen(schluessel, String(feld.value).toLowerCase());
+          zeigen();
+        });
+        feld.addEventListener("input", () => {
+          if (art === "range") anzeige.textContent = `${feld.value} %`;
+        });
+        zeigen();
+        zeile.append(titel, feld, anzeige);
+        block.appendChild(zeile);
+        return zeigen;
+      });
+      const zurueck = document.createElement("button");
+      zurueck.type = "button";
+      zurueck.className = "dialog-taste beschriftung-zurueck";
+      zurueck.textContent = this._t("Wie ausgeliefert");
+      zurueck.addEventListener("click", () => {
+        Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzen(schluessel, standard));
+        felder.forEach((zeigen) => zeigen());
+      });
+      block.appendChild(zurueck);
+      return block;
     }
 
     /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */

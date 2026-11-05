@@ -1203,5 +1203,11 @@
   "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Onder het schema zodra een onderdeel smaller is dan 100 px",
   "Die Werte stehen immer in der Zeichnung": "De waarden staan altijd in de tekening",
   "Die Werte stehen immer mit Namen unter der Zeichnung": "De waarden staan altijd met hun naam onder de tekening",
-  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "Alle schakeltijden van de tijdsturing staan op Uit. De circulatiepomp draait daardoor niet."
+  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "Alle schakeltijden van de tijdsturing staan op Uit. De circulatiepomp draait daardoor niet.",
+  "Beschriftung": "Labels",
+  "Legt Hintergrund und Schriftfarbe der Werte und Namen im Schaubild fest.": "Bepaalt achtergrond en tekstkleur van waarden en namen in het schema.",
+  "Hintergrund": "Achtergrond",
+  "Deckkraft": "Dekking",
+  "Schriftfarbe": "Tekstkleur",
+  "Wie ausgeliefert": "Zoals geleverd"
 }

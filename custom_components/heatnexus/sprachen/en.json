@@ -1198,5 +1198,11 @@
   "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Below the diagram as soon as a component is narrower than 100 px",
   "Die Werte stehen immer in der Zeichnung": "The values always appear in the drawing",
   "Die Werte stehen immer mit Namen unter der Zeichnung": "The values always appear with their names below the drawing",
-  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "All switching times of the time control are set to Off. The circulation pump does not run with them."
+  "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.": "All switching times of the time control are set to Off. The circulation pump does not run with them.",
+  "Beschriftung": "Labels",
+  "Legt Hintergrund und Schriftfarbe der Werte und Namen im Schaubild fest.": "Sets the background and text colour of values and names in the diagram.",
+  "Hintergrund": "Background",
+  "Deckkraft": "Opacity",
+  "Schriftfarbe": "Text colour",
+  "Wie ausgeliefert": "As shipped"
 }

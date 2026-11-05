@@ -8,7 +8,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
 import { SchaubildAutomatikMixin } from "./schaubildautomatik.js";
 import { SchaubildWerteMixin } from "./schaubildwerte.js";
 import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
@@ -26,7 +26,27 @@ export const SchaubildMixin = (Basis) =>
    */
   _schemaBild(anlage, svg = anlage.schema_svg) {
     const farben = anlage.schema_farben || {};
-    return schaubildAdresse(farbenUmstellen(svg, farben[this._farbsatzGilt()]));
+    let bild = farbenUmstellen(svg, farben[this._farbsatzGilt()]);
+    // Eine eigene Schriftfarbe gilt auch für die Namen der Anlagenteile in der Zeichnung.
+    const schrift = this._beschriftung().schrift;
+    if (schrift && bild) bild = bild.replace(/(<text data-teil="\d+"[^>]*? fill=")[^"]*/g, `$1${schrift}`);
+    return schaubildAdresse(bild);
+  }
+
+  /**
+   * Die Farben der Beschriftung, soweit sie vom ausgelieferten Stand abweichen.
+   * Die Karte führt keine Darstellung und zeichnet wie ausgeliefert.
+   */
+  _beschriftung() {
+    if (typeof this._stilwahl !== "function") return {};
+    const wahl = (schluessel) => this._stilwahl(schluessel);
+    const abweichend = (schluessel) => wahl(schluessel) !== BESCHRIFTUNG[schluessel];
+    const ergebnis = {};
+    if (abweichend("beschriftung_grund") || abweichend("beschriftung_deckkraft")) {
+      ergebnis.grund = `color-mix(in srgb, ${wahl("beschriftung_grund")} ${wahl("beschriftung_deckkraft")}%, transparent)`;
+    }
+    if (abweichend("beschriftung_schrift")) ergebnis.schrift = wahl("beschriftung_schrift");
+    return ergebnis;
   }
 
   /** Wie groß die Marken im Schaubild stehen: nach der Darstellung. Die Karte überschreibt das. */
@@ -256,6 +276,9 @@ export const SchaubildMixin = (Basis) =>
     }
     // Das Schriftmaß der Marken: in der Karte aus dem Editor, in der Oberfläche aus der Darstellung.
     flaeche.style.setProperty("--hn-schrift", String(this._schriftmass()));
+    const { grund, schrift } = this._beschriftung();
+    if (grund) flaeche.style.setProperty("--hn-marke-grund", grund);
+    if (schrift) flaeche.style.setProperty("--hn-marke-schrift", schrift);
     return flaeche;
   }
 

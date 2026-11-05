@@ -49,6 +49,9 @@ async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen
             "strang_groesse": "gross",
             "werte_groesse": "klein",
             "werte_lage": "unter",
+            "beschriftung_grund": "#ffffff",
+            "beschriftung_deckkraft": "40",
+            "beschriftung_schrift": "#ff69b4",
         },
     )
     assert antwort["success"], antwort
@@ -60,12 +63,16 @@ async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen
     assert gelesen["einstellungen"]["strang_groesse"] == "gross"
     assert gelesen["einstellungen"]["werte_groesse"] == "klein"
     assert gelesen["einstellungen"]["werte_lage"] == "unter"
+    assert gelesen["einstellungen"]["beschriftung_schrift"] == "#ff69b4"
+    assert gelesen["einstellungen"]["beschriftung_deckkraft"] == "40"
 
     for fremd in (
         {"kopf": "bunt"},
         {"strang": "falten"},
         {"strang_groesse": "riesig"},
         {"werte_lage": "daneben"},
+        {"beschriftung_grund": "pink"},
+        {"beschriftung_deckkraft": "101"},
     ):
         antwort = await _senden(
             client, type="heatnexus/anordnung/einstellungen", einstellungen=fremd

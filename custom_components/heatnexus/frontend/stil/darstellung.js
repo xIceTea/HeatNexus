@@ -80,6 +80,19 @@ export const DARSTELLUNG = `
   .alle-vorschau.zusammen i { border-left: 0; border-right: 0; border-bottom: 0;
     background: color-mix(in srgb, var(--hn-text) 7%, var(--hn-karte)); }
 
+  /* Farben der Beschriftung: Name links, Wähler rechts; die Deckkraft mit Prozentzahl. */
+  .beschriftung-wahl { display: flex; flex-direction: column; gap: 10px; }
+  .beschriftung-feld {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto 3.5em; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--hn-text);
+  }
+  .beschriftung-feld input[type="color"] {
+    width: 44px; height: 28px; padding: 0; border: 1px solid var(--hn-linie); border-radius: 6px;
+    background: none; cursor: pointer;
+  }
+  .beschriftung-feld input[type="range"] { width: 140px; accent-color: var(--hn-akzent); }
+  .beschriftung-zahl { font-size: 12px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums; }
+  .beschriftung-zurueck { align-self: flex-start; }
   /* Eine Wahl, die nur bei einer anderen gilt, steht darunter als schmaler Umschalter. */
   .darstellung-unter { margin-top: 14px; }
   .unter-name {
