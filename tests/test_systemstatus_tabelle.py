@@ -205,11 +205,12 @@ async def test_ab_zwei_erzeugern_hat_jeder_kopf_und_eigene_zeilen(hass):
         regelung = daten["regelung"]
         assert [z["titel"] for z in regelung["zeilen"]] == ["SG Ready"]
         assert regelung["hybrid"]["betriebsart"]
+        # Die BioWIN steht vor der AeroWIN, wie die Eingänge am Ventil des Hybridmanagers.
         assert [e["entity"] for e in regelung["hybrid"]["lieferanten"]] == [
-            AERO + "aktuelle_leistung",
             BIO + "kesselleistung",
+            AERO + "aktuelle_leistung",
         ]
-        aero, bio = daten["erzeuger"]
+        bio, aero = daten["erzeuger"]
         assert [(z["entity"], z.get("vorsatz")) for z in aero["kopf"]] == [
             (AERO + "betriebsphase", None),
             (AERO + "aktuelle_leistung", None),
