@@ -91,12 +91,11 @@ VORGABE = {
 # Bildpunktzahl. Feste Abstände verrutschen, sobald eine Karte eine Zeile mehr
 # bekommt, und dann steht im Bild oben ein leerer Streifen.
 #
-# `bilder` macht aus einem Auftritt eine kurze Bewegung: So viele Aufnahmen im
-# Abstand `takt`, die Bewegung der Oberfläche jeweils um denselben Schritt
-# weitergestellt. Nur dort eingesetzt, wo es etwas zu sehen gibt – am
-# Schaubild, wo Pumpen laufen und die Leitungen strömen.
+# `bilder` macht aus einem Auftritt eine Bewegung: So viele Aufnahmen im Abstand
+# `takt`, die Bewegung der Oberfläche jeweils um denselben Schritt weitergestellt.
+# Jeder Auftritt mit dem Schaubild bewegt sich, denn Pumpen und Strömung laufen immer.
 AUFTRITTE = [
-    {"reiter": "uebersicht", "dauer": 2600, "titel": "Übersicht"},
+    {"reiter": "uebersicht", "bilder": 24, "takt": 110, "titel": "Übersicht"},
     {
         "reiter": "uebersicht",
         "ziel": "Anlagenübersicht",
@@ -106,7 +105,8 @@ AUFTRITTE = [
     },
     {
         "reiter": "uebersicht",
-        "dauer": 3000,
+        "bilder": 28,
+        "takt": 110,
         "zustand": STOERUNG,
         "titel": "Störung anliegend",
     },
@@ -126,7 +126,7 @@ AUFTRITTE = [
     # Verlaufskarte von Home Assistant, und die kommt über `loadCardHelpers`
     # aus dem Frontend. Außerhalb einer laufenden Instanz gibt es sie nicht –
     # eine leere Karte im Rundgang wäre eine Falschaussage.
-    {"reiter": "uebersicht", "dialog": True, "dauer": 3600, "titel": "Darstellung"},
+    {"reiter": "uebersicht", "dialog": True, "bilder": 32, "takt": 110, "titel": "Darstellung"},
     {"reiter": "uebersicht", "ziel": "Systemstatus", "dauer": 2600, "titel": "Systemstatus"},
 ]
 
