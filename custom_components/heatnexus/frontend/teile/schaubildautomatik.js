@@ -33,24 +33,30 @@ export const SchaubildAutomatikMixin = (Basis) =>
       };
     }
 
-    /** Je Kreis mit Automatik eine Pille hinter dem Titel und darunter eine Zeile mit der Begründung. */
+    /**
+     * Ein Kreis: Pille hinter dem Titel, Begründung darunter. Ab zwei Kreisen steht jeder in einer
+     * eigenen Zeile unter dem Kopf, sonst liefe die Titelzeile über.
+     */
     _automatikImBild(anlage, karte) {
       const kreise = (anlage.heizkreise || []).filter((kreis) => kreis.automatik);
       if (!kreise.length) return;
       const kopf = karte.querySelector(".kartenkopf");
-      let anker = kopf && kopf.querySelector("h2");
+      const titel = kopf && kopf.querySelector("h2");
       const zeilen = document.createElement("div");
       zeilen.className = "bild-automatik";
       kreise.forEach((kreis) => {
         const pille = this._automatikPille(kreis, kreise.length > 1);
+        const zeile = this._automatikZeile(kreis);
         // Unter „Alle“ ersetzt der Anlagenname den Titel; die Pille steht dann hinter ihm.
-        if (anker) {
-          anker.parentElement.insertBefore(pille, anker.nextSibling);
-          anker = pille;
-        } else {
-          zeilen.appendChild(pille);
+        if (kreise.length === 1 && titel) {
+          titel.parentElement.insertBefore(pille, titel.nextSibling);
+          zeilen.appendChild(zeile);
+          return;
         }
-        zeilen.appendChild(this._automatikZeile(kreis));
+        const gruppe = document.createElement("div");
+        gruppe.className = "bild-automatik-kreis";
+        gruppe.append(pille, zeile);
+        zeilen.appendChild(gruppe);
       });
       karte.insertBefore(zeilen, kopf ? kopf.nextSibling : karte.firstChild);
     }

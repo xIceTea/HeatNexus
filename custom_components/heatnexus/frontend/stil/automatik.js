@@ -32,9 +32,12 @@ export const AUTOMATIK = `
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
   /* Automatik im Schaubild: Pille im Kopf, Begründung darunter, Marke am Heizkörper. */
-  .kartenkopf:has(.im-bild) h2 { flex: 0 1 auto; }
+  .kartenkopf:has(.im-bild) { flex-wrap: wrap; }
+  .kartenkopf:has(.im-bild) h2 { flex: 0 1 auto; min-width: 0; }
   .kartenkopf:has(.im-bild) .fragezeichen { margin-left: auto; }
-  .automatik-marke.im-bild { border: none; font-family: inherit; cursor: pointer; --mdc-icon-size: 15px; }
+  .automatik-marke.im-bild { border: none; font-family: inherit; cursor: pointer; --mdc-icon-size: 15px; max-width: 100%; }
+  .automatik-marke.im-bild span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .bild-automatik-kreis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
   .automatik-marke.im-bild::before { display: none; }
   .automatik-marke.z-empfehlung { background: color-mix(in srgb, var(--hn-akzent) 15%, transparent); color: var(--hn-akzent); }
   .bild-automatik { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 10px; }

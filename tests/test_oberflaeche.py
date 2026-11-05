@@ -1410,6 +1410,8 @@ def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
     bild = durchlauf["automatikImBild"]
     assert bild["nachTitel"] is True
     assert bild["markeOeffnet"] is True
+    # Ab zwei Kreisen bleibt die Titelzeile frei; jeder Kreis steht in einer eigenen Zeile.
+    assert bild["zwei"] == {"imKopf": 0, "zeilen": 2}
     assert bild["pillen"] == 1
     assert bild["programm"] == {
         "pille": "Automatik · Heizen nach Programm",

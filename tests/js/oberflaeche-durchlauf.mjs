@@ -2019,8 +2019,16 @@ bilanz.meldungBeimSpeichern = meldungen;
   binden();
   pille.ausloesen("click");
   const reiter = flaeche._reiter;
+  const zweiKreise = { name: "B", heizkreise: [kreis, { ...kreis, titel: "HK 2" }] };
+  const karteZwei = flaeche._karte("Anlagenübersicht");
+  flaeche._automatikImBild(zweiKreise, karteZwei);
+  const zwei = {
+    imKopf: karteZwei.querySelector(".kartenkopf").querySelectorAll(".im-bild").length,
+    zeilen: karteZwei.querySelectorAll(".bild-automatik-kreis").length,
+  };
   bilanz.automatikImBild = {
     nachTitel: kopf.children.indexOf(pille) === kopf.children.indexOf(kopf.querySelector("h2")) + 1,
+    zwei,
     markeOeffnet: marke.getAttribute("role") === "button" && marke.getAttribute("tabindex") === "0",
     pillen: kopf.querySelectorAll(".im-bild").length,
     programm,
