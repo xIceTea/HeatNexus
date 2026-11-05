@@ -11,7 +11,8 @@ from . import statuszeilen
 
 FCT_TYPE = 7
 MODELL = "Wärmepumpe"
-RANG = 10
+# Hinter den Kesseln: Am Hybridmanager kommt der Kessel von links, die Wärmepumpe von rechts.
+RANG = 11
 SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
