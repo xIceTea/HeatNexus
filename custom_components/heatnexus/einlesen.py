@@ -7,6 +7,7 @@ Erkennungsstand ab und meldet, wenn alle Anlagen durch sind.
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 import logging
 
 from homeassistant.components import persistent_notification
@@ -251,3 +252,40 @@ def vollabzuege_starten(
         )
         for anlage in anlagen
     ]
+
+
+def strukturpruefung_anschliessen(
+    hass: HomeAssistant, entry: ConfigEntry, anlagen: list, mem_cache: dict, version: str
+) -> None:
+    """Jeder Anlage den Vollabzug zuordnen, den ein geänderter Aufbau auslöst."""
+    for anlage in anlagen:
+        anlage.coordinator.bei_strukturaenderung = partial(
+            _nach_strukturaenderung, hass, entry, anlage, mem_cache, version
+        )
+
+
+def _nach_strukturaenderung(
+    hass: HomeAssistant, entry: ConfigEntry, anlage, mem_cache: dict, version: str
+) -> None:
+    """Den Vollabzug einer Anlage mit geändertem Aufbau starten, sofern keiner läuft.
+
+    Er gleicht wie nach einer Aktualisierung ab: Der bekannte Stand bleibt, Neues kommt dazu.
+    """
+    daten = laufzeitdaten(entry)
+    if not daten:
+        return
+    offen = daten.get("einlesen_offen")
+    hintergrund = daten.get("hintergrund")
+    if not isinstance(offen, set) or not isinstance(hintergrund, list):
+        return
+    name = f"{DOMAIN}_vollabzug_{anlage.host}"
+    if anlage.host in offen or any(
+        not aufgabe.done() and aufgabe.get_name() == name for aufgabe in hintergrund
+    ):
+        anlage.client.strukturaenderung_zurueckstellen()
+        return
+    offen.add(anlage.host)
+    hintergrund[:] = [aufgabe for aufgabe in hintergrund if not aufgabe.done()]
+    hintergrund.extend(
+        vollabzuege_starten(hass, entry, [anlage._replace(restored=True)], mem_cache, version)
+    )

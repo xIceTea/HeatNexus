@@ -9,7 +9,7 @@ Aufgebaut auf `build_schaubild_animation.py`: dieselbe Zeichnung, dieselben
 Ebenen, dasselbe Stylesheet der Oberfläche. Hier kommen nur zwei Dinge dazu,
 die der Farbsatz ändert und die nicht im Bild stecken:
 
-* die Zeichnung selbst, umgestellt über `schema.farben_umstellen`,
+* die Zeichnung selbst, umgestellt über `schema.farben.farben_umstellen`,
 * die Farbvariablen der Oberfläche aus `PALETTEN` in `ordnung.js` – von ihnen
   hängen Kartengrund, Linien und der Akzent der laufenden Pumpe ab.
 
@@ -56,11 +56,11 @@ def _temperaturfarben() -> dict[str, dict[str, str]]:
     """Warm und kalt je Satz – sie färben Speicherinhalt und Heizkörper."""
     schema = schema_modul()
     saetze = {
-        "dunkel": schema.FARBEN,
-        "hell": schema.FARBEN_HELL,
-        "terrakotta": schema.FARBEN_TERRAKOTTA,
-        "petrol": schema.FARBEN_PETROL,
-        "pflaume": schema.FARBEN_PFLAUME,
+        "dunkel": schema.farben.FARBEN,
+        "hell": schema.farben.FARBEN_HELL,
+        "terrakotta": schema.farben.FARBEN_TERRAKOTTA,
+        "petrol": schema.farben.FARBEN_PETROL,
+        "pflaume": schema.farben.FARBEN_PFLAUME,
     }
     return {name: {"warm": f["warm"], "kalt": f["kalt"]} for name, f in saetze.items()}
 
@@ -68,7 +68,7 @@ def _temperaturfarben() -> dict[str, dict[str, str]]:
 def _zeichnung(svg: str, satz: str) -> str:
     """Die Zeichnung im gewünschten Satz als Datenadresse."""
     schema = schema_modul()
-    umgestellt = svg if satz == "dunkel" else schema.farben_umstellen(svg, satz)
+    umgestellt = svg if satz == "dunkel" else schema.farben.farben_umstellen(svg, satz)
     kodiert = base64.b64encode(umgestellt.encode("utf-8")).decode("ascii")
     return f"data:image/svg+xml;base64,{kodiert}"
 
@@ -115,6 +115,7 @@ def _seite(
         regeln.append(f".satz-{satz}{{{werte}background:{paletten[satz]['--hn-karte']}}}")
     return (
         "<!doctype html><meta charset='utf-8'><style>"
+        "body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}"
         "html,body{margin:0;padding:0}"
         f".rahmen{{width:{bewegung.BREITE}px;height:{bewegung.HOEHE}px;"
         "overflow:hidden;position:relative}"

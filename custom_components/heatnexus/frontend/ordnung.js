@@ -129,6 +129,83 @@ export const ALLESTILE = [
   { schluessel: "getrennt", titel: "Getrennt", hinweis: "Jede Anlage für sich, untereinander" },
   { schluessel: "zusammen", titel: "Zusammen", hinweis: "Gleiche Karten in einem Rahmen, ein Abschnitt je Anlage" },
 ];
+// Strang im Schaubild und Größe je Anlagenteil. Die Schlüssel decken sich mit
+// `STRANGSTILE` und `STRANGGROESSEN` in `anordnung.py`.
+export const STRANGSTILE = [
+  { schluessel: "umbrechen", titel: "Umbrechen", hinweis: "Was nicht in die Karte passt, steht in der nächsten Reihe" },
+  { schluessel: "verkleinern", titel: "Verkleinern", hinweis: "Bei wenig Platz werden die Anlagenteile kleiner" },
+];
+export const STRANGGROESSEN = [
+  { schluessel: "klein", titel: "Klein (80 px)", hinweis: "Jedes Anlagenteil ist 80 Pixel breit", pixel: 80 },
+  { schluessel: "mittel", titel: "Mittel (120 px)", hinweis: "Jedes Anlagenteil ist 120 Pixel breit", pixel: 120 },
+  { schluessel: "gross", titel: "Groß (160 px)", hinweis: "Jedes Anlagenteil ist 160 Pixel breit", pixel: 160 },
+];
+// Größe und Lage der Werte im Schaubild. Die Schlüssel decken sich mit
+// `WERTEGROESSEN` und `WERTELAGEN` in `anordnung.py`. „Mittel“ ist das bisherige Maß.
+export const WERTEGROESSEN = [
+  { schluessel: "klein", titel: "Klein", hinweis: "Kleine Schrift für viele Anlagenteile", faktor: 1 },
+  { schluessel: "mittel", titel: "Mittel", hinweis: "Die übliche Schrift", faktor: 1.25 },
+  { schluessel: "gross", titel: "Groß", hinweis: "Große Schrift für einen Bildschirm in der Ferne", faktor: 1.5 },
+];
+export const WERTELAGEN = [
+  { schluessel: "automatisch", titel: "Automatisch", hinweis: "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht" },
+  { schluessel: "bild", titel: "Im Bild", hinweis: "Die Werte stehen immer in der Zeichnung" },
+  { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
+];
+
+// Farben der Beschriftung im Schaubild: frei gewählt, als Text gespeichert. Die Werte hier
+// sind der ausgelieferte Stand. Die Schlüssel decken sich mit `anordnung.py`.
+export const BESCHRIFTUNG = {
+  beschriftung_grund: "#0a0e13",
+  beschriftung_deckkraft: "72",
+  beschriftung_schrift: "#ffffff",
+};
+
+// Vorgegebene Felder im Fenster „Darstellung“. Der erste Wert ist der ausgelieferte Stand.
+export const BESCHRIFTUNG_FARBEN = {
+  beschriftung_grund: [
+    { farbe: "#0a0e13", titel: "Schwarz" },
+    { farbe: "#1f2937", titel: "Schiefer" },
+    { farbe: "#0f2a43", titel: "Nachtblau" },
+    { farbe: "#123524", titel: "Dunkelgrün" },
+    { farbe: "#3b1d12", titel: "Braun" },
+    { farbe: "#6b7280", titel: "Grau" },
+    { farbe: "#e5e7eb", titel: "Hellgrau" },
+    { farbe: "#ffffff", titel: "Weiß" },
+  ],
+  beschriftung_schrift: [
+    { farbe: "#ffffff", titel: "Weiß" },
+    { farbe: "#e5e7eb", titel: "Hellgrau" },
+    { farbe: "#ffd166", titel: "Gelb" },
+    { farbe: "#ff9f5a", titel: "Orange" },
+    { farbe: "#7dd3fc", titel: "Hellblau" },
+    { farbe: "#86efac", titel: "Hellgrün" },
+    { farbe: "#374151", titel: "Dunkelgrau" },
+    { farbe: "#0a0e13", titel: "Schwarz" },
+  ],
+};
+
+const MINDESTKONTRAST = 2;
+const DECKEND_AB = 50;
+
+function helligkeit(farbe) {
+  const anteile = [1, 3, 5].map((stelle) => Number.parseInt(farbe.slice(stelle, stelle + 2), 16) / 255);
+  const [rot, gruen, blau] = anteile.map((wert) => (wert <= 0.03928 ? wert / 12.92 : ((wert + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * rot + 0.7152 * gruen + 0.0722 * blau;
+}
+
+/** Ob sich die Schrift vom Hintergrund abhebt; ein fast durchsichtiger Hintergrund zählt nicht. */
+export function beschriftungLesbar(grund, schrift, deckkraft) {
+  if (Number(deckkraft) < DECKEND_AB) return true;
+  const [hell, dunkel] = [helligkeit(grund), helligkeit(schrift)].sort((a, b) => b - a);
+  return (hell + 0.05) / (dunkel + 0.05) >= MINDESTKONTRAST;
+}
+
+/** Ob ein Wert für eine Farbe der Beschriftung taugt: `#rrggbb` oder eine Deckkraft von 0 bis 100. */
+export function beschriftungGueltig(schluessel, wert) {
+  const muster = schluessel === "beschriftung_deckkraft" ? /^(100|[1-9]?[0-9])$/ : /^#[0-9a-fA-F]{6}$/;
+  return typeof wert === "string" && muster.test(wert);
+}
 
 // Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
@@ -150,7 +227,23 @@ export const FARBSAETZE = [
 // Die Einstellungen im Fenster „Darstellung“: Schlüssel am Server, dazu die
 // erlaubten Werte. Der Browser merkt sich jede Wahl, weil der erste Aufbau
 // vor den Einstellungen vom Server steht und sonst umspringen würde.
-export const DARSTELLUNG = { farbsatz: FARBSAETZE, kopf: KOPFSTILE, menue: MENUESTILE, alle: ALLESTILE };
+export const DARSTELLUNG = {
+  farbsatz: FARBSAETZE,
+  kopf: KOPFSTILE,
+  menue: MENUESTILE,
+  alle: ALLESTILE,
+  strang: STRANGSTILE,
+  strang_groesse: STRANGGROESSEN,
+  werte_groesse: WERTEGROESSEN,
+  werte_lage: WERTELAGEN,
+};
+
+// Wo der Standard nicht der erste Eintrag der Liste ist.
+export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel" };
+
+// Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
+// `ERZEUGER_MAX` in `anordnung.py` passen.
+export const ERZEUGER_MAX = 64;
 
 /** Wo eine Wahl der Darstellung im Browser liegt. */
 export function darstellungSpeicher(schluessel) {

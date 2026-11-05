@@ -6,12 +6,15 @@ belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 8
 MODELL = "Zusatzheizung"
 RANG = 12
 SYMBOL = "mdi:heating-coil"
 SCHAUBILD = "kessel"
 
+STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
 

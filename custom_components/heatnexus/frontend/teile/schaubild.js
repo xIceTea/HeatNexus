@@ -8,10 +8,13 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
+import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { SchaubildAutomatikMixin } from "./schaubildautomatik.js";
+import { SchaubildWerteMixin } from "./schaubildwerte.js";
+import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
-  class extends Basis {
+  class extends SchaubildAutomatikMixin(SchaubildWerteMixin(Basis)) {
   // -------------------------------------------------------------------
   // Schaubild
   // -------------------------------------------------------------------
@@ -21,18 +24,34 @@ export const SchaubildMixin = (Basis) =>
    * `auto` folgt Home Assistant; ohne dessen Auskunft bleibt es beim dunklen
    * Satz, denn ein falsch geratenes Hell fiele stärker auf.
    */
-  _schemaBild(anlage) {
+  _schemaBild(anlage, svg = anlage.schema_svg) {
     const farben = anlage.schema_farben || {};
-    return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
+    let bild = farbenUmstellen(svg, farben[this._farbsatzGilt()]);
+    // Eine eigene Schriftfarbe gilt auch für die Namen der Anlagenteile in der Zeichnung.
+    const schrift = this._beschriftung().schrift;
+    if (schrift && bild) bild = bild.replace(/(<text data-teil="\d+"[^>]*? fill=")[^"]*/g, `$1${schrift}`);
+    return schaubildAdresse(bild);
   }
 
   /**
-   * Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das.
-   * Die Oberfläche zeigt das Bild über die volle Breite, dort tragen die
-   * Werte die größere Stufe.
+   * Die Farben der Beschriftung, soweit sie vom ausgelieferten Stand abweichen.
+   * Die Karte führt keine Darstellung und zeichnet wie ausgeliefert.
    */
+  _beschriftung() {
+    if (typeof this._stilwahl !== "function") return {};
+    const wahl = (schluessel) => this._stilwahl(schluessel);
+    const abweichend = (schluessel) => wahl(schluessel) !== BESCHRIFTUNG[schluessel];
+    const ergebnis = {};
+    if (abweichend("beschriftung_grund") || abweichend("beschriftung_deckkraft")) {
+      ergebnis.grund = `color-mix(in srgb, ${wahl("beschriftung_grund")} ${wahl("beschriftung_deckkraft")}%, transparent)`;
+    }
+    if (abweichend("beschriftung_schrift")) ergebnis.schrift = wahl("beschriftung_schrift");
+    return ergebnis;
+  }
+
+  /** Wie groß die Marken im Schaubild stehen: nach der Darstellung. Die Karte überschreibt das. */
   _schriftmass() {
-    return schriftmass("gross");
+    return this._werteFaktor();
   }
 
   /** Ob die Pumpen als Marke im Bild stehen. Die Karte darf sie abwählen. */
@@ -118,25 +137,157 @@ export const SchaubildMixin = (Basis) =>
     return huelle;
   }
 
+  /** Wie der Strang steht; null zeigt das Bild über die ganze Breite, wie in der Lovelace-Karte. */
+  _strangWahl() {
+    if (typeof this._stilwahl !== "function") return null;
+    const stufe = STRANGGROESSEN.find((eintrag) => eintrag.schluessel === this._stilwahl("strang_groesse"));
+    return { modus: this._stilwahl("strang"), groesse: stufe.pixel };
+  }
+
   _schaubild(anlage) {
     if (!anlage.schema_svg) return null;
     const karte = this._karte(this._bildtitel());
-    const huelle = document.createElement("div");
-    huelle.className = "schaubild";
+    const wahl = this._strangWahl();
+    karte.appendChild(wahl ? this._strang(anlage, karte, wahl) : this._schaubildHuelle(anlage));
+    this._automatikImBild(anlage, karte);
+    return karte;
+  }
+
+  /**
+   * Der Strang in Reihen nach der Breite der Karte. Jede Reihe hat ihre eigene Hülle
+   * mit eigenen Bindungen; neu gebaut wird nur, wenn sich die Aufteilung ändert.
+   */
+  _strang(anlage, karte, wahl) {
+    const rahmen = document.createElement("div");
+    rahmen.className = "schaubild-strang";
+    const breite = Number(anlage.schema_breite) || 0;
+    let bindungen = [];
+    let gebaut;
+    const ordnen = (verfuegbar) => {
+      const plan = breite && verfuegbar > 0
+        ? reihenPlanen({ teile: teileAus(breite), breite, verfuegbar, ...wahl })
+        : null;
+      const unter = Boolean(plan) && this._werteUnter(plan.massstab);
+      const kennung = JSON.stringify([plan && plan.reihen, unter]);
+      if (kennung !== gebaut) {
+        gebaut = kennung;
+        bindungen = [];
+        const reihen = plan ? plan.reihen : [null];
+        rahmen.replaceChildren(...reihen.map((reihe) => this._strangReihe(anlage, reihe, bindungen, unter)));
+        if (this._hass) bindungen.forEach((binden) => binden());
+      }
+      if (plan) [...rahmen.children].forEach((fenster, nr) => this._strangStellen(fenster, plan.reihen[nr], plan.massstab, breite));
+    };
+    this._bindungen.push(() => bindungen.forEach((binden) => binden()));
+    ordnen(0);
+    if (typeof ResizeObserver === "function") {
+      // Gebaut wird im nächsten Bild: Ein Umbau im Rückruf löst sonst die Meldung über eine Schleife aus.
+      const signal = this._aufbauAbbruch?.signal;
+      let zuletzt = -1;
+      const beobachter = new ResizeObserver(([eintrag]) => {
+        const verfuegbar = eintrag.contentRect.width;
+        if (verfuegbar === zuletzt) return;
+        zuletzt = verfuegbar;
+        requestAnimationFrame(() => {
+          if (!signal?.aborted) ordnen(verfuegbar);
+        });
+      });
+      beobachter.observe(karte);
+      signal?.addEventListener("abort", () => beobachter.disconnect());
+    }
+    return rahmen;
+  }
+
+  /** Eine Hülle ohne `reihe`, sonst Ausschnitt, Schrift und mit `unter` die Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
+  _strangReihe(anlage, reihe, bindungen, unter) {
+    const anfang = this._bindungen.length;
+    const huelle = this._schaubildHuelle(anlage, Boolean(reihe));
+    const schrift = reihe ? this._strangSchrift(anlage, reihe, unter) : null;
+    const leiste = unter ? this._wertleiste(anlage, reihe) : null;
+    bindungen.push(...this._bindungen.splice(anfang));
+    if (!reihe) return huelle;
+    const fenster = document.createElement("div");
+    fenster.className = "strang-reihe";
+    const ausschnitt = document.createElement("div");
+    ausschnitt.className = "strang-ausschnitt";
+    ausschnitt.appendChild(huelle);
+    fenster.append(ausschnitt, schrift);
+    if (leiste) fenster.appendChild(leiste);
+    return fenster;
+  }
+
+  /** Die Schrift einer Reihe: Sie liegt über dem Ausschnitt und ragt ungeschnitten über dessen Kante. */
+  _strangSchrift(anlage, [erstes, anzahl], unter) {
+    const schrift = this._bildflaeche(anlage);
+    schrift.className = "schaubild strang-schrift";
+    schrift.appendChild(this._zeichnung(anlage, nurNamen(anlage.schema_svg, erstes, anzahl), ""));
+    if (!unter) this._wertmarken(schrift, anlage, this._werteDerReihe(anlage, erstes, anzahl));
+    return schrift;
+  }
+
+  /** Der Ausschnitt schneidet die Zeichnung an den Kanten der Anlagenteile, die Schrift steht deckungsgleich darüber. */
+  _strangStellen(fenster, [erstes, anzahl], massstab, breite) {
+    fenster.style.width = `${anzahl * MODUL * massstab}px`;
+    // Mit Wertleiste wächst das Fenster um sie; die Leiste beginnt unter der Zeichnung.
+    const [ausschnitt, schrift, leiste] = fenster.children;
+    const hoehe = `${HOEHE * massstab}px`;
+    fenster.style.height = leiste ? "" : hoehe;
+    ausschnitt.style.height = hoehe;
+    schrift.style.height = hoehe;
+    if (leiste) leiste.style.marginTop = hoehe;
+    const huelle = ausschnitt.firstChild;
+    [huelle, schrift].forEach((flaeche) => {
+      flaeche.style.width = `${breite * massstab}px`;
+      flaeche.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
+    });
+    this._strangMarken(huelle, erstes, anzahl, breite);
+    const bild = huelle.querySelector("img");
+    if (bild && erstes > 0) bild.alt = "";
+  }
+
+  /** Marken außerhalb des Ausschnitts verlassen Tab-Reihenfolge und Vorlesebaum; `data-strang-tab` hält den Ausgangszustand. */
+  _strangMarken(huelle, erstes, anzahl, breite) {
+    const marken = new Set([...huelle.querySelectorAll("[tabindex]"), ...huelle.querySelectorAll('[role="button"]')]);
+    marken.forEach((marke) => {
+      const links = String(marke.style.left || "");
+      if (!links.endsWith("%")) return;
+      const teil = teilAn(links, breite);
+      if (!("strangTab" in marke.dataset)) marke.dataset.strangTab = marke.getAttribute("tabindex") ?? "";
+      if (teil >= erstes && teil < erstes + anzahl) {
+        if (marke.dataset.strangTab) marke.setAttribute("tabindex", marke.dataset.strangTab);
+        else marke.removeAttribute("tabindex");
+        marke.removeAttribute("aria-hidden");
+      } else {
+        marke.setAttribute("tabindex", "-1");
+        marke.setAttribute("aria-hidden", "true");
+      }
+    });
+  }
+
+  /** Eine leere Fläche im Maß der Zeichnung; alles darauf rechnet mit ihrer Einheit. */
+  _bildflaeche(anlage) {
+    const flaeche = document.createElement("div");
+    flaeche.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
     // Aufgesetzte rechnet damit und wächst mit dem Bild – in der schmalen
     // Vorschau wie im breiten Dashboard.
     if (anlage.schema_breite) {
-      huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
+      flaeche.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
     }
-    // Das Schriftmaß der Marken. Die Karte gibt es vor, die Oberfläche bleibt
-    // beim Normalmaß.
-    huelle.style.setProperty("--hn-schrift", String(this._schriftmass()));
+    // Das Schriftmaß der Marken: in der Karte aus dem Editor, in der Oberfläche aus der Darstellung.
+    flaeche.style.setProperty("--hn-schrift", String(this._schriftmass()));
+    const { grund, schrift } = this._beschriftung();
+    if (grund) flaeche.style.setProperty("--hn-marke-grund", grund);
+    if (schrift) flaeche.style.setProperty("--hn-marke-schrift", schrift);
+    return flaeche;
+  }
+
+  /** Das Bild aus `svg`, das dem Farbsatz folgt. */
+  _zeichnung(anlage, svg, alt) {
     const bild = document.createElement("img");
-    const anfangsbild = this._schemaBild(anlage);
+    const anfangsbild = this._schemaBild(anlage, svg);
     bild.src = anfangsbild;
-    bild.alt = "Anlagenschaubild";
-    huelle.appendChild(bild);
+    bild.alt = alt;
 
     // **Der Farbsatz wird hier gewählt, nicht serverseitig.** Die Zeichnung
     // kommt einmal und wird hier eingefärbt; die Aufteilung entsteht in
@@ -148,13 +299,22 @@ export const SchaubildMixin = (Basis) =>
       // vermeintlicher Unterschied setzte die Quelle bei jedem Abgleich neu.
       let gezeigt = anfangsbild;
       this._bindungen.push(() => {
-        const gewuenscht = this._schemaBild(anlage);
+        const gewuenscht = this._schemaBild(anlage, svg);
         if (gewuenscht !== gezeigt) {
           gezeigt = gewuenscht;
           bild.src = gewuenscht;
         }
       });
     }
+    return bild;
+  }
+
+  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg. */
+  _schaubildHuelle(anlage, inReihe = false) {
+    const huelle = this._bildflaeche(anlage);
+    huelle.appendChild(
+      this._zeichnung(anlage, inReihe ? ohneNamen(anlage.schema_svg) : anlage.schema_svg, "Anlagenschaubild")
+    );
 
     // Strömung: zwei Bänder auf Vor- und Rücklauf. Sie laufen, solange
     // irgendeine Pumpe der Anlage fördert – steht alles, steht auch das Bild.
@@ -275,6 +435,7 @@ export const SchaubildMixin = (Basis) =>
         glieder.push(glied);
       }
       huelle.appendChild(koerper);
+      this._automatikMarke(anlage, eintrag, huelle);
 
       this._bindungen.push(() => {
         const grad = this._zahl(eintrag.entity);
@@ -450,6 +611,68 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Der Lüfter der Wärmepumpe: dieselbe Glut und dasselbe Laufrad wie an der
+    // Übergabe, rund über dem Gitter und schneller, solange sie Leistung bringt.
+    (anlage.schema_luefter || []).forEach((eintrag) => {
+      const feld = document.createElement("div");
+      feld.className = "uebergabe luefter";
+      feld.style.left = eintrag.left;
+      feld.style.top = eintrag.top;
+      feld.style.width = eintrag.breite;
+      feld.style.height = eintrag.hoehe;
+      feld.innerHTML = '<span class="glut"></span><span class="glut zwei"></span>';
+      huelle.appendChild(feld);
+
+      const rad = document.createElement("div");
+      rad.className = "uebergabe-rad luefter";
+      rad.style.left = eintrag.rad_left;
+      rad.style.top = eintrag.rad_top;
+      rad.style.width = eintrag.rad_groesse;
+      rad.appendChild(this._laufrad());
+      huelle.appendChild(this._klickbar(rad, eintrag.entity));
+
+      this._bindungen.push(() => {
+        // Eine fremde Wärmepumpe meldet keine Leistung, sondern ihre Wärmelieferung.
+        const leistung = this._zahl(eintrag.entity);
+        const an = leistung !== null ? leistung > 0 : this._istAn(eintrag.entity);
+        feld.classList.toggle("an", an);
+        rad.classList.toggle("an", an);
+        rad.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;
+      });
+    });
+
+    // Das Ventil des Hybridmanagers leuchtet zu dem Erzeuger hin, der gerade
+    // Leistung bringt; laufen beide, leuchten beide Eingänge.
+    // Ein Klick aufs Ventil öffnet die Betriebsart, einer auf eine Lampe die
+    // Leistung ihres Erzeugers.
+    (anlage.schema_hybrid || []).forEach((eintrag) => {
+      eintrag.teile.forEach((teil) => {
+        const feld = document.createElement("div");
+        feld.className = `hybrid-teil ${teil.form}`;
+        feld.style.left = teil.left;
+        feld.style.top = teil.top;
+        feld.style.width = teil.breite;
+        if (teil.hoehe) feld.style.height = teil.hoehe;
+        huelle.appendChild(teil.form === "lampe" ? this._klickbar(feld, teil.entities[0]) : feld);
+        this._bindungen.push(() => {
+          feld.classList.toggle("an", teil.entities.some((entity) => this._foerdert(entity)));
+        });
+      });
+      if (!eintrag.entity) return;
+      const ventil = document.createElement("div");
+      ventil.className = "hybrid-ventil";
+      Object.assign(ventil.style, {
+        left: eintrag.ventil.left,
+        top: eintrag.ventil.top,
+        width: eintrag.ventil.breite,
+        height: eintrag.ventil.hoehe,
+      });
+      huelle.appendChild(this._klickbar(ventil, eintrag.entity));
+      this._bindungen.push(() => {
+        ventil.title = `${eintrag.titel} – ${this._text(eintrag.entity)}`;
+      });
+    });
+
     // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
     // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
     (anlage.schema_waerme || []).forEach((eintrag) => {
@@ -485,20 +708,8 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    (anlage.schema_werte || []).forEach((eintrag) => {
-      const marke = document.createElement("div");
-      marke.className = "marke-wert";
-      marke.style.left = eintrag.left;
-      marke.style.top = eintrag.top;
-      huelle.appendChild(this._klickbar(marke, eintrag.entity));
-      this._bindungen.push(() => {
-        // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein
-        // Symbol und nicht wie ein fehlender Messwert.
-        const da = this._hatWert(eintrag.entity);
-        marke.hidden = !da;
-        marke.textContent = da ? this._text(eintrag.entity) : "";
-      });
-    });
+    this._vorratsbehaelter(huelle, anlage);
+    if (!inReihe) this._wertmarken(huelle, anlage);
 
     // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
     // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob
@@ -558,7 +769,6 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    karte.appendChild(huelle);
-    return karte;
+    return huelle;
   }
   };

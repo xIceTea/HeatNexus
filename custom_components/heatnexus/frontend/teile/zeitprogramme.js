@@ -16,6 +16,7 @@ import {
   pruefen,
   TAG_MINUTEN,
   rasterKnoten,
+  schaltetNie,
   skala,
   skalaKnoten,
   spurKnoten,
@@ -29,6 +30,9 @@ const FUSS = {
   heizen: "Es wirkt nur das Programm, auf dem die Betriebswahl steht.",
   zirkulation: "Es wirkt nur das Programm der Steuerungsart, auf der die Zirkulationspumpe steht.",
 };
+
+// Zeit- und Impulssteuerung folgen den Schaltzeiten; ohne ein Ein steht die Pumpe.
+const OHNE_EIN = "Alle Schaltzeiten der Zeitsteuerung stehen auf Aus. Die Zirkulationspumpe läuft damit nicht.";
 
 /** Ein Programm ohne Schaltzeit braucht nur eine Zeile. */
 const istLeer = (bloecke) => bloecke.every((block) => !block.punkte.length);
@@ -107,7 +111,17 @@ export const ZeitprogrammeMixin = (Basis) =>
     if (!wirkung) return true;
     const zustand = this._zustand(wirkung.entity);
     const text = zustand ? String(zustand.state).toLowerCase() : "";
-    return wirkung.muster_nicht ? !text.includes(wirkung.muster_nicht) : text.includes(wirkung.muster);
+    if (wirkung.muster_nicht) return !text.includes(wirkung.muster_nicht);
+    return text.includes(wirkung.muster) || (!!wirkung.muster_auch && text.includes(wirkung.muster_auch));
+  }
+
+  /** Das Zirkulationsprogramm, nach dem die Pumpe nie läuft. Das Temperaturprogramm schaltet nicht. */
+  _laeuftNie(programm) {
+    return (
+      programm.gruppe === "zirkulation" &&
+      programm.art !== "wasser" &&
+      schaltetNie(this._bloecke(programm.entity))
+    );
   }
 
   /**
@@ -363,6 +377,12 @@ export const ZeitprogrammeMixin = (Basis) =>
       zustand.textContent = [this._t("kein Programm"), this._wahlText(gruppe)].filter(Boolean).join(" · ");
       inhalt.push(zustand);
     }
+    if (sichtbar.some(({ programm }) => this._laeuftNie(programm))) {
+      const warnung = document.createElement("div");
+      warnung.className = "zp-warnung";
+      warnung.textContent = this._t(OHNE_EIN);
+      inhalt.push(warnung);
+    }
     if (gross) inhalt.push(this._programmGross(gross, teile.get(gross.programm.entity), zeit));
     sichtbar
       .filter((eintrag) => eintrag !== gross)
@@ -502,7 +522,8 @@ export const ZeitprogrammeMixin = (Basis) =>
       von: zustand ? this._optionBeschriftung(entity, zustand.state) : "–",
       nach: this._optionBeschriftung(entity, ziel),
     });
-    const ja = await this._bestaetigen(this._programmTitel(programm), frage, null, {
+    const warnung = this._laeuftNie(programm) ? ` ${this._t(OHNE_EIN)}` : "";
+    const ja = await this._bestaetigen(this._programmTitel(programm), frage + warnung, null, {
       ja: this._t("Aktivieren"),
       zurueck: this._t("Abbrechen"),
     });

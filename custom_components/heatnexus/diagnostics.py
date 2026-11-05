@@ -45,6 +45,15 @@ ZU_SCHWAERZEN = {
 # IPv4-Adresse als ganzer Wert bzw. irgendwo im Text.
 _ADRESSE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 _ADRESSE_IM_TEXT = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
+# MAC-Adresse irgendwo im Text, durchgehend mit Doppelpunkt oder Bindestrich.
+# Gemischt wäre es eine Zeitspanne wie „06:00-08:00-12:00“.
+_MAC_IM_TEXT = re.compile(r"\b[0-9A-Fa-f]{2}([:-])(?:[0-9A-Fa-f]{2}\1){4}[0-9A-Fa-f]{2}\b")
+
+# Rohwerte, die die Steuerung eindeutig kennzeichnen: MAC-Adresse und Seriennummer.
+# Unter `werte` sind die Schlüssel Adressen; `async_redact_data` greift dort nicht.
+KENNUNGEN = {"39/112": "<mac>", "39/115": "<seriennummer>"}
+# Kürzere Werte bleiben stehen, sonst ersetzte eine „0“ jede Ziffer im Export.
+KENNUNG_MIN_LAENGE = 6
 
 
 async def async_get_config_entry_diagnostics(
@@ -96,7 +105,8 @@ async def async_get_config_entry_diagnostics(
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
         "automatik": automatik_auszug(hass, entry),
     }
-    return _anonymisieren(daten, {**_seriennummern(eintrag), **nummer_je_host})
+    ersatz = {**_kennungen(eintrag), **_seriennummern(eintrag), **nummer_je_host}
+    return _anonymisieren(daten, ersatz)
 
 
 def automatik_auszug(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
@@ -133,6 +143,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     verwaist = sorted(e.unique_id for e in ohne_datenpunkt)
     # Verwaist und trotzdem aktiv: Diese Zeilen stehen wirklich im Weg.
     verwaist_aktiv = [e.unique_id for e in ohne_datenpunkt if e.disabled_by is None]
+    alle_ohne = verwaiste.finden(hass, entry, eintrag.get("coordinators", {}), behaltene=True)
     # Ab Werk aus, aber eingeschaltet – das war jemand von Hand.
     manuell = sorted(
         e.unique_id
@@ -150,6 +161,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
         "verwaist": len(verwaist),
         "verwaist_aktiv": len(verwaist_aktiv),
         "verwaiste_kennungen": verwaist[:20],
+        "verwaist_behalten": len(alle_ohne) - len(verwaist),
         "manuell_eingeschaltet": len(manuell),
         "manuelle_kennungen": manuell[:20],
     }
@@ -171,8 +183,27 @@ def _seriennummern(eintrag: dict[str, Any]) -> dict[str, str]:
     return ersatz
 
 
+def _kennungen(eintrag: dict[str, Any]) -> dict[str, str]:
+    """MAC-Adresse und Seriennummer aus den Rohwerten -> Platzhalter, überall im Export.
+
+    Die MAC auch ohne Trennzeichen, so wie sie in Hostnamen steht.
+    """
+    ersatz: dict[str, str] = {}
+    for coordinator in eintrag.get("coordinators", {}).values():
+        for oid, wert in ((coordinator.data or {}).get("oids") or {}).items():
+            teile = str(oid).strip("/").split("/")
+            platzhalter = KENNUNGEN.get("/".join(teile[3:5]))
+            text = str(wert or "").strip()
+            if platzhalter is None or len(text) < KENNUNG_MIN_LAENGE:
+                continue
+            for form in {text, text.upper(), text.lower()}:
+                ersatz[form] = platzhalter
+                ersatz[form.replace(":", "").replace("-", "")] = platzhalter
+    return ersatz
+
+
 def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
-    """Seriennummern, bekannte Hosts und Adressen in allen Zeichenketten ersetzen.
+    """Seriennummern, bekannte Hosts, Adressen und MACs in allen Zeichenketten ersetzen.
 
     Auch in zusammengesetzten Kennungen wie ``12345678-0-7-0``.
     """
@@ -187,7 +218,7 @@ def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
         # Längere zuerst: Ein Hostname kann eine kürzere Kennung enthalten.
         for bekannt in sorted(ersatz, key=len, reverse=True):
             wert = wert.replace(bekannt, ersatz[bekannt])
-        return _ADRESSE_IM_TEXT.sub("<adresse>", wert)
+        return _MAC_IM_TEXT.sub("<mac>", _ADRESSE_IM_TEXT.sub("<adresse>", wert))
     return wert
 
 

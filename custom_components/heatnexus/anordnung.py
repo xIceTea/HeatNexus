@@ -103,16 +103,43 @@ MENUESTILE = ("zeichen", "taste")
 # Ob „Alle“ jede Anlage für sich zeigt oder Karten gleicher Art zusammenstellt.
 # Muss zu `ALLESTILE` in `frontend/ordnung.js` passen.
 ALLESTILE = ("getrennt", "zusammen")
+# Strang im Schaubild und Größe je Anlagenteil. Muss zu `STRANGSTILE` und
+# `STRANGGROESSEN` in `frontend/ordnung.js` passen.
+STRANGSTILE = ("umbrechen", "verkleinern")
+STRANGGROESSEN = ("klein", "mittel", "gross")
+# Größe und Lage der Werte im Schaubild. Muss zu `WERTEGROESSEN` und
+# `WERTELAGEN` in `frontend/ordnung.js` passen.
+WERTEGROESSEN = ("klein", "mittel", "gross")
+WERTELAGEN = ("automatisch", "bild", "unter")
+# Farben der Beschriftung im Schaubild, frei gewählt. Muss zu `BESCHRIFTUNG` in
+# `frontend/ordnung.js` passen; die Deckkraft steht in Prozent.
+FARBE = vol.Match(r"^#[0-9a-fA-F]{6}$")
+DECKKRAFT = vol.Match(r"^(100|[1-9]?[0-9])$")
 
-# Farbsatz, Kopfzeile, Menütaste, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
+# Offen oder zu je Erzeuger im Systemstatus, als „anlage:<id>“ oder „alle:<id>“.
+# Muss zu `ERZEUGER_MAX` in `frontend/ordnung.js` passen.
+ERZEUGER_MAX = 64
+ERZEUGERWAHL = vol.All(
+    {vol.Match(r"^(anlage|alle):[0-9a-zA-Z_-]{1,64}$"): bool}, vol.Length(max=ERZEUGER_MAX)
+)
+
+# Jede Einstellung gilt für die ganze Oberfläche, nicht für eine Anlage.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
         vol.Optional("farbsatz"): vol.In(FARBSAETZE),
         vol.Optional("kopf"): vol.In(KOPFSTILE),
         vol.Optional("menue"): vol.In(MENUESTILE),
         vol.Optional("alle"): vol.In(ALLESTILE),
+        vol.Optional("strang"): vol.In(STRANGSTILE),
+        vol.Optional("strang_groesse"): vol.In(STRANGGROESSEN),
+        vol.Optional("werte_groesse"): vol.In(WERTEGROESSEN),
+        vol.Optional("werte_lage"): vol.In(WERTELAGEN),
+        vol.Optional("beschriftung_grund"): FARBE,
+        vol.Optional("beschriftung_deckkraft"): DECKKRAFT,
+        vol.Optional("beschriftung_schrift"): FARBE,
         vol.Optional("reiter"): REITERLISTE,
         vol.Optional("reiter_versteckt"): REITERLISTE,
+        vol.Optional("erzeuger"): ERZEUGERWAHL,
     }
 )
 

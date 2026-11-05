@@ -377,6 +377,7 @@ def seite(karte_daten: dict, nummern: list[int], farbsatz: str) -> str:
     werte = "".join(f"{name}:{wert};" for name, wert in paletten()[farbsatz].items())
     return (
         "<!doctype html><meta charset='utf-8'><style>"
+        "body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}"
         f"html,body{{margin:0;padding:0;background:{grund}}}"
         f".rahmen{{{werte}width:{BREITE}px;height:{HOEHE}px;background:{grund};"
         "overflow:hidden;position:relative}"

@@ -277,7 +277,11 @@ def abgewaehlte_entitaeten_stilllegen(
     entfernt = ohne_datenpunkt = wieder_an = 0
     # Dieselbe Regel wie der Reparatureintrag: Kennung **und** Domäne. Sonst
     # gilt eine Zeile hier als vorhanden, die dort verwaist heißt.
-    verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
+    # Behaltene zählen hier mit: Eine Abwahl löscht auch sie.
+    verwaiste_ids = {
+        e.entity_id for e in verwaiste.finden(hass, entry, coordinators, behaltene=True)
+    }
+    verwaiste.merkliste_aufraeumen(hass, entry, verwaiste_ids)
     nur_lesend = nur_lesende_fachparameter(coordinators)
     von_integration = er.RegistryEntryDisabler.INTEGRATION
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
@@ -286,14 +290,15 @@ def abgewaehlte_entitaeten_stilllegen(
                 eintrag.unique_id, abgewaehlt, geantwortet
             )
             if _verwaiste_behandeln(registry, eintrag, entfernen):
-                ohne_datenpunkt += 1
+                ohne_datenpunkt += not verwaiste.behalten(eintrag)
             else:
                 entfernt += 1
         elif eintrag.unique_id in zusatzwerte and eintrag.disabled_by in (None, von_integration):
             wieder_an += _zusatzwert_nachziehen(
                 registry, eintrag, standardmaessig_an[eintrag.unique_id]
             )
-        elif standardmaessig_an[eintrag.unique_id] and eintrag.disabled_by is von_integration:
+        # Was an keinem Datenpunkt hängt (Anlagenzustand), bleibt, wie es ist.
+        elif standardmaessig_an.get(eintrag.unique_id) and eintrag.disabled_by is von_integration:
             # Wieder dazugewählt – die eigene Stilllegung wird aufgehoben.
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)

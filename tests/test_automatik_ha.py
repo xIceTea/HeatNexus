@@ -828,6 +828,109 @@ async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
     assert verwaltung.subeintrag(eintrag) is None
 
 
+async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, anlage):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    arten = ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start")
+    for art in arten:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"{art}_{HEIZKREIS}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=art,
+        )
+
+    await verwaltung.entfernen(HEIZKREIS)
+
+    register = ir.async_get(hass)
+    assert [a for a in arten if register.async_get_issue(DOMAIN, f"{a}_{HEIZKREIS}")] == []
+
+
+async def test_gleichzeitige_einstellungen_gehen_beide_ein(hass, anlage):
+    """Panel und Auswahl „Modus“ zugleich: Keine der beiden Änderungen geht verloren."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+
+    async def laeuft_noch():
+        # Ein laufender Durchgang: `abwarten` gibt die Schleife frei.
+        await asyncio.sleep(0.01)
+
+    laufzeit.abwarten = laeuft_noch
+    await asyncio.gather(
+        verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
+        verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
+    )
+
+    konfig = verwaltung.konfig(HEIZKREIS)
+    assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
+
+
+async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, anlage, monkeypatch, caplog):
+    """Scheitert schon das System-Gerät, steht der Start trotzdem im Log und als Meldung."""
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+
+    def kaputt(_entry):
+        raise RuntimeError("Geräteregister gesperrt")
+
+    monkeypatch.setattr(verwaltung, "_system_anlegen", kaputt)
+    await verwaltung._nachholen(hass.config_entries.async_entries(DOMAIN)[0])
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_start_{HEIZKREIS}")
+    assert "Start gescheitert" in caplog.text
+
+
+async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(hass, anlage):
+    """Die Laufzeit rechnet schon mit der neuen Konfiguration; gespeichert wird dieselbe."""
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    echt = laufzeit.starten
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    laufzeit.starten = scheitert
+    with pytest.raises(RuntimeError):
+        await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
+    laufzeit.starten = echt
+
+    assert laufzeit.konfig["modus"] == "empfehlen"
+    assert verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
+
+
+async def test_ein_gescheiterter_neustart_verwirft_das_hausmodell_trotzdem(hass, anlage):
+    """Die neue Konfiguration steht schon; ein zweiter Versuch sähe keinen Unterschied mehr."""
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    echt = laufzeit.starten
+    verworfen: list = []
+    laufzeit.modell_neu_lernen = lambda: verworfen.append(True)
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    laufzeit.starten = scheitert
+    with pytest.raises(RuntimeError):
+        await verwaltung.einstellen(HEIZKREIS, {"wetter": "weather.andere"})
+    laufzeit.starten = echt
+
+    assert verworfen == [True]
+    assert verwaltung.konfig(HEIZKREIS)["wetter"] == "weather.andere"
+
+
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 
@@ -836,6 +939,26 @@ def _automatik_geraete(hass, eintrag):
         for g in dr.async_entries_for_config_entry(dr.async_get(hass), eintrag.entry_id)
         if any(k.endswith("-automatik") for _, k in g.identifiers)
     ]
+
+
+async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, anlage, monkeypatch):
+    """Ohne Automatik bleiben weder System-Gerät noch Untereintrag „HeatNexus Automatik“."""
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    monkeypatch.setattr(Laufzeit, "starten", scheitert)
+    with pytest.raises(ValueError):
+        await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    assert verwaltung.subeintrag(eintrag) is None
+    assert _automatik_geraete(hass, eintrag) == []
 
 
 async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
@@ -2471,6 +2594,62 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     assert schluessel not in hass_storage
 
 
+async def _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen):
+    """Nach `hausmodell_neu` mit dem gegebenen Löschen: Der nächste Lernlauf legt wieder ab."""
+    from custom_components.heatnexus.automatik import lernablage
+
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(lernablage, "entfernen", entfernen)
+    tage = _lernstunden(7)
+
+    async def lerndaten():
+        return "vorlauf", tage
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    laufzeit.hausmodell_neu()
+    return laufzeit
+
+
+async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    """Wird der Lernlauf abgebrochen, während er aufs Löschen wartet, lernt der nächste trotzdem."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    frei = asyncio.Event()
+
+    async def entfernen(_hass, _device_id):
+        await frei.wait()
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    lauf = hass.async_create_task(laufzeit.hausmodell_lernen())
+    await asyncio.sleep(0)
+    lauf.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await lauf
+    frei.set()
+
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
+
+
+async def test_ein_gescheitertes_loeschen_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    verwaltung, _ = anlage
+
+    async def entfernen(_hass, _device_id):
+        raise OSError("Datei gesperrt")
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    await laufzeit.hausmodell_lernen()
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
+
+
 async def test_hausmodell_nennt_den_grund_ohne_modell(
     hass, hass_ws_client, anlage, freezer, monkeypatch
 ):
@@ -3168,6 +3347,105 @@ async def test_reparaturmeldung_verschwindet_wenn_die_vorhersage_wieder_kommt(
     assert verwaltung.prognose_fehler == {}
 
 
+async def _neu_gestartet(hass, verwaltung, laufzeit):
+    """Eine zweite Verwaltung liest die Ablage; die Laufzeit beginnt ohne Vorhersage."""
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    await verwaltung._prognose_store.async_save(verwaltung._prognosen_abzug())
+    neu = Verwaltung(hass)
+    await neu.laden()
+    laufzeit._prognose_quelle = neu.prognose
+    laufzeit._prognose_gesichert = neu.prognose_gesichert
+    laufzeit.stunden = []
+    laufzeit._prognose_zeit = None
+    return neu
+
+
+async def test_die_vorhersage_uebersteht_einen_neustart_ohne_wetterdienst(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    stand = dt_util.now()
+    _ohne_vorhersage(hass)
+
+    freezer.tick(timedelta(hours=2))
+    neu = await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit.stunden
+    assert laufzeit._prognose_zeit == stand
+    assert laufzeit.prognose_frisch is True
+    assert laufzeit.zustand.value != "keine_daten"
+    assert sorted(neu.prognose_fehler) == [("weather.home", "daily"), ("weather.home", "hourly")]
+
+
+async def test_eine_gesicherte_vorhersage_altert_weiter(hass, anlage, freezer):
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    _ohne_vorhersage(hass)
+
+    freezer.tick(timedelta(hours=7))
+    await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit.prognose_frisch is False
+    assert laufzeit.zustand.value == "keine_daten"
+
+
+async def test_eine_neue_vorhersage_ersetzt_die_gesicherte(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+
+    freezer.tick(timedelta(hours=2))
+    await _neu_gestartet(hass, verwaltung, laufzeit)
+    await laufzeit._anlaufen()
+
+    assert laufzeit._prognose_zeit == dt_util.now()
+
+
+async def test_unlesbare_eintraege_der_prognoseablage_fallen_weg(hass, hass_storage):
+    from custom_components.heatnexus.automatik import prognoseablage
+
+    gut = {
+        "wetter": "weather.home",
+        "art": "hourly",
+        "zeit": "2026-01-01T08:00:00+00:00",
+        "daten": [{"a": 1}],
+    }
+    hass_storage[prognoseablage.SCHLUESSEL] = {
+        "version": prognoseablage.FASSUNG,
+        "key": prognoseablage.SCHLUESSEL,
+        "data": {
+            "prognosen": [
+                gut,
+                "kaputt",
+                {**gut, "zeit": "gestern"},
+                {**gut, "art": "daily", "daten": []},
+                {**gut, "art": "daily", "daten": "nein"},
+            ]
+        },
+    }
+
+    prognosen = await prognoseablage.laden(prognoseablage.ablage(hass))
+
+    assert list(prognosen) == [("weather.home", "hourly")]
+
+
 async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, anlage, freezer):
     from datetime import timedelta
 
@@ -3298,3 +3576,104 @@ async def test_ohne_programm_misst_die_kachel_nicht_gegen_den_frostschutz(
     (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
     assert (kreis["kennwerte"]["soll"], kreis["kennwerte"]["abweichung"]) == (None, None)
     assert AutomatikAbweichung._wert(None, laufzeit) is None
+
+
+async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(hass, hass_ws_client, anlage):
+    """Weicht jedes Feld unter „Erweitert“ vom Profil ab, nimmt das Speichern trotzdem alle an."""
+    from custom_components.heatnexus.automatik.konfig import EIGENE_FELDER
+
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    eigene = {
+        "grenze_versatz": 0,
+        "hysterese": 1,
+        "tau_h": 5,
+        "mindestdauer_h": 12,
+        "beginn_art": "aufgang",
+        "beginn_uhrzeit": "07:00",
+        "beginn_laeufe": 2,
+        "ende_laeufe": 4,
+        "halten_min": 30,
+        "absenkung_k": 1,
+        "rueckkehr_k": 0.5,
+        "sonne_frost_at": 0,
+        "sonne_voll_at": 10,
+        "raum_fehlt_min": 15,
+        "spielraum_k": 0.2,
+        "sonnenquote": 55,
+        "sonnentag": True,
+        "stark": True,
+        "stark_k": 1,
+        "ruhe_h": 2,
+        "budget": 4,
+        "fenster_k_je_h": 3,
+        "anpassen": True,
+        "melden": True,
+        "lernfenster": 14,
+    }
+    assert set(eigene) == EIGENE_FELDER
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, eigene=eigene
+    )
+
+    assert antwort["success"], antwort
+
+
+async def test_eigene_werte_ueberstehen_den_wechsel_von_ausrichtung_und_profil(hass, anlage):
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+
+    for aenderung in ({"ausrichtung": "eco"}, {"ausrichtung": "ausgewogen"}, {"profil": "traege"}):
+        await verwaltung.einstellen(HEIZKREIS, aenderung)
+        assert verwaltung.laufzeiten[HEIZKREIS].konfig["eigene"] == {"stark": True}
+    assert verwaltung.laufzeiten[HEIZKREIS].werte.stark is True
+
+
+async def test_das_laden_behaelt_eigene_werte_gleich_der_vorgabe(hass, anlage):
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+    await verwaltung.einstellen(HEIZKREIS, {"ausrichtung": "eco"})
+    await verwaltung._store.async_save(verwaltung._daten)
+
+    neu = Verwaltung(hass)
+    await neu.laden()
+
+    assert neu._daten["heizkreise"][HEIZKREIS]["konfig"]["eigene"] == {"stark": True}
+
+
+async def test_ohne_vorhersage_fragt_die_automatik_bald_wieder(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.core import SupportsResponse
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    aufrufe = _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    anfangs = len(aufrufe)
+
+    for _ in range(3):
+        freezer.tick(timedelta(seconds=121))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert len(aufrufe) >= anfangs + 6
+
+    async def liefern(call):
+        return {"weather.home": {"forecast": [{"datetime": "2026-01-01T00:00:00+00:00"}]}}
+
+    hass.services.async_register(
+        "weather", "get_forecasts", liefern, supports_response=SupportsResponse.ONLY
+    )
+    freezer.tick(timedelta(seconds=121))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert laufzeit.prognose_frisch is True
+    assert laufzeit._prognose_versuch is None

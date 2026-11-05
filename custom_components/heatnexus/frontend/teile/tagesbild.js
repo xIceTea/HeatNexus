@@ -366,7 +366,7 @@ export const TagesbildMixin = (Basis) =>
       if (!bereich) return;
       const marke = (klasse, text, prozent) => {
         const element = document.createElement("span");
-        element.className = `automatik-bildmarke ${klasse}`;
+        element.className = `automatik-tagesmarke ${klasse}`;
         element.textContent = text;
         element.style.top = `${prozent.toFixed(1)}%`;
         bild.appendChild(element);

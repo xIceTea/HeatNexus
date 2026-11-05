@@ -3,19 +3,40 @@
  * Die Einstellungen gelten für alle Reiter und stehen deshalb nicht in „Ansicht bearbeiten“.
  */
 
-import { DARSTELLUNG, KOPFSTILE, PALETTEN, darstellungSpeicher } from "../ordnung.js";
+import {
+  BESCHRIFTUNG,
+  BESCHRIFTUNG_FARBEN,
+  DARSTELLUNG,
+  DARSTELLUNG_STANDARD,
+  ERZEUGER_MAX,
+  KOPFSTILE,
+  PALETTEN,
+  beschriftungGueltig,
+  beschriftungLesbar,
+  darstellungSpeicher,
+} from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
+
+// Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
+const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse"]);
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
     /**
      * Eine Wahl der Darstellung: gespeichert oder vorab aus dem Browser, damit nichts umspringt.
-     * Ein unbekannter Wert fällt auf den ersten Eintrag der Liste zurück.
+     * Ein unbekannter Wert fällt auf den Standard zurück, sonst auf den ersten Eintrag der Liste.
      */
     _stilwahl(schluessel) {
-      const stile = DARSTELLUNG[schluessel];
+      return (this._vorschau && this._vorschau[schluessel]) || this._stilGespeichert(schluessel);
+    }
+
+    /** Die gespeicherte Wahl, ohne die Vorschau des offenen Fensters. */
+    _stilGespeichert(schluessel) {
       const wert = this._einstellungen()[schluessel] || this._gemerkt(darstellungSpeicher(schluessel));
-      return stile.some((eintrag) => eintrag.schluessel === wert) ? wert : stile[0].schluessel;
+      if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
+      const stile = DARSTELLUNG[schluessel];
+      if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
+      return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
     }
 
     _gemerkt(speicher) {
@@ -30,7 +51,7 @@ export const DarstellungMixin = (Basis) =>
     _einstellungenMerken() {
       const einstellungen = this._einstellungen();
       try {
-        for (const schluessel of Object.keys(DARSTELLUNG)) {
+        for (const schluessel of [...Object.keys(DARSTELLUNG), ...Object.keys(BESCHRIFTUNG)]) {
           const wert = einstellungen[schluessel];
           if (wert) window.localStorage.setItem(darstellungSpeicher(schluessel), wert);
           else window.localStorage.removeItem(darstellungSpeicher(schluessel));
@@ -63,6 +84,24 @@ export const DarstellungMixin = (Basis) =>
     /** Was ein Kopfstil zeigt: Name in Farbe, Hersteller darunter. */
     _kopfmerkmale(stil) {
       return KOPFSTILE.find((eintrag) => eintrag.schluessel === stil) || KOPFSTILE[0];
+    }
+
+    /** Ob ein Erzeuger im Systemstatus offen steht: die gemerkte Wahl, sonst die Vorgabe. */
+    _erzeugerOffen(schluessel, vorgabe) {
+      const gemerkt = (this._einstellungen().erzeuger || {})[schluessel];
+      return typeof gemerkt === "boolean" ? gemerkt : vorgabe;
+    }
+
+    /** Die Wahl je Erzeuger und Ansicht speichern; die Oberfläche steht schon richtig und baut nicht neu. */
+    _erzeugerMerken(schluessel, offen) {
+      // Die jüngste Wahl steht hinten; über der Grenze am Server fallen die ältesten weg.
+      const bisher = Object.entries(this._einstellungen().erzeuger || {}).filter(([k]) => k !== schluessel);
+      const erzeuger = Object.fromEntries([...bisher, [schluessel, offen]].slice(-ERZEUGER_MAX));
+      this._anordnung = { ...this._anordnung, einstellungen: { ...this._einstellungen(), erzeuger } };
+      this._hass.callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: { erzeuger } }).catch((err) => {
+        console.warn("HeatNexus: Einstellung konnte nicht gespeichert werden", err);
+        this._melden("Die Darstellung konnte nicht gespeichert werden.");
+      });
     }
 
     _darstellungSetzen(teil) {
@@ -134,7 +173,15 @@ export const DarstellungMixin = (Basis) =>
       return schrift;
     }
 
-    /** Das Fenster „Darstellung“: Gewählt wird im Entwurf, „Übernehmen“ speichert, „Verwerfen“ lässt alles stehen. */
+    /** Die Oberfläche zeigt den Entwurf als Vorschau; `null` beendet sie. Gespeichert wird nichts. */
+    _vorschauZeigen(entwurf) {
+      if (!entwurf && !this._vorschau) return;
+      this._vorschau = entwurf ? { ...entwurf } : null;
+      this._gebaut = false;
+      if (!this._abgebaut) this._zeichnen();
+    }
+
+    /** Das Fenster „Darstellung“: Ein Klick zeigt die Wahl sofort, „Übernehmen“ speichert, „Verwerfen“ stellt zurück. */
     _darstellungOeffnen() {
       const schleier = document.createElement("div");
       schleier.className = "schleier";
@@ -150,8 +197,8 @@ export const DarstellungMixin = (Basis) =>
       dialog.append(ueberschrift, hinweis);
 
       const entwurf = {};
-      const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilwahl(schluessel));
-      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilwahl(schluessel));
+      const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilGespeichert(schluessel));
+      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel));
 
       const leiste = document.createElement("div");
       leiste.className = "dialog-leiste";
@@ -171,41 +218,241 @@ export const DarstellungMixin = (Basis) =>
       };
       leisteStellen();
 
-      const gruppen = [
-        ["Farbsatz", "farben", "farbsatz"],
-        ["Kopfzeile", "kopf", "kopf"],
-        ["Seitenleiste", "menue", "menue"],
-      ];
-      if (this._anlagen().length > 1) gruppen.push(["Alle Anlagen", "alle", "alle"]);
-      gruppen.forEach(([name, art, schluessel]) => {
+      const nachWahl = [leisteStellen, () => this._vorschauZeigen(entwurf)];
+      const wahl = (name, art, schluessel) => {
         const waehlen = (stil) => {
           entwurf[schluessel] = stil;
-          leisteStellen();
+          nachWahl.forEach((stellen) => stellen());
         };
-        dialog.appendChild(this._darstellungGruppe(name, art, DARSTELLUNG[schluessel], () => wert(schluessel), waehlen));
-      });
+        return this._darstellungGruppe(name, art, DARSTELLUNG[schluessel], () => wert(schluessel), waehlen);
+      };
+      const groesse = this._darstellungUnterwahl(
+        this._t("Nur bei „Umbrechen“"),
+        wahl(this._t("Größe je Anlagenteil"), "strang_groesse", "strang_groesse")
+      );
+      const groesseStellen = () => this._unterwahlStellen(groesse, wert("strang") === "umbrechen");
+      nachWahl.push(groesseStellen);
+      groesseStellen();
+
+      const zeilen = [
+        [this._t("Farbsatz"), this._t("Gilt für Oberfläche und Schaubild."), wahl(this._t("Farbsatz"), "farben", "farbsatz")],
+        [this._t("Kopfzeile"), this._t("Legt Zeichen und Namen oben links fest."), wahl(this._t("Kopfzeile"), "kopf", "kopf")],
+        [this._t("Seitenleiste"), this._t("Legt fest, wie sich die Seitenleiste öffnet."), wahl(this._t("Seitenleiste"), "menue", "menue")],
+        [
+          this._t("Schaubild"),
+          this._t("Legt fest, wie die Anlagenteile bei wenig Platz stehen."),
+          wahl(this._t("Schaubild"), "strang", "strang"),
+          groesse,
+        ],
+        [
+          this._t("Werte"),
+          this._t("Legt fest, wo und wie groß die Zahlen im Schaubild stehen."),
+          ...this._werteWahl(wahl),
+        ],
+        [
+          this._t("Beschriftung"),
+          this._t("Legt Hintergrund und Schriftfarbe der Werte und Namen im Schaubild fest."),
+          this._beschriftungWahl(wert, (schluessel, neu) => {
+            entwurf[schluessel] = neu;
+            nachWahl.forEach((stellen) => stellen());
+          }),
+        ],
+      ];
+      if (this._anlagen().length > 1) {
+        zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
+      }
+      zeilen.forEach(([name, text, ...inhalt]) => dialog.appendChild(this._darstellungZeile(name, text, inhalt)));
       dialog.appendChild(leiste);
 
       schleier.appendChild(dialog);
-      const weg = this._dialogOeffnen(schleier, { fokus: schliessen });
-      schliessen.addEventListener("click", weg);
+      const verwerfen = () => this._vorschauZeigen(null);
+      const weg = this._dialogOeffnen(schleier, { fokus: schliessen, beiAbbruch: verwerfen });
+      schliessen.addEventListener("click", () => {
+        weg();
+        verwerfen();
+      });
       uebernehmen.addEventListener("click", () => {
         const teil = Object.fromEntries(geaendert().map((schluessel) => [schluessel, entwurf[schluessel]]));
         weg();
+        this._vorschau = null;
         this._darstellungSetzen(teil);
       });
     }
 
-    /** Eine Reihe Vorschaukacheln für eine Einstellung; die gewählte ist markiert. */
-    _darstellungGruppe(name, art, eintraege, gewaehlt, setzen) {
-      const gruppe = document.createElement("section");
+    /** Farbfelder für Hintergrund und Schrift, ein Regler für die Deckkraft; „Zurücksetzen“ stellt alle drei zurück. */
+    _beschriftungWahl(wert, setzen) {
+      const block = document.createElement("div");
+      block.className = "beschriftung-wahl";
+      const warnung = document.createElement("p");
+      warnung.className = "beschriftung-warnung";
+      warnung.setAttribute("role", "status");
+      warnung.textContent = this._t("Schrift und Hintergrund sind kaum zu unterscheiden.");
+      const pruefen = () => {
+        warnung.hidden = beschriftungLesbar(
+          wert("beschriftung_grund"),
+          wert("beschriftung_schrift"),
+          wert("beschriftung_deckkraft")
+        );
+      };
+      const setzenUndPruefen = (schluessel, neu) => {
+        setzen(schluessel, neu);
+        pruefen();
+      };
+      const felder = [
+        this._beschriftungFarben("beschriftung_grund", this._t("Hintergrund"), wert, setzenUndPruefen),
+        this._beschriftungDeckkraft(wert, setzenUndPruefen),
+        this._beschriftungFarben("beschriftung_schrift", this._t("Schriftfarbe"), wert, setzenUndPruefen),
+      ];
+      felder.forEach(({ zeile }) => block.appendChild(zeile));
+      block.appendChild(warnung);
+      pruefen();
+      const zurueck = document.createElement("button");
+      zurueck.type = "button";
+      zurueck.className = "dialog-taste beschriftung-zurueck";
+      zurueck.textContent = this._t("Zurücksetzen");
+      zurueck.addEventListener("click", () => {
+        Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzenUndPruefen(schluessel, standard));
+        felder.forEach(({ zeigen }) => zeigen());
+      });
+      block.appendChild(zurueck);
+      return block;
+    }
+
+    _beschriftungDeckkraft(wert, setzen) {
+      const zeile = document.createElement("label");
+      zeile.className = "beschriftung-feld";
+      const titel = document.createElement("span");
+      titel.textContent = this._t("Deckkraft");
+      const feld = document.createElement("input");
+      Object.assign(feld, { type: "range", min: "0", max: "100", step: "5" });
+      const anzeige = document.createElement("span");
+      anzeige.className = "beschriftung-zahl";
+      const zeigen = () => {
+        feld.value = wert("beschriftung_deckkraft");
+        anzeige.textContent = `${feld.value} %`;
+      };
+      // Erst beim Loslassen: Jede Vorschau baut die Oberfläche neu auf.
+      feld.addEventListener("change", () => {
+        setzen("beschriftung_deckkraft", String(feld.value));
+        zeigen();
+      });
+      feld.addEventListener("input", () => {
+        anzeige.textContent = `${feld.value} %`;
+      });
+      zeigen();
+      zeile.append(titel, feld, anzeige);
+      return { zeile, zeigen };
+    }
+
+    /** Vorgegebene Farbfelder und ein eigenes Feld mit dem Farbwähler des Browsers. */
+    _beschriftungFarben(schluessel, name, wert, setzen) {
+      const zeile = document.createElement("div");
+      zeile.className = "beschriftung-farbzeile";
+      const titel = document.createElement("span");
+      titel.textContent = name;
+      const leiste = document.createElement("div");
+      leiste.className = "beschriftung-farben";
+      leiste.setAttribute("role", "group");
+      leiste.setAttribute("aria-label", name);
+      const eigenes = document.createElement("label");
+      eigenes.className = "beschriftung-eigene";
+      eigenes.title = this._t("Eigene Farbe");
+      const eingabe = document.createElement("input");
+      eingabe.type = "color";
+      eingabe.setAttribute("aria-label", this._t("Eigene Farbe"));
+      eigenes.append(eingabe, this._symbolKnoten("mdi:eyedropper"));
+      const zeigen = () => {
+        const aktuell = wert(schluessel);
+        tasten.forEach((taste) => taste.setAttribute("aria-pressed", String(taste.dataset.wert === aktuell)));
+        eingabe.value = aktuell;
+        eigenes.style.setProperty("--eigene-farbe", aktuell);
+        eigenes.classList.toggle("gewaehlt", !tasten.some((taste) => taste.dataset.wert === aktuell));
+      };
+      const waehlen = (farbe) => {
+        setzen(schluessel, farbe);
+        zeigen();
+      };
+      const tasten = BESCHRIFTUNG_FARBEN[schluessel].map(({ farbe, titel: farbname }) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.className = "beschriftung-farbe";
+        taste.dataset.wert = farbe;
+        taste.style.background = farbe;
+        taste.title = this._t(farbname);
+        taste.setAttribute("aria-label", `${name}: ${this._t(farbname)}`);
+        taste.addEventListener("click", () => waehlen(farbe));
+        leiste.appendChild(taste);
+        return taste;
+      });
+      eingabe.addEventListener("change", () => waehlen(String(eingabe.value).toLowerCase()));
+      leiste.appendChild(eigenes);
+      zeigen();
+      zeile.append(titel, leiste);
+      return { zeile, zeigen };
+    }
+
+    /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */
+    _werteWahl(wahl) {
+      return [
+        [this._t("Lage"), "werte_lage"],
+        [this._t("Größe"), "werte_groesse"],
+      ].map(([name, schluessel]) => {
+        const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
+        this._unterwahlStellen(block, true);
+        return block;
+      });
+    }
+
+    /** Eine Zeile im Fenster: Name und Erklärung links, die Wahl rechts; schmal untereinander. */
+    _darstellungZeile(name, text, inhalt) {
+      const zeile = document.createElement("section");
+      zeile.className = "darstellung-zeile";
+      const kopf = document.createElement("div");
       const titel = document.createElement("h4");
       titel.className = "darstellung-name";
-      titel.textContent = this._t(name);
+      titel.textContent = name;
+      const erklaerung = document.createElement("p");
+      erklaerung.className = "darstellung-erklaerung";
+      erklaerung.textContent = text;
+      kopf.append(titel, erklaerung);
+      const rechts = document.createElement("div");
+      rechts.className = "darstellung-inhalt";
+      rechts.append(...inhalt);
+      zeile.append(kopf, rechts);
+      return zeile;
+    }
+
+    /** Eine Wahl, die nur bei einer anderen gilt: mit eigenem Namen und dem Hinweis, wann sie wirkt. */
+    _darstellungUnterwahl(bedingung, wahl) {
+      const block = document.createElement("div");
+      block.className = "darstellung-unter";
+      const kopf = document.createElement("div");
+      kopf.className = "unter-name";
+      const name = document.createElement("span");
+      name.textContent = wahl.getAttribute("aria-label");
+      const hinweis = document.createElement("span");
+      hinweis.className = "unter-bedingung";
+      hinweis.textContent = bedingung;
+      kopf.append(name, hinweis);
+      block.append(kopf, wahl);
+      return block;
+    }
+
+    /** Gilt die Wahl gerade nicht, wird sie blass und nimmt keinen Klick an; der Hinweis sagt warum. */
+    _unterwahlStellen(block, gilt) {
+      block.classList.toggle("aus", !gilt);
+      block.querySelector(".unter-bedingung").hidden = gilt;
+      block.querySelectorAll("button").forEach((taste) => {
+        taste.disabled = !gilt;
+      });
+    }
+
+    /** Vorschaukacheln für eine Einstellung; die gewählte ist markiert. */
+    _darstellungGruppe(name, art, eintraege, gewaehlt, setzen) {
       const wahl = document.createElement("div");
-      wahl.className = `darstellung-wahl ${art}`;
+      wahl.className = `darstellung-wahl ${art}${KOMPAKT.has(art) ? " kompakt" : ""}`;
       wahl.setAttribute("role", "group");
-      wahl.setAttribute("aria-label", this._t(name));
+      wahl.setAttribute("aria-label", name);
       const markieren = () => {
         [...wahl.children].forEach((kachel) => kachel.setAttribute("aria-pressed", String(kachel.dataset.wert === gewaehlt())));
       };
@@ -218,7 +465,8 @@ export const DarstellungMixin = (Basis) =>
         const beschriftung = document.createElement("span");
         beschriftung.className = "muster-name";
         beschriftung.textContent = this._t(eintrag.titel);
-        kachel.append(this._darstellungVorschau(art, eintrag.schluessel), beschriftung);
+        if (!KOMPAKT.has(art)) kachel.appendChild(this._darstellungVorschau(art, eintrag.schluessel));
+        kachel.appendChild(beschriftung);
         kachel.addEventListener("click", () => {
           setzen(eintrag.schluessel);
           markieren();
@@ -226,8 +474,7 @@ export const DarstellungMixin = (Basis) =>
         wahl.appendChild(kachel);
       });
       markieren();
-      gruppe.append(titel, wahl);
-      return gruppe;
+      return wahl;
     }
 
     /** Zwei Anlagen in zwei Farben: je Anlage eine Reihe oder je Kartenart ein Paar. */
@@ -247,7 +494,22 @@ export const DarstellungMixin = (Basis) =>
       return bild;
     }
 
-    /** Das kleine Bild auf einer Kachel: Farben, Wortmarke oder Menütaste. */
+    /** Ein kleiner Strang aus Kärtchen an einer Leitung: zwei Reihen beim Umbrechen, eine kleinere beim Verkleinern. */
+    _strangVorschau(bild, schluessel) {
+      bild.className = `strang-vorschau ${schluessel}`;
+      const strang = document.createElement("span");
+      strang.className = "strang";
+      (schluessel === "umbrechen" ? [3, 2] : [5]).forEach((anzahl) => {
+        const reihe = document.createElement("span");
+        reihe.className = "gruppe";
+        for (let nr = 0; nr < anzahl; nr += 1) reihe.appendChild(document.createElement("i"));
+        strang.appendChild(reihe);
+      });
+      bild.appendChild(strang);
+      return bild;
+    }
+
+    /** Das kleine Bild auf einer Kachel: ein Ausschnitt der Oberfläche, wie ihn die Wahl zeigt. */
     _darstellungVorschau(art, schluessel) {
       const bild = document.createElement("div");
       bild.dataset.roh = "";
@@ -270,11 +532,13 @@ export const DarstellungMixin = (Basis) =>
         return bild;
       }
       if (art === "alle") return this._alleVorschau(bild, schluessel === "zusammen");
+      if (art === "strang") return this._strangVorschau(bild, schluessel);
       bild.className = "kopf-vorschau";
       if (art === "menue" && schluessel === "taste") bild.appendChild(this._symbolKnoten("mdi:menu"));
       bild.appendChild(zeichenKnoten());
       if (art === "menue" && schluessel === "zeichen") bild.appendChild(this._symbolKnoten("mdi:cursor-default-click-outline"));
       if (art === "kopf") bild.appendChild(this._wortmarke(schluessel));
+      if (art === "menue") bild.appendChild(document.createElement("i"));
       return bild;
     }
   };

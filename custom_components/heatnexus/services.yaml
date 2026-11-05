@@ -28,6 +28,26 @@ set_current_temp_compensation:
           step: 0.1
           unit_of_measurement: "K"
 
+heizkreis_umbenennen:
+  name: Heizkreis umbenennen
+  description: >-
+    Schreibt den Namen des Heizkreises in die Steuerung. Das Bediengerät zeigt
+    ihn sofort. Die Liste der Funktionen am Webserver und damit der Gerätename
+    in Home Assistant folgen nach einem Neustart des Webservers und einem
+    neuen Einlesen.
+  target:
+    entity:
+      integration: heatnexus
+      domain: climate
+  fields:
+    name:
+      name: Name
+      description: Höchstens 20 Byte; ein Umlaut zählt doppelt.
+      required: true
+      example: Wohnhaus
+      selector:
+        text:
+
 meldungen_loeschen:
   name: Meldungsliste leeren
   description: >-
@@ -140,7 +160,8 @@ set_time_program:
       name: Schaltpunkte
       description: >-
         Liste von Schaltpunkten {time, value}. time im Format HH:MM, value =
-        Soll-Temperatur. Gilt für den Block aus weekdays.
+        Soll-Temperatur, bei einem Schaltprogramm 1 für Ein und 0 für Aus. Gilt
+        für den Block aus weekdays.
       example: '[{"time": "06:00", "value": 21}, {"time": "22:00", "value": 18}]'
       selector:
         object:

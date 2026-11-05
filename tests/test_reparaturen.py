@@ -87,6 +87,43 @@ async def test_der_eintrag_verschwindet_von_selbst(hass, coordinator):
     assert _stoerung(hass, coordinator) is None
 
 
+def _zirkulation(hass, coordinator):
+    return ir.async_get(hass).async_get_issue(
+        DOMAIN, f"zirkulation_ohne_ein_{coordinator.config_entry.entry_id}_{coordinator.host}"
+    )
+
+
+def _programm(wert):
+    return {"/1/15/0/5/65/0": [{"switchPoints": [{"time": "06:00", "value": wert}]}]}
+
+
+async def test_zirkulation_ohne_ein_landet_in_den_reparaturen(hass, coordinator):
+    coordinator.client.fetch_all.return_value = {
+        "oids": {"/1/15/0/5/6/0": "1"},
+        "objects": _programm(0),
+    }
+    await coordinator._async_update_data()
+
+    eintrag = _zirkulation(hass, coordinator)
+    assert eintrag is not None
+    assert eintrag.severity == ir.IssueSeverity.WARNING
+    assert eintrag.translation_placeholders["anlage"] == "Heizhaus"
+
+
+async def test_zirkulation_mit_ein_nimmt_den_eintrag_zurueck(hass, coordinator):
+    coordinator.client.fetch_all.return_value = {
+        "oids": {"/1/15/0/5/6/0": "1"},
+        "objects": _programm(0),
+    }
+    await coordinator._async_update_data()
+    coordinator.client.fetch_all.return_value = {
+        "oids": {"/1/15/0/5/6/0": "1"},
+        "objects": _programm(1),
+    }
+    await coordinator._async_update_data()
+    assert _zirkulation(hass, coordinator) is None
+
+
 # ---------------------------------------------------------------------------
 # Was im Protokoll landet
 # ---------------------------------------------------------------------------

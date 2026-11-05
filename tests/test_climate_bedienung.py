@@ -167,3 +167,31 @@ async def test_scheitert_auch_das_zuruecknehmen_bleibt_der_ruecksprung(thermosta
     koordinator.data["oids"]["/1/15/0/3/50/0"] = "1"
     entitaet._ruecksprung_pruefen()
     assert [n for n in entitaet.platform.config_entry.hintergrund if "ruecksprung" in n]
+
+
+async def test_ein_gescheiterter_ruecksprung_wird_wiederholt(thermostat):
+    """Scheitert das Zurückschalten, versucht es der nächste Abruf noch einmal, aber nicht ohne Ende."""
+    entitaet, koordinator, modul = thermostat
+    _scheitert_bei(koordinator, "/3/50/0")
+
+    async def zurueckschalten():
+        # Wie `_ruecksprung_pruefen`: Merker leeren, dann schreiben.
+        entitaet._modus_davor, entitaet._vorgabe_gesehen = None, False
+        await entitaet._modus_schreiben(6)
+
+    for _ in range(modul.RUECKSPRUNG_VERSUCHE - 1):
+        await zurueckschalten()
+        assert entitaet._modus_davor == 6
+        assert entitaet._vorgabe_gesehen is True
+        assert entitaet._optimistic_mode is None
+
+    await zurueckschalten()
+    assert entitaet._modus_davor is None
+
+
+async def test_ein_gelungener_ruecksprung_setzt_die_versuche_zurueck(thermostat):
+    entitaet, koordinator, modul = thermostat
+    entitaet._ruecksprung_fehler = modul.RUECKSPRUNG_VERSUCHE - 1
+    await entitaet._modus_schreiben(6)
+    assert entitaet._ruecksprung_fehler == 0
+    assert koordinator.client.geschrieben[-1] == ("/1/15/0/3/50/0", "6")

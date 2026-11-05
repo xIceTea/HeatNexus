@@ -9,11 +9,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
-from typing import Any
+import re
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
     SOURCE_RECONFIGURE,
     ConfigEntry,
+    ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentryFlow,
@@ -21,6 +23,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -96,7 +99,14 @@ from .repairs import adresshinweise_entfernen
 from .texte import gemeinsame_wahl, woerterbuch_zu
 from .waermequelle_flow import WaermequelleSubentryFlow
 
+if TYPE_CHECKING:
+    from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+
 _LOGGER = logging.getLogger(__name__)
+
+# Die Steuerung meldet sich per mDNS als „mb6620 [00:23:43:…]“; die MAC steht in Klammern.
+_MAC_IM_NAMEN = re.compile(r"\[([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})\]")
 
 
 async def _verbindung_pruefen(host: str, passwort: str, benutzer: str) -> tuple[list | None, str]:
@@ -117,12 +127,13 @@ def _anzeigename(system: Mapping[str, Any]) -> str:
     return f"{system.get(CONF_LABEL) or system[CONF_HOST]} ({system[CONF_HOST]})"
 
 
-def _steuerung_schema(bezeichnung: str) -> vol.Schema:
+def _steuerung_schema(bezeichnung: str, adresse: str = "") -> vol.Schema:
     """Bezeichnung, Adresse, Zugang und Passwort einer Steuerung."""
+    host = vol.Required(CONF_HOST, default=adresse) if adresse else vol.Required(CONF_HOST)
     return vol.Schema(
         {
             vol.Required(CONF_LABEL, default=bezeichnung): str,
-            vol.Required(CONF_HOST): str,
+            host: str,
             vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
             vol.Required(CONF_PASSWORD): str,
         }
@@ -149,17 +160,37 @@ def _zugangsfeld(systeme: list[dict[str, Any]]) -> dict:
     return {vol.Required(CONF_USERNAME, default=vorgabe): benutzer_auswahl()}
 
 
+def _seriennummern(entry: ConfigEntry, system: Mapping[str, Any]) -> set[str]:
+    """Die Seriennummer der Steuerung, sonst die Kennungen aus dem Eintrag."""
+    if system.get("kennung"):
+        return {system["kennung"]}
+    return set(str(entry.unique_id or "").split("-")) - {""}
+
+
 def _gleiche_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur: list) -> bool:
     """Ob unter der neuen Adresse die Steuerung antwortet, die der Eintrag kennt.
 
     Verglichen wird die Seriennummer; fehlt sie auf einer Seite, lässt sich nichts prüfen.
     """
     neu = anlagenkennung(struktur)
-    bekannt = {system["kennung"]} if system.get("kennung") else set()
-    bekannt = bekannt or set(str(entry.unique_id or "").split("-")) - {""}
+    bekannt = _seriennummern(entry, system)
     if not neu or not bekannt or system.get(CONF_HOST) in bekannt:
         return True
     return neu in bekannt
+
+
+def _dieselbe_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur: list) -> bool:
+    """Ob die Seriennummer der Antwort zu dieser Steuerung gehört; ohne Seriennummer gilt das nicht."""
+    neu = anlagenkennung(struktur)
+    return bool(neu) and neu in _seriennummern(entry, system)
+
+
+def _erreichbar(entry: ConfigEntry, host: str) -> bool:
+    """Ob die Steuerung unter ihrer eingetragenen Adresse zuletzt geantwortet hat."""
+    if entry.state is not ConfigEntryState.LOADED:
+        return False
+    coordinator = ((laufzeitdaten(entry) or {}).get("coordinators") or {}).get(host)
+    return coordinator is None or bool(coordinator.last_update_success)
 
 
 SPRACHWAHL = (SPRACHE_AUTO, *SPRACHEN)
@@ -188,6 +219,101 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         self._name: str = "Heizung"
         self._anzahl: int = 1
         self._systeme: list[dict[str, Any]] = []
+        # Adresse einer im Netz gefundenen Steuerung, vorbelegt im ersten Formular.
+        self._gefunden: str = ""
+        # Ob die gefundene Adresse beim Prüfen eines Umzugs eine Anmeldung angenommen hat.
+        self._umzug_geantwortet: bool = False
+
+    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
+        """Eine Steuerung, die sich per mDNS anmeldet."""
+        treffer = _MAC_IM_NAMEN.search(discovery_info.name or "")
+        # Ohne MAC im Namen bleibt der Dienstname als Kennung, damit sich der Fund ignorieren lässt.
+        kennung = format_mac(treffer.group(1)) if treffer else (discovery_info.name or "").lower()
+        return await self._steuerung_gefunden(str(discovery_info.ip_address), kennung)
+
+    async def async_step_dhcp(self, discovery_info: DhcpServiceInfo) -> ConfigFlowResult:
+        """Eine Steuerung, die per DHCP eine Adresse bezieht."""
+        return await self._steuerung_gefunden(
+            discovery_info.ip, format_mac(discovery_info.macaddress)
+        )
+
+    async def _steuerung_gefunden(self, host: str, kennung: str) -> ConfigFlowResult:
+        """Bekannte Adresse: nichts tun. Schweigt eine Steuerung, fragen, ob sie umgezogen ist.
+
+        Sonst bietet Home Assistant die Steuerung zur Einrichtung an.
+        """
+        if kennung:
+            await self.async_set_unique_id(kennung)
+            self._abort_if_unique_id_configured()
+        eintraege = self._aktive_eintraege()
+        if any(s.get(CONF_HOST) == host for e in eintraege for s in e.data.get(CONF_SYSTEMS, [])):
+            return self.async_abort(reason="already_configured")
+        self._gefunden = host
+        self.context["host"] = host
+        self.context["title_placeholders"] = {"name": host}
+        # Name und MAC kann jedes Gerät im Netz vorgeben. Der gespeicherte Zugang
+        # geht erst an die neue Adresse, wenn der Nutzer den Umzug bestätigt.
+        if any(
+            not _erreichbar(e, s[CONF_HOST])
+            for e in eintraege
+            for s in e.data.get(CONF_SYSTEMS, [])
+        ):
+            return await self.async_step_umzug()
+        return await self.async_step_user()
+
+    async def async_step_umzug(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Fragen, ob die gefundene Steuerung eine umgezogene ist oder eine neue."""
+        return self.async_show_menu(
+            step_id="umzug",
+            menu_options=["umzug_pruefen", "user"],
+            description_placeholders={"host": self._gefunden},
+        )
+
+    async def async_step_umzug_pruefen(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Bestätigter Umzug: an der neuen Adresse mit dem Zugang der schweigenden Steuerung fragen."""
+        if umzug := await self._umzug_nachfuehren(self._aktive_eintraege(), self._gefunden):
+            return umzug
+        return self.async_abort(
+            reason="kein_umzug" if self._umzug_geantwortet else "umzug_nicht_geprueft",
+            description_placeholders={"host": self._gefunden},
+        )
+
+    def _aktive_eintraege(self) -> list[ConfigEntry]:
+        """Die eingerichteten Einträge ohne ignorierte und abgeschaltete."""
+        return [e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by]
+
+    def _funde_schliessen(self, adressen: set[str]) -> None:
+        """Offene Funde der eben eingerichteten Steuerungen schließen; ihre Kennung ist die MAC."""
+        for fund in self._async_in_progress(include_uninitialized=True):
+            if fund["flow_id"] != self.flow_id and fund["context"].get("host") in adressen:
+                self.hass.config_entries.flow.async_abort(fund["flow_id"])
+
+    async def _umzug_nachfuehren(
+        self, eintraege: list[ConfigEntry], host: str
+    ) -> ConfigFlowResult | None:
+        """Eine verstummte Steuerung, die unter `host` mit ihrer Seriennummer antwortet, zieht um.
+
+        Gefragt wird nur mit dem Zugang einer Steuerung, die gerade nicht antwortet,
+        und mit jedem Zugang nur einmal.
+        """
+        antworten: dict[tuple[str, str], tuple[list | None, str]] = {}
+        for entry in eintraege:
+            for system in entry.data.get(CONF_SYSTEMS, []):
+                if _erreichbar(entry, system[CONF_HOST]):
+                    continue
+                benutzer = system.get(CONF_USERNAME) or DEFAULT_USERNAME
+                zugang = (benutzer, system.get(CONF_PASSWORD, ""))
+                if zugang not in antworten:
+                    antworten[zugang] = await _verbindung_pruefen(host, zugang[1], benutzer)
+                struktur, fehler = antworten[zugang]
+                self._umzug_geantwortet = self._umzug_geantwortet or not fehler
+                if not fehler and _dieselbe_steuerung(entry, system, struktur or []):
+                    return await self._adresse_umstellen(
+                        entry, system[CONF_HOST], host, benutzer, "adresse_nachgefuehrt"
+                    )
+        return None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Name der Heizungsanlage und Anzahl der Steuerungen."""
@@ -247,7 +373,8 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="system",
             data_schema=_steuerung_schema(
-                woerterbuch_zu(self)("Anlage {nummer}").replace("{nummer}", str(nummer))
+                woerterbuch_zu(self)("Anlage {nummer}").replace("{nummer}", str(nummer)),
+                self._gefunden if nummer == 1 else "",
             ),
             errors=errors,
             description_placeholders={"nummer": str(nummer), "anzahl": str(self._anzahl)},
@@ -278,6 +405,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             kennungen = sorted(s.get("kennung") or s[CONF_HOST] for s in self._systeme)
             await self.async_set_unique_id("-".join(kennungen))
             self._abort_if_unique_id_configured()
+            self._funde_schliessen({s[CONF_HOST] for s in self._systeme})
 
             return self.async_create_entry(
                 title=self._name,
@@ -401,7 +529,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         return "" if _gleiche_steuerung(entry, system, struktur or []) else "andere_steuerung"
 
     async def _adresse_umstellen(
-        self, entry: ConfigEntry, alt: str, neu_host: str, benutzer: str
+        self, entry: ConfigEntry, alt: str, neu_host: str, benutzer: str, grund: str = ""
     ) -> ConfigFlowResult:
         """Adresse, Zugang und Optionen umschreiben; was an der alten Adresse hing, entfällt."""
         systeme = entry.data.get(CONF_SYSTEMS, [])
@@ -424,7 +552,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             # Das Archiv zieht erst beim Neuladen um, nachdem der alte Sammler gespeichert hat.
             self.hass.data.setdefault(BEFUND_UMZUG, {})[(entry.entry_id, neu_host)] = alt
         return self._uebernehmen_und_beenden(
-            entry, {**entry.data, CONF_SYSTEMS: neu}, options=optionen
+            entry, {**entry.data, CONF_SYSTEMS: neu}, grund, options=optionen
         )
 
     def _quellen_umstellen(self, entry: ConfigEntry, alt: str, neu_host: str) -> None:
@@ -436,19 +564,19 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
 
     def _uebernehmen_und_beenden(
-        self, entry: ConfigEntry, daten: Mapping[str, Any], **optionen: Any
+        self, entry: ConfigEntry, daten: Mapping[str, Any], grund: str = "", **optionen: Any
     ) -> ConfigFlowResult:
         """Daten und Optionen in einem Schritt schreiben und den Eintrag einmal neu laden.
 
         Ein geladener Eintrag lädt über seinen Update-Listener neu; nur ohne ihn lädt der Ablauf.
         """
-        if not entry.update_listeners:
-            return self.async_update_reload_and_abort(entry, data=daten, **optionen)
-        if not self.hass.config_entries.async_update_entry(entry, data=daten, **optionen):
-            self.hass.config_entries.async_schedule_reload(entry.entry_id)
-        grund = (
+        grund = grund or (
             "reconfigure_successful" if self.source == SOURCE_RECONFIGURE else "reauth_successful"
         )
+        if not entry.update_listeners:
+            return self.async_update_reload_and_abort(entry, data=daten, reason=grund, **optionen)
+        if not self.hass.config_entries.async_update_entry(entry, data=daten, **optionen):
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
         return self.async_abort(reason=grund)
 
     @staticmethod

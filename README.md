@@ -1,8 +1,6 @@
 ![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png)
 
-[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![Lizenz: GPL-3.0](https://img.shields.io/badge/Lizenz-GPL--3.0-blue)](LICENSE)
-
-[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
+[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![Lizenz: GPL-3.0](https://img.shields.io/badge/Lizenz-GPL--3.0-blue)](LICENSE)
 
 **Deutsch** · [English](README.en.md)
 
@@ -10,484 +8,94 @@
 
 Windhager Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
-## Erste Schritte
+HeatNexus liest die Anlage über InfoWIN Touch oder InfoWIN Plus im eigenen Netz und legt
+jeden Datenpunkt an, den die Steuerung führt: Kessel, Wärmepumpe, Puffer,
+Heizkreise, Warmwasser und Zirkulation. Eine eigene Seite in der Seitenleiste
+zeigt die Anlage als Schaubild.
 
-**[Loslegen mit HeatNexus](https://xicetea.github.io/HeatNexus/)**
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
-Alle Anleitungen stehen auf der Projektseite: Einrichtung, Bedienung,
-Fehlersuche und die vollständige Referenz auf einer Seite.
+![Anlagenschaubild mit laufenden Pumpen, ladendem Puffer und Heizkreisen](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
 
-[Einrichtung](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung) ·
-[Passt das zu meiner Anlage?](https://xicetea.github.io/HeatNexus/#anlagen) ·
-[Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
-[Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte)
+## Funktionen
 
-![Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
+- **Automatische Erkennung** aller Funktionen der Anlage, mit Wertebereichen und Auswahlwerten vom Gerät.
+- **Eigene Oberfläche** mit Schaubild, Systemstatus, Steuerung, Wartung, Verlauf und Zeitprogrammen.
+- **Anlagenschaubild** aus den erkannten Teilen, auch als Karte für eigene Dashboards.
+- **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready und Kostenvergleich.
+- **Thermostat je Heizkreis** mit befristeter Vorgabe, wie in der Windhager-App.
+- **Automatik je Heizkreis**: Heizpause an milden Tagen, Absenkung bei Sonne, gelerntes Hausmodell.
+- **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
+- **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
+- **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.
+- **Deutsch, Englisch und Niederländisch** in Oberfläche, Datenpunkten und Störungstexten.
 
-*Das Anlagenschaubild wird aus den erkannten Anlagenteilen zusammengesetzt –
-  wer zwei Puffer hat, sieht zwei. Es steht nicht still: Die Pumpen drehen sich,
-  die Bänder auf Vor- und Rücklauf zeigen die Förderrichtung, der Puffer meldet
-  „lädt“ und „entlädt“, Speicher und Heizkörper färben sich nach ihren Fühlern.
-  Beispielwerte.*
+[![Rundgang durch die Oberfläche](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
-[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Automatik, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
+## Unterstützte Windhager-Geräte
 
-*Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
-  Steuerung mit laufender Warmwasserladung, Automatik mit Tagesverlauf, Wartung,
-  Zeitprogramme. Ausführlich
-  in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) – Beispielwerte,
-  aufgenommen aus der ausgelieferten Oberfläche.*
+Voraussetzung ist ein Bediengerät mit Netzwerkanschluss im eigenen Netz. Öffne
+`http://<IP der Anlage>` im Browser. Erscheint die Weboberfläche, passt es.
 
-## Für welche Anlagen
+| | Gerät | Art | Stand |
+|:-:|---|---|---|
+| 📟 | **InfoWIN Touch** | Bediengerät mit Touchscreen | 🟢 geprüft |
+| 📟 | **InfoWIN Plus** | Bediengerät mit Tasten | 🔵 bei Nutzern im Einsatz |
+| 🔥 | **PuroWIN** | Hackgut, Pellets | 🟢 geprüft |
+| 🔥 | **BioWIN**, BioWIN 2, BioWIN 2 Deluxe, PelletsWIN | Pellets | 🔵 bei Nutzern im Einsatz |
+| 🔥 | **LogWIN** Klassik und Premium, VarioWIN | Scheitholz | 🔵 bei Nutzern im Einsatz |
+| 🔥 | **DuoWIN** | Pellets und Scheitholz | 🔵 bei Nutzern im Einsatz |
+| 🌀 | **AeroWIN** Klassik, Premium, Deluxe | Wärmepumpe | 🔵 bei Nutzern im Einsatz |
+| 🔀 | **BioWIN Hybrid** | Hybridmanager für BioWIN und AeroWIN | 🔵 bei Nutzern im Einsatz |
+| 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heizkreis, Pufferladung, Pumpen und Relais | 🟢 geprüft |
+| 🧩 | **Infinity PLUS**, Infinity PLUS Wall, Puffer am Kessel | Heizkreis, Warmwasser, Puffer | 🔵 bei Nutzern im Einsatz |
+| 🔥 | **BioWIN Alpha** | Pellets | ⚪ ohne Rückmeldung |
+| 🧩 | **Solar ES**, Kaskade, Umschaltung, IO5500 | Solar, mehrere Kessel, Energiezähler | ⚪ ohne Rückmeldung |
+| ➕ | Andere Wärmepumpen, Gas- und Ölkessel, E-Heizung | | ⚪ ohne Rückmeldung |
 
-> **HeatNexus spricht die Regelung von Windhager an** – nicht ein einzelnes
-> Kesselmodell. Voraussetzung ist ein **InfoWIN Touch** mit Netzwerkanschluss,
-> erreichbar im eigenen Netz. Gelesen und gesteuert wird direkt über dessen
-> HTTP-Schnittstelle: Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
-> einschließlich Info-, Betreiber- und Serviceebene.
->
-> **Der Test dauert eine halbe Minute:** `http://<IP der Anlage>` im Browser
-> öffnen. Kommt die Weboberfläche des InfoWIN Touch, ist der Weg frei.
-
-**Geprüft heißt geprüft.** Die Tabelle unterscheidet drei Stufen — was an
-echter Hardware läuft, was ein fremder Abzug belegt, und was bisher nur in der
-Datenbank steht:
-
-| | Anlagenteil | Stand |
-|---|---|---|
-| 🟢 | PuroWIN – Hackgut | an der Anlage geprüft |
-| 🟢 | UML / UMLZ Heizkreismodul | an der Anlage geprüft |
-| 🟢 | B-PLMi Pufferlademodul | an der Anlage geprüft |
-| 🟢 | ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
-| 🔵 | BioWIN, BioWIN 2, PelletsWIN – Pellets | an einer fremden Anlage geprüft |
-| 🔵 | LogWIN, VarioWIN – Scheitholz | an einer fremden Anlage geprüft |
-| 🔵 | DuoWIN – Pellets und Scheitholz | an einer fremden Anlage geprüft |
-| 🔵 | Infinity PLUS Heizkreis und Warmwasser | an einer fremden Anlage geprüft |
-| 🔵 | Pufferspeicher am Kessel | an einer fremden Anlage geprüft |
-| ⚪ | AeroWIN und andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
-| ⚪ | Gas- und Ölkessel, Brennwerttherme | eingebunden, ungeprüft |
-| ⚪ | Solar, Kaskade, Umschaltung, weitere Puffer | eingebunden, ungeprüft |
-
-„Eingebunden" heißt: Die Funktion ist in der mitgelieferten Datenbank
-beschrieben und wird mit Namen, Einheiten und Auswahlwerten erkannt – nur stand
-noch keine solche Anlage zum Nachmessen bereit.
-
-„An einer fremden Anlage geprüft" heißt: Jemand hat einen Abzug seiner Anlage
-beigesteuert, die Erkennung ist daran belegt und die Werte stehen in Home
-Assistant. Nicht geprüft ist das Bedienen – Schalter, Sollwerte und
-Zeitprogramme dieses Anlagenteils sind an echter Hardware noch nicht
-ausprobiert.
-
-Welcher Funktionstyp was ist und welche Datenpunkte er führt, steht vollständig
-in [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte).
-
-Alles Weitere wird über die allgemeine Erkennung eingebunden: Was die Steuerung
-liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht gelisteten
-Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
-
-### Was vom Bediengerät abhängt
-
-Nicht jedes Bediengerät bietet dasselbe an. HeatNexus fragt beim Start, was die
-Steuerung kann, und zeigt nur das. Was erkannt wurde, steht im Diagnose-Export
-unter `faehigkeiten`.
-
-| | InfoWIN Touch 0.10 | InfoWIN Touch ab 2 | InfoWIN Plus |
-|---|---|---|---|
-| Meldungsliste lesen | 🟢 | ⚪ | ⚪ |
-| Zurücksetzen schließt die Meldung am Bediengerät | 🟢 | ⚪ | – eigene Anzeige |
-| Störung am Kessel zurücksetzen | – | ⚪ | ⚪ |
-| Eine Anforderung aus Home Assistant öffnet die Seite am Bediengerät | – | – | – |
-
-🟢 an der Anlage geprüft · ⚪ aus der Bedienoberfläche des Herstellers abgeleitet,
-an der Anlage nicht geprüft · – gibt es nicht.
-
-Ohne Meldungsliste des Bediengeräts sammelt HeatNexus die Meldungen selbst. Fordert Home
-Assistant die Lagerraumbefüllung oder den Kaminkehrer an, zeigt das
-Bediengerät die neue Betriebsart in der Statuszeile, öffnet aber keine eigene
-Seite. Die Seite am Gerät beendet den Vorgang beim Verlassen; aus Home
-Assistant beendet ihn die Taste „beenden“.
-
-## Funktionsumfang
-
-- **Automatische Erkennung** aller freigeschalteten Funktionen der Anlage.
-  Nicht vorhandene Datenpunkte werden entfernt, schreibgeschützte nur lesend
-  angelegt.
-- **Wertebereiche vom Gerät**: Minimum, Maximum, Schrittweite, Einheit und
-  erlaubte Auswahlwerte stammen aus den Metadaten der Anlage.
-- **Thermostat je Heizkreis** mit Betriebswahl, Behaglichkeitskorrektur und
-  befristetem Komfort-Sollwert.
-- **Automatik je Heizkreis**: Sie senkt an sonnigen Tagen den Sollwert ab und
-  schaltet in der Übergangszeit auf nur Warmwasser. Grundlage sind Wetter- und
-  PV-Prognose, Raumfühler und Wärmequellen mit Vorrang. Sie beginnt im
-  Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung. An milden
-  Tagen setzt sie eine Heizpause. Im Modus „Manuell mit Empfehlung“ schlägt sie
-  Eingriffe vor, die weniger heizen. Ein gelerntes Hausmodell sagt den
-  Raumverlauf des Tages voraus.
-- **Auswertung**: Kennwerte zu Heizkreisen und Kessel über die Tage, etwa
-  gemessene Heizgrenze, Räume am Ziel und Energie je Heizgradtag, auch als Sensoren.
-- **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben –
-  in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
-  Schaltzeiten.
-- **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
-- **Meldungsliste des Bediengeräts** in der Karte „Meldungen“: Einträge lassen
-  sich zurücksetzen und löschen, auf Wunsch auch die Störung am Kessel.
-- **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
-  Entity zuschaltbar.
-- **Eigene Oberfläche** in der Seitenleiste: Anlagenschaubild, Kennwerte,
-  Systemstatus, Heizkreise, Warmwasser, Störungen, Verlauf und Schnellzugriff
-  auf einer Seite; dazu eigene Reiter für Steuerung, Wartung, Verlauf,
-  Zeitprogramme, Automatik und Auswertung.
-- **Anlagenschaubild** aus den erkannten Anlagenteilen gezeichnet, mit
-  laufenden Pumpen und den Live-Werten darauf. Die Art des Wärmeerzeugers –
-  Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl – wird erkannt und lässt
-  sich je Anlage übersteuern.
-- **Anlagenschaubild als Lovelace-Karte** für eigene Dashboards, mit Werteliste
-  daneben, wählbaren Anlagenteilen und fünf Farbsätzen.
-- **Dashboard und Automations-Vorlagen** kommen mit und bauen sich aus dem,
-  was die Anlage liefert.
-- **Eigene Wärmequellen** wie Solaranlage, Heizstab oder Fernwärme erscheinen
-  im Schaubild und melden, wann sie liefern.
-- **LON-Bus als zweite Quelle**: Netzwerkvariablen werden erkannt, benannt und
-  je Anlage zugeschaltet.
-- **Deutsch, Englisch und Niederländisch** für Oberfläche, Dashboard,
-  Schaubild, Datenpunkte und Störungstexte.
-- **Mehrere Steuerungen** in einem Eintrag; in den Optionen lassen sie sich
-  hinzufügen, entfernen und umbenennen.
+🟢 an der Entwickleranlage im täglichen Betrieb geprüft · 🔵 bei Nutzern im
+Einsatz, Rückmeldungen liegen vor · ⚪ in der Datenbank beschrieben, noch ohne
+Rückmeldung. Auch Geräte, die hier fehlen, werden erkannt; Details auf
+der [Projektseite](https://xicetea.github.io/HeatNexus/#anlagen).
 
 ## Installation
 
-### Über HACS
+1. In HACS nach **HeatNexus** suchen, herunterladen und Home Assistant neu starten.
+2. Unter *Einstellungen → Geräte & Dienste* die Integration **HeatNexus** hinzufügen.
+   Meist bietet Home Assistant die Steuerung schon als gefunden an.
+3. Zugang `USER`, Passwort ab Werk `123`. Ist es geändert, hilft
+   [Passwort herausfinden](https://xicetea.github.io/HeatNexus/ANLEITUNG#passwort-herausfinden).
 
-[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration)
-
-Der Knopf trägt das Repository in HACS ein und öffnet die Installation direkt.
-Danach Home Assistant neu starten.
-
-Von Hand geht es genauso: HACS → Integrationen → ⋮ → **Benutzerdefinierte
-Repositories** → Repository-URL eintragen, Kategorie *Integration* →
-„HeatNexus" installieren → Home Assistant neu starten.
-
-### Ohne HACS
-
-Ordner `custom_components/heatnexus` nach `<config>/custom_components/heatnexus`
-kopieren und Home Assistant neu starten.
-
-### Einrichtung
-
-[![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
-
-Oder von Hand: Einstellungen → Geräte & Dienste → Integration hinzufügen →
-**HeatNexus**. Erforderlich sind die IP-Adresse der Anlage, der Zugang und das
-zugehörige Passwort.
-
-#### Zugang und Passwort
-
-Die Schnittstelle ist dieselbe, die auch die Weboberfläche der Anlage benutzt.
-Ab Werk kennt die Steuerung zwei Zugänge:
-
-| Zugang | Passwort ab Werk |
-|---|---|
-| `USER` | `123` |
-| `Service` | `123` |
-
-An der geprüften Anlage sehen **beide Zugänge über die Schnittstelle dasselbe**,
-auch die Fachparameter. Die Trennung in Bedienebenen gilt am Bediengerät; was
-in Home Assistant erscheint, entscheidet der Umfang im nächsten Schritt. Für
-andere Baureihen ist das nicht belegt, deshalb bleibt der Zugang wählbar.
-
-Ob der Zugang stimmt, lässt sich ohne Home Assistant prüfen: `http://<IP der
-Anlage>` im Browser öffnen. Kommt die Weboberfläche des InfoWIN Touch, passt die
-Kombination.
-
-Wer Fachparameter auslesen oder schreiben will, wählt bei der Einrichtung
-`Service`. Ein abweichender Benutzername lässt sich im selben Feld eintippen.
-
-**Passwort ändern** lässt sich an zwei Stellen, beide führen zum selben
-Parameter: direkt am InfoWIN Touch oder in dessen Weboberfläche unter
-*Passwort*. Ein dort gesetztes Passwort gilt sofort auch für die Schnittstelle
-– danach muss es in Home Assistant über *Neu anmelden* nachgezogen werden.
-
-**Passwort unbekannt oder plötzlich falsch?** Ist die Anlage bei Windhager
-Connect registriert, lässt sich das aktuelle Webserver-Passwort dort ablesen.
-Nach der Anmeldung die Anlage auswählen – die Adresse endet dann auf
-`/management`. Dieses Wort durch `settings` ersetzen:
-
-```text
-https://connect.windhager.com/systems/<Kennung der Anlage>/management
-https://connect.windhager.com/systems/<Kennung der Anlage>/settings
-```
-
-Auf der Einstellungsseite steht das Passwort im Klartext und lässt sich dort
-auch ändern.
-
-> **Windhager-App:** Wird die Anlage mit myComfort / myConnect verbunden,
-> vergibt Windhager ein eigenes Passwort; die Werksangaben oben gelten dann
-> nicht mehr. Das ist kein dauerhafter Ausschluss – das Passwort lässt sich wie
-> oben beschrieben ablesen oder neu setzen, und danach laufen App und HeatNexus
-> wieder.
-
-> **Nur HTTP:** Die Steuerung antwortet ausschließlich unverschlüsselt auf
-> Port 80; einen HTTPS-Zugang gibt es lokal nicht (geprüft am PuroWIN mit
-> InfoWIN Touch). Das Passwort selbst geht dank Digest-Authentifizierung nicht
-> im Klartext über die Leitung, die Messwerte schon. HeatNexus gehört deshalb
-> ins eigene Netz, nicht ins Internet.
-
-Im zweiten Schritt wird der **Umfang** festgelegt:
-
-| Bedienebene | Inhalt | Standard |
-|---|---|---|
-| Info | Messwerte und Zustände | immer aktiv |
-| Betreiber | Betriebswahl, Sollwerte, Programme, Warmwasser | immer aktiv |
-| Service | Heizkurve, Grenzwerte, Estrichprogramm | angelegt, deaktiviert |
-| Werk | Verbrennungsregelung, Zündung, Antriebe | nicht angelegt |
-
-Dazu zwei Schalter:
-
-- **Service-/Werksebene sofort aktivieren** – ohne Haken werden die Entitäten
-  angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.
-- **Service-/Werksebene bedienbar machen** – ohne Haken werden diese Parameter
-  nur angezeigt. Erst mit Haken lassen sie sich schreiben.
-
-Beides ist jederzeit über *Konfigurieren* an der Integration änderbar, ebenso
-das Abfrageintervall. Nach einer Änderung liest die Integration die Anlage neu
-ein.
-
-Dort steht je Anlage auch der **Wärmeerzeuger**. Er wirkt nur auf die Zeichnung
-im Anlagenschaubild und ändert weder Entitäten noch Werte. Ab Werk steht er auf
-*automatisch erkennen*: HeatNexus nimmt zuerst den Brennstoff, den die Anlage
-meldet, sonst den Funktionstyp, sonst den Namen der Funktion. Passt das Ergebnis
-nicht, lässt es sich hier fest setzen.
-
-#### Die erste Minute
-
-Nach dem Einrichten steht die Integration sofort da, aber noch **nicht
-vollständig**: Zuerst entsteht der Grundstock an Entitäten, dann liest
-HeatNexus die Anlage im Hintergrund komplett ein. Je nach Anlage dauert das
-30 bis 120 Sekunden, und in dieser Zeit kommen laufend weitere Entitäten
-dazu – aus einer Handvoll werden je nach Umfang schnell mehrere hundert.
-
-Eine Benachrichtigung begleitet den Vorgang und nennt am Ende die gefundene
-Anzahl. Es ist also kein Grund zur Sorge, wenn direkt nach dem Einrichten erst
-wenige Werte zu sehen sind.
-
-Das Ergebnis wird gespeichert und übersteht Neustarts; beim nächsten Start ist
-alles sofort da. Vollständig neu eingelesen wird nach einer Änderung des Umfangs
-oder über den Dienst `heatnexus.rediscover`. Eine neue Fassung von HeatNexus
-löst das **nicht** aus – sonst kostete jede Aktualisierung die volle Wartezeit
-von vorn. Stattdessen ist der gespeicherte Stand sofort da, und was neu
-dazugekommen ist, ergänzt HeatNexus im Hintergrund.
-
-## Dienste
-
-| Dienst | Wirkung |
-|---|---|
-| `heatnexus.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
-| `heatnexus.set_vorgabe` | befristete Raumtemperatur-Vorgabe eines Heizkreises („Eco / Comfort") |
-| `heatnexus.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
-| `heatnexus.meldungen_loeschen` | die Meldungsliste eines Geräts leeren; am Bediengerät deren erledigte Einträge löschen |
-| `heatnexus.stoerung_quittieren` | einen Eintrag der Meldungsliste zurücksetzen (`eintrag`: Nummer) |
-| `heatnexus.stoerung_loeschen` | einen erledigten Eintrag aus der Meldungsliste löschen |
-| `heatnexus.stoerung_zuruecksetzen` | eine anliegende Störung am Kessel zurücksetzen; nur mit eingeschalteter Option |
-| `heatnexus.dashboard_ausgeben` | das mitgelieferte Dashboard als YAML ausgeben |
-| `heatnexus.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
-
-```yaml
-service: heatnexus.set_time_program
-target:
-  entity_id: sensor.heizkreis_programm_1
-data:
-  weekdays: ["Mo", "Di", "Mi", "Do", "Fr"]
-  switch_points:
-    - {time: "06:00", value: 21}
-    - {time: "22:00", value: 18}
-```
-
-## Eigene Oberfläche
-
-Neben dem Dashboard bringt HeatNexus eine eigene Seite in der Seitenleiste mit.
-Sie zeigt die Anlage als Ganzes statt als Kachelsammlung – im Bild ganz oben,
-Reiter für Reiter in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche):
-
-- **Anlagenschaubild** mit Vor- und Rücklauf, den Live-Werten und Pumpen, die
-  sich drehen, solange sie laufen.
-- **Kennwerte** je Anlagenteil – ein Leitwert je Funktion, wie am Bediengerät
-  der Anlage.
-- **Systemstatus**: Betriebszustand, Außentemperatur, Kesselleistung,
-  Brennstoff, Vorratsbehälter, Restlaufzeiten.
-- **Heizkreise und Warmwasser** mit Betriebswahl und Sollwert direkt bedienbar.
-- **Störungen im Klartext**, **Verlauf** und **Schnellzugriff** auf die
-  häufigen Eingriffe, jeweils mit Rückfrage, wo ein Fehlgriff Arbeit macht.
-- **Zeitprogramme** als Wochenraster: je Programm sieben Zeilen, darin die
-  Schaltzeiten als Balken. Bearbeitet wird in Blöcken – Wochentage anhaken,
-  Schaltzeiten setzen –, gespeichert wird das ganze Programm auf einmal, so wie
-  die Anlage es führt.
-- **Automatik** je Heizkreis: Zustand mit Begründung, Kennwerte zu Außen,
-  Sonne und Räumen, Tagesverlauf mit Stundenraster und Vorschau auf morgen und
-  übermorgen, Protokoll und Einstellungen. Ausführlich in
-  [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik).
-
-Ein „?" neben Karten und Bedienelementen erklärt, was ein Wert bedeutet und was
-eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich unter
-*Konfigurieren → Allgemein* abschalten.
-
-Über das Werkzeugmenü (⋮) rechts in der Kopfzeile lassen sich die Karten
-umsortieren und die Dashboard-Vorlage abrufen. Unter *Darstellung* stehen der
-Farbsatz – Dunkel, Hell, Terrakotta, Petrol oder Pflaume –, die Kopfzeile
-(Standard, Schlicht, Farbig, Farbig schlicht) und der Weg zur Seitenleiste: Ein Klick auf das Zeichen
-öffnet sie, auf Wunsch steht eine eigene Menütaste davor. Bei mehreren Anlagen
-legt *Alle Anlagen* fest, ob „Alle“ jede Anlage für sich zeigt oder gleiche
-Karten aller Anlagen in einem Rahmen zusammenfasst. Die Hilfe nennt unter „Alle“ jede Erklärung einmal.
-
-Die Aufteilung entsteht in Home Assistant, nicht im Browser: Was die Anlage
-liefert, erscheint; was fehlt, entfällt.
-
-## Dashboard
-
-Ein Dashboard **Heizung** erscheint nach der Einrichtung von selbst in der
-Seitenleiste. Es wird aus den tatsächlich gefundenen Geräten gebaut – keine
-Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
-
-- **Übersicht** – der Reiter steht vorn, auch bei einer einzelnen Anlage. Oben
-  stehen anliegende Störungen mit Text und Abhilfe. Darunter folgt je Anlage ein
-  Abschnitt mit Schaubild, Kernwerten, Thermostaten und den alltäglichen
-  Tasten. Außentemperatur, Störungen und, sofern eingerichtet, der Status der
-  Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet
-  die Arbeitsseite.
-- **Je Anlage eine Arbeitsseite** – sie zeigt je Anlagenteil Zeigerinstrumente,
-  Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat.
-- **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
-  stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
-  Zählerstände. Die Abschnitte tragen den Namen von Anlage und Anlagenteil.
-- **Statistik** – sie zeigt den Zuwachs der Zähler *heute* und *diesen Monat*
-  (Brennerstarts, Betriebsstunden) sowie Temperaturverläufe der letzten
-  48 Stunden, je Anlage gegliedert.
-- **Je Anlagenteil eine Unteransicht** – sie gliedert alle Werte des Teils in
-  Bedienung, Messwerte, Zeitprogramme, Einstellungen und Diagnose. Ein Tippen
-  auf die Überschrift des Anlagenteils öffnet sie, der Pfeil oben führt zur
-  Arbeitsseite zurück.
-
-Das Schaubild zeigt Kessel, Puffer, Heizkreise, Warmwasser und Zirkulation,
-verbunden durch Vor- und Rücklauf, mit den Live-Werten darauf. Gezeichnet wird,
-was gefunden wurde – bei zwei Puffern erscheinen zwei.
-
-Fehlt ein Anlagenteil, entfällt der Block. Wird der Umfang später geändert,
-passt sich das Dashboard beim nächsten Öffnen an. Abschalten lässt es sich
-unter *Konfigurieren → Allgemein*.
-
-Wer lieber selbst baut: Vorlagen für Gesamtübersicht, Bedienkarten und ein
-Anlagenschaubild liegen unter [`dashboards/`](dashboards/).
-
-### Das Anlagenschaubild als eigene Karte
-
-Für ein selbst gebautes Dashboard gibt es das Schaubild als Lovelace-Karte.
-Sie steht nach der Einrichtung in der Kartenauswahl unter **HeatNexus
-Anlagenschaubild** – kein Hinzufügen als Ressource nötig.
-
-Einstellbar sind: welche Anlage (oder alle), der Farbsatz, die Schriftgröße der
-Werte, ob sich Pumpen und Strömung bewegen, welche Anlagenteile gezeichnet
-werden, welche Werte im Bild stehen und welche in einer Liste daneben oder
-darunter.
-
-### Ein eigenes Dashboard daraus machen
-
-Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu; eigene Änderungen
-daran überleben das nicht, auch nicht über den YAML-Editor. Wer es als
-Ausgangspunkt nehmen will, bekommt es als Text:
-
-*Eigene Oberfläche → ⋮ → **Dashboard-Vorlage*** – oder, ohne die Oberfläche,
-*Entwicklerwerkzeuge → Aktionen → **HeatNexus: Dashboard als YAML ausgeben***
-
-Den zurückgegebenen Text in ein neues, leeres Dashboard einfügen
-(*Einstellungen → Dashboards → Hinzufügen*, dann ⋮ → *Rohkonfigurations-Editor*).
-Ab da gehört es dir und bleibt, wie du es einrichtest. Für die Kopie gilt:
-
-- Sie ist eine Momentaufnahme. Neue Werte der Anlage erscheinen dort nicht von
-  selbst.
-- Die Karten hängen an den heutigen Entitäts-IDs.
-- Links und Zurück-Pfeile führen in das mitgelieferte Dashboard unter
-  `/heatnexus/`. Liegt die Kopie unter einer eigenen Adresse, ersetze
-  `/heatnexus/` im Text durch diese Adresse.
-
-## Automations-Vorlagen
-
-Sieben Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
-*Einstellungen → Automationen & Szenen → Blueprints* bereit – ohne Import aus
-dem Netz:
-
-| Vorlage | Zweck |
-|---|---|
-| Störung melden | Meldung bei Störung, Erinnerung in festem Abstand, Entwarnung |
-| Wartungswarnung mit Erinnerung | Vorwarnung, Warnung und Erinnerung für eine Restlaufzeit (Asche, Reinigung, Wartung) |
-| Brennstoffvorrat niedrig | Meldung, wenn der Vorratsbehälter leer meldet, mit Erinnerung |
-| Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
-| Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
-| Legionellenschutz nachbilden | Fährt den Speicher in festem Turnus über die Einmalladung hoch — für Regler ohne eigene Legionellenschutzfunktion |
-| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik an ein Mobilgerät. „Übernehmen“ führt sie aus, „Verwerfen“ lehnt sie ab |
-
-Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
-Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet
-den Sensor „Störung gemeldet" aus, nicht den angezeigten Text; sie hängt damit
-an keiner Formulierung.
+Der erste Durchlauf liest die ganze Anlage ein und dauert bis zu zwei Minuten.
+Ohne HACS: `custom_components/heatnexus` aus dem
+[Release](https://github.com/xIceTea/HeatNexus/releases/latest) in den
+Konfigurationsordner kopieren.
 
 ## Dokumentation
 
-| Seite | Inhalt |
-|---|---|
-| [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) | die eigene Oberfläche, Reiter für Reiter |
-| [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) | wie die Automatik entscheidet und was sie schreibt |
-| [Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) | das Anlagenschaubild als Lovelace-Karte |
-| [Geräteschnittstelle](https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle) | Geräte-API und OID-Aufbau |
-| [Aufbau](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufbau) | Aufbau der Integration |
-| [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) | alle Datenpunkte je Funktionstyp, mit Bedienebene |
-| [Auswahlwerte](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufzaehlungen) | alle Auswahlwerte mit ihrer Bedeutung |
-| [`CHANGELOG.md`](CHANGELOG.md) | Versionshistorie |
+Alles Weitere steht in der **[Anleitung](https://xicetea.github.io/HeatNexus/ANLEITUNG)**:
 
-Datenpunkte und Auswahlwerte werden aus der mitgelieferten Geräte-Datenbank
-erzeugt (`python tools/build_datenpunkte_doku.py`) und von einem Test gegen sie
-geprüft – sie können also nicht veralten.
+[Einrichtung](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung) ·
+[Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) ·
+[Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) ·
+[Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) ·
+[Vorlagen und Dienste](https://xicetea.github.io/HeatNexus/ANLEITUNG#vorlagen) ·
+[Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
+[Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) ·
+[Änderungen](CHANGELOG.md)
 
-## Entwicklung
+## Mitmachen
 
-```bash
-pip install -r requirements_test.txt
-pytest
-ruff check custom_components tests tools
-```
+Fehlerberichte mit Diagnose-Export helfen am meisten, besonders von Anlagen,
+die oben noch ohne Rückmeldung stehen. Fragen gehören in die
+[Diskussionen](https://github.com/xIceTea/HeatNexus/discussions), Werkzeuge
+und Tests stehen in [`tools/README.md`](tools/README.md).
 
-Anlage auslesen – unter Windows genügt ein Doppelklick auf `tools/probe.cmd`,
-sonst:
+HeatNexus schreibt auf eine Heizungsanlage. Service- und Werksparameter sind ab
+Werk abgeschaltet. Die Nutzung erfolgt auf eigene Verantwortung.
 
-```bash
-python tools/heatnexus_probe.py                       # geführter Modus
-python tools/heatnexus_probe.py all 192.0.2.10 192.0.2.11
-```
-
-Details in [`tools/README.md`](tools/README.md).
-
-## Hinweis
-
-Die Integration schreibt auf eine Heizungsanlage. Steuerbare Datenpunkte der
-Betreiberebene sind geprüft, Serviceparameter sind bewusst deaktiviert.
-Nutzung auf eigene Verantwortung.
-
-## Unterstützen
-
-HeatNexus entsteht in der Freizeit an einer echten Anlage. Wer die Arbeit
-unterstützen möchte:
-
-<p align="center">
-  <a href="https://buymeacoffee.com/xicetea">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-         alt="Buy Me A Coffee" height="60">
-  </a>
-</p>
-
-Genauso hilfreich und kostenlos: ein Fehlerbericht mit Diagnose-Export,
-besonders von Anlagentypen, die hier als *unterstützt, ungeprüft* stehen.
+<a href="https://buymeacoffee.com/xicetea"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="40"></a>
 
 ## Lizenz
 
-HeatNexus steht unter der [GNU General Public License v3.0](LICENSE). Wer die
-Integration abwandelt und weitergibt, gibt sie unter derselben Lizenz weiter —
-mit Quelltext. Name und Logo sind davon ausgenommen, siehe [`NOTICE`](NOTICE).
-
+[GPL-3.0](LICENSE). Name und Logo sind ausgenommen, siehe [`NOTICE`](NOTICE).

@@ -49,6 +49,7 @@ import {{
   bloeckeLesen,
   gleich,
   istSchaltprogramm,
+  schaltetNie,
   farbe,
   jetztStelle,
   nachDienst,
@@ -165,6 +166,10 @@ console.log(
       zeile.abschnitte.length,
     ]),
     schalt_erkannt: istSchaltprogramm(schalten),
+    schaltet_nie_nur_aus: schaltetNie([{{ tage: ["Mo"], punkte: [{{ zeit: 360, wert: 0 }}, {{ zeit: 480, wert: 0 }}] }}]),
+    schaltet_nie_mit_ein: schaltetNie(schalten),
+    schaltet_nie_heizen: schaltetNie(heizen),
+    schaltet_nie_leer: schaltetNie([]),
     heizen_ist_kein_schaltprogramm: istSchaltprogramm(heizen),
     skala_heizen: skala(heizen, "raum"),
     skala_schalten: skala(schalten),
@@ -311,6 +316,13 @@ def test_schaltprogramm_wird_am_wertebereich_erkannt(rechnung):
     assert rechnung["heizen_ist_kein_schaltprogramm"] is False
     assert rechnung["skala_schalten"] == {"min": 0, "max": 1, "schalt": True, "art": "schalt"}
     assert rechnung["skala_heizen"]["schalt"] is False
+
+
+def test_nur_ein_schaltprogramm_voll_aus_schaltet_nie(rechnung):
+    assert rechnung["schaltet_nie_nur_aus"] is True
+    assert rechnung["schaltet_nie_mit_ein"] is False
+    assert rechnung["schaltet_nie_heizen"] is False
+    assert rechnung["schaltet_nie_leer"] is False
 
 
 def test_die_farbskala_ist_fest(rechnung):

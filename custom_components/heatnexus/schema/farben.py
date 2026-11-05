@@ -30,6 +30,16 @@ SCHRIFT = "system-ui, -apple-system, Roboto, sans-serif"
 
 # Platzhalter, die in den Bauteildateien stehen dürfen. Wer eine Farbe ändern
 # will, ändert sie hier – nicht in elf Dateien.
+# Brennstoff im Vorratsbehälter: Pellets hellbraun, Hackgut dunkler. Holz bleibt in
+# jedem Farbsatz holzfarben, deshalb stehen die Werte in jedem Satz gleich.
+HOLZ: dict[str, str] = {
+    "pellets": "#c9a26b",
+    "pellets_dunkel": "#9c7a47",
+    "hackgut": "#a87c4f",
+    "hackgut_dunkel": "#7e5a35",
+}
+
+
 FARBEN: dict[str, str] = {
     "vorlauf": FARBE_VORLAUF,
     "ruecklauf": FARBE_RUECKLAUF,
@@ -44,6 +54,7 @@ FARBEN: dict[str, str] = {
     "warm": "#b3341f",
     "glut": "#e2543a",
     "kalt": "#25508f",
+    **HOLZ,
     "schrift": SCHRIFT,
 }
 
@@ -51,7 +62,7 @@ FARBEN: dict[str, str] = {
 # Rollen, die in jedem Farbsatz denselben Wert behalten: Rot ist der Vorlauf,
 # Blau der Rücklauf – eine Auskunft, keine Gestaltung. `glut` teilt sich den
 # Wert mit `vorlauf`.
-FESTE_ROLLEN = ("vorlauf", "ruecklauf", "glut")
+FESTE_ROLLEN = ("vorlauf", "ruecklauf", "glut", *HOLZ)
 
 
 # Derselbe Satz für eine helle Oberfläche. Das Schaubild als `data:`-Bild erbt
@@ -68,6 +79,7 @@ FARBEN_HELL: dict[str, str] = {
     "korpus_dunkel": "#c2ccd8",
     "warm": "#c0402a",
     "glut": FARBE_VORLAUF,
+    **HOLZ,
     "kalt": "#3f78c9",
     "schrift": SCHRIFT,
 }
@@ -86,6 +98,7 @@ FARBEN_TERRAKOTTA: dict[str, str] = {
     "korpus_dunkel": "#1a1816",
     "warm": "#a8431f",
     "glut": FARBE_VORLAUF,
+    **HOLZ,
     "kalt": "#436f9c",
     "schrift": SCHRIFT,
 }
@@ -103,6 +116,7 @@ FARBEN_PETROL: dict[str, str] = {
     "korpus_dunkel": "#10171a",
     "warm": "#b34a2a",
     "glut": FARBE_VORLAUF,
+    **HOLZ,
     "kalt": "#2a5c94",
     "schrift": SCHRIFT,
 }
@@ -120,6 +134,7 @@ FARBEN_PFLAUME: dict[str, str] = {
     "korpus_dunkel": "#16121c",
     "warm": "#b34a4a",
     "glut": FARBE_VORLAUF,
+    **HOLZ,
     "kalt": "#4d5aa8",
     "schrift": SCHRIFT,
 }

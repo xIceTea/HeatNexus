@@ -26,6 +26,20 @@ export const SCHAUBILD = `
        bleibt davon unberührt. */
     --hn-schrift: 1;
   }
+  /* Strang in Reihen: Jede Reihe zeigt durch ein Fenster ihren Ausschnitt derselben Zeichnung.
+     Geschnitten wird nur die Zeichnung. Namen und Zahlen liegen in einer eigenen Ebene darüber
+     und dürfen über die Kante ragen. Die Ebene ist so breit wie die ganze Zeichnung; der Rahmen
+     reicht deshalb bis an den Kartenrand und endet dort. */
+  .schaubild-strang {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    margin-inline: -16px; padding-inline: 16px; overflow-x: clip;
+  }
+  .schaubild-strang > .schaubild { align-self: stretch; }
+  .strang-reihe { position: relative; flex: none; }
+  .strang-ausschnitt { position: absolute; top: 0; left: 0; right: 0; overflow: hidden; }
+  .strang-ausschnitt > .schaubild, .strang-reihe > .schaubild { position: absolute; top: 0; }
+  .strang-schrift { pointer-events: none; }
+  .strang-schrift .marke-wert { pointer-events: auto; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
   /* --- Bewegung im Schaubild ------------------------------------------- */
@@ -231,7 +245,7 @@ export const SCHAUBILD = `
       calc(18px * var(--hn-schrift))
     );
     font-weight: 700; letter-spacing: 0.3px;
-    background: rgba(10, 14, 19, 0.78);
+    background: var(--hn-marke-grund, rgba(10, 14, 19, 0.78));
     pointer-events: none; white-space: nowrap;
     opacity: 0; transition: opacity 0.4s ease;
   }
@@ -285,16 +299,19 @@ export const SCHAUBILD = `
     opacity: 0; transition: opacity 0.8s ease;
   }
   .schaubild .uebergabe.an { opacity: 1; }
+  /* „height: auto“ hebt die feste Höhe des Glutbetts auf; sonst läge statt
+     eines runden Scheins ein flaches Band hinter der Scheibe. */
   .schaubild .uebergabe .glut {
-    position: absolute; left: 50%; top: 53%; width: 112%; aspect-ratio: 1.15;
+    position: absolute; left: 50%; top: 53%; width: 112%; height: auto; aspect-ratio: 1.15;
     transform: translate(-50%, -50%); border-radius: 50%;
     background: radial-gradient(circle, var(--hn-uebergabe) 0%,
       color-mix(in srgb, var(--hn-uebergabe) 55%, transparent) 45%,
       transparent 72%);
     animation: uebergabe-glimmen 3.4s ease-in-out infinite;
   }
+  /* Der zweite Schein liegt mittig wie das Rad; versetzt wanderte das Licht beim Pulsieren um die Scheibe. */
   .schaubild .uebergabe .glut.zwei {
-    left: 32%; top: 40%; width: 74%;
+    width: 74%;
     animation-duration: 2.1s; animation-direction: reverse;
   }
   @keyframes uebergabe-glimmen {
@@ -302,20 +319,20 @@ export const SCHAUBILD = `
     45% { opacity: 0.40; }
     70% { opacity: 0.22; }
   }
-  /* Die Wellen liegen im Gehäuse und werden am Rand beschnitten: Sie sollen
-     die Abgabe andeuten, nicht über die Nachbarn im Bild laufen. */
+  /* Drei feste Ringe um die Scheibe leuchten nacheinander von innen nach außen auf.
+     Wachsende Ringe neben dem drehenden Rad hinterließen in Firefox Bruchstücke auf dem Rad. */
   .schaubild .uebergabe .welle {
-    position: absolute; left: 50%; top: 53%; width: 90%; aspect-ratio: 1;
+    position: absolute; left: 50%; top: 53%; width: 62%; aspect-ratio: 1;
     transform: translate(-50%, -50%); border-radius: 50%;
     border: 2px solid var(--hn-uebergabe); opacity: 0;
     animation: uebergabe-abgabe 3s ease-out infinite;
   }
-  .schaubild .uebergabe .welle:nth-child(4) { animation-delay: 1s; }
-  .schaubild .uebergabe .welle:nth-child(5) { animation-delay: 2s; }
+  .schaubild .uebergabe .welle:nth-child(4) { width: 86%; animation-delay: 1s; }
+  .schaubild .uebergabe .welle:nth-child(5) { width: 110%; animation-delay: 2s; }
   @keyframes uebergabe-abgabe {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    25% { opacity: 0.5; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); }
+    0%, 100% { opacity: 0; }
+    25% { opacity: 0.55; }
+    55% { opacity: 0; }
   }
   /* Das eigene Laufrad über dem gezeichneten. Es dreht sich viel langsamer
      als eine Pumpe: Hier fließt keine Fördermenge, hier geht Wärme über. */
@@ -336,10 +353,35 @@ export const SCHAUBILD = `
   }
   .schaubild .uebergabe-rad .rad svg { display: block; width: 100%; height: 100%; }
   .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; will-change: transform; }
+  /* Das Ventil des Hybridmanagers: Licht über dem Dreieck des liefernden Erzeugers. */
+  .schaubild .hybrid-teil {
+    position: absolute; pointer-events: none;
+    background: var(--hn-uebergabe);
+    opacity: 0; transition: opacity 0.8s ease;
+  }
+  .schaubild .hybrid-teil.an { opacity: 0.9; }
+  .schaubild .hybrid-teil.rechts { clip-path: polygon(0 0, 0 100%, 100% 50%); }
+  .schaubild .hybrid-teil.links { clip-path: polygon(100% 0, 100% 100%, 0 50%); }
+  .schaubild .hybrid-teil.oben { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+  /* Die Lampe des liefernden Erzeugers pulst grün wie die Lampe am Erzeuger selbst. */
+  .schaubild .hybrid-teil.lampe {
+    aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+    background: radial-gradient(circle at 50% 40%, #d6ffe2 0%, #4ade6a 55%, #2f9e46 100%);
+    box-shadow: 0 0 7px 2px rgba(74, 222, 106, 0.7);
+  }
+  .schaubild .hybrid-teil.lampe.an { animation: lampe-blinken 2.6s ease-in-out infinite; }
+  .schaubild .hybrid-teil.lampe.klickbar { pointer-events: auto; cursor: pointer; }
+  .schaubild .hybrid-ventil { position: absolute; cursor: pointer; border-radius: 8px; }
+  .schaubild .hybrid-ventil:focus-visible { outline: 2px solid var(--hn-uebergabe); }
+  /* Am Lüfter ist die Glut rund wie das Gitter, und das Rad dreht schneller. */
+  .schaubild .uebergabe.luefter { border-radius: 50%; }
+  .schaubild .uebergabe.luefter .glut { top: 50%; }
+  .schaubild .uebergabe-rad.luefter.an .rad { animation-duration: 3s; }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,
     .schaubild .uebergabe-rad.an .rad { animation: none; }
+    .schaubild .hybrid-teil.lampe.an { animation: none; opacity: 1; }
     .schaubild .uebergabe .glut { opacity: 0.3; }
     .schaubild .uebergabe .welle { opacity: 0; }
   }
@@ -368,6 +410,13 @@ export const SCHAUBILD = `
     transform-origin: 50% 50%;
   }
   .schaubild .pumpe .rad svg { display: block; width: 100%; height: 100%; }
+  /* Kasten und Rad stehen auf geraden Pixelmaßen. So bleibt der Abstand dazwischen
+     ganzzahlig, und beide runden beim Zeichnen in dieselbe Richtung. Bei krummen Maßen,
+     wie sie eine schmale Reihe ergibt, sitzt das Rad am Handy sonst neben der Mitte. */
+  @supports (width: round(1px, 2px)) {
+    .schaubild .pumpe { width: round(var(--hn-marke), 2px); }
+    .schaubild .pumpe .rad { width: round(calc((var(--hn-marke) - 2px) * 0.62), 2px); }
+  }
   /* Die laufende Pumpe tritt hervor. Der Faktor bleibt klein: Eine Marke, die
      doppelt so groß wird, ragte in Kessel und Speicher hinein. */
   .schaubild .pumpe.laeuft {
@@ -388,7 +437,7 @@ export const SCHAUBILD = `
   }
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);
-    background: rgba(10, 14, 19, 0.72); color: #fff;
+    background: var(--hn-marke-grund, rgba(10, 14, 19, 0.72)); color: var(--hn-marke-schrift, #fff);
     font-size: clamp(
       calc(10px * var(--hn-schrift)),
       calc(var(--hn-einheit) * 15 * var(--hn-schrift)),
@@ -398,6 +447,40 @@ export const SCHAUBILD = `
     padding: 0.22em 0.6em;
     border-radius: 0.55em; white-space: nowrap;
   }
+  .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
+  /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. */
+  .schaubild .marke-wert.fuellgrad {
+    background: none; padding: 0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
+    font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 13 * var(--hn-schrift)), calc(17px * var(--hn-schrift)));
+  }
+  /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
+     Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */
+  .schaubild .vorrat { position: absolute; pointer-events: auto; }
+  .schaubild .vorrat > div { position: absolute; inset: 0; }
+  .schaubild .vorrat svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .schaubild .vorrat .koerner .umriss-linie, .schaubild .vorrat .umriss .koerner-flaeche { display: none; }
+  .schaubild .vorrat .koerner { clip-path: inset(100% 0 0 0); transition: clip-path 0.4s ease; }
+  .schaubild .vorrat[data-stufe="voll"] .koerner { clip-path: inset(0); }
+  .schaubild .vorrat[data-stufe="anteil"] .koerner { clip-path: inset(var(--hn-leer, 50%) 0 0 0); }
+  .schaubild .vorrat[data-stufe="teil"] .koerner { clip-path: inset(50% 0 0 0); }
+  .schaubild .vorrat .umriss { visibility: hidden; }
+  .schaubild .vorrat[data-stufe="fehler"] .umriss { visibility: visible; }
+  .schaubild .vorrat[data-stufe="fehler"]::after {
+    content: "!"; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+    width: 1.4em; height: 1.4em; border-radius: 50%; display: grid; place-items: center;
+    background: #f59e0b; color: #1a1205; font-weight: 800; line-height: 1;
+    font-size: clamp(8px, calc(var(--hn-einheit) * 13), 15px);
+  }
+  /* Werte unter dem Bild: je Anlagenteil eine Spalte, jede Zahl mit ihrem Namen. */
+  .wertleiste { display: grid; gap: 4px; padding: 6px 0 2px; font-size: calc(11px * var(--hn-schrift)); }
+  .wertleiste > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  /* Jedes Anlagenteil mit Werten bekommt einen Kasten in den Farben des Themas. */
+  .wertleiste > div:has(> .leiste-wert:not([hidden])) {
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie); border-radius: 8px; padding: 5px 4px;
+  }
+  .leiste-wert { display: flex; flex-direction: column; align-items: center; max-width: 100%; line-height: 1.2; text-align: center; }
+  .leiste-name { font-size: 0.85em; opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leiste-zahl { font-weight: 600; white-space: nowrap; }
 
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .linie {

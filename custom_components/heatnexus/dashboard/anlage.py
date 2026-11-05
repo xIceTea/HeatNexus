@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+import re
 from typing import Any
 
 from ..const import KARTE_ELEMENT
+from ..geraete import STATUSZEILEN
+from ..geraete.statuszeilen import EINZELN, GEMEINSAM, Statuszeile
 from ..schema import anlagenschema
 from ..texte import Woerterbuch
 from . import auswahl
-from .anlagen import trifft, voller_name
+from .anlagen import erzeuger_von, trifft, voller_name
 from .karten import (
     abschnitt,
     ansicht,
@@ -19,18 +23,48 @@ from .karten import (
     ueberschrift,
     zeigerinstrument,
 )
-from .muster import ZUSTAND, ZUSTAND_SCHLUESSEL
+from .muster import namensmuster
+
+
+@lru_cache(maxsize=16)
+def _kartenmuster(
+    zeilen: tuple[Statuszeile, ...],
+) -> tuple[tuple[re.Pattern, ...], tuple[str, ...]]:
+    """Muster und Schlüssel der Zeilen mit `karte`."""
+    karte = [z for z in zeilen if z.karte]
+    return namensmuster(*(z.muster for z in karte)), tuple(s for z in karte for s in z.schluessel)
+
+
+def _trifft_zeilen(eintrag: dict[str, Any], zeilen: tuple[Statuszeile, ...]) -> bool:
+    """Ob ein Messwert eine der Zeilen mit `karte` trifft."""
+    muster, schluessel = _kartenmuster(zeilen)
+    return trifft(eintrag, muster, *schluessel)
 
 
 def zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Meldung, Betriebsphase, Außentemperatur – der Zustand in Kurzform."""
+    """Meldung, Betriebsphase, Außentemperatur – der Zustand in Kurzform.
+
+    Ab zwei Erzeugern trifft jeder nur seine eigenen Zeilen; die übrigen Teile
+    nur die Zeilen der ganzen Anlage.
+    """
+    erzeuger = {teil["id"] for teil in erzeuger_von(anlage["teile"])}
+
+    def zeilen(teil: dict[str, Any]) -> tuple[Statuszeile, ...]:
+        if len(erzeuger) < 2:
+            return EINZELN
+        return (
+            (*GEMEINSAM, *STATUSZEILEN.get(teil["fct_type"], ()))
+            if teil["id"] in erzeuger
+            else GEMEINSAM
+        )
+
     return [
         e
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
         # Einsteller bleiben draußen: Ein Grenzwert der Serviceebene heißt
         # mitunter wie der Messwert, den er begrenzt.
-        if e["hat_wert"] and e.get("kategorie") is None and trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
+        if e["hat_wert"] and e.get("kategorie") is None and _trifft_zeilen(e, zeilen(teil))
     ]
 
 
@@ -79,7 +113,12 @@ def schaubild(
         return karte
     bild = anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False), buch=buch)
     # Lovelace liest nur diese Felder; Zeichnung und Hilfslisten dienen der Oberfläche.
-    return {feld: bild[feld] for feld in BILDKARTE_FELDER} if bild else None
+    if not bild:
+        return None
+    karte = {feld: bild[feld] for feld in BILDKARTE_FELDER}
+    # Den kurzen Namen braucht nur die Oberfläche, für Werte unter dem Bild.
+    karte["elements"] = [{k: v for k, v in e.items() if k != "name"} for e in karte["elements"]]
+    return karte
 
 
 def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:

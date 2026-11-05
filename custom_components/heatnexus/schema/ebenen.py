@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .bauteile import kessellampe, lampenpunkt, waermeflaeche
+from .bauteile import kessellampe, lampenpunkt, vorratsflaeche, waermeflaeche
 from .werte import (
     ANALOG_SOLLWERT,
     BRENNKAMMER_HEISS,
@@ -20,6 +20,7 @@ from .werte import (
 )
 from .zeichnung import (
     ENTNAHME_ARTEN,
+    FUELLGRAD_STELLE,
     GLUTBETT_BREITE,
     GLUTBETT_Y,
     HEIZKOERPER_ANZAHL,
@@ -34,6 +35,9 @@ from .zeichnung import (
     HEIZKOERPER_X,
     HEIZKOERPER_Y,
     HOEHE,
+    HYBRID_DREIECKE,
+    HYBRID_LAMPEN,
+    HYBRID_VENTIL,
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
@@ -45,6 +49,7 @@ from .zeichnung import (
     SPEICHER_ARTEN,
     SPEICHER_Y,
     VORLAUF_Y,
+    WP_LUEFTER,
     ZSP_BETRIEBSLAMPE,
     ZSP_GEHAEUSE,
     ZSP_KLEMMEN,
@@ -53,6 +58,11 @@ from .zeichnung import (
 )
 
 Ebene = list[dict[str, Any]]
+
+
+# Der Hybridmanager fördert die Wärme seiner Erzeuger in die Anlage und strömt
+# deshalb wie ein Erzeuger: vom Rücklauf hinauf in den Vorlauf.
+STROEMT_WIE_ERZEUGER = frozenset(ERZEUGER_ARTEN | {"hybridmanager"})
 
 
 @dataclass(frozen=True)
@@ -135,7 +145,7 @@ def _pumpe(modul: dict[str, Any], mitte: float, rahmen: Rahmen) -> dict[str, Any
         # Eine Quelle lädt den Speicher, ohne dass seine Ladepumpe fördert. Ohne
         # sie stünde die Stichleitung still, während der Speicher „lädt" anzeigt.
         "quellen": list(rahmen.lieferungen) if puffer else [],
-        "erzeuger": modul["art"] in ERZEUGER_ARTEN,
+        "erzeuger": modul["art"] in STROEMT_WIE_ERZEUGER,
     }
 
 
@@ -156,13 +166,17 @@ def _kesselstrang(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     An dieser Stelle sitzt keine Pumpe.
     """
     ladepumpe = next((m["pumpe"] for m in module if m["art"] == "puffer" and m.get("pumpe")), None)
-    if not ladepumpe:
-        return []
+    # Am Hybridmanager strömt nur der Erzeuger, der Leistung bringt; die
+    # Ladepumpe liefe auch für den, der gerade steht.
+    hybrid = any(m["art"] == "hybridmanager" for m in module)
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
-        if modul["art"] != "kessel" or modul.get("pumpe"):
+        # Eine Quelle, die als Erzeuger steht, treibt ihren Strang selbst.
+        if modul["art"] != "kessel" or modul.get("pumpe") or modul.get("lieferung"):
             continue
-        ergebnis.append(_strang(ladepumpe, modul, _mitte(platz), rahmen, nur_strang=True))
+        antrieb = modul.get("leistung") if hybrid else ladepumpe
+        if antrieb:
+            ergebnis.append(_strang(antrieb, modul, _mitte(platz), rahmen, nur_strang=True))
     return ergebnis
 
 
@@ -237,10 +251,12 @@ def lampen_der_erzeuger(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     for platz, modul in enumerate(module):
         links = _links(platz)
         if modul.get("lieferung"):
-            punkt = lampenpunkt(modul["art"], zeichnung=modul.get("zeichnung"))
+            punkt = lampenpunkt(modul["art"], modul.get("kesselart"), modul.get("zeichnung"))
             if punkt is not None:
                 lampe = _lampe(modul["lieferung"], punkt, links, rahmen)
-                lampe.update({"art": "betrieb", "zweck": "quelle", "titel": modul["titel"]})
+                # Eine Quelle, die als Erzeuger steht, zeigt ihren Betrieb wie dieser.
+                zweck = "erzeuger" if modul["art"] == "kessel" else "quelle"
+                lampe.update({"art": "betrieb", "zweck": zweck, "titel": modul["titel"]})
                 ergebnis.append(lampe)
         if modul["art"] != "kessel":
             continue
@@ -261,6 +277,61 @@ def lampen_der_erzeuger(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
                     "art": "betrieb",
                     "zweck": "erzeuger",
                     "titel": modul["titel"],
+                }
+            )
+    return ergebnis
+
+
+# Rohwerte des Vorratsbehälters (`39/76`) und ihre Stufe im Bild.
+BEHAELTER_STUFEN = {0: "fehler", 1: "leer", 2: "teil", 3: "voll"}
+
+
+def _fuellflaeche(
+    entity: str, modul: dict[str, Any], flaeche: dict[str, Any], links: float, rahmen: Rahmen
+) -> dict[str, Any]:
+    """Lage und Bild der Fläche, die sich im Vorratsbehälter füllt."""
+    return {
+        "art": "behaelter",
+        "entity": entity,
+        "titel": modul["titel"],
+        **_stelle(links + flaeche["x"], flaeche["y"], rahmen),
+        "breite": _pct(flaeche["breite"], rahmen.breite),
+        "hoehe": _pct(flaeche["hoehe"], HOEHE),
+        "bild": flaeche["bild"],
+    }
+
+
+def vorrat(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Füllstand des Vorratsbehälters am Kessel, in Stufen oder in Prozent mit Zahl darüber.
+
+    Der Behälter füllt sich nur, wo die Zeichnung seine Innenfläche markiert. Die
+    Stufe folgt dem Text des Zustands; `stufen` ordnet jeden Text seiner Stufe zu.
+    """
+    ergebnis: Ebene = []
+    for platz, modul in enumerate(module):
+        links = _links(platz)
+        behaelter, fuellgrad = modul.get("behaelter"), modul.get("fuellgrad")
+        flaeche = vorratsflaeche(modul.get("kesselart"), modul.get("zeichnung"))
+        if behaelter and flaeche:
+            optionen = behaelter.get("optionen") or {}
+            stufen = {
+                text: BEHAELTER_STUFEN[int(wert)]
+                for wert, text in optionen.items()
+                if str(wert).isdigit() and int(wert) in BEHAELTER_STUFEN
+            }
+            fuellung = _fuellflaeche(behaelter["entity_id"], modul, flaeche, links, rahmen)
+            ergebnis.append({**fuellung, "stufen": stufen})
+        elif fuellgrad and flaeche:
+            # Ohne Füllgrad steht der Brennstoff wie in der Zeichnung bis zur festen Höhe.
+            fuellung = _fuellflaeche(fuellgrad["entity_id"], modul, flaeche, links, rahmen)
+            ergebnis.append({**fuellung, "anteil": True, "fest": _pct(flaeche["fest"], 1)})
+        if fuellgrad:
+            ergebnis.append(
+                {
+                    "art": "fuellgrad",
+                    "entity": fuellgrad["entity_id"],
+                    "titel": modul["titel"],
+                    **_stelle(links + FUELLGRAD_STELLE[0], FUELLGRAD_STELLE[1], rahmen),
                 }
             )
     return ergebnis
@@ -329,7 +400,8 @@ def brenner(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     """
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
-        if modul["art"] != "kessel":
+        # Die Wärmepumpe verbrennt nichts; ihren Betrieb zeigen Lüfter und Lampe.
+        if modul["art"] != "kessel" or modul.get("kesselart") == "waermepumpe":
             continue
         leistung, ersatz = modul.get("leistung"), modul.get("brennkammer")
         if not (leistung or ersatz):
@@ -389,6 +461,96 @@ def pumpenmodule(module: list[dict[str, Any]], rahmen: Rahmen) -> tuple[Ebene, E
             }
         )
     return lampen, uebergabe
+
+
+def luefter(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Der Lüfter der Wärmepumpe: Er leuchtet und dreht sich, solange sie Leistung bringt.
+
+    Eine fremde Wärmepumpe meldet statt der Leistung ihre Wärmelieferung. Nur über
+    der eigenen Zeichnung; eine von Hand gewählte hat den Lüfter woanders.
+    """
+    ergebnis: Ebene = []
+    for platz, modul in enumerate(module):
+        if not (modul["art"] == "kessel" and modul.get("kesselart") == "waermepumpe"):
+            continue
+        betrieb = modul.get("leistung") or modul.get("lieferung")
+        if not betrieb or modul.get("zeichnung") not in (None, "kessel-waermepumpe"):
+            continue
+        x = _links(platz)
+        lx, ly, gitter, fluegel = WP_LUEFTER
+        ergebnis.append(
+            {
+                "entity": betrieb,
+                **_stelle(x + lx - gitter, ly - gitter, rahmen),
+                "breite": _pct(2 * gitter, rahmen.breite),
+                "hoehe": _pct(2 * gitter, HOEHE),
+                "rad_left": _pct(x + lx, rahmen.breite),
+                "rad_top": _pct(ly, HOEHE),
+                "rad_groesse": _pct(2 * fluegel, rahmen.breite),
+                "titel": modul["titel"],
+            }
+        )
+    return ergebnis
+
+
+def _leistungen(module: list[dict[str, Any]], waermepumpe: bool) -> list[str]:
+    return [
+        m["leistung"]
+        for m in module
+        if m["art"] == "kessel"
+        and m.get("leistung")
+        and (m.get("kesselart") == "waermepumpe") == waermepumpe
+    ]
+
+
+def hybrid(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Das Ventil des Hybridmanagers: Es leuchtet zum Erzeuger hin, der gerade Leistung bringt.
+
+    Laufen beide, leuchten beide Eingänge. Die Stellung `50/45` ist nicht belegt.
+    """
+    ergebnis: Ebene = []
+    kessel, waermepumpe = _leistungen(module, False), _leistungen(module, True)
+    rollen = {"kessel": kessel, "waermepumpe": waermepumpe, "ausgang": kessel + waermepumpe}
+    for platz, modul in enumerate(module):
+        if modul["art"] != "hybridmanager" or modul.get("zeichnung") not in (None, "hybridmanager"):
+            continue
+        x = _links(platz)
+        teile = [
+            {
+                "rolle": rolle,
+                "form": spitze,
+                "entities": rollen[rolle],
+                **_stelle(x + dx, dy, rahmen),
+                "breite": _pct(breite, rahmen.breite),
+                "hoehe": _pct(hoehe, HOEHE),
+            }
+            for rolle, (dx, dy, breite, hoehe, spitze) in HYBRID_DREIECKE.items()
+        ]
+        teile += [
+            {
+                "rolle": rolle,
+                "form": "lampe",
+                "entities": rollen[rolle],
+                **_stelle(x + lx, ly, rahmen),
+                "breite": _pct(2 * lr, rahmen.breite),
+            }
+            for rolle, (lx, ly, lr) in HYBRID_LAMPEN.items()
+        ]
+        betriebsart = finde(modul.get("entitaeten") or [], r"^betriebsart$")
+        vx, vy, vb, vh = HYBRID_VENTIL
+        ergebnis.append(
+            {
+                "titel": modul["titel"],
+                "entity": betriebsart["entity_id"] if betriebsart else None,
+                "ventil": {
+                    **_stelle(x + vx, vy, rahmen),
+                    "breite": _pct(vb, rahmen.breite),
+                    "hoehe": _pct(vh, HOEHE),
+                },
+                "teile": teile,
+            }
+        )
+    return ergebnis
 
 
 def schichtung(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:

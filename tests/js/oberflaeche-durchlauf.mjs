@@ -370,7 +370,55 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   flaeche._darstellungSetzen({ menue: "zeichen" });
 }
 
-// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick wirkt sofort.
+// Die Farben der Beschriftung stehen als Felder im Fenster; ein Klick zeigt die Wahl sofort.
+{
+  const wurzel = flaeche.shadowRoot;
+  const vorher = wurzel.querySelectorAll(".schleier").length;
+  flaeche._darstellungOeffnen();
+  const fenster = wurzel.querySelectorAll(".schleier")[vorher];
+  const leisten = fenster.querySelectorAll(".beschriftung-farben");
+  const tasten = leisten[1].querySelectorAll(".beschriftung-farbe");
+  const gedrueckt = () => tasten.filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert);
+  const anfangs = gedrueckt();
+  tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
+  const warnung = fenster.querySelector(".beschriftung-warnung");
+  const anfangsLesbar = warnung.hidden;
+  const hintergrund = leisten[0].querySelectorAll(".beschriftung-farbe");
+  hintergrund.find((k) => k.dataset.wert === "#ffffff").ausloesen("click");
+  tasten.find((k) => k.dataset.wert === "#ffffff").ausloesen("click");
+  const gleich = warnung.hidden;
+  tasten.find((k) => k.dataset.wert === "#0a0e13").ausloesen("click");
+  const dunkelAufHell = warnung.hidden;
+  tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
+  const nachKlick = gedrueckt();
+  const vorschau = flaeche._beschriftung().schrift;
+  const eigenes = leisten[1].querySelector(".beschriftung-eigene");
+  const gewaehltVorher = eigenes.classList.contains("gewaehlt");
+  const eingabe = eigenes.querySelector("input");
+  eingabe.value = "#123456";
+  eingabe.ausloesen("change");
+  const zurueck = fenster.querySelector(".beschriftung-zurueck");
+  bilanz.beschriftungFarben = {
+    eigenesFeld: {
+      symbol: eigenes.querySelector("ha-icon").getAttribute("icon"),
+      gewaehltVorher,
+      gewaehltDanach: eigenes.classList.contains("gewaehlt"),
+      farbe: eigenes.style["--eigene-farbe"],
+      titel: eigenes.title,
+    },
+    knopf: String(zurueck.textContent),
+    warnung: { anfangsLesbar, gleich, dunkelAufHell },
+    name: { titel: tasten[2].title, aria: tasten[2].getAttribute("aria-label") },
+    leisten: leisten.length,
+    eigene: leisten.map((l) => l.querySelectorAll(".beschriftung-eigene").length),
+    anfangs,
+    nachKlick,
+    vorschau,
+  };
+  fenster.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
+}
+
+// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick zeigt die Wahl sofort als Vorschau.
 {
   const wurzel = flaeche.shadowRoot;
   const vorher = wurzel.querySelectorAll(".schleier").length;
@@ -398,6 +446,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
   zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  const kopfInDerVorschau = flaeche._kopfstil();
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
     kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
@@ -407,6 +456,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
     leisteNachKlick,
     kopfNachUebernehmen,
     leisteAnfangs,
+    kopfInDerVorschau,
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,
@@ -1908,6 +1958,166 @@ bilanz.meldungBeimSpeichern = meldungen;
   flaeche._reiter = vorherReiter;
   flaeche._gebaut = false;
   flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
+// Kopf der Übersicht: Der Kesselzustand erscheint als zweites Abzeichen und
+// ersetzt „Anlage in Ordnung“, solange er etwas Besonderes meldet.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const setzen = (kennung, wert) => {
+    zustaende[kennung] = { entity_id: kennung, state: wert, attributes: {} };
+  };
+  const beschreibung = {
+    bezug: "sensor.kz_art",
+    betriebsart: "sensor.kz_art",
+    betriebswahl: "sensor.kz_wahl",
+    phase: "sensor.kz_phase",
+    serviceausbrand: ["Serviceausbrand"],
+    offline: { text: "Steuerung nicht erreichbar", symbol: "mdi:lan-disconnect" },
+    regeln: [
+      { quelle: "betriebsart", wenn: ["Kaminkehrerfunktion"], serviceausbrand: null, text: "Kaminkehrer aktiv", symbol: "mdi:account-hard-hat" },
+    ],
+  };
+  const kopf = (kesselzustandBeschreibung, stoerungen = []) => {
+    const vorher = flaeche._bindungen.length;
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen, kesselzustand: kesselzustandBeschreibung });
+    flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+    const [ok, sonder] = karte.querySelectorAll(".abzeichen");
+    return {
+      ok: { anzeige: ok.style.display, text: text(ok) },
+      sonder: { anzeige: sonder.style.display, text: text(sonder), symbol: sonder.firstChild.getAttribute("icon") },
+    };
+  };
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const kaminkehrer = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kessel-Temperatur");
+  const imBetrieb = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const ohneBeschreibung = kopf(null);
+  // Meldung und Kesselzustand zugleich: beide Abzeichen bleiben sichtbar.
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  setzen("sensor.kz_stoerung", "Fehler");
+  setzen("binary_sensor.kz_melder", "on");
+  const mitMeldung = kopf(beschreibung, [{ entity: "sensor.kz_stoerung", melder: "binary_sensor.kz_melder" }]);
+  bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung, mitMeldung };
+  for (const kennung of ["sensor.kz_art", "sensor.kz_stoerung", "binary_sensor.kz_melder"]) delete zustaende[kennung];
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
+// Automatik im Schaubild: Pille hinter dem Titel, Begründung darunter, Marke am
+// Heizkörper; eine offene Empfehlung bringt ihre Tasten mit.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const setzen = (kennung, state, attributes = {}) => {
+    zustaende[kennung] = { entity_id: kennung, state, attributes };
+  };
+  const kreis = {
+    entity: "climate.hk",
+    titel: "HK",
+    vorlauf: "sensor.hk_vorlauf",
+    automatik: "sensor.hk_zustand",
+    automatik_empfehlung: "sensor.hk_empfehlung",
+    automatik_tasten: { uebernehmen: "button.hk_uebernehmen", verwerfen: "button.hk_verwerfen" },
+  };
+  const anlage = { name: "A", heizkreise: [kreis, { entity: "climate.ohne", titel: "Ohne" }] };
+  const vorher = flaeche._bindungen.length;
+  const karte = flaeche._karte("Anlagenübersicht");
+  flaeche._automatikImBild(anlage, karte);
+  const huelle = document.createElement("div");
+  flaeche._automatikMarke(anlage, { entity: "sensor.hk_vorlauf", titel: "HK", left: "40%", top: "30%", breite: "10%" }, huelle);
+  const binden = () => flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+  const kopf = karte.querySelector(".kartenkopf");
+  const pille = kopf.querySelector(".im-bild");
+  const zeile = karte.querySelector(".bild-automatik-zeile");
+  const marke = huelle.querySelector(".automatik-bildmarke");
+  const [uebernehmen, verwerfen] = zeile.querySelectorAll(".automatik-knopf");
+  const stand = () => ({
+    pille: pille.hidden ? null : String(pille.querySelector("span").textContent),
+    zustand: pille.dataset.zustand || null,
+    grund: zeile.hidden ? null : String(zeile.querySelector(".grund").textContent),
+    tasten: !uebernehmen.hidden && !verwerfen.hidden,
+    marke: marke.hidden ? null : marke.dataset.zustand,
+  });
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "Sonnenquote 48 % unter 55 % – keine Absenkung." });
+  setzen("sensor.hk_empfehlung", "keine");
+  setzen("button.hk_uebernehmen", "unknown");
+  setzen("button.hk_verwerfen", "unknown");
+  binden();
+  const programm = stand();
+  setzen("sensor.hk_zustand", "sonnentag", { kurz: "Sonnentag · 19,5 °C", begruendung: "Sonnenquote 72 % – 19,5 °C bis 15:30." });
+  binden();
+  const sonnentag = stand();
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "" });
+  setzen("sensor.hk_empfehlung", "sonnentag", { begruendung: "Sonnenquote 72 % – Absenkung vorgeschlagen." });
+  binden();
+  const empfehlung = stand();
+  const vorAufruf = dienstAufrufe.length;
+  uebernehmen.ausloesen("click");
+  const gedrueckt = dienstAufrufe.slice(vorAufruf);
+  setzen("sensor.hk_zustand", "aus");
+  binden();
+  const aus = stand();
+  const vorherReiter = flaeche._reiter;
+  setzen("sensor.hk_zustand", "programm", { kurz: null, begruendung: "x" });
+  binden();
+  pille.ausloesen("click");
+  const reiter = flaeche._reiter;
+  const zweiKreise = { name: "B", heizkreise: [kreis, { ...kreis, titel: "HK 2" }] };
+  const karteZwei = flaeche._karte("Anlagenübersicht");
+  flaeche._automatikImBild(zweiKreise, karteZwei);
+  const zwei = {
+    imKopf: karteZwei.querySelector(".kartenkopf").querySelectorAll(".im-bild").length,
+    zeilen: karteZwei.querySelectorAll(".bild-automatik-kreis").length,
+  };
+  bilanz.automatikImBild = {
+    nachTitel: kopf.children.indexOf(pille) === kopf.children.indexOf(kopf.querySelector("h2")) + 1,
+    zwei,
+    markeOeffnet: marke.getAttribute("role") === "button" && marke.getAttribute("tabindex") === "0",
+    pillen: kopf.querySelectorAll(".im-bild").length,
+    programm,
+    sonnentag,
+    empfehlung,
+    gedrueckt,
+    aus,
+    reiter,
+  };
+  for (const kennung of ["sensor.hk_zustand", "sensor.hk_empfehlung", "button.hk_uebernehmen", "button.hk_verwerfen"]) {
+    delete zustaende[kennung];
+  }
+  flaeche._reiter = vorherReiter;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
+// Farben der Beschriftung: Hintergrund und Schrift der Marken, Namen in der
+// Zeichnung; ausgeliefert bleibt alles wie bisher.
+// ---------------------------------------------------------------------------
+{
+  const svg = '<svg><text data-teil="0" x="1" y="2" text-anchor="middle" fill="#e6edf3">Kessel</text><text fill="#e6edf3">x</text></svg>';
+  const anlage = { schema_svg: svg, schema_breite: 400 };
+  const vorherVorschau = flaeche._vorschau;
+  flaeche._vorschau = null;
+  const ausgeliefert = { farben: flaeche._beschriftung(), grund: flaeche._bildflaeche(anlage).style["--hn-marke-grund"] || "" };
+  flaeche._vorschau = { beschriftung_grund: "#ffffff", beschriftung_deckkraft: "40", beschriftung_schrift: "#ff69b4" };
+  const flaecheNeu = flaeche._bildflaeche(anlage);
+  const bild = decodeURIComponent(flaeche._schemaBild(anlage));
+  flaeche._vorschau = { beschriftung_schrift: "#ff69b4" };
+  const nurSchrift = flaeche._beschriftung();
+  bilanz.beschriftung = {
+    ausgeliefert,
+    grund: flaecheNeu.style["--hn-marke-grund"] || "",
+    schrift: flaecheNeu.style["--hn-marke-schrift"] || "",
+    namePink: bild.includes('data-teil="0" x="1" y="2" text-anchor="middle" fill="#ff69b4"'),
+    andererTextBleibt: bild.includes('<text fill="#e6edf3">x</text>'),
+    nurSchrift,
+  };
+  flaeche._vorschau = vorherVorschau;
 }
 
 console.log(JSON.stringify(bilanz));

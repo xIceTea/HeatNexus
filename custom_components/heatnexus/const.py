@@ -72,9 +72,11 @@ AUTOMATIK_GERAET_ENDUNG = "-automatik"
 QUELLE_SOLAR = "solar"
 QUELLE_HEIZSTAB = "heizstab"
 QUELLE_FREMD = "fremdquelle"
+QUELLE_WAERMEPUMPE = "waermepumpe"
 QUELLEN_ARTEN = {
     QUELLE_SOLAR: "Solaranlage",
     QUELLE_HEIZSTAB: "Heizstab",
+    QUELLE_WAERMEPUMPE: "Wärmepumpe",
     QUELLE_FREMD: "Fernwärme oder sonstige Quelle",
 }
 
@@ -88,11 +90,12 @@ QUELLEN_MAX = 8
 # Platz im Schaubild und in der Geräteliste. Die Solaranlage steht neben der
 # gleichnamigen Windhager-Funktion, der Heizstab beim Puffer, alles Übrige
 # hinter dem Kessel.
-QUELLEN_RANG = {QUELLE_SOLAR: 44, QUELLE_HEIZSTAB: 22, QUELLE_FREMD: 16}
+QUELLEN_RANG = {QUELLE_SOLAR: 44, QUELLE_HEIZSTAB: 22, QUELLE_WAERMEPUMPE: 16, QUELLE_FREMD: 16}
 
 QUELLEN_SYMBOLE = {
     QUELLE_SOLAR: "mdi:solar-power-variant",
     QUELLE_HEIZSTAB: "mdi:heating-coil",
+    QUELLE_WAERMEPUMPE: "mdi:heat-pump",
     QUELLE_FREMD: "mdi:heat-wave",
 }
 
@@ -468,18 +471,23 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "bar": ("bar", "pressure", "measurement", 2),
     "mbar": ("mbar", "pressure", "measurement", 1),
     "Pa": ("Pa", "pressure", "measurement", 0),
+    "g": ("g", "weight", "measurement", 0),
+    "ms": ("ms", "duration", "measurement", 0),
 }
 
 # Dieselben Größen in der Schreibweise des LON-Adressraums. Als Verweis statt
 # als zweiter Eintrag: Ändert sich die Umrechnung, ändert sie sich für beide.
 EINHEITEN["rpm"] = EINHEITEN["U/min"]
 EINHEITEN["Std"] = EINHEITEN["h"]
+# BioWIN meldet den Volumenstrom mit großem L.
+EINHEITEN["L/h"] = EINHEITEN["l/h"]
 
 # Namensbestandteile, die einen Zählerstand kennzeichnen: Sie laufen nur nach
 # oben und gehören damit in die Langzeitstatistik als Summe, nicht als Messwert.
 ZAEHLER_WOERTER = (
     "betriebsstunden",
     "brennerstarts",
+    "anzahl starts",
     "verbrauch",
     "zähler",
     "zaehler",
@@ -490,7 +498,8 @@ ZAEHLER_WOERTER = (
 
 # Namensbestandteile, die trotz Zählerwort keinen Zählerstand meinen: Restzeiten
 # („Betriebsstunden bis …") zählen herunter, die übrigen sind Raten oder Einstellwerte.
-ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur")
+# „kwh/kg“: der Heizwert der Pellets am Hybridmanager heißt „Wärmemenge Pellets (kWh/kg)“.
+ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur", "kwh/kg")
 
 # Datenpunkte, die das Gerät beschreiben statt seinen Zustand: Typ, Versionen,
 # Kennungen. Sie gehören in die Diagnose, nicht zwischen die Messwerte.
@@ -514,6 +523,9 @@ GERAETEINFO_ADRESSEN = frozenset(
 
 # Namensbestandteile von Differenzen: Die Anlage gibt sie in °C an, gemeint ist Kelvin.
 DIFFERENZ_WOERTER = ("hysterese", "differenz", "spreizung")
+
+# Messwerte ohne Einheit: die Leistungszahl der Wärmepumpe ist ein Verhältnis.
+MESSWERT_OHNE_EINHEIT = r"\bcop\b"
 
 # Einheiten, in denen ein Zählerstand vorkommt; Raten und Temperaturen zählen nie.
 ZAEHLER_EINHEITEN = frozenset({"h", "min", "s", "d", "kWh", "MWh", "t", "kg"})
@@ -540,6 +552,13 @@ MENU_WIEDERHOLPAUSE_S = 2.0
 # Ein Schreibvorgang mit Gateway-Fehler wird mit wachsender Pause wiederholt.
 SCHREIB_WIEDERHOLUNGEN = 2
 SCHREIB_WIEDERHOLPAUSE_S = 3.0
+# Höchste Pause in langsamen Takten, bevor eine Strukturänderung erneut einliest.
+STRUKTUR_WARTETAKTE_MAX = 16
+# Ein gelesener Wert mit Gateway-Fehler wird einmal nachgefragt; die kurze Pause hält den Takt.
+# Nicht nach 504: Das Gerät antwortete nicht, und der Webserver sucht dann selbst nach Geräten.
+LESE_WIEDERHOLBAR = frozenset({502, 503})
+LESE_WIEDERHOLUNGEN = 1
+LESE_WIEDERHOLPAUSE_S = 1.0
 
 # Nach einem Adresswechsel: je (Eintrag, neue Adresse) die alte, deren Befund-Archiv umzieht.
 BEFUND_UMZUG = f"{DOMAIN}_befund_umzug"
@@ -653,6 +672,9 @@ TAGESZAEHLER: dict[str, str] = {
     "52/50": "52/51",  # Betriebsstunden Heizen -> … heute
     "52/52": "52/53",  # Betriebsstunden Warmwasser -> … heute
     "52/54": "52/55",  # Betriebsstunden Kühlen -> … heute
+    "52/59": "52/60",  # Wärmemenge Heizen -> … heute
+    "52/61": "52/62",  # Wärmemenge Warmwasser -> … heute
+    "52/63": "52/64",  # Energiemenge Kühlen -> … heute
 }
 # Dieselbe Auskunft als Menge: Ist dieser Datenpunkt selbst schon ein Tageswert?
 TAGESWERTE = frozenset(TAGESZAEHLER.values())
@@ -676,7 +698,7 @@ LAUFPHASEN: dict[str, frozenset[int]] = {
 # Welchen Stundenzähler die Laufzeit aus dem Zustand ersetzt, je
 # Zustandstabelle. Nur diesen: Ein Wartungszähler auf demselben Gerät zählt
 # etwas anderes und behält seine Ableitung.
-_WP_STUNDEN = frozenset(TAGESZAEHLER)
+_WP_STUNDEN = frozenset({"52/50", "52/52", "52/54"})
 
 LAUFZEIT_ERSETZT: dict[str, frozenset[str]] = {
     "2/1": frozenset({"2/81"}),

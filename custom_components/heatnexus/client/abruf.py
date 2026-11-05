@@ -37,6 +37,11 @@ from .gemeinsam import FEHLGESCHLAGEN, MELDUNGS_SENSOREN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Zeitprogramme je Stapel: so viele, wie die Steuerung ohnehin gleichzeitig bedient.
+OBJEKTE_JE_STAPEL = 3
+# Anteil des Zeitfensters, den die Zeitprogramme höchstens bekommen.
+OBJEKTE_ANTEIL = 0.5
+
 
 def ist_zeitprogramm(wert) -> bool:
     """Prüfen, ob die Antwort ein Zeitprogramm ist und nicht irgendeine Liste.
@@ -311,35 +316,47 @@ class AbrufMixin:
             werte[oid] = wert
         return werte
 
-    async def _fetch_time_programs(self) -> dict:
-        """Read all known time programs via the object endpoint.
+    async def _fetch_time_programs(self, ende: float | None = None) -> dict:
+        """Read the known time programs via the object endpoint, within `ende`.
 
-        Beim ersten Aufruf wird geprüft, ob das Gerät den object-Endpunkt
-        lokal überhaupt beherrscht. Falls nicht, werden die Zeitprogramm-
-        Entities verworfen (keine toten Sensoren) und nicht mehr abgefragt.
+        Was bis `ende` nicht gelesen ist, kommt im nächsten Durchlauf dran.
+        Prüft beim ersten Lesen, ob das Gerät den object-Endpunkt lokal führt.
         """
         objekte = self.time_programs + self.objekt_texte
         if self._objects_supported is False or not objekte:
+            self._objekte_offen = []
             return {}
+        if not self._objekte_offen:
+            self._objekte_offen = list(objekte)
+            self._objekte_status = []
 
-        results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in objekte))
-        objects: dict = {}
+        # Ungelesene behalten ihren letzten Stand; nur eine Absage nimmt ein Objekt weg.
+        objects = dict(self._letzte_objekte)
         any_ok = False
-        for tp, (data, status) in zip(objekte, results, strict=False):
-            self._objekte_versucht.add(tp["oid"])
-            if status != 200 or not isinstance(data, dict) or "value" not in data:
-                # Nur eine Absage der Anlage nimmt das Objekt weg; ein Verbindungsfehler
-                # lässt den zuletzt gelesenen Stand stehen.
-                if status not in self._OBJEKT_ABSAGE and tp["oid"] in self._letzte_objekte:
-                    objects[tp["oid"]] = self._letzte_objekte[tp["oid"]]
-                continue
-            any_ok = True
-            self._objekt_einordnen(tp, data["value"], objects)
+        while self._objekte_offen and (ende is None or time.monotonic() < ende):
+            stapel = self._objekte_offen[:OBJEKTE_JE_STAPEL]
+            del self._objekte_offen[:OBJEKTE_JE_STAPEL]
+            results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in stapel))
+            for tp, (data, st) in zip(stapel, results, strict=False):
+                self._objekte_versucht.add(tp["oid"])
+                self._objekte_status.append(st)
+                if st != 200 or not isinstance(data, dict) or "value" not in data:
+                    if st in self._OBJEKT_ABSAGE:
+                        objects.pop(tp["oid"], None)
+                    continue
+                any_ok = True
+                self._objekt_einordnen(tp, data["value"], objects)
 
-        objekte = self._objektendpunkt_entscheiden(objekte, [st for _, st in results], any_ok)
+        # Eine Absage entscheidet erst, wenn der Durchlauf alle Objekte gesehen hat.
+        status = [] if self._objekte_offen else self._objekte_status
+        objekte = self._objektendpunkt_entscheiden(objekte, status, any_ok)
+        if not objekte:
+            self._objekte_offen = []
         self.time_programs = [tp for tp in objekte if tp.get("type") == "time_program"]
         self.objekt_texte = [tp for tp in objekte if tp.get("type") != "time_program"]
-        return objects
+        # Ein neues Einlesen kann Objekte gestrichen haben.
+        bekannt = {tp["oid"] for tp in objekte}
+        return {oid: wert for oid, wert in objects.items() if oid in bekannt}
 
     # Antworten, mit denen die Anlage ein Objekt ausdrücklich nicht führt.
     _OBJEKT_ABSAGE = (404, 409)
@@ -365,7 +382,8 @@ class AbrufMixin:
     def _objektendpunkt_entscheiden(self, objekte: list, status: list, any_ok: bool) -> list:
         """Beim ersten Lesen festhalten, ob die Anlage den object-Endpunkt führt.
 
-        Ohne Antwort bleibt es offen. Erst eine Absage (4xx außer Anmeldung) entscheidet.
+        Ein `200` entscheidet sofort. Eine Absage (4xx außer Anmeldung) entscheidet nur,
+        wenn `status` einen vollen Durchlauf umfasst; ohne Antwort bleibt es offen.
         """
         if self._objects_supported is not None:
             return objekte
@@ -401,14 +419,17 @@ class AbrufMixin:
         return wert
 
     async def _fetch_status(self) -> dict:
-        """Aktuelle Geräte-Meldungen (FExxmsg) je Knoten neu lesen.
+        """Aktuelle Geräte-Meldungen (FExxmsg) je Knoten neu lesen."""
+        return (await self._meldungen_lesen())[0]
 
-        Quelle ist die /1-Discovery, die je Gerät FE01msg (+ ggf. weitere)
-        mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
+    async def _meldungen_lesen(self) -> tuple[dict, list | None]:
+        """Meldungen je Knoten und die rohe `/1`-Antwort, die je Gerät FE01msg mitliefert.
+
+        Gelesen wird nur, wenn ein Meldungs-/Klartext-Sensor existiert; sonst ist die Antwort `None`.
         """
         typen = {typ for _, typ, _, _ in MELDUNGS_SENSOREN}
         if not any(d.get("type") in typen for d in self.geraeteliste):
-            return {}
+            return {}, None
         try:
             devs = await self.fetch("/1")
         except Exception as e:
@@ -416,7 +437,7 @@ class AbrufMixin:
             devs = None
         if not isinstance(devs, list):
             # Wie bei den Werten: Ein Fehlschlag lässt den letzten Stand stehen.
-            return dict(self._letzte_meldungen)
+            return dict(self._letzte_meldungen), None
         out: dict = {}
         for dev in devs:
             nid = dev.get("nodeId")
@@ -426,7 +447,7 @@ class AbrufMixin:
             if msgs:
                 out[str(nid)] = "  ".join(msgs)
         self._letzte_meldungen = out
-        return out
+        return out, devs
 
     def statistik(self) -> dict:
         """Kennzahlen des Abrufverhaltens – für die Diagnose.
@@ -472,7 +493,7 @@ class AbrufMixin:
         """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
         return poll_takte(self.update_interval)
 
-    def _faellig(self) -> set:
+    def _faellig(self, tick: int | None = None) -> set:
         """OIDs, die in diesem Durchlauf an der Reihe sind.
 
         Nicht jeder Wert ändert sich im selben Takt: Die Kesseltemperatur
@@ -483,12 +504,13 @@ class AbrufMixin:
         stehen.
         """
         takte = self._takte()
+        tick = self._tick if tick is None else tick
         faellig = set()
         for oid in self.abrufplan:
             takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
-            if self._tick == 0 or self._tick % takt == 0:
+            if tick == 0 or tick % takt == 0:
                 faellig.add(oid)
         # Was beim letzten Mal nicht mehr in die Zeit passte, ist weiterhin
         # fällig – unabhängig von seiner Klasse.
@@ -701,12 +723,17 @@ class AbrufMixin:
 
         poll_begonnen = time.monotonic()
         ende = poll_begonnen + budget if budget else None
+        # Der Zähler rückt zu Beginn weiter; ein abgebrochener Durchlauf stünde
+        # sonst ohne Ende wieder an. Nur der erste zählt erst, wenn er fertig ist.
+        tick = self._tick
+        if tick:
+            self._tick += 1
         # Zeitprogramme und Status ändern sich selten und kosten je eine
         # eigene Anfrage – sie laufen im langsamen Takt mit. Sie kommen vor den
         # Werten an die Reihe: Sonst bliebe bei knapper Zeit für sie nie
         # welche übrig.
         langsamer_takt = self._takte()[POLL_SLOW]
-        langsam_faellig = self._tick == 0 or self._tick % langsamer_takt == 0
+        langsam_faellig = tick == 0 or tick % langsamer_takt == 0
         # Objekte entstehen erst im Vollabzug, also nach dem ersten Durchlauf.
         # Gezählt wird jede Adresse einzeln: Ein gelesenes Zeitprogramm sagt
         # nichts über einen Textwert, der erst später dazukommt.
@@ -714,11 +741,16 @@ class AbrufMixin:
             d["oid"] not in self._objekte_versucht for d in self.time_programs + self.objekt_texte
         ):
             langsam_faellig = True
+        if langsam_faellig or self._objekte_offen:
+            # Höchstens die Hälfte des Zeitfensters; der Rest gehört den Werten.
+            objekt_ende = poll_begonnen + budget * OBJEKTE_ANTEIL if budget else None
+            self._letzte_objekte = await self._fetch_time_programs(objekt_ende)
+        status, antwort = await self._meldungen_lesen()
         if langsam_faellig:
-            self._letzte_objekte = await self._fetch_time_programs()
-        status = await self._fetch_status()
+            await self._struktur_pruefen(antwort)
         stoerspeicher = await self._fetch_stoerspeicher(status)
-        faellig = self._faellig()
+        systemzeit = await self._systemzeit_lesen() if langsam_faellig else self._systemzeit
+        faellig = self._faellig(tick)
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
         # fällig – unabhängig von ihrer Poll-Klasse.
@@ -730,7 +762,8 @@ class AbrufMixin:
             if oid not in aktuell and oid not in self._object_texts:
                 del self._letzte_werte[oid]
 
-        self._tick += 1
+        if not tick:
+            self._tick = 1
         self.poll_count += 1
         self.poll_seconds += time.monotonic() - poll_begonnen
         werte = dict(self._letzte_werte)
@@ -742,6 +775,7 @@ class AbrufMixin:
             "objects": dict(self._letzte_objekte),
             "status": status,
             "stoerspeicher": stoerspeicher,
+            "systemzeit": systemzeit,
         }
 
     def _ausfall_pruefen(self, misslungen: set[str], gelesen: int) -> None:

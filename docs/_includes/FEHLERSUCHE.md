@@ -51,11 +51,21 @@ abgeschaltet und bleiben stehen. Name, Symbol, Bereich und Verlauf bleiben damit
 erhalten. Kommt der Wert zurück, sind sie sofort wieder da.
 
 Sollen sie ganz verschwinden, steht unter *Einstellungen → System →
-Reparaturen* ein Eintrag mit ihrer Anzahl. Auf Bestätigung löscht er sie samt
-Verlauf.
+Reparaturen* ein Eintrag mit ihrer Anzahl. Er löscht sie samt Verlauf oder
+behält sie; behaltene Entitäten meldet er nicht erneut.
 
 Eine **abgewählte Bedienebene** ist etwas anderes: Das ist eine Entscheidung,
 ihre Entitäten werden gleich entfernt und beim Wiederdazuwählen neu angelegt.
+
+## Die Zirkulationspumpe läuft nicht
+
+Zeit- und Impulssteuerung folgen den Schaltzeiten im Zeitprogramm der
+Zirkulation. Jede Schaltzeit steht dort auf Ein oder Aus. Stehen alle auf Aus,
+läuft die Pumpe nie.
+
+HeatNexus meldet das unter *Einstellungen → System → Reparaturen* und im Reiter
+Zeitprogramme. Der Eintrag verschwindet, sobald eine Schaltzeit auf Ein steht
+oder die Pumpe eine andere Steuerungsart nutzt.
 
 ## Ein Wert bleibt leer
 

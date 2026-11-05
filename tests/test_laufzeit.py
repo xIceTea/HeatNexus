@@ -22,6 +22,12 @@ LAUF = "8"
 RUHE = "3"
 
 
+@pytest.fixture(autouse=True)
+def _mittags(freezer):
+    """Zurückdatierte Brände reichen sonst kurz nach Mitternacht in den Vortag."""
+    freezer.move_to("2026-06-15 12:00:00")
+
+
 @pytest.fixture(scope="module")
 def sensoren():
     from custom_components.heatnexus import sensor

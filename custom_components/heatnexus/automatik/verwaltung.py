@@ -38,7 +38,7 @@ from ..registrierung import (
 )
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
-from . import lernablage
+from . import lernablage, prognoseablage
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
 _LOGGER = logging.getLogger(__name__)
@@ -181,10 +181,13 @@ class Verwaltung:
         self._geladen = False
         self._geplant = False
         self.laufzeiten: dict[str, Laufzeit] = {}
-        self._prognosen: dict[tuple[str, str], tuple[datetime, list[dict[str, Any]]]] = {}
+        self._prognose_store: Store = prognoseablage.ablage(hass)
+        self._prognosen: prognoseablage.Prognosen = {}
         self._prognose_sperre = asyncio.Lock()
         # Je Wetter-Entität und Vorhersageart der letzte Fehler, bis ein Abruf gelingt.
         self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
+        # Je Heizkreis eine Sperre: Zwei Änderungen zugleich rechneten sonst mit demselben alten Stand.
+        self._sperren: dict[str, asyncio.Lock] = {}
 
     async def laden(self) -> None:
         """Den Store einmal lesen; zwei Einträge, die zugleich starten, warten aufeinander."""
@@ -194,8 +197,11 @@ class Verwaltung:
             self._daten = _normalisiert(await self._roh_laden())
             # Gespeichertes geht noch einmal durch die Prüfung; neue Regeln gelten auch für Altes.
             for eintrag in self._daten["heizkreise"].values():
-                if neu := konfig_modul.pruefen(eintrag["konfig"]):
+                if neu := konfig_modul.pruefen(
+                    eintrag["konfig"], eintrag["konfig"].get("eigene") or ()
+                ):
                     eintrag["konfig"] = neu
+            self._prognosen = await prognoseablage.laden(self._prognose_store)
             self._geladen = True
 
     async def _roh_laden(self) -> Any:
@@ -363,7 +369,17 @@ class Verwaltung:
             self.prognose_fehler.pop((wetter, art), None)
             daten = list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
             self._prognosen[(wetter, art)] = (jetzt, daten)
+            self._prognose_store.async_delay_save(self._prognosen_abzug, SPEICHER_RUHIG_S)
             return daten
+
+    def _prognosen_abzug(self) -> dict[str, Any]:
+        return prognoseablage.abzug(self._prognosen)
+
+    def prognose_gesichert(
+        self, wetter: str, art: str
+    ) -> tuple[datetime, list[dict[str, Any]]] | None:
+        """Die letzte Vorhersage mit ihrer Zeit; sie kann aus der Ablage stammen."""
+        return self._prognosen.get((wetter, art))
 
     # --- je Eintrag ----------------------------------------------------------
     async def eintrag_starten(self, entry: ConfigEntry) -> None:
@@ -398,10 +414,10 @@ class Verwaltung:
         if treffer is None or eintrag is None:
             return False
         coordinator, beschreibung = treffer
-        # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
-        self._system_anlegen(entry)
         kennung = f"automatik_start_{device_id}"
         try:
+            # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
+            self._system_anlegen(entry)
             laufzeit = Laufzeit(
                 self.hass,
                 coordinator,
@@ -412,6 +428,7 @@ class Verwaltung:
                 entry.entry_id,
                 self.prognose,
                 self.speichern_ruhig,
+                self.prognose_gesichert,
             )
             self.laufzeiten[device_id] = laufzeit
             async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
@@ -453,6 +470,7 @@ class Verwaltung:
         for laufzeit in gestoppt:
             self.laufzeiten.pop(laufzeit.device_id, None)
         await self._store.async_save(self._daten)
+        await self._prognose_store.async_save(self._prognosen_abzug())
 
     async def untereintrag_pruefen(self, entry: ConfigEntry) -> None:
         """Fehlt „HeatNexus Automatik“, obwohl Automatiken eingerichtet sind, hat der Nutzer sie gelöscht.
@@ -492,6 +510,8 @@ class Verwaltung:
             del self._daten["heizkreise"][device_id]
             # Die Antwort an das Panel nennt den Fehler; eine Reparaturmeldung bliebe ohne Automatik stehen.
             ir.async_delete_issue(self.hass, DOMAIN, f"automatik_start_{device_id}")
+            if not self.kennungen(entry.entry_id):
+                self._system_entfernen(entry.entry_id)
             raise ValueError("Die Automatik ließ sich nicht starten.") from fehler
         if not gestartet:
             del self._daten["heizkreise"][device_id]
@@ -499,16 +519,24 @@ class Verwaltung:
         self.speichern()
         return konfig
 
+    def _sperre(self, device_id: str) -> asyncio.Lock:
+        return self._sperren.setdefault(device_id, asyncio.Lock())
+
     async def einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         """Einstellungen ändern; ein Wechsel weg von „Automatisch" nimmt laufende Eingriffe zurück."""
+        async with self._sperre(device_id):
+            return await self._einstellen(device_id, aenderung)
+
+    async def _einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         eintrag = self._daten["heizkreise"].get(device_id)
         if eintrag is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
         alt = eintrag["konfig"]
-        neu = konfig_modul.pruefen({**alt, **aenderung})
+        neu = konfig_modul.pruefen({**alt, **aenderung}, alt["eigene"])
         if neu is None:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
         neu = konfig_modul.klima_vorgabe(neu, alt["raeume"])
+        gescheitert: Exception | None = None
         if (laufzeit := self.laufzeiten.get(device_id)) is not None:
             schreibt_alt = alt["aktiv"] and alt["modus"] != "beobachten"
             schreibt_neu = neu["aktiv"] and neu["modus"] != "beobachten"
@@ -527,13 +555,19 @@ class Verwaltung:
                 laufzeit.beobachtet_seit = dt_util.now()
             if gewechselt:
                 laufzeit.ruhe_loesen()
-            await laufzeit.neu_starten(neu)
+            # Ein Fehler beim Neustart zählt danach: Die Laufzeit hat die neue Konfiguration schon.
+            try:
+                await laufzeit.neu_starten(neu)
+            except Exception as fehler:
+                gescheitert = fehler
             # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
             if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
                 laufzeit.modell_neu_lernen()
         eintrag["konfig"] = neu
         self.speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
+        if gescheitert is not None:
+            raise gescheitert
         return neu
 
     async def heizgrenzen(self, device_id: str, werte: dict[str, float]) -> None:
@@ -567,11 +601,18 @@ class Verwaltung:
         laufzeit.modell_neu_lernen()
 
     async def entfernen(self, device_id: str) -> None:
-        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
+        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten und Meldungen abräumen."""
+        async with self._sperre(device_id):
+            await self._entfernen(device_id)
+        self._sperren.pop(device_id, None)
+
+    async def _entfernen(self, device_id: str) -> None:
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
             laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
+        for art in ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start"):
+            ir.async_delete_issue(self.hass, DOMAIN, f"{art}_{device_id}")
         await lernablage.entfernen(self.hass, device_id)
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"

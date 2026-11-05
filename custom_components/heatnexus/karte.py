@@ -34,9 +34,10 @@ def kartendaten(
     teile_aus: list[str] | None = None,
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
+    benutzer: Any = None,
 ) -> list[dict[str, Any]]:
     """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung, jede in ihrer Sprache."""
-    anlagen = anlagen_lesen(hass)
+    anlagen = anlagen_lesen(hass, benutzer)
     gemeinsam = woerterbuch(hass)
     buecher = [woerterbuch_der_anlage(hass, anlage) for anlage in anlagen]
     daten = schaubild_daten(anlagen, auswahl, teile_aus or [], zeichnungen, mischer, buecher)
@@ -73,6 +74,7 @@ def _ws_schaubild(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
             msg.get("teile_aus"),
             msg.get("zeichnungen"),
             msg.get("mischer", True),
+            connection.user,
         ),
     )
 

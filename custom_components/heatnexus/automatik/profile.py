@@ -6,7 +6,7 @@ Das Profil folgt der Art der Heizflächen. Eigene Werte aus „Erweitert"
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from contextlib import suppress
 from dataclasses import dataclass, fields, replace
 import math
@@ -193,13 +193,17 @@ def werte(
 
 
 def abweichungen(
-    profil: str, eigene: Mapping[str, Any] | None, ausrichtung: str = AUSGEWOGEN
+    profil: str,
+    eigene: Mapping[str, Any] | None,
+    ausrichtung: str = AUSGEWOGEN,
+    behalten: Collection[str] = (),
 ) -> dict[str, Any]:
-    """Nur die Felder, die von der Vorgabe des Profils abweichen."""
+    """Die Felder mit eigenem Wert; `behalten` nennt Felder, die auch gleich der Vorgabe bleiben."""
     basis = vorgabe(profil, ausrichtung)
     aktuell = werte(profil, eigene, ausrichtung)
+    gesetzt = set(eigene or ()) & set(behalten)
     return {
         feld.name: getattr(aktuell, feld.name)
         for feld in fields(Werte)
-        if getattr(aktuell, feld.name) != getattr(basis, feld.name)
+        if feld.name in gesetzt or getattr(aktuell, feld.name) != getattr(basis, feld.name)
     }

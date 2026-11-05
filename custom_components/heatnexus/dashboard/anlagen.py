@@ -93,6 +93,20 @@ def trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> b
     return _traegt(eintrag, schluessel) or _passt(mustername(eintrag), muster)
 
 
+def erzeuger_von(teile: list[dict]) -> list[dict]:
+    """Anlagenteile mit eigenen Statuszeilen, von denen mindestens eine bei ihnen trifft."""
+    return [
+        teil
+        for teil in teile
+        if any(
+            trifft(e, (re.compile(z.muster, re.IGNORECASE),), *z.schluessel)
+            for z in geraete.STATUSZEILEN.get(teil.get("fct_type"), ())
+            if z.panel
+            for e in teil["entitaeten"]
+        )
+    ]
+
+
 def skala(wert: float | None) -> int:
     """Obere Grenze einer Restlaufzeit-Skala, auf 100 aufgerundet."""
     if not wert or wert <= 0:
@@ -115,13 +129,10 @@ def _beschreibungen(hass: HomeAssistant):
 
 
 def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
-    """Funktionstyp und deutsches Werksmodell je Gerätekennung.
-
-    Das Modell folgt weder der Sprache noch einer Umbenennung des Geräts.
-    """
+    """Funktionstyp und Geräteklasse je Gerätekennung."""
     zuordnung: dict[str, tuple[Any, str | None]] = {}
-    # Erst eine Beschreibung mit Knoten legt das Modell fest; ohne Knoten gilt
-    # das Modell des Funktionstyps nur, bis eine mit Knoten kommt.
+    # Erst eine Beschreibung mit Knoten legt die Klasse fest; ohne Knoten gilt
+    # der Funktionstyp allein nur, bis eine mit Knoten kommt.
     mit_knoten: set[str] = set()
     for coordinator in _koordinatoren(hass):
         klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
@@ -134,7 +145,7 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
                 mit_knoten.add(kennung)
             elif kennung in zuordnung:
                 continue
-            zuordnung[kennung] = (fct, geraete.modell(fct, klassen.get(knoten_nr)))
+            zuordnung[kennung] = (fct, klassen.get(knoten_nr))
     return zuordnung
 
 
@@ -291,7 +302,9 @@ def _lesestand(hass: HomeAssistant) -> _Lesestand:
 
 def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[str, Any]:
     """Ein Anlagenteil aus seinem Gerät, noch ohne Entitäten."""
-    fct, modell = stand.fct_je_geraet.get(kennung, (None, None))
+    fct, klasse = stand.fct_je_geraet.get(kennung, (None, None))
+    # Das deutsche Werksmodell folgt weder der Sprache noch einer Umbenennung des Geräts.
+    modell = geraete.modell(fct, klasse)
     quelle = stand.quellen_je_geraet.get(kennung) or {}
     art = quelle.get("art")
     kesselart, kesselwert, modulpumpe = stand.schaubildwahl_je_geraet.get(
@@ -305,6 +318,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
         "eintrag": entry_id,
         "fct_type": fct,
         "modell": modell,
+        "klasse": klasse,
         "art": art,
         "quellenpumpe": bool(quelle.get("pumpe")),
         "rang": rang(fct, art),
@@ -433,6 +447,18 @@ def _gruppieren(teile: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
         gruppe["steuerung_entitaeten"] = (teile.get(gruppe["id"]) or {}).get("entitaeten", [])
         _gruppe_abschliessen(gruppe)
     return sorted(anlagen.values(), key=lambda a: a["name"])
+
+
+def steuerungsentitaet(anlage: dict[str, Any], uebersetzung: str) -> str | None:
+    """Die Entität am Gerät „Steuerung“ mit diesem Übersetzungsschlüssel."""
+    return next(
+        (
+            e["entity_id"]
+            for e in anlage.get("steuerung_entitaeten", [])
+            if e.get("uebersetzung") == uebersetzung
+        ),
+        None,
+    )
 
 
 def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:

@@ -129,6 +129,17 @@ def test_nach_ablehnung_wartet_der_steller_immer_laenger(s, regel):
     assert steller.stand.ablehnungen == 0
 
 
+def test_viele_ablehnungen_in_folge_sperren_hoechstens_bis_zur_grenze(s, regel):
+    """Ab der 37. Ablehnung lief die Rechnung über; die Sperre bleibt bei der Grenze."""
+    from dataclasses import replace
+
+    steller = s.Steller("/1/15/0", UML, Schreiber(RuntimeError("HTTP 409")))
+    steller.stand = replace(steller.stand, ablehnungen=40)
+    assert ausfuehren(steller, entscheidung(regel, regel.Aktion("zurueck"))) is False
+    assert steller.stand.ablehnungen == 41
+    assert datetime.fromisoformat(steller.stand.gesperrt_bis) == JETZT + s.SPERRE_MAX
+
+
 def test_erzwingen_uebergeht_die_sperre(s, regel):
     schreiber = Schreiber(RuntimeError("HTTP 409"))
     steller = s.Steller("/1/15/0", UML, schreiber)
@@ -170,8 +181,13 @@ class OhneAntwort(Exception):
     translation_key = "schreiben_ohne_antwort"
 
 
-def test_ohne_antwort_versucht_es_der_steller_bald_wieder(s, regel):
-    schreiber = Schreiber(OhneAntwort("HTTP 502"))
+class NichtErreichbar(Exception):
+    translation_key = "schreiben_nicht_erreichbar"
+
+
+@pytest.mark.parametrize("fehler", [OhneAntwort("HTTP 502"), NichtErreichbar("Zeit abgelaufen")])
+def test_ohne_antwort_versucht_es_der_steller_bald_wieder(s, regel, fehler):
+    schreiber = Schreiber(fehler)
     steller = s.Steller("/1/15/0", UML, schreiber)
     e = entscheidung(regel, regel.Aktion("zurueck"))
     ausfuehren(steller, e)

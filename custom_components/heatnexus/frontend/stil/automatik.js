@@ -31,6 +31,39 @@ export const AUTOMATIK = `
   .automatik-marke.z-sicherheit, .automatik-marke.z-keine_daten {
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
+  /* Automatik im Schaubild: Pille im Kopf, Begründung darunter, Marke am Heizkörper. */
+  .kartenkopf:has(.im-bild) { flex-wrap: wrap; }
+  .kartenkopf:has(.im-bild) h2 { flex: 0 1 auto; min-width: 0; }
+  .kartenkopf:has(.im-bild) .fragezeichen { margin-left: auto; }
+  .automatik-marke.im-bild { border: none; font-family: inherit; cursor: pointer; --mdc-icon-size: 15px; max-width: 100%; }
+  .automatik-marke.im-bild span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .bild-automatik-kreis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .automatik-marke.im-bild::before { display: none; }
+  .automatik-marke.z-empfehlung { background: color-mix(in srgb, var(--hn-akzent) 15%, transparent); color: var(--hn-akzent); }
+  .bild-automatik { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 10px; }
+  .bild-automatik-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--hn-gedaempft); }
+  .bild-automatik-zeile .automatik-knopf { padding: 4px 12px; border-radius: 999px; font-size: 12px; }
+  .automatik-marke.im-bild[hidden], .bild-automatik-zeile[hidden], .bild-automatik-zeile [hidden],
+  .automatik-bildmarke[hidden] { display: none; }
+  .schaubild .automatik-bildmarke {
+    position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+    left: var(--bild-links); top: var(--bild-oben); width: var(--bild-groesse);
+    cursor: pointer; color: var(--hn-akzent);
+    background: color-mix(in srgb, currentColor 22%, var(--hn-karte));
+    box-shadow: 0 0 0 2px var(--hn-karte);
+  }
+  /* Die Scheibe bleibt beim Überfahren sichtbar; die Marken des Schaubilds werden dort sonst durchsichtig. */
+  .schaubild .automatik-bildmarke.klickbar:hover { background-color: color-mix(in srgb, currentColor 22%, var(--hn-karte)); }
+  /* Gerades Maß, ganzer Pixel und ein gemeinsamer Kasten: So runden Scheibe und Zeichen gleich, und das Zeichen bleibt mittig. */
+  @supports (width: round(1%, 2px)) {
+    .schaubild .automatik-bildmarke {
+      left: round(var(--bild-links), 1px); top: round(var(--bild-oben), 1px); width: round(var(--bild-groesse), 2px);
+    }
+  }
+  .schaubild .automatik-bildmarke ha-icon { position: absolute; inset: 0; display: flex; transform: scale(0.64); --mdc-icon-size: 100%; }
+  .schaubild .automatik-bildmarke[data-zustand="sonnentag"] { color: var(--hn-sonne); }
+  .schaubild .automatik-bildmarke[data-zustand="heizpause"] { color: var(--hn-at); }
+  .schaubild .automatik-bildmarke[data-zustand="nur_ww"] { color: var(--hn-ww); }
   .automatik-meta {
     display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 6px 0 0;
     font-size: 13px; color: var(--hn-gedaempft);
@@ -298,12 +331,12 @@ export const AUTOMATIK = `
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   }
   .automatik-tag-bild svg { display: block; width: 100%; height: 190px; }
-  .automatik-bildmarke {
+  .automatik-tagesmarke {
     position: absolute; transform: translateY(-110%); font-size: 11px; line-height: 1;
     color: var(--hn-gedaempft); pointer-events: none;
   }
-  .automatik-bildmarke.achse { left: 4px; }
-  .automatik-bildmarke.grenze { right: 4px; }
+  .automatik-tagesmarke.achse { left: 4px; }
+  .automatik-tagesmarke.grenze { right: 4px; }
   .automatik-zeiger {
     position: absolute; top: 0; bottom: 0; width: 0; pointer-events: none;
     border-left: 1px solid var(--hn-text); opacity: 0.6;

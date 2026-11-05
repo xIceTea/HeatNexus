@@ -6,6 +6,191 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.15.0] - 2026-11-05
+
+### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild
+
+HeatNexus liest Wärmepumpen und den Hybridmanager des BioWIN Hybrid ein und zeigt sie im Systemstatus und im Schaubild. Das Schaubild bricht bei wenig Platz in Reihen um. Panel und Dashboard melden Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+
+### Neu
+
+**Schaubild**
+- Bei wenig Platz bricht das Schaubild in Reihen um, die Werte stehen in Kästen darunter.
+- Das Fenster „Darstellung“ stellt Größe der Anlagenteile sowie Lage und Farben der Beschriftung ein.
+- Das Schaubild zeigt Zustand und Begründung der Automatik, mit Tasten für Empfehlungen.
+- Wärmepumpen erscheinen wie die AeroWIN, bei mehreren Erzeugern mit den Werten jedes Geräts.
+- Der Vorratsbehälter zeigt den Brennstoff in Holzfarbe und den Füllstand des Lagerraums.
+- BioWIN: Der Hybridmanager erscheint als Ventilgruppe und zeigt den Erzeuger, der gerade heizt.
+
+**Panel**
+- Panel und Dashboard zeigen Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+- Der Systemstatus zeigt je Wärmeerzeuger eine Kopfzeile und den SG-Ready-Zustand ([#34](https://github.com/xIceTea/HeatNexus/issues/34)).
+- BioWIN: Eine Karte „Hybridmanager“ zeigt Kosten und Tarife, der Verlauf das Hybridsystem ([#25](https://github.com/xIceTea/HeatNexus/issues/25)).
+
+**Home Assistant**
+- Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.
+- Home Assistant findet die Steuerung im Netz und folgt nach Rückfrage einem Adresswechsel.
+- HeatNexus übernimmt neue und entfernte Anlagenteile ohne Neustart.
+- Alte Geräte lassen sich löschen, Entitäten ohne Datenpunkt auch behalten.
+- Reparaturen und Zeitprogramme warnen, wenn alle Schaltzeiten der Zirkulation auf Aus stehen.
+- Wärmepumpen, Infinity PLUS und AeroWIN zeigen Leistung, Temperaturen, Wärmemengen, Starts und COP.
+- Ein Dienst benennt Heizkreise um, ein Diagnose-Sensor zeigt die Uhrabweichung der Steuerung.
+
+### Geändert
+
+- Sensoren von Schaltprogrammen zeigen Ein und Aus statt Grad.
+- Wärmepumpen stehen im Schaubild hinter den Kesseln.
+- Ein Wechsel von Profil, Ausrichtung oder Heizflächen behält eigene Werte der Automatik.
+- Das Zeichen in der Kopfzeile entspricht dem Logo.
+
+### Behoben
+
+**Anzeige**
+- Die Heizungsübersicht zeigt das Abzeichen der Automatik am Heizkreis.
+- Das Schaubild bricht lange Namen um und zeigt in Firefox keine Bruchstücke.
+- Der Reiter Zeitprogramme erkennt die Zirkulation auch bei Impulssteuerung als aktiv.
+- Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
+- Fehler und Alarm mit gleicher Nummer erscheinen beide, die Meldungsliste behält höchstens 50.
+- Alle Datenpunktnamen erscheinen auf Englisch und Niederländisch übersetzt.
+- BioWIN: Der Hybridmanager heißt richtig und erscheint nicht mehr als dritter Wärmeerzeuger.
+- BioWIN: Heizwert der Pellets und Tageswerte der AeroWIN erscheinen ohne falsche Zähler.
+
+**Automatik**
+- Abgelehnte Eingriffe, abgebrochene Lernläufe und gescheiterte Neustarts halten die Automatik nicht mehr an.
+- Ein gescheiterter Start erscheint als Reparaturmeldung und hinterlässt keine Reste.
+- Zwei Änderungen der Einstellungen zugleich gehen beide ein.
+- Mehr als 20 eigene Werte der Automatik lassen sich speichern.
+- An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+- Nach einem Neustart gilt die letzte Wettervorhersage bis zu sechs Stunden weiter.
+- Fehlt die Wettervorhersage, fragt die Automatik alle zwei Minuten neu nach.
+- Auch ohne Wettervorhersage endet ein Eingriff, sobald die Messwerte es verlangen.
+
+**Home Assistant**
+- Ab Home Assistant 2026.11 meldet das Protokoll keine Abkündigung der Thermostate mehr.
+- Viele Zeitprogramme und vereinzelt abgewiesene Abfragen lassen den Abruf nicht mehr scheitern.
+- Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt ein neuer Versuch.
+- Schaubild und Wartungsdienste beachten die Rechte des Benutzers ([#33](https://github.com/xIceTea/HeatNexus/issues/33)).
+- Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung ([#33](https://github.com/xIceTea/HeatNexus/issues/33)).
+- Werte gehen auf die Schrittweite gerundet an die Steuerung, Schreibfehler erscheinen übersetzt.
+- Die Einrichtung nennt ein abgewiesenes Passwort und verträgt jeden Zeichensatz der `automations.yaml`.
+
+## [1.15.0-beta.2] - 2026-11-02
+
+### Highlight: Mehrere Wärmeerzeuger und ein neues Schaubild
+
+Bei mehreren Wärmeerzeugern zeigt der Systemstatus je Gerät eine aufklappbare Kopfzeile und unten die Regelung. Das Schaubild bricht bei wenig Platz um. Größe und Lage der Werte lassen sich einstellen.
+
+### Neu
+
+**Systemstatus**
+- Bei mehreren Wärmeerzeugern zeigt der Systemstatus je Gerät eine aufklappbare Kopfzeile.
+- Bei mehreren Wärmeerzeugern zeigt der Systemstatus unten einen Abschnitt „Regelung“.
+- An der Wärmepumpe zeigt der Systemstatus COP, Vorlauf, Starts und Zähler für das Heizen.
+- Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
+
+**Schaubild**
+- Bei wenig Platz bricht das Schaubild in die nächste Reihe um.
+- Die Darstellung legt die Größe der Anlagenteile im Schaubild fest.
+- Die Darstellung legt Größe und Lage der Werte im Schaubild fest.
+- Bei schmalen Anlagenteilen stehen die Werte mit Namen unter dem Bild.
+- Das Fenster „Darstellung“ zeigt jede Wahl sofort als Vorschau.
+- Pellets und Hackgut liegen in Holzfarbe im Vorratsbehälter.
+- Am Heizkreis stehen „Vorlauf“ und „Raum“ vor den Temperaturen.
+- Vor der Leistungszahl der Wärmepumpe steht „COP“.
+- Der Lüfter der Wärmepumpe leuchtet und dreht, solange sie läuft.
+- BioWIN: Am Hybridmanager leuchtet der Erzeuger, der gerade heizt.
+- BioWIN: Die Lampe des liefernden Erzeugers am Hybridmanager pulsiert grün.
+- BioWIN: Die Pumpe des Hybridmanagers dreht im Rücklauf.
+- BioWIN: Ein Klick auf das Ventil zeigt die Betriebsart des Hybridmanagers.
+- BioWIN: BioWIN und AeroWIN strömen nur, solange sie heizen.
+- BioWIN: Die Werte der AeroWIN stehen über dem Lüfter und im Anzeigefeld.
+- BioWIN: Über dem Vorratsbehälter steht der Befüllgrad des Lagerraums.
+- PuroWIN: Der Vorratsbehälter füllt sich in drei Stufen.
+
+**Panel**
+- BioWIN: Die Steuerung zeigt eine Karte „Hybridmanager“ mit Pelletpreis, Stromtarifen, SG Ready und Kostenvergleich.
+- BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
+- Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
+
+**Dashboard**
+- Bei mehreren Wärmeerzeugern zeigt die Schaubild-Karte die Werte jedes Geräts.
+- BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
+
+**Home Assistant**
+- Der COP gilt als Messwert und erscheint im Verlauf als Kurve.
+- BioWIN: Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
+- BioWIN: Der SG-Ready-Zustand des Hybridmanagers heißt etwa „Normalbetrieb“ statt „Zustand 2“.
+
+### Geändert
+
+**Schaubild**
+- BioWIN: Der Hybridmanager erscheint als Ventilgruppe statt als Umschaltung.
+
+### Behoben
+
+**Automatik**
+- Nach vielen abgelehnten Eingriffen in Folge scheitert nicht mehr jeder Lauf.
+- Ein abgebrochener Lernlauf hält das Hausmodell nicht mehr bis zum Neuladen an.
+- Zwei Änderungen der Einstellungen zugleich gehen beide ein.
+- Eine entfernte Automatik hinterlässt keine Reparaturmeldungen mehr.
+- Eine gescheiterte Einrichtung hinterlässt weder System-Gerät noch Untereintrag.
+- Ein früh gescheiterter Start erscheint im Log und als Reparaturmeldung.
+- An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+
+**Home Assistant**
+- Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
+- Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt beim nächsten Abruf ein neuer Versuch.
+- Die eigene Meldungsliste behält höchstens 50 Einträge, die erledigten ältesten fallen weg.
+- Zahlenwerte gehen auf die Schrittweite der Anlage gerundet an die Steuerung.
+- Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung.
+- Ein Fehlertext der Steuerung mit Umlauten verdeckt den Schreibfehler nicht mehr.
+- Ein abgewiesenes Passwort geht bei mehreren Steuerungen nicht mehr hinter anderen Fehlern unter.
+- Eine `automations.yaml` mit fremdem Zeichensatz lässt die Einrichtung nicht mehr scheitern.
+- Alle Datenpunktnamen erscheinen auf Englisch und Niederländisch übersetzt.
+- BioWIN: Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
+
+## [1.15.0-beta.1] - 2026-11-01
+
+### Highlight: Zustand von Kessel und Anlage
+
+Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder Kaminkehrer. Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall. Home Assistant findet die Steuerung im Netz, und nach einem Adresswechsel stellt HeatNexus selbst um.
+
+### Neu
+
+**Panel**
+- Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
+- Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
+
+**Dashboard**
+- Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+- Auch Anlagen ohne Kessel melden in der Kopfzeile eine nicht erreichbare Steuerung.
+- Das Schaubild wählt die Kesselart nach der Geräteklasse, wenn kein Brennstoff gemeldet wird.
+
+**Home Assistant**
+- Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.
+- Home Assistant findet die Steuerung im Netz und bietet sie zur Einrichtung an.
+- Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
+- HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
+- Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
+- Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
+- Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
+- Ein Dienst benennt einen Heizkreis in der Steuerung um.
+- Ein Diagnose-Sensor zeigt, wie weit die Uhr der Steuerung von Home Assistant abweicht.
+- Die Geräteseite der Steuerung nennt auch die Fassung von Stack und LON-Anwendung.
+
+### Behoben
+
+**Dashboard**
+- BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+
+**Home Assistant**
+- Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+- Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
+- Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
+- Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
+- BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
+
 ## [1.14.2] - 2026-11-02
 
 ### Behoben

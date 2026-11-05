@@ -34,6 +34,7 @@ import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
 from ..auslieferung import async_dateien_ausliefern, async_fassung
+from ..automatik.verwaltung import system_unique_id
 from ..automatik.verwaltung import unique_id as automatik_kennung
 from ..automatik.websocket import async_register_automatik
 from ..befund.websocket import async_register_befund
@@ -164,13 +165,35 @@ def _ohne_hilfe(anlage: dict[str, Any]) -> None:
         wasser["taste"].pop("hilfe", None)
 
 
-def _automatik_zuordnen(hass: HomeAssistant, nutzdaten: dict[str, Any]) -> None:
-    """Jeder Heizkreis der Übersicht erfährt den Zustandssensor seiner Automatik, falls eingerichtet."""
+def _automatik_kennung(hass: HomeAssistant, geraet_id: str, art: str, domaene: str) -> str | None:
+    """Die Entität der Automatik eines Heizkreises; sie hängt an seiner HeatNexus-Kennung, nicht an der Geräte-ID."""
+    geraet = dr.async_get(hass).async_get(geraet_id)
     register = er.async_get(hass)
-    for kreis in nutzdaten.get("heizkreise") or []:
-        kreis["automatik"] = register.async_get_entity_id(
-            "sensor", DOMAIN, automatik_kennung(kreis.pop("geraet"), "zustand")
+    for bereich, wert in geraet.identifiers if geraet else ():
+        if bereich == DOMAIN and (
+            entity_id := register.async_get_entity_id(domaene, DOMAIN, automatik_kennung(wert, art))
+        ):
+            return entity_id
+    return None
+
+
+def _automatik_zuordnen(
+    hass: HomeAssistant, anlage: dict[str, Any], nutzdaten: dict[str, Any]
+) -> None:
+    """Heizkreise und Regelung erfahren Zustand, Empfehlung und Tasten der Automatik, falls eingerichtet."""
+    register = er.async_get(hass)
+    if (regelung := nutzdaten.get("regelung")) and (eintrag := anlage.get("eintrag")):
+        regelung["automatik"] = register.async_get_entity_id(
+            "sensor", DOMAIN, system_unique_id(eintrag, "status")
         )
+    for kreis in nutzdaten.get("heizkreise") or []:
+        geraet = kreis.pop("geraet")
+        kreis["automatik"] = _automatik_kennung(hass, geraet, "zustand", "sensor")
+        kreis["automatik_empfehlung"] = _automatik_kennung(hass, geraet, "empfehlung", "sensor")
+        kreis["automatik_tasten"] = {
+            art: _automatik_kennung(hass, geraet, f"empfehlung_{art}", "button")
+            for art in ("uebernehmen", "verwerfen")
+        }
 
 
 def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
@@ -190,7 +213,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     for anlage in anlagen_lesen(hass, benutzer):
         buch = woerterbuch_der_anlage(hass, anlage)
         nutzdaten = anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch)
-        _automatik_zuordnen(hass, nutzdaten)
+        _automatik_zuordnen(hass, anlage, nutzdaten)
         if not mit_hilfe:
             # Abgewählt: Die Texte gar nicht erst mitschicken.
             _ohne_hilfe(nutzdaten)

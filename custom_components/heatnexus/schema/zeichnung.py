@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Callable
+import re
 from typing import Any
 
 from .bauteile import aus_datei
 from .farben import FARBE_RAHMEN, FARBE_RUECKLAUF, FARBE_TITEL, FARBE_VORLAUF, FARBEN, SCHRIFT
+from .werte import WERTE_JE_ART
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
 # sind also Verhältnisse, keine Bildpunkte.
@@ -29,6 +31,12 @@ VORLAUF_Y = 92
 
 RUECKLAUF_Y = 318
 
+# Grundlinie eines einzeiligen Namens. Eine Zeile bleibt im Modul und berührt den Nachbarn nicht.
+NAME_Y = RUECKLAUF_Y + 58
+NAME_BREITE = MODUL_BREITE - 8
+NAME_ZEILENABSTAND = 22
+_SCHMALE_ZEICHEN = frozenset("fijlrtI.,:;'!|-/ ")
+
 
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
 # Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
@@ -43,6 +51,15 @@ WERT_HOEHEN_STANDARD = (170, 250)
 
 
 WERT_HOEHE_EINZELN = 206
+
+# Feste Stellen (x im Modul, y) je Kesselart und Beschriftung, wo die Zeichnung
+# dafür freie Fläche hat: an der Wärmepumpe über dem Lüfter und im Anzeigefeld.
+WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
+    "waermepumpe": {"Vorlauf": (100, 140), "COP": (118, 266)},
+}
+
+# Der Befüllgrad steht mittig über dem Vorratsbehälter, abseits der Leitungen.
+FUELLGRAD_STELLE = (19, 127)
 
 # Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
 Buch = Callable[[str], str]
@@ -133,6 +150,7 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "pumpenmodul": (150, 266),
     "solar": (158, 244),
     "umschaltung": (132, 284),
+    "hybridmanager": (140, 282),
     "modul": (132, 280),
     "heizstab": (150, 270),
     "fremdquelle": (152, 264),
@@ -304,6 +322,26 @@ ZSP_GEHAEUSE = (52, 150, 96, 116)
 ZSP_PUMPE = (100, 212, 26)
 
 
+# Dreiwegeventil und Lampen des Hybridmanagers, wörtlich aus `hybridmanager.svg`:
+# je Rolle das Rechteck um ihr Dreieck (x, y, Breite, Höhe) und die Spitze.
+HYBRID_DREIECKE = {
+    "kessel": (60, 172, 40, 32, "rechts"),
+    "waermepumpe": (100, 172, 40, 32, "links"),
+    "ausgang": (84, 188, 32, 36, "oben"),
+}
+
+
+HYBRID_LAMPEN = {"kessel": (70, 268, 5), "waermepumpe": (134, 268, 5)}
+
+
+# Fläche um Antrieb und Ventil, über die man die Betriebsart öffnet.
+HYBRID_VENTIL = (56, 146, 88, 80)
+
+
+# Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.
+WP_LUEFTER = (110, 196, 44, 34)
+
+
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
 
@@ -330,6 +368,55 @@ def _ersatzform(art: str) -> str:
     )
 
 
+def _namensbreite(text: str) -> float:
+    """Breite eines Namens; die Schrift wählt das Gerät, darum nur eine Schätzung."""
+    return sum(
+        6.2 if zeichen in _SCHMALE_ZEICHEN else 13 if zeichen.isupper() or zeichen in "mw" else 10.2
+        for zeichen in text
+    )
+
+
+def _gekuerzt(text: str) -> str:
+    """Der Text, mit „…“ am Ende auf die Breite einer Namenszeile gekürzt."""
+    if _namensbreite(text) <= NAME_BREITE:
+        return text
+    while _namensbreite(f"{text}…") > NAME_BREITE:
+        text = text[:-1]
+    return f"{text.rstrip()}…"
+
+
+def _namenszeilen(name: str) -> list[str]:
+    """Bricht einen langen Namen um; unter der Leitung ist Platz für zwei Zeilen."""
+    if _namensbreite(name) <= NAME_BREITE:
+        return [name]
+    stuecke = re.findall(r"\S+?(?:-(?=\S)|\s+|$)", name)
+    erste = ""
+    while stuecke and _namensbreite(erste + stuecke[0].rstrip()) <= NAME_BREITE:
+        erste += stuecke.pop(0)
+    if not erste:
+        return [_gekuerzt(name)]
+    return [erste.rstrip(), _gekuerzt("".join(stuecke).rstrip())]
+
+
+def _name(platz: int, x: int, name: str) -> str:
+    """Name eines Anlagenteils; `data-teil` lässt den Strang ihn aus der Zeichnung nehmen."""
+    # Größer als die Messwerte darüber: Der Name ist das erste, wonach man im Schaubild
+    # sucht, und die Karte skaliert das Bild auf ihre Breite.
+    zeilen = _namenszeilen(name)
+    y = NAME_Y if len(zeilen) == 1 else NAME_Y - NAME_ZEILENABSTAND // 2
+    inhalt = _escape(zeilen[0])
+    if len(zeilen) > 1:
+        inhalt = (
+            f'<tspan x="{x}">{inhalt}</tspan>'
+            f'<tspan x="{x}" dy="{NAME_ZEILENABSTAND}">{_escape(zeilen[1])}</tspan>'
+        )
+    return (
+        f'<text data-teil="{platz}" x="{x}" y="{y}" text-anchor="middle" '
+        f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
+        f"{inhalt}</text>"
+    )
+
+
 def _kasten(
     x: int, platz: int, modul: dict[str, Any], mischer: bool = True, buch: Buch | None = None
 ) -> str:
@@ -337,7 +424,8 @@ def _kasten(
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
     # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
-    zusatz = {}
+    # Den gezeichneten Brennstoff ersetzt die Oberfläche, sobald sie den Behälter selbst füllt.
+    zusatz = {"vorrat": "0"} if modul.get("behaelter") or modul.get("fuellgrad") else {}
     if (masse := SPEICHER_ARTEN.get(art)) is not None:
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
     inhalt = aus_datei(
@@ -367,20 +455,25 @@ def _kasten(
         f'<rect x="{MITTE - 2}" y="{unten}" width="4" height="{RUECKLAUF_Y - unten}" '
         f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
     )
-    # Größer als die Messwerte darüber: Der Name des Anlagenteils ist das
-    # erste, wonach man im Schaubild sucht, und die Karte skaliert das Bild
-    # auf ihre Breite – bei vier Anlagenteilen wird daraus schnell Kleingedrucktes.
-    titel = (
-        f'<text x="{MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
-        f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
-        f"{_escape((buch or _gleich)(modul['titel']))}</text>"
-    )
-    return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
+    titel = _name(platz, x + MITTE, (buch or _gleich)(modul["titel"]))
+    return f'<g transform="translate({x},0)">{anschluss}{inhalt}</g>{titel}'
 
 
-def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str, Any]]:
+# Arten, deren Werte ihre kurze Beschriftung mittragen: Am Heizkreis stehen
+# Vorlauf und Raum als zwei ähnliche Temperaturen übereinander. Selbst gewählte
+# Werte tragen ihren langen Namen und bleiben ohne.
+BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art in ("heizkreis",)}
+
+
+# Eine Zahl ohne Einheit braucht ihren Namen, gleich an welchem Anlagenteil.
+IMMER_BESCHRIFTET = frozenset({"COP"})
+
+
+def beschriftungen(
+    x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
+) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
-    mitte = x + MODUL_BREITE // 2
+    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
         WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
@@ -388,16 +481,26 @@ def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str,
         else (WERT_HOEHE_EINZELN,)
     )
 
+    stellen = WERT_STELLEN.get(modul.get("kesselart") or "", {})
     elemente = []
     for wert, y in zip(modul["werte"], hoehen, strict=False):
+        dx, y = stellen.get(wert.get("beschriftung"), (MODUL_BREITE // 2, y))
         elemente.append(
             {
                 "type": "state-label",
                 "entity": wert["entity_id"],
-                "prefix": "",
+                "prefix": (
+                    f"{(buch or _gleich)(wert['beschriftung'])} "
+                    if wert.get("beschriftung") in kurz
+                    else ""
+                ),
+                # Der kurze Name des Werts; unter dem Bild steht jede Zahl mit ihm.
+                "name": (buch or _gleich)(wert["beschriftung"])
+                if wert.get("beschriftung")
+                else None,
                 "style": {
                     "top": f"{y / HOEHE * 100:.1f}%",
-                    "left": f"{mitte / breite * 100:.1f}%",
+                    "left": f"{(x + dx) / breite * 100:.1f}%",
                     "transform": "translate(-50%, -50%)",
                     "color": "#ffffff",
                     "font-size": "15px",

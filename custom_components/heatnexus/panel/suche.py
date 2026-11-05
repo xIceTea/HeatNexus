@@ -33,6 +33,12 @@ def erster(
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
+def kennung(entitaeten: list[dict[str, Any]], muster: str) -> str | None:
+    """Die Kennung der ersten passenden Entität."""
+    gefunden = erster(entitaeten, muster)
+    return gefunden["entity_id"] if gefunden else None
+
+
 def zeilen_aus(
     entitaeten: list[dict[str, Any]], vorlage: tuple[Zeile, ...]
 ) -> list[dict[str, str]]:

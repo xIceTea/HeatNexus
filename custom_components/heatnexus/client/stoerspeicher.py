@@ -11,7 +11,7 @@ import logging
 
 from homeassistant.util import dt as dt_util
 
-from ..error_texts import _CODE_RE
+from ..error_texts import meldungscodes
 from ..exceptions import WindhagerWriteError, mit_text
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,8 +35,10 @@ def _zeit(roh) -> datetime | None:
         return None
 
 
-def _codes(meldung: str) -> set[int]:
-    return {int(code) for _, code in _CODE_RE.findall(meldung)}
+def _gemeldet(roh: dict, meldung: str) -> bool:
+    """Ob die FE01msg den Eintrag führt; ohne Kennbuchstaben im Eintrag zählt der Code allein."""
+    code, symbol = _code(roh), roh.get("symbol")
+    return any(c == code and (not symbol or symbol == art) for art, c in meldungscodes(meldung))
 
 
 def eintrag_aufbereiten(
@@ -54,7 +56,7 @@ def eintrag_aufbereiten(
         return None
     zuletzt = _zeit(roh.get("lastRxTime"))
     if meldung is not None:
-        aktiv = bool(roh.get("active")) and _code(roh) in _codes(meldung)
+        aktiv = bool(roh.get("active")) and _gemeldet(roh, meldung)
     else:
         aktiv = bool(roh.get("active")) and (zuletzt is None or jetzt - zuletzt <= AKTIV_HOECHSTENS)
     subnetz = roh.get("subnet")
@@ -174,7 +176,7 @@ class StoerspeicherMixin:
                     methode,
                     rest,
                     ret.status,
-                    await ret.text(),
+                    self._decode(await ret.read()),
                 )
                 raise mit_text(WindhagerWriteError, "stoerspeicher_abgelehnt", status=ret.status)
 

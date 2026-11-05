@@ -61,7 +61,10 @@ def _wird_benutzt(automationen: Path, kennung: str) -> bool:
     if not automationen.is_file():
         return False
     with contextlib.suppress(OSError):
-        return f"{DOMAIN}/{kennung}.yaml" in automationen.read_text(encoding="utf-8")
+        # Gesucht wird ein ASCII-Pfad; ein fremder Zeichensatz drumherum darf nicht scheitern.
+        return f"{DOMAIN}/{kennung}.yaml" in automationen.read_text(
+            encoding="utf-8", errors="replace"
+        )
     return True
 
 

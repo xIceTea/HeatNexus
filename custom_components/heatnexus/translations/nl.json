@@ -1,9 +1,13 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "Deze installatie is al ingesteld",
       "reauth_successful": "Wachtwoord bijgewerkt",
-      "reconfigure_successful": "Adres gewijzigd"
+      "reconfigure_successful": "Adres gewijzigd",
+      "adresse_nachgefuehrt": "De regelaar antwoordt op een nieuw adres. De installatie is aangepast.",
+      "kein_umzug": "Op {host} antwoordt niet de regeling die nu zwijgt. Het adres blijft ongewijzigd.",
+      "umzug_nicht_geprueft": "De regeling op {host} kon niet worden gecontroleerd. Het adres blijft ongewijzigd."
     },
     "create_entry": {
       "default": "De installatie is ingericht. Laad de pagina één keer opnieuw, zodat de kaarten in het dashboard verschijnen."
@@ -89,6 +93,14 @@
         },
         "data_description": {
           "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in."
+        }
+      },
+      "umzug": {
+        "title": "Is de regeling verhuisd?",
+        "description": "Op {host} meldt zich een regeling, terwijl een ingestelde regeling op dit moment niet antwoordt. Is ze verhuisd, dan controleert HeatNexus met de opgeslagen toegang of op {host} dezelfde regeling antwoordt. Alleen kiezen als het apparaat op {host} bekend is.",
+        "menu_options": {
+          "umzug_pruefen": "Ja, adres bijwerken",
+          "user": "Nee, als nieuwe regeling instellen"
         }
       }
     }
@@ -272,6 +284,7 @@
       "options": {
         "solar": "Zonneboilersysteem",
         "heizstab": "Elektrisch verwarmingselement",
+        "waermepumpe": "Warmtepomp",
         "fremdquelle": "Stadsverwarming of andere bron"
       }
     },
@@ -483,6 +496,46 @@
       },
       "stoerspeicher": {
         "name": "Meldingen"
+      },
+      "uhrabweichung": {
+        "name": "Klokafwijking",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Tijd van de regeling"
+          }
+        }
+      },
+      "anlagenzustand": {
+        "name": "Installatiestatus",
+        "state": {
+          "in_ordnung": "In orde",
+          "info": "Infomelding",
+          "fehler": "Foutmelding",
+          "alarm": "Alarmmelding",
+          "nicht_erreichbar": "Regelaar niet bereikbaar",
+          "serviceausbrand": "Service-uitbranden loopt",
+          "nach_serviceausbrand": "Ketel uit na service-uitbranden",
+          "kaminkehrer": "Schoorsteenveger actief",
+          "lagerraum": "Opslagruimte vullen",
+          "sonderbetrieb": "Speciale werking",
+          "schaltet_ab": "Ketel schakelt uit",
+          "kessel_aus": "Ketel uitgeschakeld",
+          "brenner_gesperrt": "Brander geblokkeerd"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Meldingsniveau"
+          },
+          "kesselzustand": {
+            "name": "Ketelstatus"
+          },
+          "betriebsart": {
+            "name": "Bedrijfsstatus"
+          },
+          "betriebsphase": {
+            "name": "Bedrijfsfase"
+          }
+        }
       }
     },
     "binary_sensor": {
@@ -528,13 +581,17 @@
       "fix_flow": {
         "step": {
           "confirm": {
-            "title": "Entiteiten zonder datapunt verwijderen",
-            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt.\n\n{liste_anfang}Entiteiten tonen{liste_ende}"
+            "title": "Entiteiten zonder datapunt",
+            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nSommige waarden levert de installatie alleen in bepaalde bedrijfsmodi. Zulke entiteiten kun je behouden. Deze reparatie meldt ze dan niet meer. Levert de installatie de waarde weer, dan loopt de entiteit met haar geschiedenis door.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt.\n\n{liste_anfang}Entiteiten tonen{liste_ende}",
+            "menu_options": {
+              "loeschen": "Entiteiten verwijderen",
+              "behalten": "Entiteiten behouden"
+            }
           }
         },
         "abort": {
           "nicht_geladen": "De installatie is op dit moment niet geladen. Probeer het later opnieuw.",
-          "nichts_verwaist": "Alle entiteiten hebben hun datapunt weer. Er hoeft niets te worden verwijderd."
+          "nichts_verwaist": "Alle entiteiten hebben hun datapunt weer. Er hoeft niets te gebeuren."
         }
       }
     },
@@ -553,6 +610,10 @@
     "automatik_prognose": {
       "title": "Automatisering {heizkreis}: geen weersverwachting",
       "description": "Voor de automatisering van het verwarmingscircuit **{heizkreis}** levert de weerentiteit **{wetter}** al enkele uren geen verwachting. Zonder verwachting neemt ze geen nieuwe beslissingen.\n\nControleer of de weerentiteit beschikbaar is en een dag- of uurverwachting levert, of kies in de instellingen van de automatisering een andere weerentiteit. Deze melding verdwijnt zodra er weer een verwachting binnenkomt."
+    },
+    "zirkulation_ohne_ein": {
+      "title": "Circulatiepomp van {anlage} draait niet",
+      "description": "De circulatiepomp van **{anlage}** staat op tijd- of impulssturing, maar alle schakeltijden in het tijdprogramma staan op Uit. De pomp draait daardoor nooit.\n\nZet in het tijdprogramma minstens één schakeltijd op Aan of kies een andere sturing. Deze melding verdwijnt daarna vanzelf."
     }
   },
   "config_subentries": {
@@ -628,11 +689,20 @@
     "wert_abgelehnt": {
       "message": "De installatie heeft de nieuwe waarde niet aangenomen. De instelling is in de huidige toestand van de installatie vergrendeld of niet te wijzigen. Datapunt {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "De installatie {anlage} heeft de schrijfopdracht niet beantwoord: geen verbinding of tijd verstreken. Een latere poging lukt meestal. Datapunt {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "De installatie heeft de schrijfopdracht niet beantwoord. Een latere poging lukt meestal. Datapunt {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
       "message": "De installatie heeft het tijdprogramma niet aangenomen. Controleer de schakeltijden. Datapunt {oid}, HTTP {status}."
+    },
+    "name_abgelehnt": {
+      "message": "De installatie heeft de naam niet aangenomen. Datapunt {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "De naam is te lang. Toegestaan zijn hoogstens {hoechstens} bytes; een umlaut telt dubbel."
     },
     "voreinstellung_unbekannt": {
       "message": "De voorinstelling {voreinstellung} bestaat niet."
@@ -737,6 +807,16 @@
         }
       }
     },
+    "heizkreis_umbenennen": {
+      "name": "Verwarmingscircuit hernoemen",
+      "description": "Schrijft de naam van het verwarmingscircuit naar de regeling. Het bedieningspaneel toont hem meteen. De functielijst van de webserver, en daarmee de apparaatnaam in Home Assistant, volgen na een herstart van de webserver en een nieuwe detectie.",
+      "fields": {
+        "name": {
+          "name": "Naam",
+          "description": "Hoogstens 20 bytes; een umlaut telt dubbel."
+        }
+      }
+    },
     "meldungen_loeschen": {
       "name": "Meldingenlijst wissen",
       "description": "Leegt de meldingenlijst van een apparaat. Als het bedieningspaneel een meldingenlijst heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant."
@@ -761,7 +841,7 @@
       "fields": {
         "switch_points": {
           "name": "Schakelpunten",
-          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur. Geldt voor het blok uit weekdays."
+          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur, of 1 voor aan en 0 voor uit bij een schakelprogramma. Geldt voor het blok uit weekdays."
         },
         "weekdays": {
           "name": "Weekdagen",

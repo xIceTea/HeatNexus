@@ -252,7 +252,7 @@ class QuellenMixin:
     async def _prognose(self, art: str) -> list[dict[str, Any]] | None:
         return await self._prognose_quelle(self.konfig["wetter"], art)
 
-    async def _prognose_holen(self) -> None:
+    async def _prognose_holen(self) -> bool:
         """Stunden und Tage holen, nur was die Entität kann; ohne Tage gelten Halbtage.
 
         Nennt die Entität keine Art, wird trotzdem gefragt: Ihr Fehler gehört in Protokoll und Diagnose.
@@ -277,9 +277,26 @@ class QuellenMixin:
             )
         if tage is not None:
             self._tage = tageswerte(tage, halbtage)
-        if stunden is not None or tage is not None:
+        geliefert = stunden is not None or tage is not None
+        if geliefert:
             self._prognose_zeit = dt_util.now()
         self._prognose_melden()
+        return geliefert
+
+    def _prognose_wiederherstellen(self) -> None:
+        """Die gesicherte Vorhersage übernehmen; sie behält ihre Zeit, das Alter zählt weiter."""
+        wetter = self.konfig["wetter"]
+        stunden = self._prognose_gesichert(wetter, "hourly")
+        tage = self._prognose_gesichert(wetter, "daily")
+        halbtage = tage is None
+        if halbtage:
+            tage = self._prognose_gesichert(wetter, "twice_daily")
+        if stunden is not None:
+            self.stunden = stunden[1]
+        if tage is not None:
+            self._tage = tageswerte(tage[1], halbtage)
+        if zeiten := [teil[0] for teil in (stunden, tage) if teil is not None]:
+            self._prognose_zeit = max(zeiten)
 
     def _prognose_melden(self) -> None:
         """Fehlt die Vorhersage länger als `PROGNOSE_MELDEN`, eine Reparaturmeldung; sonst keine."""

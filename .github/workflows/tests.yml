@@ -13,6 +13,8 @@ on:
 jobs:
   lint:
     name: Ruff
+    # Ein Release-Zweig dieses Repos läuft schon beim Push; sein PR startete denselben Lauf ein zweites Mal.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release/') || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -26,6 +28,8 @@ jobs:
 
   kommentare:
     name: Kommentarlänge
+    # Ein Release-Zweig dieses Repos läuft schon beim Push; sein PR startete denselben Lauf ein zweites Mal.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release/') || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -42,6 +46,8 @@ jobs:
 
   pytest:
     name: ${{ matrix.titel }}
+    # Ein Release-Zweig dieses Repos läuft schon beim Push; sein PR startete denselben Lauf ein zweites Mal.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release/') || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

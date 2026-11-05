@@ -1,22 +1,32 @@
-"""Wärmepumpe mit Energiemanagement (fctType 26).
+"""Hybridmanager (fctType 26).
 
-Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+Ohne gepflegte Datenpunkttabelle: Die Datenpunkte kommen aus den Menü-Ebenen
+der Anlage, dazu die Außentemperatur der Regelung und der SG-Ready-Zustand.
 """
 
 from __future__ import annotations
 
 FCT_TYPE = 26
-MODELL = "Wärmepumpe (Energiemanagement)"
-RANG = 10
-SYMBOL = "mdi:heat-pump"
-SCHAUBILD = "kessel"
+# Name wie in den AeroWIN-Anleitungen („Hybridmanager → Betreiberebene“).
+MODELL = "Hybridmanager"
+RANG = 16
+SYMBOL = "mdi:valve"
+# Er erzeugt keine Wärme und speichert keine, sondern schaltet zwischen BioWIN
+# und AeroWIN um – im Schaubild als Ventilgruppe mit Pumpe im Rücklauf.
+SCHAUBILD = "hybridmanager"
 
-EXTRA_OIDS: tuple[str, ...] = ()
-KESSELART: str | None = "waermepumpe"
+# Keiner steht in einer Bedienebene der Datenbank; abgeglichen mit der App an einer
+# BioWIN Hybrid. 50/54 ist die Kessel-/Bypasspumpe, die das Schaubild dreht.
+EXTRA_OIDS: tuple[str, ...] = ("52/10", "54/49", "50/54")
+KESSELART: str | None = None
 
-# Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+# Interne Rechenwerte: Datenbank, App und Display führen sie nicht. Benannt
+# nach Nachrechnung: Pelletpreis ÷ (Heizwert × Wirkungsgrad) und Strompreis ÷
+# Wärmepreis. Danach wählt der Hybridmanager zwischen Kessel und Wärmepumpe.
+NAMEN: dict[str, str] = {
+    "54/3": "Wärmepreis Pellets (ct/kWh)",
+    "54/4": "Grenz-COP",
+}
 
 NUR_BUS: tuple[str, ...] = ()
 ENTITAETEN: list[dict] = []

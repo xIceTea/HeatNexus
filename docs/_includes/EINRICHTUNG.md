@@ -10,8 +10,31 @@ Weboberfläche. Es ist derselbe Zugang, mit dem man sich auch im Browser an der
 Anlage anmeldet — kein Konto bei Windhager, kein Portal.
 
 Ob der Weg frei ist, zeigt ein Blick in den Browser: Unter
-`http://<IP der Anlage>` muss die Weboberfläche des InfoWIN Touch erscheinen.
+`http://<IP der Anlage>` muss die Weboberfläche von InfoWIN Touch oder InfoWIN Plus
+erscheinen.
 Kommt sie, stimmen IP und Zugang.
+
+### Was vom Bediengerät abhängt
+
+Nicht jedes Bediengerät bietet dasselbe an. HeatNexus fragt beim Start, was die
+Steuerung kann, und zeigt nur das. Was erkannt wurde, steht im Diagnose-Export
+unter `faehigkeiten`.
+
+| | InfoWIN Touch 0.10 | InfoWIN Touch ab 2 | InfoWIN Plus |
+|---|---|---|---|
+| Meldungsliste lesen | 🟢 | ⚪ | ⚪ |
+| Zurücksetzen schließt die Meldung am Bediengerät | 🟢 | ⚪ | – eigene Anzeige |
+| Störung am Kessel zurücksetzen | – | ⚪ | ⚪ |
+| Eine Anforderung aus Home Assistant öffnet die Seite am Bediengerät | – | – | – |
+
+🟢 an der Anlage geprüft · ⚪ aus der Bedienoberfläche des Herstellers abgeleitet,
+an der Anlage nicht geprüft · – gibt es nicht.
+
+Ohne Meldungsliste des Bediengeräts sammelt HeatNexus die Meldungen selbst.
+Fordert Home Assistant die Lagerraumbefüllung oder den Kaminkehrer an, zeigt das
+Bediengerät die neue Betriebsart in der Statuszeile, öffnet aber keine eigene
+Seite. Die Seite am Gerät beendet den Vorgang beim Verlassen; aus Home
+Assistant beendet ihn die Taste „beenden“.
 
 ### Welches Passwort
 
@@ -119,6 +142,14 @@ Ein kürzeres Intervall bringt deshalb wenig und kostet: Die Steuerung
 beantwortet Anfragen nacheinander, mehr Gleichzeitigkeit verkürzt einen
 Durchlauf nicht.
 
+## Die erste Minute
+
+Nach dem Einrichten entsteht zuerst ein Grundstock an Entitäten. Danach liest
+HeatNexus die Anlage im Hintergrund ein; je nach Anlage dauert das 30 bis 120
+Sekunden, und in dieser Zeit kommen laufend Entitäten dazu. Direkt nach dem
+Einrichten sind also erst wenige Werte zu sehen. Der Stand wird gespeichert und
+ist nach einem Neustart sofort da.
+
 ## Was zusätzlich angelegt wird
 
 | Schalter | Vorgabe | Wirkung |
@@ -142,9 +173,11 @@ Geräteseite öffnet dieselben Angaben wieder, „Löschen" entfernt sie.
 
 Je Quelle werden angegeben:
 
-- **Name** und **Bauart** (Solaranlage, Heizstab, Fernwärme oder sonstige
-  Quelle). Die Bauart wählt das Symbol und den Platz im Schaubild: Der Heizstab
-  liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen Kasten.
+- **Name** und **Bauart** (Solaranlage, Heizstab, Wärmepumpe, Fernwärme oder
+  sonstige Quelle). Die Bauart wählt das Symbol und den Platz im Schaubild: Der
+  Heizstab liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen
+  Kasten. Eine Wärmepumpe erscheint wie die AeroWIN, mit Lüfter und
+  Betriebslampe. Das gilt auch für eine sonstige Quelle mit „Wärmepumpe“ im Namen.
 - **Bedingung**, wann die Quelle Wärme liefert — ein Zustand („an"), eine
   Schwelle (ab diesem Wert) oder die Differenz zweier Entitäten, etwa Kollektor
   minus Puffer — und die Entität, die darüber entscheidet.
@@ -208,6 +241,9 @@ Stand bewusst nicht — das kostete jedes Mal einen vollen Neuabzug. Stattdessen
 wird der gespeicherte Stand sofort hergestellt und im Hintergrund abgeglichen;
 neue Entitäten melden sich, sobald sie da sind.
 
-`heatnexus.rediscover` braucht es nur nach einem **Umbau an der Heizung** — ein
-neuer Heizkreis, ein neues Modul. Der Dienst meldet danach je Anlage zurück,
-was gefunden wurde.
+Einen **Umbau an der Heizung** erkennt HeatNexus von selbst: Neue und entfernte
+Anlagenteile erscheinen ohne Neustart. `heatnexus.rediscover` erzwingt das Einlesen
+sofort und meldet je Anlage zurück, was gefunden wurde.
+
+**Ändert sich die Adresse der Steuerung**, findet Home Assistant sie im Netz und
+fragt nach, ob HeatNexus der neuen Adresse folgen soll.

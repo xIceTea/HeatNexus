@@ -191,3 +191,17 @@ def test_englische_auswahltexte_aus_der_herstellerdatei(device_db):
 def test_sprache_ohne_tabelle_liefert_nichts(device_db):
     assert device_db.get_name("0/0", "fr") is None
     assert device_db.get_enum("9/75", "fr") is None
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_jeder_name_und_auswahltext_hat_eine_fassung_in_der_sprache(device_db, sprache):
+    """Fehlt der Herstellertext, füllt `tools/datenpunktnamen.json` die Lücke."""
+    db = device_db._db()
+    namen = sorted(g for g in db["names"] if not device_db.get_name(g, sprache))
+    auswahl = sorted(
+        f"{g}={wert}"
+        for g, tabelle in db["enums"].items()
+        for wert in tabelle
+        if wert not in (db["sprachen"][sprache]["enums"].get(g) or {})
+    )
+    assert (namen, auswahl) == ([], [])

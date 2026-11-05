@@ -679,9 +679,8 @@ def test_zeitprogramme_tragen_ihren_anlagenteil(panel):
 def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     """`5/6` entscheidet, ob die Pumpe dem Programm überhaupt folgt.
 
-    Steht sie auf Temperatur- oder Impulssteuerung, läuft das schönste
-    Zirkulationsprogramm ins Leere. Versteckt wird die Karte trotzdem nicht –
-    vorbereiten können muss man es.
+    Das Programm gilt bei Zeit- und Impulssteuerung. Bei Temperatursteuerung
+    bleibt die Karte sichtbar, damit es sich vorbereiten lässt.
     """
     kreis = teil(
         "UMLZ HEIZKREIS",
@@ -696,6 +695,7 @@ def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     wirkung = programme["WW-Zirkulationsprogramm"]["wirkung"]
     assert wirkung["entity"] == "select.ww_zirkulationspumpe"
     assert wirkung["muster"] == "zeitsteuerung"
+    assert wirkung["muster_auch"] == "impulssteuerung"
     # Das Heizprogramm hängt an nichts – es wirkt immer.
     assert "wirkung" not in programme["Programm 1"]
 
@@ -1597,9 +1597,10 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
     ],
 )
 def test_zaehlermuster_treffen_nur_den_ganzen_namen(name, gesucht):
-    from custom_components.heatnexus.panel.muster import STATUS
+    from custom_components.heatnexus.geraete.statuszeilen import EINZELN
 
-    treffer = [titel for muster, titel, *_ in STATUS if re.search(muster, name.lower())]
+    zeilen = [z for z in EINZELN if z.panel]
+    treffer = [z.titel for z in zeilen if re.search(z.muster, name.lower())]
     assert treffer[:1] == ([gesucht] if gesucht else [])
 
 
@@ -1630,3 +1631,66 @@ def test_ein_vorlaufprogramm_ohne_optionstexte_folgt_seiner_nummer(panel):
     )
     (karte,) = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
     assert karte["wirkung"]["muster"] == "programm 2"
+
+
+def test_panel_daten_fuehren_den_kesselzustand(panel):
+    """Der Kopf der Übersicht braucht die Beschreibung des Kesselzustands."""
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet(
+                "sensor.art",
+                "Betriebsart",
+                adresse="2/59",
+                optionen={0: "Ausgeschaltet", 9: "Kaminkehrerfunktion"},
+            ),
+        ],
+    )
+    daten = panel.anlage_daten(anlage(kessel))
+    assert daten["kesselzustand"]["betriebsart"] == "sensor.art"
+
+
+async def test_die_automatik_haengt_an_der_kennung_des_heizkreises(hass, panel):
+    """Die Automatik kennt den Heizkreis unter seiner HeatNexus-Kennung, das Panel unter der Geräte-ID."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.automatik.verwaltung import unique_id
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="automatikeintrag", data={}, options={})
+    eintrag.add_to_hass(hass)
+    kreis_geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id, identifiers={(DOMAIN, "SN1-1-0")}, name="Heizkreis"
+    )
+    register = er.async_get(hass)
+    erwartet = {
+        art: register.async_get_or_create(
+            domaene, DOMAIN, unique_id("SN1-1-0", art), config_entry=eintrag
+        ).entity_id
+        for art, domaene in (
+            ("zustand", "sensor"),
+            ("empfehlung", "sensor"),
+            ("empfehlung_uebernehmen", "button"),
+            ("empfehlung_verwerfen", "button"),
+        )
+    }
+    nutzdaten = {
+        "heizkreise": [
+            {"titel": "Heizkreis", "geraet": kreis_geraet.id},
+            {"titel": "Ohne", "geraet": "fehlt"},
+        ]
+    }
+
+    panel._automatik_zuordnen(hass, {}, nutzdaten)
+
+    mit, ohne = nutzdaten["heizkreise"]
+    assert mit["automatik"] == erwartet["zustand"]
+    assert mit["automatik_empfehlung"] == erwartet["empfehlung"]
+    assert mit["automatik_tasten"] == {
+        "uebernehmen": erwartet["empfehlung_uebernehmen"],
+        "verwerfen": erwartet["empfehlung_verwerfen"],
+    }
+    assert ohne["automatik"] is None and "geraet" not in ohne

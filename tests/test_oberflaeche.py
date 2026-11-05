@@ -512,15 +512,30 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 
 
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
-    """Eine Wahl bleibt Entwurf: „Übernehmen“ speichert sie, „Verwerfen“ lässt die alte stehen."""
+    """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2]
-    assert darstellung["anfangs"][1:] == [["standard"], ["zeichen"]]
-    assert darstellung["nachKlick"][1:] == [["farbig"], ["zeichen"]]
-    assert darstellung["kopfNachKlick"] == "standard"
+    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3]
+    assert darstellung["anfangs"][1:] == [
+        ["standard"],
+        ["zeichen"],
+        ["umbrechen"],
+        ["mittel"],
+        ["automatisch"],
+        ["mittel"],
+    ]
+    assert darstellung["nachKlick"][1:] == [
+        ["farbig"],
+        ["zeichen"],
+        ["umbrechen"],
+        ["mittel"],
+        ["automatisch"],
+        ["mittel"],
+    ]
+    assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
     assert darstellung["kopfNachUebernehmen"] == "farbig"
     assert darstellung["leisteAnfangs"] == {"text": "Schließen"}
+    assert darstellung["kopfInDerVorschau"] == "schlicht"
     assert darstellung["kopfNachVerwerfen"] == "farbig"
     assert darstellung["zu"] is True
 
@@ -1390,6 +1405,119 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     assert abzeichen["ohne"] is True
 
 
+def test_die_marke_am_heizkoerper_nimmt_klicks_an():
+    """Keine Regel mit dem Klassennamen der Marke darf Klicks abschalten."""
+    stil = (PANEL_JS.parent / "stil" / "automatik.js").read_text(encoding="utf-8")
+    regeln = re.findall(r"([^{}]+)\{([^{}]*)\}", stil)
+    marke = [(kopf.strip(), inhalt) for kopf, inhalt in regeln if "automatik-bildmarke" in kopf]
+    assert [kopf for kopf, inhalt in marke if "pointer-events: none" in inhalt] == []
+    # Eine eigene Anzeigeart dort hebt `[hidden]` bei gleicher Spezifität auf.
+    eigene = [
+        (kopf, inhalt) for kopf, inhalt in marke if "ha-icon" not in kopf and "[hidden]" not in kopf
+    ]
+    assert [kopf for kopf, inhalt in eigene if "display:" in inhalt] == []
+    assert any(":hover" in kopf and "background-color" in inhalt for kopf, inhalt in marke)
+
+
+def test_das_zeichen_der_marke_teilt_den_kasten_der_scheibe():
+    """Gleicher Kasten und gerade Maße: Sonst runden Scheibe und Zeichen verschieden."""
+    stil = (PANEL_JS.parent / "stil" / "automatik.js").read_text(encoding="utf-8")
+    assert re.search(r"automatik-bildmarke ha-icon \{[^}]*inset: 0;[^}]*transform: scale\(", stil)
+    assert "width: round(var(--bild-groesse), 2px)" in stil
+    assert "@supports (width: round(1%, 2px))" in stil
+
+
+def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
+    """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung."""
+    bild = durchlauf["automatikImBild"]
+    assert bild["nachTitel"] is True
+    assert bild["markeOeffnet"] is True
+    # Ab zwei Kreisen bleibt die Titelzeile frei; jeder Kreis steht in einer eigenen Zeile.
+    assert bild["zwei"] == {"imKopf": 0, "zeilen": 2}
+    assert bild["pillen"] == 1
+    assert bild["programm"] == {
+        "pille": "Automatik · Heizen nach Programm",
+        "zustand": "programm",
+        "grund": "Sonnenquote 48 % unter 55 % – keine Absenkung.",
+        "tasten": False,
+        "marke": None,
+    }
+    assert bild["sonnentag"]["pille"] == "Sonnentag · 19,5 °C"
+    assert bild["sonnentag"]["marke"] == "sonnentag"
+    assert bild["sonnentag"]["tasten"] is False
+    assert bild["empfehlung"] == {
+        "pille": "Empfehlung · Sonnentag",
+        "zustand": "empfehlung",
+        "grund": "Sonnenquote 72 % – Absenkung vorgeschlagen.",
+        "tasten": True,
+        "marke": "empfehlung",
+    }
+    assert bild["gedrueckt"] == [
+        {"dienst": "button.press", "angaben": {"entity_id": "button.hk_uebernehmen"}}
+    ]
+    assert bild["aus"]["pille"] is None and bild["aus"]["marke"] is None
+    assert bild["reiter"] == "automatik"
+
+
+def test_die_farben_der_beschriftung_stehen_als_felder_im_fenster(durchlauf):
+    """Vorgegebene Felder wirken in jedem Browser; das eigene Farbfeld bleibt dazu erhalten."""
+    assert durchlauf["beschriftungFarben"] == {
+        "eigenesFeld": {
+            "symbol": "mdi:eyedropper",
+            "gewaehltVorher": False,
+            "gewaehltDanach": True,
+            "farbe": "#123456",
+            "titel": "Eigene Farbe",
+        },
+        "knopf": "Zurücksetzen",
+        "warnung": {"anfangsLesbar": True, "gleich": False, "dunkelAufHell": True},
+        "name": {"titel": "Gelb", "aria": "Schriftfarbe: Gelb"},
+        "leisten": 2,
+        "eigene": [1, 1],
+        "anfangs": ["#ffffff"],
+        "nachKlick": ["#ffd166"],
+        "vorschau": "#ffd166",
+    }
+
+
+def test_die_beschriftung_folgt_der_darstellung(durchlauf):
+    """Eigene Farben färben Marken und Namen; ohne Wahl bleibt das Schaubild wie ausgeliefert."""
+    farben = durchlauf["beschriftung"]
+    assert farben["ausgeliefert"] == {"farben": {}, "grund": ""}
+    assert farben["grund"] == "color-mix(in srgb, #ffffff 40%, transparent)"
+    assert farben["schrift"] == "#ff69b4"
+    assert farben["namePink"] is True
+    assert farben["andererTextBleibt"] is True
+    assert farben["nurSchrift"] == {"schrift": "#ff69b4"}
+
+
+def test_der_kesselzustand_ersetzt_im_kopf_die_meldung_in_ordnung(durchlauf):
+    """Kaminkehrer aktiv: Das Sonderabzeichen erscheint, „Anlage in Ordnung“ entfällt."""
+    kopf = durchlauf["kesselzustandKopf"]
+    assert kopf["kaminkehrer"]["ok"]["anzeige"] == "none"
+    assert kopf["kaminkehrer"]["sonder"] == {
+        "anzeige": "",
+        "text": "Kaminkehrer aktiv",
+        "symbol": "mdi:account-hard-hat",
+    }
+
+
+@pytest.mark.parametrize("fall", ["imBetrieb", "ohneBeschreibung"])
+def test_ohne_besonderen_kesselzustand_bleibt_anlage_in_ordnung(durchlauf, fall):
+    """Im Normalbetrieb und ohne Beschreibung vom Server bleibt nur das übliche Abzeichen."""
+    kopf = durchlauf["kesselzustandKopf"][fall]
+    assert kopf["ok"] == {"anzeige": "", "text": "Anlage in Ordnung"}
+    assert kopf["sonder"]["anzeige"] == "none"
+
+
+def test_meldung_und_kesselzustand_stehen_gemeinsam_im_kopf(durchlauf):
+    """Liegt eine Meldung an, bleibt sie neben dem Kesselzustand sichtbar."""
+    kopf = durchlauf["kesselzustandKopf"]["mitMeldung"]
+    assert kopf["ok"] == {"anzeige": "", "text": "Fehler-Meldung anliegend"}
+    assert kopf["sonder"]["anzeige"] == ""
+    assert kopf["sonder"]["text"] == "Kaminkehrer aktiv"
+
+
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
@@ -1425,3 +1553,82 @@ def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
 
 def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
     assert durchlauf["fokus"] == {"neuGezeichnet": True, "behalten": True}
+
+
+# Der Systemstatus ab zwei Erzeugern: Kopfzeile je Erzeuger, auf- und zuklappbar.
+ERZEUGER = Path(__file__).parent / "js" / "systemstatus-erzeuger.mjs"
+
+
+@pytest.fixture(scope="module")
+def erzeuger() -> dict:
+    lauf = subprocess.run(
+        ["node", str(ERZEUGER), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+def test_die_kopfzeile_reiht_die_kopfwerte_mit_vorsatz(erzeuger):
+    """Ein Wert ohne Zustand fällt weg, statt als „unavailable“ im Kopf zu stehen."""
+    assert erzeuger["namen"] == ["AeroWIN", "BioWIN"]
+    assert erzeuger["kopf_aero"] == "Heizen · 62 % · COP 3.6"
+    assert erzeuger["kopf_bio"] == "Standby"
+
+
+def test_der_name_des_erzeugers_wird_nicht_uebersetzt(erzeuger):
+    """Ein Gerätename wie „Wärmepumpe“ steht im Wörterbuch, gehört aber der Anlage."""
+    assert erzeuger["namen_roh"] == [True, True]
+
+
+def test_die_kopfwerte_stehen_nicht_noch_einmal_darunter(erzeuger):
+    assert erzeuger["zeilen_aero"] == ["Starts"]
+    assert erzeuger["oben"] == ["Außentemperatur"]
+
+
+def test_die_regelung_steht_unter_den_erzeugern(erzeuger):
+    """Heizkreise, Hybridmanager, SG Ready und zuletzt die Automatik."""
+    assert erzeuger["regelung_nach_erzeugern"] is True
+    assert erzeuger["regelung"] == [
+        "Regelung",
+        ["Heizkreise", "Heizen nach Programm"],
+        ["Hybridmanager", "Eco-Betrieb · AeroWIN heizt"],
+        ["SG Ready", "Normalbetrieb"],
+        ["Automatik", "beobachten"],
+    ]
+
+
+def test_heizkreise_nennen_nur_abweichende_kreise(erzeuger):
+    assert erzeuger["kreise_abweichend"] == "Kreis 2 sonnentag"
+
+
+def test_ein_klick_auf_die_automatik_oeffnet_ihren_reiter(erzeuger):
+    assert erzeuger["klick_automatik"] == ["automatik", True]
+
+
+def test_ohne_regelung_kein_abschnitt(erzeuger):
+    assert erzeuger["ohne_regelung"] == 0
+
+
+def test_je_anlage_offen_unter_alle_zu(erzeuger):
+    assert erzeuger["offen_je_anlage"] == [True, True]
+    assert erzeuger["offen_unter_alle"] == [False, False]
+
+
+def test_die_gemerkte_wahl_gilt_vor_der_vorgabe(erzeuger):
+    assert erzeuger["gemerkt"] == [True, False]
+
+
+def test_nur_ein_klick_wird_gespeichert(erzeuger):
+    """Auch das Setzen beim Aufbau meldet „toggle“; das darf nichts schreiben."""
+    assert erzeuger["ohne_klick_gespeichert"] == 0
+    assert erzeuger["nach_klick"] == [{"erzeuger": {"anlage:aero": False}}]
+
+
+def test_ein_wechsel_von_profil_oder_heizflaechen_behaelt_eigene_werte():
+    quelle = (PANEL_JS.parent / "teile" / "einrichtung.js").read_text(encoding="utf-8")
+    assert "{ profil: wahl.value }" in quelle
+    assert "nachricht.eigene" not in quelle

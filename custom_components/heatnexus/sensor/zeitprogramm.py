@@ -62,6 +62,18 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         "nl": ("dagelijks", "geen schakelpunten"),
     }
 
+    # Ein Programm nur aus 0 und 1 schaltet; eine Solltemperatur von 1 °C gibt es nicht.
+    _SCHALTWORTE = {
+        "de": ("Aus", "Ein"),
+        "en": ("Off", "On"),
+        "nl": ("Uit", "Aan"),
+    }
+
+    @classmethod
+    def _schaltet(cls, blocks: list) -> bool:
+        werte = [p.get("value") for b in blocks for p in b.get("switchPoints", [])]
+        return bool(werte) and all(w in (0, 1) for w in werte)
+
     @property
     def _blocks(self):
         if not self.coordinator.data:
@@ -87,12 +99,15 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         return ", ".join(tage.get(d, d) for d in days)
 
     @classmethod
-    def _fmt_points(cls, points: list, sprache: str = "de") -> str:
+    def _fmt_points(cls, points: list, sprache: str = "de", schaltet: bool = False) -> str:
         out = []
         for p in points or []:
             t = p.get("time", "?")
             v = p.get("value")
-            out.append(f"{t}→{v}°" if v is not None else f"{t}→–")
+            if schaltet:
+                out.append(f"{t}→{cls._SCHALTWORTE[sprache][v]}")
+            else:
+                out.append(f"{t}→{v}°" if v is not None else f"{t}→–")
         return ", ".join(out) if out else cls._WORTE[sprache][1]
 
     @property
@@ -101,9 +116,10 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         if not blocks:
             return None
         sprache = textsprache(self._sprache)
+        schaltet = self._schaltet(blocks)
         parts = [
             f"{self._fmt_days(b.get('weekdays', []), sprache)}: "
-            f"{self._fmt_points(b.get('switchPoints', []), sprache)}"
+            f"{self._fmt_points(b.get('switchPoints', []), sprache, schaltet)}"
             for b in blocks
         ]
         text = " | ".join(parts)

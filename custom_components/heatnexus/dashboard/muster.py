@@ -1,7 +1,8 @@
 """Welche Datenpunkte das Dashboard wo zeigt – Namensmuster und kanonische Schlüssel.
 
 Je Ansicht eine Tabelle: Vorrang in der Übersicht, Rundinstrumente, Wartung,
-Zustand, Verlauf, und die Rückfrage vor einer Taste.
+Verlauf, und die Rückfrage vor einer Taste. Den Zustand der Schaubild-Karte
+führen die Gerätemodule (`geraete/statuszeilen.py`).
 """
 
 from __future__ import annotations
@@ -87,28 +88,6 @@ WARTUNG_WEITERE_SCHLUESSEL = (
     "cleaning_confirm",
     "operating_hours",
     "burner_starts",
-)
-
-
-# Schaubild-Ansicht: der Zustand der Anlage in Kurzform.
-ZUSTAND = namensmuster(
-    r"betriebsphase",
-    r"meldung klartext",
-    r"au(ß|ss)entemperatur",
-    r"kesselleistung",
-    r"aktueller brennstoff",
-    r"vorratsbeh",
-)
-
-
-# „Meldung Klartext" hat keine Adresse: Der Text entsteht aus `FE01msg` und
-# steht in keiner Datenpunkttabelle. Dort bleibt es beim Namen.
-ZUSTAND_SCHLUESSEL = (
-    "operating_phase",
-    "outdoor_temperature",
-    "boiler_power",
-    "fuel_current",
-    "fuel_storage_status",
 )
 
 

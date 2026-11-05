@@ -148,6 +148,7 @@ export const ZEITPROGRAMME = `
   .zp-mini .zp-taste { padding: 4px 10px; font-size: 12px; }
   .zp-leer { font-size: 12px; font-style: italic; }
   .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }
+  .zp-warnung { font-size: 13px; color: var(--warning-color); margin-bottom: 2px; }
   .zp-fuss {
     margin-top: auto; padding-top: 12px; font-size: 12px; opacity: 0.6;
     display: flex; flex-direction: column; gap: 3px;

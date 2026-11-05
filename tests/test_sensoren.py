@@ -31,6 +31,25 @@ def sensoren():
 
 
 # ---------------------------------------------------------------------------
+# Zeitprogramm-Sensor – Schaltprogramme tragen Ein und Aus, keine Grad
+# ---------------------------------------------------------------------------
+def test_schaltprogramm_zeigt_ein_und_aus(sensoren):
+    bloecke = [{"switchPoints": [{"time": "00:00", "value": 0}, {"time": "05:00", "value": 1}]}]
+    klasse = sensoren.WindhagerTimeProgramSensor
+    assert klasse._schaltet(bloecke) is True
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "de", True) == "00:00→Aus, 05:00→Ein"
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "en", True) == "00:00→Off, 05:00→On"
+    assert klasse._fmt_points(bloecke[0]["switchPoints"], "nl", True) == "00:00→Uit, 05:00→Aan"
+
+
+def test_temperaturprogramm_bleibt_in_grad(sensoren):
+    punkte = [{"time": "06:00", "value": 21}, {"time": "22:00", "value": 0}]
+    klasse = sensoren.WindhagerTimeProgramSensor
+    assert klasse._schaltet([{"switchPoints": punkte}]) is False
+    assert klasse._fmt_points(punkte) == "06:00→21°, 22:00→0°"
+
+
+# ---------------------------------------------------------------------------
 # Enum-Sensor – die Tabelle ist die Anzeige, nicht die Auswahl
 # ---------------------------------------------------------------------------
 def test_enum_sensor_zeigt_auch_werte_die_nicht_waehlbar_sind(sensoren):
@@ -592,3 +611,21 @@ def test_nur_der_neustartstand_bleibt_aus_dem_rekorder(sensoren, klasse, felder,
     entity._attr_last_reset = None
     vorhanden = set(entity.extra_state_attributes)
     assert vorhanden - entity._unrecorded_attributes == behalten
+
+
+def test_meldungsliste_waechst_nicht_ohne_grenze(sensoren):
+    """Die Liste geht ganz in den Zustand für den Neustart und an die Oberfläche.
+
+    Fällt etwas weg, dann die erledigten Meldungen, die am längsten zurückliegen.
+    """
+    from custom_components.heatnexus.sensor import meldungen
+
+    entity, koordinator = _liste(sensoren)
+    grenze = meldungen.MELDUNGEN_MAX
+    for code in range(100, 100 + grenze + 10):
+        _melden(entity, koordinator, f"PUR 09E{code}")
+
+    codes = [m["code"] for m in entity.extra_state_attributes["meldungen"]]
+    assert len(codes) == grenze
+    assert 100 + grenze + 9 in codes  # die anstehende bleibt
+    assert 100 not in codes  # die älteste erledigte geht

@@ -20,6 +20,7 @@ from ..const import (
     ERKENNUNG_MIN_DATENPUNKTE,
     FETCH_CONCURRENCY,
     POLL_CONCURRENCY,
+    STRUKTUR_WARTETAKTE_MAX,
     UPDATE_INTERVAL,
 )
 from .ableitungen import AbleitungenMixin
@@ -30,6 +31,7 @@ from .menues import MenuesMixin
 from .metadaten import MetadatenMixin
 from .netzwerkvariablen import NetzwerkvariablenMixin
 from .stoerspeicher import StoerspeicherMixin
+from .systemzeit import SystemzeitMixin
 from .transport import TransportMixin
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +47,7 @@ class WindhagerHttpClient(
     AbleitungenMixin,
     AbrufMixin,
     StoerspeicherMixin,
+    SystemzeitMixin,
 ):
     """Zugriff auf eine Anlage: Erkennung, Metadaten und zyklischer Abruf."""
 
@@ -134,6 +137,9 @@ class WindhagerHttpClient(
         # über den object-Endpunkt versucht wurden.
         self.objekt_texte: list[dict] = []
         self._objekte_versucht: set[str] = set()
+        # Laufender langsamer Takt: ungelesene Objekte und die Antworten der gelesenen.
+        self._objekte_offen: list[dict] = []
+        self._objekte_status: list[int] = []
         # Poll-Klasse je OID und Zähler der Abrufdurchläufe. Zusammen sorgen
         # sie dafür, dass träge Werte nicht im 30-Sekunden-Takt gelesen werden.
         self.poll_class: dict[str, str] = {}
@@ -170,6 +176,16 @@ class WindhagerHttpClient(
         self._wurzel_luecken: set[str] = set()
         # LON-Adressräume ohne Antwort: Bekanntes bleibt, der Lauf gilt trotzdem als vollständig.
         self._wurzel_ueberbrueckt: set[str] = set()
+        # Abdruck der freien Funktionen aus `/1`, gegen den der Abruf die Struktur prüft.
+        self._struktur: list[str] | None = None
+        # Zuletzt gemeldeter abweichender Abdruck und ob die Meldung noch abzuholen ist.
+        self._struktur_gemeldet: list[str] | None = None
+        self._struktur_geaendert = False
+        # Abweichung, die auf ihre Bestätigung im nächsten Takt wartet.
+        self._struktur_kandidat: list[str] | None = None
+        # Pause nach gescheiterten Läufen, in langsamen Takten: zuletzt gewählt und noch offen.
+        self._struktur_pause = 0
+        self._struktur_wartetakte = 0
 
     @property
     def erkennung_unvollstaendig(self) -> bool:
@@ -259,6 +275,7 @@ class WindhagerHttpClient(
         "_menue_luecken",
         "_texte",
         "_vollstaendig",
+        "_struktur",
     )
 
     def _stand_sichern(self) -> dict:
@@ -269,6 +286,13 @@ class WindhagerHttpClient(
         """Den gesicherten Erkennungsstand wieder einsetzen."""
         for name, wert in stand.items():
             setattr(self, name, wert)
+        self._strukturlauf_gescheitert()
+
+    def _strukturlauf_gescheitert(self) -> None:
+        """Der alte Abdruck gilt wieder; die Abweichung meldet sich nach wachsender Pause neu."""
+        self._struktur_gemeldet = None
+        self._struktur_pause = min(self._struktur_pause * 2 or 1, STRUKTUR_WARTETAKTE_MAX)
+        self._struktur_wartetakte = self._struktur_pause
 
     def _erkennung_zu_mager(self, vorheriger: dict | None) -> bool:
         """Prüfen, ob dieser Lauf deutlich weniger fand als der Stand davor.
@@ -278,6 +302,9 @@ class WindhagerHttpClient(
         bleibt dann stehen, der nächste Lauf versucht es erneut.
         """
         vorher = len(vorheriger.get("oids") or ()) if vorheriger else 0
+        if vorher and vorheriger.get("struktur") not in (None, self._struktur):
+            # Fehlt eine Funktion nun in `/1`, fehlen ihre Datenpunkte zu Recht.
+            vorher = len(self._noch_vorhanden(vorheriger["oids"], vorheriger["struktur"]))
         if vorher < ERKENNUNG_MIN_DATENPUNKTE:
             return False
         jetzt = len(self.oids or ())
@@ -291,6 +318,21 @@ class WindhagerHttpClient(
             vorher,
         )
         return True
+
+    def _noch_vorhanden(self, oids, alter_abdruck: list[str]) -> list[str]:
+        """Die Datenpunkte ohne die Knoten und Funktionen, die seit `alter_abdruck` entfielen.
+
+        Funktionen, die `/1` nie nannte, zählen weiter: Sie stammen aus der Suche am Knoten.
+        """
+        entfallen = set(alter_abdruck) - set(self._struktur or ())
+        funktionen = {"/1/" + e.rsplit("/", 1)[0] for e in entfallen if e.count("/") == 2}
+        knoten = {f"/1/{e}" for e in entfallen if "/" not in e}
+        return [
+            oid
+            for oid in oids
+            if (praefix := self._praefix_aus_oid(oid)) not in funktionen
+            and praefix.rsplit("/", 1)[0] not in knoten
+        ]
 
     async def async_init(self, erzwingen: bool = False) -> None:
         """Anlage vollständig einlesen (getrennt vom zyklischen Abruf).
@@ -323,6 +365,7 @@ class WindhagerHttpClient(
 
         if self._erkennung_zu_mager(vorheriger):
             self.restore_discovery(vorheriger)
+            self._strukturlauf_gescheitert()
             return
 
         _LOGGER.info(

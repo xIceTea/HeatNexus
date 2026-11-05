@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from .. import geraete
-from ..const import KESSELART_AUTO, QUELLEN_ARTEN
+from ..const import KESSELART_AUTO, QUELLE_FREMD, QUELLE_WAERMEPUMPE, QUELLEN_ARTEN
 from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
@@ -59,6 +59,7 @@ ANALOG_SOLLWERT = r"^analog[- ]sollwert$"
 
 
 KESSELLEISTUNG_IST = r"kesselleistung"
+WP_LEISTUNG_IST = r"^aktuelle leistung$"
 
 
 # Eine Wärmequelle meldet keinen Messwert, sondern ob sie gerade liefert.
@@ -120,11 +121,24 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
         ),
     ),
     # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
+    # Der Hybridmanager speichert nichts; seine Puffertemperatur gehört dem Puffer.
+    "hybridmanager": (),
     "umschaltung": (
         (r"kesseltemperatur(?!.*soll)", "Kessel", ("boiler_temperature",)),
-        (r"puffertemperatur (oben|tpe)", "Puffer", ("buffer_top",)),
+        (r"puffertemperatur (oben|tpe)|^puffertemperatur$", "Puffer", ("buffer_top",)),
+    ),
+    # Eine Wärmepumpe hat weder Kesseltemperatur noch Kesselleistung; sie steht
+    # mit Vorlauf und Leistungszahl im Bild. Kein Schlüssel `flow_temperature`:
+    # der gehört dem Heizkreis.
+    "waermepumpe": (
+        (r"^vorlauftemperatur$", "Vorlauf", ()),
+        (r"^cop aktuell$", "COP", ()),
     ),
 }
+
+
+# Arten, die auch ohne Messwert im Bild stehen; ihren Zustand zeigen Lampen.
+OHNE_MESSWERT_GEZEICHNET = frozenset({"pumpenmodul", "hybridmanager"})
 
 
 # Die Pumpe eines Anlagenteils; sie dreht sich im Schaubild, solange sie läuft.
@@ -138,6 +152,7 @@ PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
     "pumpenmodul": (r"pumpendrehzahl|zirkulationspumpe(?!.*modus)", ("pump_speed",)),
     "zirkulation": (r"\bww-zirkulationspumpe(?!.*modus)", ("dhw_circulation_pump",)),
     "solar": (r"solarpumpe|pumpensteuerung drehzahl", ("pump_speed",)),
+    "hybridmanager": (r"kessel-/bypasspumpe", ()),
 }
 
 
@@ -227,7 +242,9 @@ BRENNSTOFF_ART: tuple[tuple[str, str], ...] = (
 )
 
 
-# Dritte Quelle: das Modell der Baureihe, dann der Gerätename. Das Modell ist
+# Dritte Quelle: die Geräteklasse (`geraete.KESSELART_JE_KLASSE`).
+
+# Zuletzt das Modell der Baureihe, dann der Gerätename. Das Modell ist
 # deutsch und fest; der Name folgt der Sprache und jeder Umbenennung, deshalb
 # kennen die Muster auch die englischen und niederländischen Bezeichnungen.
 NAME_ART: tuple[tuple[str, str], ...] = (
@@ -271,11 +288,21 @@ def _art_aus_namen(*namen: object) -> str | None:
     return None
 
 
+def ist_waermepumpe_als_quelle(teil: dict[str, Any]) -> bool:
+    """Ob eine angelegte Wärmequelle eine Wärmepumpe ist: nach ihrer Art, sonst nach dem Namen."""
+    art = teil.get("art")
+    if art == QUELLE_WAERMEPUMPE:
+        return True
+    return art == QUELLE_FREMD and _art_aus_namen(teil.get("name")) == "waermepumpe"
+
+
 def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
-    """Art eines Wärmeerzeugers: Funktionstyp, gemeldeter Brennstoff, Modell, Name.
+    """Art eines Wärmeerzeugers: Funktionstyp, Brennstoff, Geräteklasse, Modell, Name.
 
     ``None`` heißt „neutral zeichnen" – nicht raten. Wirkt nur auf die Zeichnung.
     """
+    if ist_waermepumpe_als_quelle(teil):
+        return "waermepumpe"
     if _art(teil.get("fct_type")) != "kessel":
         return None
     with contextlib.suppress(TypeError, ValueError):
@@ -284,6 +311,8 @@ def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
     for eintrag in teil.get("entitaeten", []):
         if _ist_brennstoff(eintrag) and (art := _art_des_brennstoffs(eintrag)):
             return art
+    if art := geraete.KESSELART_JE_KLASSE.get(str(teil.get("klasse") or "")):
+        return art
     return _art_aus_namen(teil.get("modell"), teil.get("name"))
 
 
@@ -329,6 +358,13 @@ def finde(entitaeten: list[dict[str, Any]], muster: str, *schluessel: str) -> di
     if not gefunden:
         return None
     return next((e for e in gefunden if e.get("hat_wert")), gefunden[0])
+
+
+def _vorlagenart(teil: dict[str, Any], art: str) -> str:
+    """Welche Wertevorlage ein Teil bekommt: die Wärmepumpe ihre eigene."""
+    if art == "kessel" and kesselart_des_teils(teil) == "waermepumpe":
+        return "waermepumpe"
+    return art
 
 
 def _werte_je_art(art: str, kesselwert: str | None) -> tuple[Wert, ...]:
@@ -452,7 +488,10 @@ def waehlbare_werte(
                 "art": art,
                 "symbol": symbol_je_fct(teil.get("fct_type")),
                 "werte": sorted(werte, key=lambda w: w["name"]),
-                "vorgabe": [w["entity_id"] for w in _werte(teil["entitaeten"], art, kesselwert)],
+                "vorgabe": [
+                    w["entity_id"]
+                    for w in _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
+                ],
             }
         )
     return liste
@@ -467,7 +506,9 @@ def _gewaehlte_werte(
     Übrige bekommt seinen Namen. Ohne die Rolle wüsste der Puffer nicht mehr,
     welcher Fühler oben sitzt.
     """
-    bekannt = {w["entity_id"]: w for w in _werte(teil["entitaeten"], art, kesselwert)}
+    bekannt = {
+        w["entity_id"]: w for w in _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
+    }
     namen = {e["entity_id"]: e.get("name") or e["entity_id"] for e in teil["entitaeten"]}
     werte = []
     for entity in gewaehlt:
@@ -479,13 +520,29 @@ def _gewaehlte_werte(
 
 
 def _entitaet_wenn(
-    bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, schluessel: str
+    bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
 ) -> str | None:
     """Die Kennung der passenden Entität, sofern die Bedingung gilt."""
     if not bedingung:
         return None
-    gefunden = finde(entitaeten, muster, schluessel)
+    gefunden = finde(entitaeten, muster, *schluessel)
     return gefunden["entity_id"] if gefunden else None
+
+
+def _an_adresse(teil: dict[str, Any], tabelle: dict[int, str]) -> dict[str, Any] | None:
+    """Die Entität an der Adresse, die die Baureihe in `tabelle` nennt."""
+    adresse = tabelle.get(teil.get("fct_type"))
+    if adresse is None:
+        return None
+    return next((e for e in teil["entitaeten"] if e.get("adresse") == adresse), None)
+
+
+def _bildart(teil: dict[str, Any]) -> str:
+    """Art im Schaubild. Jede Wärmepumpe steht dort als Wärmeerzeuger, auch eine fremde."""
+    if ist_waermepumpe_als_quelle(teil):
+        return "kessel"
+    # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen Funktionstyp.
+    return teil.get("art") or _art(teil.get("fct_type"))
 
 
 def _hauptmodul(
@@ -512,7 +569,11 @@ def _hauptmodul(
         # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
         # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet
         # die Option, nicht der Datenpunkt.
-        "pumpe": (_pumpe(entitaeten, art) if modulpumpe or art != "pumpenmodul" else None),
+        "pumpe": (
+            _pumpe(entitaeten, teil.get("art") or art)
+            if modulpumpe or art != "pumpenmodul"
+            else None
+        ),
         # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
         # Pumpe: An ihr hängen Lampe und Fluss.
         "lieferung": _entitaet_wenn(ist_quelle, entitaeten, LIEFERUNG, "heat_delivery"),
@@ -529,10 +590,15 @@ def _hauptmodul(
         "entitaeten": entitaeten,
         # Für das Glutbett, unabhängig davon, welcher Wert im Bild
         # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
-        "leistung": _entitaet_wenn(art == "kessel", entitaeten, KESSELLEISTUNG_IST, "boiler_power"),
+        # Die Wärmepumpe meldet ihre Leistung als „Aktuelle Leistung“.
+        "leistung": _entitaet_wenn(art == "kessel", entitaeten, KESSELLEISTUNG_IST, "boiler_power")
+        or _entitaet_wenn(art == "kessel", entitaeten, WP_LEISTUNG_IST),
         "brennkammer": _entitaet_wenn(
             art == "kessel", entitaeten, BRENNKAMMER_IST, "combustion_chamber_temperature"
         ),
+        # Füllstand des Vorratsbehälters: in Stufen (PuroWIN) oder in Prozent (BioWIN).
+        "behaelter": _an_adresse(teil, geraete.BEHAELTER) if art == "kessel" else None,
+        "fuellgrad": _an_adresse(teil, geraete.FUELLGRAD) if art == "kessel" else None,
     }
 
 
@@ -587,9 +653,7 @@ def zeichenbare_module(
     """
     module: list[dict[str, Any]] = []
     for teil in teile:
-        # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
-        # Funktionstyp, weil sie nicht an der Steuerung hängt.
-        art = teil.get("art") or _art(teil.get("fct_type"))
+        art = _bildart(teil)
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue
@@ -597,7 +661,7 @@ def zeichenbare_module(
         werte = (
             _gewaehlte_werte(teil, art, kesselwert, gewaehlt)
             if gewaehlt is not None
-            else _werte(teil["entitaeten"], art, kesselwert)
+            else _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
         )
         # Das Pumpen-/Relaismodul wird auch ohne Messwert gezeichnet: Seine
         # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
@@ -609,7 +673,7 @@ def zeichenbare_module(
             continue
         # Eine Wärmequelle wird auch ohne Messwert gezeichnet: Dass sie in der
         # Anlage steht, ist die Aussage; ob sie liefert, sagt ihre Lampe.
-        if werte or art == "pumpenmodul" or teil.get("art"):
+        if werte or art in OHNE_MESSWERT_GEZEICHNET or teil.get("art"):
             module.append(_hauptmodul(teil, art, werte, zeichnungen, modulpumpe))
         module.extend(_nebenmodule(teil, art, zeichnungen))
     return module
