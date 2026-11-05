@@ -126,6 +126,7 @@ AUFTRITTE = [
     # Verlaufskarte von Home Assistant, und die kommt über `loadCardHelpers`
     # aus dem Frontend. Außerhalb einer laufenden Instanz gibt es sie nicht –
     # eine leere Karte im Rundgang wäre eine Falschaussage.
+    {"reiter": "uebersicht", "dialog": True, "dauer": 3600, "titel": "Darstellung"},
     {"reiter": "uebersicht", "ziel": "Systemstatus", "dauer": 2600, "titel": "Systemstatus"},
 ]
 
@@ -217,7 +218,7 @@ SEITE = """<!doctype html><meta charset="utf-8">
 </style>
 <div id="halter"></div>
 <script type="module">
-import { DATEN, STATES, MDI, REITER, ZIEL, PHASE, PRESETS, AUTOMATIK } from "./auftritt.js";
+import { DATEN, STATES, MDI, REITER, ZIEL, DIALOG, PHASE, PRESETS, AUTOMATIK } from "./auftritt.js";
 
 // Die Bewegung an dieselbe Stelle stellen wie beim bewegten Schaubild.
 const halt = document.createElement("style");
@@ -314,6 +315,13 @@ if (ZIEL) {
     }
   }
 }
+
+// Das Fenster „Darstellung“ öffnen und bis zur Beschriftung rollen.
+if (DIALOG) {
+  element._darstellungOeffnen();
+  const fenster = (element.shadowRoot || element).querySelector(".dialog.darstellung");
+  fenster.scrollTop = fenster.scrollHeight;
+}
 </script>
 """
 
@@ -330,6 +338,7 @@ def _auftritt_schreiben(
         "export const MDI = " + json.dumps(mdi, ensure_ascii=False) + ";\n"
         "export const REITER = " + json.dumps(auftritt["reiter"]) + ";\n"
         "export const ZIEL = " + json.dumps(auftritt.get("ziel")) + ";\n"
+        "export const DIALOG = " + json.dumps(auftritt.get("dialog", False)) + ";\n"
         "export const PHASE = " + json.dumps(round(phase, 2)) + ";\n"
         "export const PRESETS = " + json.dumps(klartexte, ensure_ascii=False) + ";\n"
         "export const AUTOMATIK = " + json.dumps(automatik_daten(), ensure_ascii=False) + ";\n",
