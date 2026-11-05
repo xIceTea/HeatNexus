@@ -381,7 +381,18 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const gedrueckt = () => tasten.filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert);
   const anfangs = gedrueckt();
   tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
+  const warnung = fenster.querySelector(".beschriftung-warnung");
+  const anfangsLesbar = warnung.hidden;
+  const hintergrund = leisten[0].querySelectorAll(".beschriftung-farbe");
+  hintergrund.find((k) => k.dataset.wert === "#ffffff").ausloesen("click");
+  tasten.find((k) => k.dataset.wert === "#ffffff").ausloesen("click");
+  const gleich = warnung.hidden;
+  tasten.find((k) => k.dataset.wert === "#0a0e13").ausloesen("click");
+  const dunkelAufHell = warnung.hidden;
+  tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
   bilanz.beschriftungFarben = {
+    warnung: { anfangsLesbar, gleich, dunkelAufHell },
+    name: { titel: tasten[2].title, aria: tasten[2].getAttribute("aria-label") },
     leisten: leisten.length,
     eigene: leisten.map((l) => l.querySelectorAll(".beschriftung-eigene").length),
     anfangs,

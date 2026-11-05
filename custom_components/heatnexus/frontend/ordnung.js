@@ -163,9 +163,43 @@ export const BESCHRIFTUNG = {
 
 // Vorgegebene Felder im Fenster „Darstellung“. Der erste Wert ist der ausgelieferte Stand.
 export const BESCHRIFTUNG_FARBEN = {
-  beschriftung_grund: ["#0a0e13", "#1f2937", "#0f2a43", "#123524", "#3b1d12", "#6b7280", "#e5e7eb", "#ffffff"],
-  beschriftung_schrift: ["#ffffff", "#e5e7eb", "#ffd166", "#ff9f5a", "#7dd3fc", "#86efac", "#374151", "#0a0e13"],
+  beschriftung_grund: [
+    { farbe: "#0a0e13", titel: "Schwarz" },
+    { farbe: "#1f2937", titel: "Schiefer" },
+    { farbe: "#0f2a43", titel: "Nachtblau" },
+    { farbe: "#123524", titel: "Dunkelgrün" },
+    { farbe: "#3b1d12", titel: "Braun" },
+    { farbe: "#6b7280", titel: "Grau" },
+    { farbe: "#e5e7eb", titel: "Hellgrau" },
+    { farbe: "#ffffff", titel: "Weiß" },
+  ],
+  beschriftung_schrift: [
+    { farbe: "#ffffff", titel: "Weiß" },
+    { farbe: "#e5e7eb", titel: "Hellgrau" },
+    { farbe: "#ffd166", titel: "Gelb" },
+    { farbe: "#ff9f5a", titel: "Orange" },
+    { farbe: "#7dd3fc", titel: "Hellblau" },
+    { farbe: "#86efac", titel: "Hellgrün" },
+    { farbe: "#374151", titel: "Dunkelgrau" },
+    { farbe: "#0a0e13", titel: "Schwarz" },
+  ],
 };
+
+const MINDESTKONTRAST = 2;
+const DECKEND_AB = 50;
+
+function helligkeit(farbe) {
+  const anteile = [1, 3, 5].map((stelle) => Number.parseInt(farbe.slice(stelle, stelle + 2), 16) / 255);
+  const [rot, gruen, blau] = anteile.map((wert) => (wert <= 0.03928 ? wert / 12.92 : ((wert + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * rot + 0.7152 * gruen + 0.0722 * blau;
+}
+
+/** Ob sich die Schrift vom Hintergrund abhebt; ein fast durchsichtiger Hintergrund zählt nicht. */
+export function beschriftungLesbar(grund, schrift, deckkraft) {
+  if (Number(deckkraft) < DECKEND_AB) return true;
+  const [hell, dunkel] = [helligkeit(grund), helligkeit(schrift)].sort((a, b) => b - a);
+  return (hell + 0.05) / (dunkel + 0.05) >= MINDESTKONTRAST;
+}
 
 /** Ob ein Wert für eine Farbe der Beschriftung taugt: `#rrggbb` oder eine Deckkraft von 0 bis 100. */
 export function beschriftungGueltig(schluessel, wert) {

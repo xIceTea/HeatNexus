@@ -12,6 +12,7 @@ import {
   KOPFSTILE,
   PALETTEN,
   beschriftungGueltig,
+  beschriftungLesbar,
   darstellungSpeicher,
 } from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
@@ -282,18 +283,35 @@ export const DarstellungMixin = (Basis) =>
     _beschriftungWahl(wert, setzen) {
       const block = document.createElement("div");
       block.className = "beschriftung-wahl";
+      const warnung = document.createElement("p");
+      warnung.className = "beschriftung-warnung";
+      warnung.setAttribute("role", "status");
+      warnung.textContent = this._t("Schrift und Hintergrund sind kaum zu unterscheiden.");
+      const pruefen = () => {
+        warnung.hidden = beschriftungLesbar(
+          wert("beschriftung_grund"),
+          wert("beschriftung_schrift"),
+          wert("beschriftung_deckkraft")
+        );
+      };
+      const setzenUndPruefen = (schluessel, neu) => {
+        setzen(schluessel, neu);
+        pruefen();
+      };
       const felder = [
-        this._beschriftungFarben("beschriftung_grund", this._t("Hintergrund"), wert, setzen),
-        this._beschriftungDeckkraft(wert, setzen),
-        this._beschriftungFarben("beschriftung_schrift", this._t("Schriftfarbe"), wert, setzen),
+        this._beschriftungFarben("beschriftung_grund", this._t("Hintergrund"), wert, setzenUndPruefen),
+        this._beschriftungDeckkraft(wert, setzenUndPruefen),
+        this._beschriftungFarben("beschriftung_schrift", this._t("Schriftfarbe"), wert, setzenUndPruefen),
       ];
       felder.forEach(({ zeile }) => block.appendChild(zeile));
+      block.appendChild(warnung);
+      pruefen();
       const zurueck = document.createElement("button");
       zurueck.type = "button";
       zurueck.className = "dialog-taste beschriftung-zurueck";
       zurueck.textContent = this._t("Wie ausgeliefert");
       zurueck.addEventListener("click", () => {
-        Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzen(schluessel, standard));
+        Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzenUndPruefen(schluessel, standard));
         felder.forEach(({ zeigen }) => zeigen());
       });
       block.appendChild(zurueck);
@@ -351,14 +369,14 @@ export const DarstellungMixin = (Basis) =>
         setzen(schluessel, farbe);
         zeigen();
       };
-      const tasten = BESCHRIFTUNG_FARBEN[schluessel].map((farbe) => {
+      const tasten = BESCHRIFTUNG_FARBEN[schluessel].map(({ farbe, titel: farbname }) => {
         const taste = document.createElement("button");
         taste.type = "button";
         taste.className = "beschriftung-farbe";
         taste.dataset.wert = farbe;
         taste.style.background = farbe;
-        taste.title = farbe;
-        taste.setAttribute("aria-label", `${name} ${farbe}`);
+        taste.title = this._t(farbname);
+        taste.setAttribute("aria-label", `${name}: ${this._t(farbname)}`);
         taste.addEventListener("click", () => waehlen(farbe));
         leiste.appendChild(taste);
         return taste;

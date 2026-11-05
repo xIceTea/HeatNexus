@@ -88,6 +88,7 @@ export const DARSTELLUNG = `
   }
   .beschriftung-farbzeile { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--hn-text); }
   .beschriftung-farben { display: flex; flex-wrap: wrap; gap: 8px; }
+  .beschriftung-warnung { margin: 0; font-size: 12px; color: var(--hn-sonne); }
   .beschriftung-farbe, .beschriftung-eigene {
     width: 34px; height: 34px; padding: 0; border: 1px solid var(--hn-linie); border-radius: 50%;
     cursor: pointer;

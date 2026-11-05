@@ -1411,6 +1411,11 @@ def test_die_marke_am_heizkoerper_nimmt_klicks_an():
     regeln = re.findall(r"([^{}]+)\{([^{}]*)\}", stil)
     marke = [(kopf.strip(), inhalt) for kopf, inhalt in regeln if "automatik-bildmarke" in kopf]
     assert [kopf for kopf, inhalt in marke if "pointer-events: none" in inhalt] == []
+    # Eine eigene Anzeigeart dort hebt `[hidden]` bei gleicher Spezifität auf.
+    eigene = [
+        (kopf, inhalt) for kopf, inhalt in marke if "ha-icon" not in kopf and "[hidden]" not in kopf
+    ]
+    assert [kopf for kopf, inhalt in eigene if "display:" in inhalt] == []
     assert any(":hover" in kopf and "background-color" in inhalt for kopf, inhalt in marke)
 
 
@@ -1457,6 +1462,8 @@ def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
 def test_die_farben_der_beschriftung_stehen_als_felder_im_fenster(durchlauf):
     """Vorgegebene Felder wirken in jedem Browser; das eigene Farbfeld bleibt dazu erhalten."""
     assert durchlauf["beschriftungFarben"] == {
+        "warnung": {"anfangsLesbar": True, "gleich": False, "dunkelAufHell": True},
+        "name": {"titel": "Gelb", "aria": "Schriftfarbe: Gelb"},
         "leisten": 2,
         "eigene": [1, 1],
         "anfangs": ["#ffffff"],
