@@ -161,6 +161,12 @@ export const BESCHRIFTUNG = {
   beschriftung_schrift: "#ffffff",
 };
 
+// Vorgegebene Felder im Fenster „Darstellung“. Der erste Wert ist der ausgelieferte Stand.
+export const BESCHRIFTUNG_FARBEN = {
+  beschriftung_grund: ["#0a0e13", "#1f2937", "#0f2a43", "#123524", "#3b1d12", "#6b7280", "#e5e7eb", "#ffffff"],
+  beschriftung_schrift: ["#ffffff", "#e5e7eb", "#ffd166", "#ff9f5a", "#7dd3fc", "#86efac", "#374151", "#0a0e13"],
+};
+
 /** Ob ein Wert für eine Farbe der Beschriftung taugt: `#rrggbb` oder eine Deckkraft von 0 bis 100. */
 export function beschriftungGueltig(schluessel, wert) {
   const muster = schluessel === "beschriftung_deckkraft" ? /^(100|[1-9]?[0-9])$/ : /^#[0-9a-fA-F]{6}$/;

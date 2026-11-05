@@ -5,6 +5,7 @@
 
 import {
   BESCHRIFTUNG,
+  BESCHRIFTUNG_FARBEN,
   DARSTELLUNG,
   DARSTELLUNG_STANDARD,
   ERZEUGER_MAX,
@@ -277,51 +278,96 @@ export const DarstellungMixin = (Basis) =>
       });
     }
 
-    /** Farbwähler für Hintergrund und Schrift, ein Regler für die Deckkraft; „Wie ausgeliefert“ stellt alle drei zurück. */
+    /** Farbfelder für Hintergrund und Schrift, ein Regler für die Deckkraft; „Wie ausgeliefert“ stellt alle drei zurück. */
     _beschriftungWahl(wert, setzen) {
       const block = document.createElement("div");
       block.className = "beschriftung-wahl";
       const felder = [
-        ["beschriftung_grund", "Hintergrund", "color"],
-        ["beschriftung_deckkraft", "Deckkraft", "range"],
-        ["beschriftung_schrift", "Schriftfarbe", "color"],
-      ].map(([schluessel, name, art]) => {
-        const zeile = document.createElement("label");
-        zeile.className = "beschriftung-feld";
-        const titel = document.createElement("span");
-        titel.textContent = this._t(name);
-        const feld = document.createElement("input");
-        feld.type = art;
-        if (art === "range") Object.assign(feld, { min: "0", max: "100", step: "5" });
-        const anzeige = document.createElement("span");
-        anzeige.className = "beschriftung-zahl";
-        const zeigen = () => {
-          feld.value = wert(schluessel);
-          anzeige.textContent = art === "range" ? `${feld.value} %` : "";
-        };
-        // Erst beim Loslassen: Jede Vorschau baut die Oberfläche neu auf.
-        feld.addEventListener("change", () => {
-          setzen(schluessel, String(feld.value).toLowerCase());
-          zeigen();
-        });
-        feld.addEventListener("input", () => {
-          if (art === "range") anzeige.textContent = `${feld.value} %`;
-        });
-        zeigen();
-        zeile.append(titel, feld, anzeige);
-        block.appendChild(zeile);
-        return zeigen;
-      });
+        this._beschriftungFarben("beschriftung_grund", this._t("Hintergrund"), wert, setzen),
+        this._beschriftungDeckkraft(wert, setzen),
+        this._beschriftungFarben("beschriftung_schrift", this._t("Schriftfarbe"), wert, setzen),
+      ];
+      felder.forEach(({ zeile }) => block.appendChild(zeile));
       const zurueck = document.createElement("button");
       zurueck.type = "button";
       zurueck.className = "dialog-taste beschriftung-zurueck";
       zurueck.textContent = this._t("Wie ausgeliefert");
       zurueck.addEventListener("click", () => {
         Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzen(schluessel, standard));
-        felder.forEach((zeigen) => zeigen());
+        felder.forEach(({ zeigen }) => zeigen());
       });
       block.appendChild(zurueck);
       return block;
+    }
+
+    _beschriftungDeckkraft(wert, setzen) {
+      const zeile = document.createElement("label");
+      zeile.className = "beschriftung-feld";
+      const titel = document.createElement("span");
+      titel.textContent = this._t("Deckkraft");
+      const feld = document.createElement("input");
+      Object.assign(feld, { type: "range", min: "0", max: "100", step: "5" });
+      const anzeige = document.createElement("span");
+      anzeige.className = "beschriftung-zahl";
+      const zeigen = () => {
+        feld.value = wert("beschriftung_deckkraft");
+        anzeige.textContent = `${feld.value} %`;
+      };
+      // Erst beim Loslassen: Jede Vorschau baut die Oberfläche neu auf.
+      feld.addEventListener("change", () => {
+        setzen("beschriftung_deckkraft", String(feld.value));
+        zeigen();
+      });
+      feld.addEventListener("input", () => {
+        anzeige.textContent = `${feld.value} %`;
+      });
+      zeigen();
+      zeile.append(titel, feld, anzeige);
+      return { zeile, zeigen };
+    }
+
+    /** Vorgegebene Farbfelder und ein eigenes Feld mit dem Farbwähler des Browsers. */
+    _beschriftungFarben(schluessel, name, wert, setzen) {
+      const zeile = document.createElement("div");
+      zeile.className = "beschriftung-farbzeile";
+      const titel = document.createElement("span");
+      titel.textContent = name;
+      const leiste = document.createElement("div");
+      leiste.className = "beschriftung-farben";
+      leiste.setAttribute("role", "group");
+      leiste.setAttribute("aria-label", name);
+      const eigene = document.createElement("input");
+      eigene.type = "color";
+      eigene.className = "beschriftung-eigene";
+      eigene.title = this._t("Eigene Farbe");
+      eigene.setAttribute("aria-label", this._t("Eigene Farbe"));
+      const zeigen = () => {
+        const aktuell = wert(schluessel);
+        tasten.forEach((taste) => taste.setAttribute("aria-pressed", String(taste.dataset.wert === aktuell)));
+        eigene.value = aktuell;
+        eigene.classList.toggle("gewaehlt", !tasten.some((taste) => taste.dataset.wert === aktuell));
+      };
+      const waehlen = (farbe) => {
+        setzen(schluessel, farbe);
+        zeigen();
+      };
+      const tasten = BESCHRIFTUNG_FARBEN[schluessel].map((farbe) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.className = "beschriftung-farbe";
+        taste.dataset.wert = farbe;
+        taste.style.background = farbe;
+        taste.title = farbe;
+        taste.setAttribute("aria-label", `${name} ${farbe}`);
+        taste.addEventListener("click", () => waehlen(farbe));
+        leiste.appendChild(taste);
+        return taste;
+      });
+      eigene.addEventListener("change", () => waehlen(String(eigene.value).toLowerCase()));
+      leiste.appendChild(eigene);
+      zeigen();
+      zeile.append(titel, leiste);
+      return { zeile, zeigen };
     }
 
     /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */

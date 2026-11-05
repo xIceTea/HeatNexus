@@ -370,6 +370,27 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   flaeche._darstellungSetzen({ menue: "zeichen" });
 }
 
+// Die Farben der Beschriftung stehen als Felder im Fenster; ein Klick zeigt die Wahl sofort.
+{
+  const wurzel = flaeche.shadowRoot;
+  const vorher = wurzel.querySelectorAll(".schleier").length;
+  flaeche._darstellungOeffnen();
+  const fenster = wurzel.querySelectorAll(".schleier")[vorher];
+  const leisten = fenster.querySelectorAll(".beschriftung-farben");
+  const tasten = leisten[1].querySelectorAll(".beschriftung-farbe");
+  const gedrueckt = () => tasten.filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert);
+  const anfangs = gedrueckt();
+  tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
+  bilanz.beschriftungFarben = {
+    leisten: leisten.length,
+    eigene: leisten.map((l) => l.querySelectorAll(".beschriftung-eigene").length),
+    anfangs,
+    nachKlick: gedrueckt(),
+    vorschau: flaeche._beschriftung().schrift,
+  };
+  fenster.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
+}
+
 // Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick zeigt die Wahl sofort als Vorschau.
 {
   const wurzel = flaeche.shadowRoot;

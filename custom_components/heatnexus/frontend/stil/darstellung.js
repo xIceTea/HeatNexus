@@ -86,9 +86,21 @@ export const DARSTELLUNG = `
     display: grid; grid-template-columns: minmax(0, 1fr) auto 3.5em; align-items: center; gap: 10px;
     font-size: 13px; color: var(--hn-text);
   }
-  .beschriftung-feld input[type="color"] {
-    width: 44px; height: 28px; padding: 0; border: 1px solid var(--hn-linie); border-radius: 6px;
-    background: none; cursor: pointer;
+  .beschriftung-farbzeile { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--hn-text); }
+  .beschriftung-farben { display: flex; flex-wrap: wrap; gap: 8px; }
+  .beschriftung-farbe, .beschriftung-eigene {
+    width: 34px; height: 34px; padding: 0; border: 1px solid var(--hn-linie); border-radius: 50%;
+    cursor: pointer;
+  }
+  .beschriftung-eigene { background: none; overflow: hidden; }
+  .beschriftung-eigene::-webkit-color-swatch-wrapper { padding: 0; }
+  .beschriftung-eigene::-webkit-color-swatch { border: none; border-radius: 50%; }
+  .beschriftung-eigene::-moz-color-swatch { border: none; border-radius: 50%; }
+  .beschriftung-farbe[aria-pressed="true"], .beschriftung-eigene.gewaehlt {
+    box-shadow: 0 0 0 2px var(--hn-karte), 0 0 0 4px var(--hn-akzent);
+  }
+  .beschriftung-farbe:focus-visible, .beschriftung-eigene:focus-visible {
+    outline: 2px solid var(--hn-akzent); outline-offset: 4px;
   }
   .beschriftung-feld input[type="range"] { width: 140px; accent-color: var(--hn-akzent); }
   .beschriftung-zahl { font-size: 12px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums; }
