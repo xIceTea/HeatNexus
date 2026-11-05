@@ -41,6 +41,7 @@ HeatNexus liest Wärmepumpen und den Hybridmanager des BioWIN Hybrid ein und zei
 - Sensoren von Schaltprogrammen zeigen Ein und Aus statt Grad.
 - Wärmepumpen stehen im Schaubild hinter den Kesseln.
 - Ein Wechsel von Profil, Ausrichtung oder Heizflächen behält eigene Werte der Automatik.
+- Das Zeichen in der Kopfzeile entspricht dem Logo.
 
 ### Behoben
 
