@@ -197,7 +197,9 @@ class Verwaltung:
             self._daten = _normalisiert(await self._roh_laden())
             # Gespeichertes geht noch einmal durch die Prüfung; neue Regeln gelten auch für Altes.
             for eintrag in self._daten["heizkreise"].values():
-                if neu := konfig_modul.pruefen(eintrag["konfig"]):
+                if neu := konfig_modul.pruefen(
+                    eintrag["konfig"], eintrag["konfig"].get("eigene") or ()
+                ):
                     eintrag["konfig"] = neu
             self._prognosen = await prognoseablage.laden(self._prognose_store)
             self._geladen = True
@@ -530,7 +532,7 @@ class Verwaltung:
         if eintrag is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
         alt = eintrag["konfig"]
-        neu = konfig_modul.pruefen({**alt, **aenderung})
+        neu = konfig_modul.pruefen({**alt, **aenderung}, alt["eigene"])
         if neu is None:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
         neu = konfig_modul.klima_vorgabe(neu, alt["raeume"])

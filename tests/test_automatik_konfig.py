@@ -197,3 +197,20 @@ def test_eigene_entscheidungszeit_wird_zum_fruehesten_beginn(konfig):
 
 def test_ohne_eigene_entscheidungszeit_gilt_der_sonnenaufgang(konfig):
     assert "beginn_art" not in konfig.pruefen(roh())["eigene"]
+
+
+def test_genannte_eigene_werte_bleiben_trotz_gleicher_vorgabe(konfig):
+    roh = {
+        "heizkreis": "hk",
+        "raeume": ["sensor.raum"],
+        "wetter": "weather.home",
+        "ausrichtung": "eco",
+        "eigene": {"stark": True, "stark_k": 0.5},
+    }
+    assert konfig.pruefen(roh)["eigene"] == {}
+    assert konfig.pruefen(roh, ["stark"])["eigene"] == {"stark": True}
+
+
+def test_leere_eigene_werte_setzen_trotz_behalten_zurueck(konfig):
+    roh = {"heizkreis": "hk", "raeume": ["sensor.raum"], "wetter": "weather.home", "eigene": {}}
+    assert konfig.pruefen(roh, ["stark"])["eigene"] == {}

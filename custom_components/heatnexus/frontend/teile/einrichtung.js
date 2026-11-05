@@ -232,7 +232,7 @@ export const EinrichtungMixin = (Basis) =>
         wahl.appendChild(option);
       });
       wahl.addEventListener("change", async () => {
-        // Ein neues Profil ersetzt alle eigenen Werte; offene Eingaben gingen dabei verloren.
+        // Gespeicherte eigene Werte bleiben; nur offene Eingaben gingen beim Neuaufbau verloren.
         const offen = Object.keys(this._automatikEntwurf(kreis.heizkreis)).length;
         const ja =
           !offen ||
@@ -247,7 +247,7 @@ export const EinrichtungMixin = (Basis) =>
           return;
         }
         this._automatikEntwurfVerwerfen(kreis.heizkreis);
-        this._automatikEinstellen(kreis, { profil: wahl.value, eigene: {} });
+        this._automatikEinstellen(kreis, { profil: wahl.value });
       });
       zeile.querySelector(".eingabe").appendChild(wahl);
       return zeile;
@@ -614,10 +614,9 @@ export const EinrichtungMixin = (Basis) =>
         vorrang: gewaehlt(f.vorrang),
         fenster_erkennung: f.erkennung.checked,
       };
-      // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
+      // Andere Heizflächen heißen anderes Profil; eigene Werte gehen ihm weiter vor.
       if (k && nachricht.heizflaechen !== k.heizflaechen) {
         nachricht.profil = PROFIL_JE_FLAECHE[nachricht.heizflaechen];
-        nachricht.eigene = {};
       }
       return nachricht;
     }

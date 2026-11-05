@@ -1618,3 +1618,9 @@ def test_nur_ein_klick_wird_gespeichert(erzeuger):
     """Auch das Setzen beim Aufbau meldet „toggle“; das darf nichts schreiben."""
     assert erzeuger["ohne_klick_gespeichert"] == 0
     assert erzeuger["nach_klick"] == [{"erzeuger": {"anlage:aero": False}}]
+
+
+def test_ein_wechsel_von_profil_oder_heizflaechen_behaelt_eigene_werte():
+    quelle = (PANEL_JS.parent / "teile" / "einrichtung.js").read_text(encoding="utf-8")
+    assert "{ profil: wahl.value }" in quelle
+    assert "nachricht.eigene" not in quelle

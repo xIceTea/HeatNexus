@@ -6,7 +6,7 @@ eigene Werte werden auf ihre Abweichung vom Profil reduziert.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 import re
 from typing import Any
 
@@ -89,8 +89,11 @@ def _umstieg(eigene: Mapping[str, Any]) -> dict[str, Any]:
     return neu
 
 
-def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
-    """Die gespeicherte Form; `None`, wenn Heizkreis, Raumfühler oder Wetter fehlen."""
+def pruefen(roh: Mapping[str, Any], behalten: Collection[str] = ()) -> dict[str, Any] | None:
+    """Die gespeicherte Form; `None`, wenn Heizkreis, Raumfühler oder Wetter fehlen.
+
+    `behalten` nennt schon gesetzte eigene Werte: Sie zählen auch, wenn eine neue Vorgabe ihnen gleicht.
+    """
     heizkreis = str(roh.get("heizkreis") or "").strip()
     raeume = _liste(roh.get("raeume"), LISTEN_MAX["raeume"])
     wetter = _entitaet(roh.get("wetter"))
@@ -128,7 +131,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
         "befund_melden": bool(roh.get("befund_melden", False)),
         "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
-        "eigene": abweichungen(profil, eigene, ausrichtung),
+        "eigene": abweichungen(profil, eigene, ausrichtung, behalten),
     }
 
 
@@ -138,6 +141,9 @@ def klima_vorgabe(konfig: dict[str, Any], alte_raeume: Sequence[str]) -> dict[st
     if not neu or "sonnentag" in konfig["eigene"]:
         return konfig
     eigene = abweichungen(
-        konfig["profil"], {**konfig["eigene"], "sonnentag": False}, konfig["ausrichtung"]
+        konfig["profil"],
+        {**konfig["eigene"], "sonnentag": False},
+        konfig["ausrichtung"],
+        konfig["eigene"],
     )
     return {**konfig, "eigene": eigene}

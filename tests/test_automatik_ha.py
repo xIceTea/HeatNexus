@@ -3618,3 +3618,29 @@ async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(hass, hass_ws_c
     )
 
     assert antwort["success"], antwort
+
+
+async def test_eigene_werte_ueberstehen_den_wechsel_von_ausrichtung_und_profil(hass, anlage):
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+
+    for aenderung in ({"ausrichtung": "eco"}, {"ausrichtung": "ausgewogen"}, {"profil": "traege"}):
+        await verwaltung.einstellen(HEIZKREIS, aenderung)
+        assert verwaltung.laufzeiten[HEIZKREIS].konfig["eigene"] == {"stark": True}
+    assert verwaltung.laufzeiten[HEIZKREIS].werte.stark is True
+
+
+async def test_das_laden_behaelt_eigene_werte_gleich_der_vorgabe(hass, anlage):
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+    await verwaltung.einstellen(HEIZKREIS, {"ausrichtung": "eco"})
+    await verwaltung._store.async_save(verwaltung._daten)
+
+    neu = Verwaltung(hass)
+    await neu.laden()
+
+    assert neu._daten["heizkreise"][HEIZKREIS]["konfig"]["eigene"] == {"stark": True}
