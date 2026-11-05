@@ -145,7 +145,7 @@ fragt sie alle zwei Minuten neu nach.
 Ist die Vorhersage älter, steht die Automatik auf **Keine Daten** und beginnt
 keinen neuen Eingriff. Ein laufender Eingriff endet weiter, wenn die Messwerte es
 verlangen, etwa bei kalten Räumen oder zum Sonnenuntergang. Nur Warmwasser endet
-spätestens nach zwei Stunden. Nach drei Stunden ohne Vorhersage erscheint eine
+spätestens nach zwei Stunden. Drei Stunden nach dem Ablauf erscheint eine
 Reparaturmeldung.
 
 ## Prognose an den Standort anpassen
