@@ -55,7 +55,7 @@ export const AUTOMATIK = `
   /* Die Scheibe bleibt beim Überfahren sichtbar; die Marken des Schaubilds werden dort sonst durchsichtig. */
   .schaubild .automatik-bildmarke.klickbar:hover { background-color: color-mix(in srgb, currentColor 22%, var(--hn-karte)); }
   /* Gerades Maß, ganzer Pixel und ein gemeinsamer Kasten: So runden Scheibe und Zeichen gleich, und das Zeichen bleibt mittig. */
-  @supports (width: round(1px, 2px)) {
+  @supports (width: round(1%, 2px)) {
     .schaubild .automatik-bildmarke {
       left: round(var(--bild-links), 1px); top: round(var(--bild-oben), 1px); width: round(var(--bild-groesse), 2px);
     }

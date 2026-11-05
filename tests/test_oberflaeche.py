@@ -1419,6 +1419,7 @@ def test_das_zeichen_der_marke_teilt_den_kasten_der_scheibe():
     stil = (PANEL_JS.parent / "stil" / "automatik.js").read_text(encoding="utf-8")
     assert re.search(r"automatik-bildmarke ha-icon \{[^}]*inset: 0;[^}]*transform: scale\(", stil)
     assert "width: round(var(--bild-groesse), 2px)" in stil
+    assert "@supports (width: round(1%, 2px))" in stil
 
 
 def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
