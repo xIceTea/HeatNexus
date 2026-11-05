@@ -6,44 +6,68 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.15.0]
+## [1.15.0] - 2026-11-05
+
+### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild
+
+HeatNexus liest Wärmepumpen und den Hybridmanager des BioWIN Hybrid ein und zeigt sie im Systemstatus und im Schaubild. Das Schaubild bricht bei wenig Platz in Reihen um. Panel und Dashboard melden Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
 
 ### Neu
 
-- Unter dem Schaubild steht jedes Anlagenteil mit Werten in einem Kasten.
-- Die Reparaturen melden eine Zirkulationspumpe, deren Schaltzeiten alle auf Aus stehen.
-- Entitäten ohne Datenpunkt lassen sich in der Reparatur behalten statt löschen.
-- Eine Wärmepumpe als eigene Wärmequelle erscheint im Schaubild wie die AeroWIN.
-- BioWIN: Der Systemstatus zeigt den Befüllgrad des Lagerraums.
+**Schaubild**
+- Bei wenig Platz bricht das Schaubild in Reihen um, die Werte stehen in Kästen darunter.
+- Das Fenster „Darstellung“ stellt Größe der Anlagenteile sowie Lage und Farben der Beschriftung ein.
+- Das Schaubild zeigt Zustand und Begründung der Automatik, mit Tasten für Empfehlungen.
+- Wärmepumpen erscheinen wie die AeroWIN, bei mehreren Erzeugern mit den Werten jedes Geräts.
+- Der Vorratsbehälter zeigt den Brennstoff in Holzfarbe und den Füllstand des Lagerraums.
+- BioWIN: Der Hybridmanager erscheint als Ventilgruppe und zeigt den Erzeuger, der gerade heizt.
+
+**Panel**
+- Panel und Dashboard zeigen Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+- Der Systemstatus zeigt je Wärmeerzeuger eine Kopfzeile und den SG-Ready-Zustand ([#34](https://github.com/xIceTea/HeatNexus/issues/34)).
+- BioWIN: Eine Karte „Hybridmanager“ zeigt Kosten und Tarife, der Verlauf das Hybridsystem ([#25](https://github.com/xIceTea/HeatNexus/issues/25)).
+
+**Home Assistant**
+- Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.
+- Home Assistant findet die Steuerung im Netz und folgt nach Rückfrage einem Adresswechsel.
+- HeatNexus übernimmt neue und entfernte Anlagenteile ohne Neustart.
+- Alte Geräte lassen sich löschen, Entitäten ohne Datenpunkt auch behalten.
+- Reparaturen und Zeitprogramme warnen, wenn alle Schaltzeiten der Zirkulation auf Aus stehen.
+- Wärmepumpen, Infinity PLUS und AeroWIN zeigen Leistung, Temperaturen, Wärmemengen, Starts und COP.
+- Ein Dienst benennt Heizkreise um, ein Diagnose-Sensor zeigt die Uhrabweichung der Steuerung.
 
 ### Geändert
 
-- Die Zahl über dem Vorratsbehälter ist größer.
-- Der Reiter Zeitprogramme warnt, wenn alle Schaltzeiten der Zirkulation auf Aus stehen.
 - Sensoren von Schaltprogrammen zeigen Ein und Aus statt Grad.
-- Die Übergabestation zeigt eine Anforderung mit Ringen, die nacheinander aufleuchten.
-- BioWIN: Füllhöhe und Zahl am Vorratsbehälter folgen dem gemeldeten Befüllgrad.
+- Wärmepumpen stehen im Schaubild hinter den Kesseln.
 
 ### Behoben
 
-- Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
-- Das Zeitprogramm der Zirkulation gilt im Reiter auch bei Impulssteuerung als aktiv.
-- „Anlage neu erkennen“ und „Dashboard als YAML ausgeben“ sind nur für Administratoren aufrufbar.
-- Vor dem Nachführen einer neuen Adresse fragt HeatNexus, ob die Steuerung umgezogen ist.
-- Eine gescheiterte Prüfung nach einem Umzug nennt die richtige Ursache.
-- Das Schaubild zeigt nur Entitäten, die der Benutzer sehen darf.
-- Ein kurzer Aussetzer der Steuerung löst kein Neueinlesen aus.
-- Ein Lesefehler legt den Sensor „Uhrabweichung“ nicht mehr still.
-- Nach einem gescheiterten Neustart der Automatik lernt das Hausmodell neu.
+**Anzeige**
+- Die Heizungsübersicht zeigt das Abzeichen der Automatik am Heizkreis.
+- Das Schaubild bricht lange Namen um und zeigt in Firefox keine Bruchstücke.
+- Der Reiter Zeitprogramme erkennt die Zirkulation auch bei Impulssteuerung als aktiv.
+- Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
+- Fehler und Alarm mit gleicher Nummer erscheinen beide, die Meldungsliste behält höchstens 50.
+- Alle Datenpunktnamen erscheinen auf Englisch und Niederländisch übersetzt.
+- BioWIN: Der Hybridmanager heißt richtig und erscheint nicht mehr als dritter Wärmeerzeuger.
+- BioWIN: Heizwert der Pellets und Tageswerte der AeroWIN erscheinen ohne falsche Zähler.
+
+**Automatik**
+- Abgelehnte Eingriffe, abgebrochene Lernläufe und gescheiterte Neustarts halten die Automatik nicht mehr an.
+- Ein gescheiterter Start erscheint als Reparaturmeldung und hinterlässt keine Reste.
+- Zwei Änderungen der Einstellungen zugleich gehen beide ein.
+- Mehr als 20 eigene Werte der Automatik lassen sich speichern.
+- An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+
+**Home Assistant**
 - Ab Home Assistant 2026.11 meldet das Protokoll keine Abkündigung der Thermostate mehr.
-- Jede Wärmepumpe zeigt im Systemstatus Leistung, Vorlauf und Starts.
-- Am Rad der Übergabestation bleiben in Firefox keine Bruchstücke mehr stehen.
-- Der Schein der Übergabestation liegt rund und mittig hinter dem Rad.
-- Im umgebrochenen Schaubild steht der Befüllgrad nur in der Reihe des Kessels.
-- Im umgebrochenen Schaubild ragen Namen und Zahlen ungeschnitten über die Kante einer Reihe.
-- Lange Namen im Schaubild brechen in eine zweite Zeile um.
-- Die Laufräder der Pumpen sitzen auch in schmalen Reihen mittig.
-- BioWIN: An der AeroWIN liegt keine Glut mehr über der Betriebslampe.
+- Viele Zeitprogramme und vereinzelt abgewiesene Abfragen lassen den Abruf nicht mehr scheitern.
+- Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt ein neuer Versuch.
+- Schaubild und Wartungsdienste beachten die Rechte des Benutzers ([#33](https://github.com/xIceTea/HeatNexus/issues/33)).
+- Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung ([#33](https://github.com/xIceTea/HeatNexus/issues/33)).
+- Werte gehen auf die Schrittweite gerundet an die Steuerung, Schreibfehler erscheinen übersetzt.
+- Die Einrichtung nennt ein abgewiesenes Passwort und verträgt jeden Zeichensatz der `automations.yaml`.
 
 ## [1.15.0-beta.2] - 2026-11-02
 
