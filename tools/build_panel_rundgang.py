@@ -47,8 +47,8 @@ from beispielautomatik import automatik_daten
 
 ZIEL = WURZEL / "assets" / "panel_rundgang.gif"
 
-BREITE, HOEHE = 1120, 920
-GIF_BREITE = 900
+BREITE, HOEHE = 1900, 1060
+GIF_BREITE = 1200
 FARBEN = 160
 
 # Die Störung, die im Rundgang auftritt. Text und Kennung stammen aus der
@@ -253,9 +253,13 @@ const hass = {
   callWS: async (nachricht) =>
     ({ "heatnexus/panel_daten": DATEN, "heatnexus/automatik": AUTOMATIK })[nachricht.type] || {},
   callService: async () => {},
+  // Wie Home Assistant bei deutscher Sprache: Dezimalkomma, Ein und Aus statt on und off.
   formatEntityState: (zustand) => {
     const einheit = zustand.attributes && zustand.attributes.unit_of_measurement;
-    return einheit ? zustand.state + " " + einheit : zustand.state;
+    const roh = String(zustand.state);
+    const zahl = /^-?[0-9]+[.][0-9]+$/.test(roh) ? roh.replace(".", ",") : roh;
+    const wert = { on: "Ein", off: "Aus" }[zahl] || zahl;
+    return einheit ? wert + " " + einheit : wert;
   },
   localize: (schluessel) => schluessel,
   // Die Betriebsarten heissen am Gerät "0".."7"; die Klartexte kommen aus der
@@ -282,6 +286,12 @@ element._gebaut = false;
 element._zeichnen();
 // Manche Reiter holen ihre Daten erst beim Öffnen; erst danach stehen ihre Karten.
 await new Promise((fertig) => setTimeout(fertig, 300));
+
+// Die Verlaufskarte braucht das Frontend von Home Assistant; leer stünde sie als Falschaussage im Bild.
+for (const karte of (element.shadowRoot || element).querySelectorAll(".karte")) {
+  const kopf = karte.querySelector("h2, h3");
+  if (kopf && kopf.textContent.trim().startsWith("Verlauf (")) karte.remove();
+}
 
 // **Eine Karte nach oben holen, ohne zu rollen.** Gerollt wurde vorher mit
 // festen Bildpunktzahlen; die verrutschen, sobald eine Karte eine Zeile mehr
