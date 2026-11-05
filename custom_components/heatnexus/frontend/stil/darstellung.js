@@ -93,14 +93,22 @@ export const DARSTELLUNG = `
     width: 34px; height: 34px; padding: 0; border: 1px solid var(--hn-linie); border-radius: 50%;
     cursor: pointer;
   }
-  .beschriftung-eigene { background: none; overflow: hidden; }
-  .beschriftung-eigene::-webkit-color-swatch-wrapper { padding: 0; }
-  .beschriftung-eigene::-webkit-color-swatch { border: none; border-radius: 50%; }
-  .beschriftung-eigene::-moz-color-swatch { border: none; border-radius: 50%; }
+  /* Der Regenbogen und die Pipette kennzeichnen das freie Feld; gewählt zeigt es die Farbe selbst. */
+  .beschriftung-eigene {
+    position: relative; box-sizing: border-box; display: grid; place-items: center;
+    color: #fff; --mdc-icon-size: 18px;
+    background: conic-gradient(#ef5350, #ffca28, #66bb6a, #29b6f6, #ab47bc, #ef5350);
+  }
+  .beschriftung-eigene.gewaehlt { background: var(--eigene-farbe); }
+  .beschriftung-eigene ha-icon { pointer-events: none; filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9)); }
+  .beschriftung-eigene input {
+    position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: none;
+    opacity: 0; cursor: pointer;
+  }
   .beschriftung-farbe[aria-pressed="true"], .beschriftung-eigene.gewaehlt {
     box-shadow: 0 0 0 2px var(--hn-karte), 0 0 0 4px var(--hn-akzent);
   }
-  .beschriftung-farbe:focus-visible, .beschriftung-eigene:focus-visible {
+  .beschriftung-farbe:focus-visible, .beschriftung-eigene:focus-within {
     outline: 2px solid var(--hn-akzent); outline-offset: 4px;
   }
   .beschriftung-feld input[type="range"] { width: 140px; accent-color: var(--hn-akzent); }

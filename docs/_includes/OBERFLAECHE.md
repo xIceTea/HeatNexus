@@ -126,8 +126,8 @@ Das Fenster gilt nur für den eigenen Benutzer. Ein Klick zeigt die Wahl sofort,
   werden kleiner. Die Größe je Anlagenteil lässt sich wählen.
 - **Werte:** Die Zahlen stehen im Bild oder in Kästen darunter. `Automatisch`
   wählt die Kästen, sobald ein Anlagenteil schmaler als 100 px steht.
-- **Beschriftung:** Farbfelder legen Hintergrund und Schrift fest, ein eigenes
-  Feld nimmt jede andere Farbe. Sind beide kaum zu unterscheiden, erscheint ein
+- **Beschriftung:** Farbfelder legen Hintergrund und Schrift fest, das Feld mit
+  der Pipette nimmt jede andere Farbe. Sind beide kaum zu unterscheiden, erscheint ein
   Hinweis.
 
 ## Eigene Werte über Labels

@@ -390,14 +390,30 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   tasten.find((k) => k.dataset.wert === "#0a0e13").ausloesen("click");
   const dunkelAufHell = warnung.hidden;
   tasten.find((k) => k.dataset.wert === "#ffd166").ausloesen("click");
+  const nachKlick = gedrueckt();
+  const vorschau = flaeche._beschriftung().schrift;
+  const eigenes = leisten[1].querySelector(".beschriftung-eigene");
+  const gewaehltVorher = eigenes.classList.contains("gewaehlt");
+  const eingabe = eigenes.querySelector("input");
+  eingabe.value = "#123456";
+  eingabe.ausloesen("change");
+  const zurueck = fenster.querySelector(".beschriftung-zurueck");
   bilanz.beschriftungFarben = {
+    eigenesFeld: {
+      symbol: eigenes.querySelector("ha-icon").getAttribute("icon"),
+      gewaehltVorher,
+      gewaehltDanach: eigenes.classList.contains("gewaehlt"),
+      farbe: eigenes.style["--eigene-farbe"],
+      titel: eigenes.title,
+    },
+    knopf: String(zurueck.textContent),
     warnung: { anfangsLesbar, gleich, dunkelAufHell },
     name: { titel: tasten[2].title, aria: tasten[2].getAttribute("aria-label") },
     leisten: leisten.length,
     eigene: leisten.map((l) => l.querySelectorAll(".beschriftung-eigene").length),
     anfangs,
-    nachKlick: gedrueckt(),
-    vorschau: flaeche._beschriftung().schrift,
+    nachKlick,
+    vorschau,
   };
   fenster.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
 }

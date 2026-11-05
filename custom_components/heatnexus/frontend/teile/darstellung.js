@@ -279,7 +279,7 @@ export const DarstellungMixin = (Basis) =>
       });
     }
 
-    /** Farbfelder für Hintergrund und Schrift, ein Regler für die Deckkraft; „Wie ausgeliefert“ stellt alle drei zurück. */
+    /** Farbfelder für Hintergrund und Schrift, ein Regler für die Deckkraft; „Zurücksetzen“ stellt alle drei zurück. */
     _beschriftungWahl(wert, setzen) {
       const block = document.createElement("div");
       block.className = "beschriftung-wahl";
@@ -309,7 +309,7 @@ export const DarstellungMixin = (Basis) =>
       const zurueck = document.createElement("button");
       zurueck.type = "button";
       zurueck.className = "dialog-taste beschriftung-zurueck";
-      zurueck.textContent = this._t("Wie ausgeliefert");
+      zurueck.textContent = this._t("Zurücksetzen");
       zurueck.addEventListener("click", () => {
         Object.entries(BESCHRIFTUNG).forEach(([schluessel, standard]) => setzenUndPruefen(schluessel, standard));
         felder.forEach(({ zeigen }) => zeigen());
@@ -354,16 +354,19 @@ export const DarstellungMixin = (Basis) =>
       leiste.className = "beschriftung-farben";
       leiste.setAttribute("role", "group");
       leiste.setAttribute("aria-label", name);
-      const eigene = document.createElement("input");
-      eigene.type = "color";
-      eigene.className = "beschriftung-eigene";
-      eigene.title = this._t("Eigene Farbe");
-      eigene.setAttribute("aria-label", this._t("Eigene Farbe"));
+      const eigenes = document.createElement("label");
+      eigenes.className = "beschriftung-eigene";
+      eigenes.title = this._t("Eigene Farbe");
+      const eingabe = document.createElement("input");
+      eingabe.type = "color";
+      eingabe.setAttribute("aria-label", this._t("Eigene Farbe"));
+      eigenes.append(eingabe, this._symbolKnoten("mdi:eyedropper"));
       const zeigen = () => {
         const aktuell = wert(schluessel);
         tasten.forEach((taste) => taste.setAttribute("aria-pressed", String(taste.dataset.wert === aktuell)));
-        eigene.value = aktuell;
-        eigene.classList.toggle("gewaehlt", !tasten.some((taste) => taste.dataset.wert === aktuell));
+        eingabe.value = aktuell;
+        eigenes.style.setProperty("--eigene-farbe", aktuell);
+        eigenes.classList.toggle("gewaehlt", !tasten.some((taste) => taste.dataset.wert === aktuell));
       };
       const waehlen = (farbe) => {
         setzen(schluessel, farbe);
@@ -381,8 +384,8 @@ export const DarstellungMixin = (Basis) =>
         leiste.appendChild(taste);
         return taste;
       });
-      eigene.addEventListener("change", () => waehlen(String(eigene.value).toLowerCase()));
-      leiste.appendChild(eigene);
+      eingabe.addEventListener("change", () => waehlen(String(eingabe.value).toLowerCase()));
+      leiste.appendChild(eigenes);
       zeigen();
       zeile.append(titel, leiste);
       return { zeile, zeigen };

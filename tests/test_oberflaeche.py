@@ -1462,6 +1462,14 @@ def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
 def test_die_farben_der_beschriftung_stehen_als_felder_im_fenster(durchlauf):
     """Vorgegebene Felder wirken in jedem Browser; das eigene Farbfeld bleibt dazu erhalten."""
     assert durchlauf["beschriftungFarben"] == {
+        "eigenesFeld": {
+            "symbol": "mdi:eyedropper",
+            "gewaehltVorher": False,
+            "gewaehltDanach": True,
+            "farbe": "#123456",
+            "titel": "Eigene Farbe",
+        },
+        "knopf": "Zurücksetzen",
         "warnung": {"anfangsLesbar": True, "gleich": False, "dunkelAufHell": True},
         "name": {"titel": "Gelb", "aria": "Schriftfarbe: Gelb"},
         "leisten": 2,
