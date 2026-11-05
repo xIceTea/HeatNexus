@@ -5,7 +5,7 @@ Hier steht, was darauf zu sehen ist — damit man es beurteilen kann, ohne die
 Integration erst installieren zu müssen.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Automatik, Wartung, Zeitprogramme" width="900">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif?v=2" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Automatik, Wartung, Zeitprogramme" width="900">
 </p>
 
 <p align="center">

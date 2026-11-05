@@ -172,8 +172,9 @@ Schaubild der Anlage, nicht von Hand:
 |---|---|
 | `tools/build_schaubild_beispiel.py` | Standbild je Farbsatz (`assets/anlagenschema_beispiel*.svg`) |
 | `tools/build_schaubild_animation.py` | Bewegtbild je Farbsatz (`assets/anlagenschema_animation*.gif`) |
+| `tools/build_zeichen.py` | Zeichen, Icon, Logo und Banner aus `assets/zeichen.svg` |
 
-Beide beschreiben dieselbe Beispielanlage (`tools/beispielanlage.py`). Das
+Die beiden Schaubild-Werkzeuge beschreiben dieselbe Beispielanlage (`tools/beispielanlage.py`). Das
 Bewegtbild hält die Bewegung der Oberfläche an und stellt sie Bild für Bild
 weiter (`animation-delay` plus `animation-play-state: paused`); aufgenommen
 wird mit einem kopflosen Browser, zusammengelegt mit Pillow. Es benutzt dabei

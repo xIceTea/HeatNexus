@@ -1,4 +1,4 @@
-![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png)
+![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png?v=2)
 
 [![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)](LICENSE)
 
@@ -15,7 +15,7 @@ in the sidebar shows the system as a diagram.
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
-![Plant diagram with running pumps, a charging buffer tank and heating circuits](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
+![Plant diagram with running pumps, a charging buffer tank and heating circuits](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif?v=2)
 
 ## Features
 
@@ -30,7 +30,7 @@ in the sidebar shows the system as a diagram.
 - **Dashboard and seven automation blueprints** built from what the system provides.
 - **German, English and Dutch** in the panel, datapoints and fault texts.
 
-[![Tour of the panel](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
+[![Tour of the panel](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif?v=2)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
 ## Supported Windhager devices
 

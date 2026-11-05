@@ -240,7 +240,7 @@ def _pumpen(karte_daten: dict, lage: dict) -> str:
         laeuft = "laeuft" if lage["pumpen"].get(eintrag["entity"]) else ""
         teile.append(
             f'<div class="pumpe {laeuft}" style="left:{eintrag["left"]};top:{eintrag["top"]}">'
-            f"{_laufrad()}</div>"
+            f'<div class="rad">{_laufrad()}</div></div>'
         )
     return "".join(teile)
 
