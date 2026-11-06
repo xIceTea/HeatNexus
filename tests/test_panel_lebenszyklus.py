@@ -74,6 +74,20 @@ def test_escape_schliesst_das_fenster_und_loest_den_hoerer(befund):
     assert befund["fokusZurueck"] is True
 
 
+def test_nach_einem_ha_dialog_wird_die_flaeche_einmal_neu_gezeichnet(befund):
+    ergebnis = befund["nachDialog"]
+    assert ergebnis["gleichDanach"] == "translateZ(0)"
+    assert ergebnis["zweiBilderSpaeter"] == ""
+
+
+def test_ein_eigenes_offenes_fenster_verhindert_das_neuzeichnen(befund):
+    assert befund["nachDialog"]["beiEigenemFenster"] == ""
+
+
+def test_der_abbau_meldet_den_dialoghoerer_ab(befund):
+    assert befund["nachDialog"]["hoererNachAbbau"] == 1
+
+
 def test_der_abbau_schliesst_offene_fenster(befund):
     assert befund["fensterNachAbbau"] == 0
     assert befund["tastenhoererNachAbbau"] == 0

@@ -419,6 +419,7 @@ class HeatNexusPanel extends Grundlage {
       inhalt.appendChild(flaechen[0]);
     }
     this._reiterFlaechen(inhalt, flaechen);
+    this._nachDialogNeuZeichnen();
     const alteLeiste = this.shadowRoot.querySelector(".reiter");
     const vorher = (alteLeiste && alteLeiste.scrollLeft) || 0;
     this._flaecheErsetzen(...stil, inhalt);
@@ -429,6 +430,22 @@ class HeatNexusPanel extends Grundlage {
       if (taste) taste.focus();
     }
     this._verlaufKarteLaden();
+  }
+
+  /**
+   * Nach einem Dialog von Home Assistant die Fläche für zwei Bilder auf eine eigene Ebene heben.
+   * Mobile Browser zeichnen den verdeckten Bereich sonst erst beim Scrollen wieder; er bleibt schwarz.
+   */
+  _nachDialogNeuZeichnen() {
+    window.addEventListener(
+      "dialog-closed",
+      () => {
+        if (!this.isConnected || this.shadowRoot.querySelector(".schleier")) return;
+        this.style.setProperty("transform", "translateZ(0)");
+        requestAnimationFrame(() => requestAnimationFrame(() => this.style.removeProperty("transform")));
+      },
+      { signal: this._aufbauAbbruch.signal }
+    );
   }
 
   /** Kopfleiste mit Menütaste, Marke und Anlagenwahl. */

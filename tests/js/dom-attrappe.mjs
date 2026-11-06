@@ -374,6 +374,10 @@ export function browserAttrappe() {
     },
   };
   globalThis.window = globalThis;
+  // Ereignisse am Fenster, etwa `dialog-closed` aus Home Assistant.
+  const fenster = new Knoten("#window");
+  globalThis.addEventListener = (...werte) => fenster.addEventListener(...werte);
+  globalThis.removeEventListener = (...werte) => fenster.removeEventListener(...werte);
   // Der Browserspeicher, in dem der zuletzt gewählte Farbsatz liegt.
   const speicher = new Map();
   globalThis.localStorage = {
@@ -407,6 +411,7 @@ export function browserAttrappe() {
   globalThis.cancelAnimationFrame = (kennung) => austragen(bilder, kennung);
 
   return {
+    fenster,
     /** Alle wartenden Zeitaufträge und Bilder ausführen – ohne echte Wartezeit. */
     zeitLaufenLassen() {
       while (auftraege.length || bilder.length) {
