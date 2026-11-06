@@ -24,6 +24,8 @@ export const SchaubildAutomatikMixin = (Basis) =>
           offen: true,
         };
       }
+      // Im Programm greift die Automatik nicht ein; der Normalfall braucht keine eigene Zeile.
+      if (zustand.state === "programm") return null;
       return {
         art: zustand.state,
         symbol: AUTOMATIK_SYMBOLE[zustand.state] || "mdi:robot-outline",
@@ -44,6 +46,7 @@ export const SchaubildAutomatikMixin = (Basis) =>
       const titel = kopf && kopf.querySelector("h2");
       const zeilen = document.createElement("div");
       zeilen.className = "bild-automatik";
+      const gruppen = [];
       kreise.forEach((kreis) => {
         const pille = this._automatikPille(kreis, kreise.length > 1);
         const zeile = this._automatikZeile(kreis);
@@ -51,12 +54,21 @@ export const SchaubildAutomatikMixin = (Basis) =>
         if (kreise.length === 1 && titel) {
           titel.parentElement.insertBefore(pille, titel.nextSibling);
           zeilen.appendChild(zeile);
+          gruppen.push([zeile, zeile]);
           return;
         }
         const gruppe = document.createElement("div");
         gruppe.className = "bild-automatik-kreis";
         gruppe.append(pille, zeile);
         zeilen.appendChild(gruppe);
+        gruppen.push([gruppe, pille]);
+      });
+      // Ohne sichtbaren Kreis entfällt der Block samt Abstand.
+      this._bindungen.push(() => {
+        gruppen.forEach(([huelle, inhalt]) => {
+          if (huelle !== inhalt) huelle.hidden = inhalt.hidden;
+        });
+        zeilen.hidden = gruppen.every(([huelle]) => huelle.hidden);
       });
       karte.insertBefore(zeilen, kopf ? kopf.nextSibling : karte.firstChild);
     }

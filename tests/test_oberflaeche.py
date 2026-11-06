@@ -1428,20 +1428,20 @@ def test_das_zeichen_der_marke_teilt_den_kasten_der_scheibe():
 
 
 def test_das_schaubild_zeigt_den_zustand_der_automatik(durchlauf):
-    """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung."""
+    """Pille hinter dem Titel, Begründung darunter, Marke nur bei Eingriff oder Empfehlung.
+
+    Im Programm greift die Automatik nicht ein; dann bleibt der Block ganz weg.
+    """
     bild = durchlauf["automatikImBild"]
     assert bild["nachTitel"] is True
     assert bild["markeOeffnet"] is True
     # Ab zwei Kreisen bleibt die Titelzeile frei; jeder Kreis steht in einer eigenen Zeile.
     assert bild["zwei"] == {"imKopf": 0, "zeilen": 2}
     assert bild["pillen"] == 1
-    assert bild["programm"] == {
-        "pille": "Automatik · Heizen nach Programm",
-        "zustand": "programm",
-        "grund": "Sonnenquote 48 % unter 55 % – keine Absenkung.",
-        "tasten": False,
-        "marke": None,
-    }
+    assert bild["programm"]["pille"] is None
+    assert bild["programm"]["grund"] is None
+    assert bild["programm"]["marke"] is None
+    assert bild["programm"]["block"] is False
     assert bild["sonnentag"]["pille"] == "Sonnentag · 19,5 °C"
     assert bild["sonnentag"]["marke"] == "sonnentag"
     assert bild["sonnentag"]["tasten"] is False
