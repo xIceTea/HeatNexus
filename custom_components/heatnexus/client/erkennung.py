@@ -383,8 +383,10 @@ class ErkennungMixin:
         self._menue_luecken = set()
         self._wurzel_luecken = set()
         self._wurzel_ueberbrueckt = set()
+        self._wurzel_ohne_antwort = set()
         json_devices = await self._struktur_lesen()
         self._struktur = self._strukturabdruck(json_devices)
+        self._teilnamen = self._teilnamen_lesen(json_devices)
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
         if not self.werksbezeichnung:
@@ -423,6 +425,28 @@ class ErkennungMixin:
                     continue
                 abdruck.add(f"{knoten['nodeId']}/{fct.get('fctId')}/{fct.get('fctType')}")
         return sorted(abdruck)
+
+    def _teilnamen_lesen(self, json_devices: list) -> dict[str, str]:
+        """Die freien, auswertbaren Funktionen aus `/1` mit Knoten- und Funktionsnamen.
+
+        LON-Adressräume fehlen: Ihr Schweigen ist häufig und gilt als überbrückt.
+        """
+        namen: dict[str, str] = {}
+        for knoten in json_devices:
+            if not isinstance(knoten, dict) or knoten.get("nodeId") is None:
+                continue
+            knotenname = str(knoten.get("name") or "").strip()
+            for fct in knoten.get("functions") or ():
+                art = fct.get("fctType")
+                if fct.get("lock") or art == FCT_NV or not self._funktion_zaehlt(art):
+                    continue
+                teile = [knotenname, str(fct.get("name") or "").strip()]
+                teile = [
+                    t for i, t in enumerate(teile) if t not in ("", "-") and t not in teile[:i]
+                ]
+                prefix = f"/1/{knoten['nodeId']}/{fct.get('fctId')}"
+                namen[prefix] = " ".join(teile) or prefix
+        return namen
 
     async def _struktur_pruefen(self, antwort: list | None = None) -> None:
         """`/1` mit dem Erkennungsstand vergleichen; erst zwei gleiche Abweichungen zählen.

@@ -61,6 +61,7 @@ from .erkennungsstand import (
     nur_anzeige_geaendert,
     nur_automatik_untereintrag_geaendert,
     store_key,
+    stumme_teile_entfernen,
     systems,
     umfang_der_anlage,
     umfang_fingerprint,
@@ -716,6 +717,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await befund_entfernen(hass, entry)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)
+    stumme_teile_entfernen(hass, entry)
     adresshinweise_entfernen(hass, entry.entry_id)
     for system in systems(entry):
         await Store(

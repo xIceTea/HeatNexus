@@ -76,6 +76,7 @@ class AttrappenClient:
 
     letzte: AttrappenClient | None = None
     erkennung_unvollstaendig = False
+    stumme_teile: tuple[str, ...] = ()
     erster_abruf = False
 
     def __init__(self, **kwargs: Any) -> None:

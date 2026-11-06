@@ -220,6 +220,7 @@ class MenuesMixin:
             # Keine Antwort ist keine Absage: Der Teil kann vorhanden sein.
             _LOGGER.debug("%s: Menüwurzel ohne Antwort (HTTP %s)", prefix, status)
             self._wurzel_luecken.add(prefix)
+            self._wurzel_ohne_antwort.add(prefix)
             return None
         if status != 200 or not isinstance(root, list) or not root:
             return None

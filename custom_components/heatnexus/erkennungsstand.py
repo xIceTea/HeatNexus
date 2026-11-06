@@ -18,6 +18,7 @@ from .const import (
     CONF_ENABLE_ADVANCED,
     CONF_KESSELART,
     CONF_KESSELWERT,
+    CONF_LABEL,
     CONF_LEVELS,
     CONF_LON,
     CONF_LON_GRUNDUMFANG,
@@ -156,6 +157,42 @@ def neustart_hinweis(hass: HomeAssistant, entry: ConfigEntry, host: str, faellig
         severity=ir.IssueSeverity.WARNING,
         translation_key="sprache_neustart",
     )
+
+
+def stumme_teile_melden(
+    hass: HomeAssistant, entry: ConfigEntry, host: str, teile: list[str]
+) -> None:
+    """Reparatureintrag für Teile, die die Steuerung meldet, die aber keine Werte liefern.
+
+    Er bleibt über Neustarts stehen, denn der Erkennungsstand liest die Teile dann nicht neu.
+    Erst ein Lauf, in dem alle Teile antworten, löst ihn auf.
+    """
+    kennung = f"stumme_teile_{entry.entry_id}_{host}"
+    if not teile:
+        ir.async_delete_issue(hass, DOMAIN, kennung)
+        return
+    system = next((s for s in systems(entry) if s.get(CONF_HOST) == host), {})
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        kennung,
+        is_fixable=False,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="stumme_teile",
+        translation_placeholders={
+            "anlage": system.get(CONF_LABEL) or host,
+            "teile": ", ".join(teile),
+        },
+    )
+
+
+def stumme_teile_entfernen(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Die Reparatureinträge eines entfernten Eintrags abräumen."""
+    for system in systems(entry):
+        ir.async_delete_issue(
+            hass, DOMAIN, f"stumme_teile_{entry.entry_id}_{system.get(CONF_HOST)}"
+        )
 
 
 def laufzeitdaten(entry: ConfigEntry) -> dict | None:

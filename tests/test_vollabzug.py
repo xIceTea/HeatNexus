@@ -74,6 +74,7 @@ class _Client:
         self.fehler = fehler
         self.laeufe = 0
         self.erkennung_unvollstaendig = False
+        self.stumme_teile = []
 
     async def async_init(self, erzwingen=False):
         self.laeufe += 1

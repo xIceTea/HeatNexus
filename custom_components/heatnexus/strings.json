@@ -572,6 +572,10 @@
       "title": "{anlage} cannot be reached",
       "description": "No more values arrive from **{anlage}**.\n\nReported: {grund}\n\nPlease check that the controller is powered on and reachable on the network. This message disappears by itself once the system responds again."
     },
+    "stumme_teile": {
+      "title": "{anlage}: parts of the system return no values",
+      "description": "The controller lists these parts but answers no request for them: {teile}.\n\nTheir values are therefore missing in Home Assistant. Possible causes are an overloaded gateway or a module without a connection to the bus. Once the cause is fixed, the action “Detect system again” reads the parts. This message then disappears by itself."
+    },
     "sprache_neustart": {
       "title": "Language changed – restart required",
       "description": "The language of the labels was changed. HeatNexus already reads the new names from the controller; they become visible after a restart of Home Assistant.\n\nThis message then disappears by itself."
