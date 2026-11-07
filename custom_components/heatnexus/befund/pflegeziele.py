@@ -17,17 +17,19 @@ class Ziel:
     max_feld: object = None
 
 
-def _knoten(prefix: str) -> str | None:
-    teile = prefix.strip("/").split("/")
-    return teile[1] if len(teile) >= 2 else None
+def _praefix(oid: str) -> str | None:
+    """`/1/<Knoten>/<Funktion>` aus einer vollen Adresse; Sensoren tragen keinen eigenen Präfix."""
+    teile = oid.strip("/").split("/")
+    return "/" + "/".join(teile[:3]) if len(teile) >= 3 else None
 
 
 def _zaehler(beschreibungen: list[dict]) -> list[Ziel]:
     gefunden = []
     for b in beschreibungen:
-        oid, prefix, device_id = b.get("oid") or "", b.get("prefix") or "", b.get("device_id")
+        oid, device_id = b.get("oid") or "", b.get("device_id")
+        prefix = _praefix(oid)
         for pflege in PFLEGE.get(b.get("fct_type"), ()):
-            if device_id and pflege.adresse and oid == f"{prefix}{pflege.adresse}":
+            if device_id and prefix and pflege.adresse and oid == f"{prefix}{pflege.adresse}":
                 gefunden.append(Ziel(prefix, device_id, pflege, b.get("max")))
     return gefunden
 
@@ -35,10 +37,10 @@ def _zaehler(beschreibungen: list[dict]) -> list[Ziel]:
 def _logwin(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[Ziel]:
     geraete: dict[str, str] = {}
     for b in beschreibungen:
-        prefix = b.get("prefix") or ""
-        if b.get("fct_type") != 10 or not b.get("device_id"):
+        prefix = _praefix(b.get("oid") or "")
+        if b.get("fct_type") != 10 or not b.get("device_id") or prefix is None:
             continue
-        if geraeteklasse.get(_knoten(prefix) or "") == LOGWIN_KLASSE:
+        if geraeteklasse.get(prefix.split("/")[2]) == LOGWIN_KLASSE:
             geraete.setdefault(prefix, b["device_id"])
     return [Ziel(p, device_id, pflege) for p, device_id in geraete.items() for pflege in LOGWIN]
 

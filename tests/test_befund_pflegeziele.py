@@ -14,7 +14,8 @@ def z():
 
 
 def d(prefix, gnmn, fct, device="dev", **mehr):
-    beschreibung = {"prefix": prefix, "oid": f"{prefix}/{gnmn}/0", "fct_type": fct}
+    """Wie die Erkennung einen Sensor beschreibt: volle Adresse, kein eigener Präfix."""
+    beschreibung = {"prefix": None, "oid": f"{prefix}/{gnmn}/0", "fct_type": fct}
     return beschreibung | {"device_id": device} | mehr
 
 
@@ -48,6 +49,11 @@ def test_logwin_nach_geraeteklasse(z):
 
 def test_fremder_funktionstyp_ergibt_nichts(z):
     assert z.ziele([d("/1/60/0", "39/92", 9)], {}) == []
+
+
+def test_praefix_aus_der_adresse(z):
+    ergebnis = z.ziele([d("/1/61/2", "39/92", 25)], {})
+    assert ergebnis[0].prefix == "/1/61/2"
 
 
 def test_ohne_geraet_ergibt_nichts(z):
