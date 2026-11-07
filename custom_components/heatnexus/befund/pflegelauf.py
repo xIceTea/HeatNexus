@@ -52,7 +52,7 @@ def kennungen(coordinator: Any) -> dict[str, str]:
     gefunden: dict[str, str] = {}
     for z in pflegeziele_von(coordinator):
         basis = f"{z.device_id}-pflege-{z.pflege.art}"
-        gefunden[f"{z.device_id}-befund-pflege-{z.pflege.art}"] = "sensor"
+        gefunden[pflege.befund_kennung(z.device_id, f"pflege_{z.pflege.art}") or ""] = "sensor"
         gefunden[f"{basis}-zuletzt"] = "date"
         if z.pflege.weise == pflege.KALENDER:
             gefunden[f"{basis}-erledigt"] = "button"

@@ -61,6 +61,13 @@ LOGWIN = (
 LOGWIN_KLASSE = "2009"
 
 
+def befund_kennung(device_id: str, befund_art: str) -> str | None:
+    """Kennung des Terminsensors zu einem Befund `pflege_<art>`; andere Befunde haben keinen."""
+    if not befund_art.startswith("pflege_"):
+        return None
+    return f"{device_id}-befund-pflege-{befund_art.removeprefix('pflege_')}"
+
+
 def _zahl(wert: object) -> float | None:
     if isinstance(wert, int | float) and not isinstance(wert, bool):
         return float(wert)

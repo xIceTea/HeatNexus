@@ -166,3 +166,8 @@ def test_letzte_erledigung_aus_statistik(p):
     ]
     assert p.letzte_erledigung(reihe, zaehler(p), None) == "2026-10-02"
     assert p.letzte_erledigung([("2026-10-02 09", 750.0)], zaehler(p), None) is None
+
+
+def test_kennung_des_terminsensors(p):
+    assert p.befund_kennung("dev", "pflege_hauptreinigung") == "dev-befund-pflege-hauptreinigung"
+    assert p.befund_kennung("dev", "laufzeit") is None

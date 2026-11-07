@@ -13,7 +13,7 @@ import voluptuous as vol
 from ..automatik.verwaltung import verwaltung_holen
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import haus
+from . import haus, pflege
 from .laufzeit import QUELLE, Sammler, befund_holen, quelle_entitaet, unique_id
 
 NACHT_EINTRAEGE = 8
@@ -64,9 +64,16 @@ def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str
     register = er.async_get(hass)
     geraete = {kennung: device_id for kennung, device_id, _ in sammler.geraete()}
     for abschnitt in stand["abschnitte"]:
-        device_id = geraete.get(abschnitt["kennung"])
+        # Ein Pflegeabschnitt trägt das Gerät selbst als Kennung.
+        eigen = abschnitt["art"] == "pflege"
+        device_id = abschnitt["kennung"] if eigen else geraete.get(abschnitt["kennung"])
         for befund in abschnitt["befunde"]:
-            kennung = unique_id(device_id, befund["art"]) if device_id else ""
+            kennung = (
+                pflege.befund_kennung(device_id, befund["art"])
+                or unique_id(device_id, befund["art"])
+                if device_id
+                else ""
+            )
             befund["entity"] = register.async_get_entity_id("sensor", DOMAIN, kennung)
             adresse = QUELLE.get(befund["art"])
             befund["quelle"] = (

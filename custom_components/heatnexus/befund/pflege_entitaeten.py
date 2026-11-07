@@ -66,7 +66,7 @@ class PflegeTermin(_Pflege, SensorEntity):
 
     def __init__(self, anlage_id: str, ziel: Ziel) -> None:
         super().__init__(anlage_id, ziel)
-        self._attr_unique_id = f"{ziel.device_id}-befund-pflege-{ziel.pflege.art}"
+        self._attr_unique_id = pflege.befund_kennung(ziel.device_id, f"pflege_{ziel.pflege.art}")
         self._attr_translation_key = f"befund_pflege_{ziel.pflege.art}"
 
     @property
