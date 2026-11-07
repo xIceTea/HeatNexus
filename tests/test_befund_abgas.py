@@ -225,6 +225,31 @@ def test_ohne_o2_kein_verlust(ab):
     assert verlust.status == "braucht_daten"
 
 
+def test_o2_null_gilt_als_fehlendes_signal(ab):
+    """Eine Sonde, die im Betrieb 0 % meldet, ergibt keinen Verlust statt eines falschen."""
+    k = ab.konstanten("pellets")
+    assert ab.abgasverlust(140.0, 20.0, 0.0, k) is None
+    assert ab.abgasverlust(140.0, 20.0, 1.9, k) is None
+    assert ab.abgasverlust(140.0, 20.0, 2.0, k) is not None
+    heute = date(2026, 11, 30)
+    bezug = tage(ab, date(2026, 10, 1), 14, 40.0, o2=0.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 62.0, o2=0.0)
+    dt, verlust = ab.vergleich(
+        bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+    )
+    assert dt.wert == pytest.approx(22.0)
+    assert verlust.status == "braucht_daten"
+
+
+def test_einzelne_o2_null_verfaelscht_das_mittel_nicht(ab):
+    """Ein Takt ohne Signal fällt aus der O2-Summe; die übrigen Takte zählen weiter."""
+    summe = ab.sammeln({}, "2026-11-01", "50", 40.0, 7.0, 110.0)
+    summe = ab.sammeln(summe, "2026-11-01", "50", 40.0, 0.0, 110.0)
+    werte = summe["2026-11-01"]["50"]
+    assert werte[1] == 2
+    assert werte[2] / werte[3] == pytest.approx(7.0)
+
+
 def test_logwin_belastbar_ab_36_messungen(ab):
     heute = date(2026, 11, 30)
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0, n=3, stufe="m")

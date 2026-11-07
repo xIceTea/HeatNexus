@@ -35,6 +35,9 @@ KONSTANTEN: dict[str, tuple[float, float]] = {
     "hackgut": (0.71, 0.0126),
     "hackgut_feucht": (0.73, 0.0156),
 }
+# Im Modulationsbetrieb regelt der Kessel O2 auf 5,4–8 % (Sollwerte `37/67`, `37/68`). Weniger als
+# 2 % ist dort kein Messwert, sondern ein fehlendes Signal; ab 20 % misst die Sonde Luft.
+O2_MIN, O2_MAX = 2.0, 20.0
 # Aktueller Brennstoff der PuroWIN (`38/127`).
 PUROWIN_BRENNSTOFF = {1: "hackgut_feucht", 2: "pellets", 4: "hackgut_feucht", 5: "hackgut_trocken"}
 
@@ -90,6 +93,7 @@ def sammeln(
 ) -> dict[str, dict[str, list[float]]]:
     """Messungen in die Tagessummen `[Σ dT, n, Σ O2, n O2, Σ Abgas, Σ Raumluft, n Raumluft]`."""
     s_dt, n, s_o2, n_o2, s_ta, s_tl, n_tl = _voll(tage.get(tag, {}).get(stufe_))
+    o2 = o2_gueltig(o2)
     mit_o2 = o2 is not None
     mit_tl = tl is not None and LUFT_MIN <= tl <= LUFT_MAX
     summe = [
@@ -138,11 +142,16 @@ def konstanten(art: str) -> tuple[float, float]:
     return KONSTANTEN.get(art, KONSTANTEN["pellets"])
 
 
+def o2_gueltig(o2: float | None) -> float | None:
+    """O2 im Bereich, den der Kessel im Betrieb regeln kann; sonst `None`."""
+    return o2 if o2 is not None and O2_MIN <= o2 < O2_MAX else None
+
+
 def abgasverlust(
     ta: float | None, tl: float | None, o2: float | None, k: tuple[float, float]
 ) -> float | None:
-    """Abgasverlust in Prozent nach Siegert; ohne O2 oder mit Luftsauerstoff keiner."""
-    if ta is None or tl is None or o2 is None or o2 >= 20:
+    """Abgasverlust in Prozent nach Siegert; ohne gültiges O2 keiner."""
+    if ta is None or tl is None or o2_gueltig(o2) is None:
         return None
     return round((ta - tl) * (k[0] / (21 - o2) + k[1]), 2)
 
