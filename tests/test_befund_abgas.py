@@ -225,6 +225,19 @@ def test_ohne_o2_kein_verlust(ab):
     assert verlust.status == "braucht_daten"
 
 
+def test_der_reinigungstag_zaehlt_nicht_zum_bezug(ab):
+    """Am Reinigungstag liegen Stunden vor der Reinigung; der Bezug beginnt am Tag danach."""
+    heute = date(2026, 11, 30)
+    reinigungstag = tage(ab, date(2026, 10, 1), 1, 80.0, n=48)
+    bezug = tage(ab, date(2026, 10, 2), 14, 40.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 41.0)
+    dt, _ = ab.vergleich(
+        reinigungstag | bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+    )
+    assert dt.wert == pytest.approx(1.0)
+    assert dt.angaben["bezug_seit"] == "2026-10-02"
+
+
 def test_o2_null_gilt_als_fehlendes_signal(ab):
     """Eine Sonde, die im Betrieb 0 % meldet, ergibt keinen Verlust statt eines falschen."""
     k = ab.konstanten("pellets")

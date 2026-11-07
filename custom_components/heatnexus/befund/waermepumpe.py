@@ -221,11 +221,13 @@ def vergleich(
     grenze, heute_s = (heute - timedelta(days=VERGLEICH_TAGE)).isoformat(), heute.isoformat()
     sortiert = sorted(tage)
     ab = bezug_ab or (sortiert[0] if sortiert else None)
-    bezug = _je_band(tage, [t for t in sortiert if ab and ab <= t < grenze], BEZUG_JE_BAND)
+    # Der Tag der Reinigung mischt Betrieb davor und danach; der Bezug beginnt am Tag darauf.
+    nach = [t for t in sortiert if ab and (ab < t if bezug_ab else ab <= t)]
+    bezug = _je_band(tage, [t for t in nach if t < grenze], BEZUG_JE_BAND)
     jetzt = _je_band(tage, [t for t in sortiert if grenze <= t < heute_s], None)
     zuletzt = [t for t in sortiert if t < heute_s][-VERLAUF_TAGE:]
     angaben: dict[str, Any] = {
-        "bezug_seit": next((t for t in sortiert if ab and t >= ab), ab),
+        "bezug_seit": nach[0] if nach else ab,
         "ohne_reinigungsdatum": bezug_ab is None,
         "inkl_warmwasser": inkl_warmwasser,
         "je_tag": [[t, round(tage[t].guete, 3)] for t in zuletzt],

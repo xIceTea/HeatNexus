@@ -169,6 +169,16 @@ def test_reinigung_setzt_den_bezug_neu(wp):
     assert b.angaben["ohne_reinigungsdatum"] is False
 
 
+def test_der_reinigungstag_zaehlt_nicht_zum_bezug(wp):
+    """Am Tag der Verdampferreinigung lief die Wärmepumpe davor noch mit belegtem Verdampfer."""
+    tage = _reihe(wp, 4.0, 4.0)
+    gereinigt = (HEUTE - timedelta(days=80)).isoformat()
+    tage[gereinigt] = tag(wp, 2.0)
+    b = wp.vergleich(tage, gereinigt, HEUTE)
+    assert b.angaben["bezug_seit"] == (HEUTE - timedelta(days=79)).isoformat()
+    assert b.wert == pytest.approx(0.0, abs=0.05)
+
+
 def test_ohne_tage_sammelt(wp):
     b = wp.vergleich({}, None, HEUTE, inkl_warmwasser=True)
     assert b.status == "sammelt"

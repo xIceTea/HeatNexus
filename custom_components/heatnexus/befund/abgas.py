@@ -173,8 +173,10 @@ def _zeitraeume(
 ) -> tuple[list[str], list[str], str | None]:
     grenze = (heute - timedelta(days=VERGLEICH_TAGE)).isoformat()
     mit_daten = sorted(d for d, v in tage.items() if v)
+    # Am Reinigungstag mischen sich Stunden vor und nach der Reinigung; der Bezug beginnt danach.
     ab = bezug_ab or (mit_daten[0] if mit_daten else None)
-    bezug = [d for d in mit_daten if ab and ab <= d < grenze][:BEZUG_TAGE]
+    bezug = [d for d in mit_daten if ab and (ab < d if bezug_ab else ab <= d) and d < grenze]
+    bezug = bezug[:BEZUG_TAGE]
     jetzt = [d for d in mit_daten if grenze <= d <= heute.isoformat()]
     return bezug, jetzt, (bezug[0] if bezug else ab)
 
