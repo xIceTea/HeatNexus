@@ -1226,10 +1226,10 @@
   "Die Steuerung meldet keinen Restwert.": "The controller reports no remaining value.",
   "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Needs the date of the last care task. It can be set on the device.",
   "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Idle, the boiler hardly runs. A date follows with the heating season.",
-  "Tage, fällig etwa am {datum}": "days, due around {datum}",
   "Rest laut Steuerung": "Remaining per controller",
   "Abnahme je Tag": "Decrease per day",
   "Zuletzt erledigt": "Last done",
   "Wartung gemeldet am": "Maintenance reported on",
-  "{h} h": "{h} h"
+  "{h} h": "{h} h",
+  "fällig etwa am {datum}": "due around {datum}"
 }

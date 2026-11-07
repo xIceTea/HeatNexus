@@ -1231,10 +1231,10 @@
   "Die Steuerung meldet keinen Restwert.": "De besturing meldt geen restwaarde.",
   "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Heeft de datum van de laatste verzorging nodig. Die is in te stellen bij het apparaat.",
   "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Rust, de ketel draait nauwelijks. Een datum volgt met het stookseizoen.",
-  "Tage, fällig etwa am {datum}": "dagen, gepland rond {datum}",
   "Rest laut Steuerung": "Rest volgens besturing",
   "Abnahme je Tag": "Afname per dag",
   "Zuletzt erledigt": "Laatst uitgevoerd",
   "Wartung gemeldet am": "Onderhoud gemeld op",
-  "{h} h": "{h} u"
+  "{h} h": "{h} u",
+  "fällig etwa am {datum}": "gepland rond {datum}"
 }

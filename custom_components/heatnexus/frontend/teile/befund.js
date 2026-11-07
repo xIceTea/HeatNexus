@@ -494,7 +494,7 @@ export const BefundMixin = (Basis) =>
     _befundBeisatz(b) {
       const a = b.angaben || {};
       if (b.art.startsWith("pflege_")) {
-        return a.datum ? this._tMit("Tage, fällig etwa am {datum}", { datum: datumVoll(a.datum) }) : "";
+        return a.datum ? this._tMit("fällig etwa am {datum}", { datum: datumVoll(a.datum) }) : "";
       }
       if (b.art === "laufzeit" && a.starts_tag !== null && a.starts_tag !== undefined) {
         return this._tMit("je Start · {n} Starts am Tag", { n: this._befundZahl(a.starts_tag) });
