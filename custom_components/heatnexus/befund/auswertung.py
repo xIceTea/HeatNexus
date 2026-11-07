@@ -58,6 +58,7 @@ class Abgasgeraet:
     brennstoff: str
     bezug_ab: str | None
     mit_o2: bool
+    nachgerechnet_bis: str | None = None
 
 
 @dataclass(frozen=True)
@@ -216,7 +217,9 @@ def _pflege(archiv: Archiv, geraet: Pflegegeraet, heute: date) -> dict[str, Any]
 
 def _abgas(archiv: Archiv, g: Abgasgeraet, heute: date) -> dict[str, Any]:
     tage = archiv.abgas_tage(g.prefix)
-    dt, verlust = abgas.vergleich(tage, g.bezug_ab, heute, g.logwin, g.brennstoff)
+    dt, verlust = abgas.vergleich(
+        tage, g.bezug_ab, heute, g.logwin, g.brennstoff, g.nachgerechnet_bis
+    )
     befunde = [_als_dict(dt)] + ([_als_dict(verlust)] if g.mit_o2 else [])
     return {"art": "abgas", "kennung": g.kennung, "titel": g.name, "befunde": befunde}
 

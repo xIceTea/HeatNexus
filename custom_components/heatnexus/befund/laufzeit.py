@@ -33,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 3
+NACHRECHNEN_FASSUNG = 4
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"
@@ -297,7 +297,9 @@ class Sammler:
                 reihen[("k", p)] = {n: e for n, e in felder.items() if e}
         return reihen
 
-    async def _statistik(self, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    async def _statistik(
+        self, ids: set[str], arten: set[str] | None = None
+    ) -> dict[str, list[dict[str, Any]]]:
         from homeassistant.components.recorder import get_instance
         from homeassistant.components.recorder.statistics import (
             statistics_during_period,
@@ -306,7 +308,14 @@ class Sammler:
         ende = dt_util.start_of_local_day()
         anfang = ende - timedelta(days=NACHRECHNEN_TAGE)
         return await get_instance(self.hass).async_add_executor_job(
-            statistics_during_period, self.hass, anfang, ende, ids, "hour", None, {"mean", "state"}
+            statistics_during_period,
+            self.hass,
+            anfang,
+            ende,
+            ids,
+            "hour",
+            None,
+            arten or {"mean", "state"},
         )
 
     def _stunden_aus(
@@ -344,6 +353,15 @@ class Sammler:
                 self._kessel_stunden(kennung, stunden)
                 neu += self.archiv.nachtragen_kessel(kennung, stunden)
         neu += await self._pflege_nachrechnen()
+        register = er.async_get(self.hass)
+        neu += await abgaslauf.nachrechnen(
+            self.coordinator,
+            self.archiv,
+            lambda device_id, adresse: _entitaet(register, device_id, adresse),
+            self._statistik,
+            _stunde,
+            dt_util.now().date().isoformat(),
+        )
         self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
         self.archiv.kuerzen(dt_util.now().date())
         self.speichern()

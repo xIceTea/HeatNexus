@@ -566,6 +566,7 @@ export const BefundMixin = (Basis) =>
         [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
         [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
+        [a.nachgerechnet ? true : null, "Bezug", () => this._t("aus der Langzeitstatistik nachgerechnet")],
         [a.verlust_jetzt, a.luft_geschaetzt === false ? "Abgasverlust zuletzt, Raumluft gemessen" : "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
         [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],
         [a.guete_jetzt, "Gütegrad der letzten 28 Tage", (w) => `${this._befundZahl(w * 100)} %`],

@@ -213,3 +213,34 @@ def test_logwin_belastbar_ab_36_messungen(ab):
     jetzt = tage(ab, date(2026, 11, 23), 7, 45.0, n=6, stufe="m")
     dt, _ = ab.vergleich(bezug | jetzt, "2026-10-01", heute, logwin=True, brennstoff_="scheitholz")
     assert dt.stufe == "belastbar"
+
+
+def test_stunde_aus_statistik_nur_bei_ruhiger_modulation(ab):
+    leistung = {"mean": 55.0, "min": 50.0, "max": 59.0}
+    abgas_, kessel = {"mean": 120.0}, {"mean": 70.0}
+    assert ab.stunde_aus_statistik(leistung, abgas_, kessel, {"mean": 7.5}) == (
+        "50",
+        50.0,
+        7.5,
+        120.0,
+    )
+    # Der Brenner stand zwischendurch: das Minimum liegt bei null.
+    assert ab.stunde_aus_statistik(leistung | {"min": 0.0}, abgas_, kessel, {}) is None
+    # Die Leistung sprang um mehr als 10 Prozentpunkte.
+    assert ab.stunde_aus_statistik(leistung | {"max": 75.0}, abgas_, kessel, {}) is None
+    assert ab.stunde_aus_statistik(leistung, {}, kessel, {}) is None
+
+
+def test_nachgerechnete_stunde_zaehlt_zwoelf_takte(ab):
+    neu = ab.sammeln({}, "2026-10-01", "50", 50.0, 7.5, 120.0, None, 12)
+    assert neu["2026-10-01"]["50"] == [600.0, 12, 90.0, 12, 1440.0, 0.0, 0]
+
+
+def test_bezug_aus_nachgerechneten_tagen_vermerkt(ab):
+    heute = date(2026, 11, 30)
+    bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 40.0)
+    dt, _ = ab.vergleich(bezug | jetzt, "2026-10-01", heute, False, "pellets", "2026-10-20")
+    assert dt.angaben["nachgerechnet"] is True
+    dt, _ = ab.vergleich(bezug | jetzt, "2026-10-01", heute, False, "pellets")
+    assert dt.angaben["nachgerechnet"] is False

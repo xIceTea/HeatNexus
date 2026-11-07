@@ -1271,5 +1271,7 @@
   "Gütegrad je Tag": "Kwaliteitsgraad per dag",
   "{datum}: {g} %": "{datum}: {g} %",
   "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert. Die Raumluft kommt vom Fühler Heizraum aus den Optionen, sonst gelten 20 °C.": "Vergeleken wordt de rookgastemperatuur boven de keteltemperatuur bij rustige modulatie, per vermogenstrap. Referentie zijn de eerste 14 dagen na de laatste hoofdreiniging, bij de LogWIN na de jaarlijkse reiniging. Aanslag op de warmtewisselaar verhoogt de waarde. Volgens Windhager kost elke millimeter asaanslag ongeveer 5 % brandstof. Met een O2-signaal berekent de kaart het extra verlies volgens Siegert. De ruimtelucht komt van de sensor stookruimte uit de opties, anders geldt 20 °C.",
-  "Abgasverlust zuletzt, Raumluft gemessen": "Rookgasverlies recent, ruimtelucht gemeten"
+  "Abgasverlust zuletzt, Raumluft gemessen": "Rookgasverlies recent, ruimtelucht gemeten",
+  "Bezug": "Referentie",
+  "aus der Langzeitstatistik nachgerechnet": "herberekend uit de langetermijnstatistiek"
 }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
@@ -13,6 +14,10 @@ from .pflegelauf import geraetename
 
 ABGAS, KESSEL, LEISTUNG, PHASE, O2 = "/0/11/0", "/0/7/0", "/0/9/0", "/2/1/0", "/0/42/0"
 BRENNSTOFF_PUROWIN = "/38/127/0"
+# Im Pflegestand des Archivs: bis zu welchem Tag Abgastage aus der Langzeitstatistik stammen.
+NACHGERECHNET = "abgas_nachgerechnet"
+# Reihenfolge wie `abgas.stunde_aus_statistik`.
+FELDER_STATISTIK = {"leistung": LEISTUNG, "abgas": ABGAS, "kessel": KESSEL, "o2": O2}
 
 
 def ziele_von(coordinator: Any) -> list[AbgasZiel]:
@@ -77,6 +82,7 @@ def geraete(coordinator: Any, archiv: Any) -> list[Abgasgeraet]:
                 brennstoff=abgas.brennstoff(z.fct_type, code),
                 bezug_ab=archiv.pflege_eintrag(z.prefix, z.bezug_art).get("zuletzt"),
                 mit_o2=mit_o2(coordinator, z.prefix),
+                nachgerechnet_bis=archiv.pflege_eintrag(z.prefix, NACHGERECHNET).get("bis"),
             )
         )
     return liste
@@ -92,3 +98,48 @@ def arten(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]]]:
         )
         for z in ziele_von(coordinator)
     ]
+
+
+def _je_stunde(
+    statistik: dict[str, list[dict[str, Any]]],
+    felder: dict[str, str],
+    stunde_von: Callable[[dict[str, Any]], str],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    stunden: dict[str, dict[str, dict[str, Any]]] = {}
+    for name, entity_id in felder.items():
+        for zeile in statistik.get(entity_id, []):
+            stunden.setdefault(stunde_von(zeile), {})[name] = zeile
+    return stunden
+
+
+async def nachrechnen(
+    coordinator: Any,
+    archiv: Any,
+    entitaet_von: Callable[[str, str], str | None],
+    holen: Callable[[set[str], set[str]], Awaitable[dict[str, list[dict[str, Any]]]]],
+    stunde_von: Callable[[dict[str, Any]], str],
+    heute: str,
+) -> int:
+    """Tage vor dem ersten Takt aus Stundenmittel, -minimum und -maximum; der LogWIN meldet keine Leistung."""
+    reihen = {}
+    for z in ziele_von(coordinator):
+        felder = {n: entitaet_von(z.device_id, a) for n, a in FELDER_STATISTIK.items()}
+        if not z.logwin and all(felder[n] for n in ("leistung", "abgas", "kessel")):
+            reihen[z.prefix] = {n: e for n, e in felder.items() if e}
+    ids = {e for felder in reihen.values() for e in felder.values()}
+    statistik = await holen(ids, {"mean", "min", "max"}) if ids else {}
+    neu = 0
+    for prefix, felder in reihen.items():
+        tage, vorhanden = archiv.abgas_tage(prefix), set(archiv.abgas_tage(prefix))
+        for stunde, werte in sorted(_je_stunde(statistik, felder, stunde_von).items()):
+            tag = stunde[:10]
+            ergebnis = abgas.stunde_aus_statistik(*(werte.get(n) or {} for n in FELDER_STATISTIK))
+            if tag in vorhanden or tag >= heute or ergebnis is None:
+                continue
+            stufe_, dt, o2, ta = ergebnis
+            tage = abgas.sammeln(tage, tag, stufe_, dt, o2, ta, None, abgas.TAKTE_JE_STUNDE)
+            neu += 1
+        archiv.abgas_setzen(prefix, tage)
+        if neu_tage := sorted(set(tage) - vorhanden):
+            archiv.pflege_setzen(prefix, NACHGERECHNET, {"bis": neu_tage[-1]})
+    return neu

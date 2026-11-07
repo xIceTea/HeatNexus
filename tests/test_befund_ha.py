@@ -505,3 +505,42 @@ async def test_heizraum_fuehler_geht_in_den_abgaswaechter(hass, anlage):
         await sammler.messen(jetzt + timedelta(minutes=minute))
     summe = next(iter(sammler.archiv.abgas_tage(KESSEL).values()))["50"]
     assert summe[5:] == [29.0, 2]
+
+
+async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
+    """Stunden mit durchgehender Modulation werden zu Abgastagen; ein vorhandener Tag bleibt."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.abgas_setzen(KESSEL, {"2026-10-02": {"50": [10.0, 1, 0.0, 0, 80.0]}})
+
+    def zeile(stunde, mean, lo=None, hi=None):
+        return {"start": stunde, "mean": mean, "min": lo, "max": hi}
+
+    stunden = ["2026-10-01 10", "2026-10-01 11", "2026-10-02 10"]
+    statistik = {
+        "e.leistung": [zeile(s, 55.0, 50.0, 58.0) for s in stunden],
+        "e.abgas": [zeile(s, 120.0) for s in stunden],
+        "e.kessel": [zeile(s, 70.0) for s in stunden],
+    }
+
+    async def holen(ids, arten):
+        assert arten == {"mean", "min", "max"}
+        return statistik
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    neu = await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    assert neu == 2
+    assert tage["2026-10-01"]["50"][:2] == [1200.0, 24]
+    assert tage["2026-10-02"]["50"][:2] == [10.0, 1]
+    assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {"bis": "2026-10-01"}

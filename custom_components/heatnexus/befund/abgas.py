@@ -24,6 +24,8 @@ LUFT_GESCHAETZT = 20.0
 # Ein Fühler im Heizraum zählt nur mit plausiblen Werten; sonst gilt die Schätzung.
 LUFT_MIN, LUFT_MAX = -10.0, 45.0
 FELDER = 7
+# Eine nachgerechnete Stunde zählt wie die zwölf Takte, die sie live gewesen wäre.
+TAKTE_JE_STUNDE = 12
 # Siegert `qA = (tA − tL)·(A2/(21 − O2) + B)`, Formel wie in der 1. BImSchV. Die Holzwerte stammen
 # aus einer Verbrennungsrechnung je Wassergehalt, die die amtlichen Öl- und Gaswerte nachbildet.
 KONSTANTEN: dict[str, tuple[float, float]] = {
@@ -84,21 +86,36 @@ def sammeln(
     o2: float | None,
     ta: float,
     tl: float | None = None,
+    anzahl: int = 1,
 ) -> dict[str, dict[str, list[float]]]:
-    """Eine Messung in die Tagessummen `[Σ dT, n, Σ O2, n O2, Σ Abgas, Σ Raumluft, n Raumluft]`."""
+    """Messungen in die Tagessummen `[Σ dT, n, Σ O2, n O2, Σ Abgas, Σ Raumluft, n Raumluft]`."""
     s_dt, n, s_o2, n_o2, s_ta, s_tl, n_tl = _voll(tage.get(tag, {}).get(stufe_))
     mit_o2 = o2 is not None
     mit_tl = tl is not None and LUFT_MIN <= tl <= LUFT_MAX
     summe = [
-        round(s_dt + dt, 2),
-        n + 1,
-        round(s_o2 + (o2 if mit_o2 else 0.0), 2),
-        n_o2 + int(mit_o2),
-        round(s_ta + ta, 2),
-        round(s_tl + (tl if mit_tl and tl is not None else 0.0), 2),
-        n_tl + int(mit_tl),
+        round(s_dt + dt * anzahl, 2),
+        n + anzahl,
+        round(s_o2 + (o2 * anzahl if mit_o2 and o2 is not None else 0.0), 2),
+        n_o2 + anzahl * int(mit_o2),
+        round(s_ta + ta * anzahl, 2),
+        round(s_tl + (tl * anzahl if mit_tl and tl is not None else 0.0), 2),
+        n_tl + anzahl * int(mit_tl),
     ]
     return {**tage, tag: {**tage.get(tag, {}), stufe_: summe}}
+
+
+def stunde_aus_statistik(
+    leistung: dict[str, Any], abgas: dict[str, Any], kessel: dict[str, Any], o2: dict[str, Any]
+) -> tuple[str, float, float | None, float] | None:
+    """Stufe, `dT`, O2 und Abgas einer Stunde; sie gilt nur, wenn der Kessel durchgehend ruhig moduliert.
+
+    Das Minimum der Leistung zeigt, dass der Brenner die ganze Stunde lief; die Spanne, dass er ruhig lief.
+    """
+    unten, oben, mittel = leistung.get("min"), leistung.get("max"), leistung.get("mean")
+    ta, tk = abgas.get("mean"), kessel.get("mean")
+    if None in (unten, oben, mittel, ta, tk) or unten < MIN_LEISTUNG or oben - unten > MAX_SPRUNG:
+        return None
+    return stufe(mittel), round(ta - tk, 2), o2.get("mean"), ta
 
 
 def _voll(werte: list[float] | None) -> list[float]:
@@ -202,6 +219,7 @@ def vergleich(
     heute: date,
     logwin: bool,
     brennstoff_: str,
+    nachgerechnet_bis: str | None = None,
 ) -> tuple[form.Befund, form.Befund]:
     """Anstieg von `dT` der letzten 7 Tage gegen die ersten 14 Tage nach der Reinigung, je Stufe."""
     bezug, jetzt, bezug_seit = _zeitraeume(tage, bezug_ab, heute)
@@ -211,6 +229,7 @@ def vergleich(
         "bezug_seit": bezug_seit,
         "ohne_reinigungsdatum": bezug_ab is None,
         "je_tag": _verlaeufe(tage, stufen),
+        "nachgerechnet": bool(nachgerechnet_bis and bezug and bezug[0] <= nachgerechnet_bis),
     }
     if not stufen:
         sammelt = form.Befund("abgas", form.SAMMELT, angaben=angaben)
