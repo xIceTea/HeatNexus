@@ -118,6 +118,8 @@ class Archiv:
         self.abgas: dict[str, dict[str, dict[str, Any]]] = {}
         # Je Kessel der Lagerstand (`lager`) und der Zählerstand je Tag (`zaehler`).
         self.brennstoff: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Wärmepumpe und Tag Temperatursummen und Zählerstände; die Logik steht in `waermepumpe.py`.
+        self.wp: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
         self.nachgerechnet = 0
 
@@ -135,6 +137,7 @@ class Archiv:
             "pflege",
             "abgas",
             "brennstoff",
+            "wp",
         ):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
         stand = roh.get("nachgerechnet")
@@ -154,6 +157,7 @@ class Archiv:
             "pflege": self.pflege,
             "abgas": self.abgas,
             "brennstoff": self.brennstoff,
+            "wp": self.wp,
         }
 
     def _quellen(self, art: str) -> tuple[dict, dict]:
@@ -276,6 +280,13 @@ class Archiv:
     def zaehler_setzen(self, kennung: str, tag: str, wert: float) -> None:
         self.brennstoff.setdefault(kennung, {}).setdefault("zaehler", {})[tag] = wert
 
+    def wp_tage(self, kennung: str) -> dict[str, dict[str, Any]]:
+        """Die Tage einer Wärmepumpe, als Kopie."""
+        return {tag: dict(v) for tag, v in self.wp.get(kennung, {}).items()}
+
+    def wp_setzen(self, kennung: str, tage: dict[str, dict[str, Any]]) -> None:
+        self.wp[kennung] = {tag: dict(v) for tag, v in tage.items()}
+
     def kuerzen(self, heute: date) -> None:
         """Stunden älter als 60 Tage und Tage älter als 400 Tage entfernen."""
         grenze_s = (heute - timedelta(days=STUNDEN_TAGE)).isoformat()
@@ -283,7 +294,7 @@ class Archiv:
         for quelle in (self.stunden_hk, self.stunden_k):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {k: v for k, v in eintraege.items() if k[:10] >= grenze_s}
-        for quelle in (self.tage_hk, self.tage_k, self.abgas):
+        for quelle in (self.tage_hk, self.tage_k, self.abgas, self.wp):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {d: v for d, v in eintraege.items() if d >= grenze_t}
         for eintrag in self.brennstoff.values():

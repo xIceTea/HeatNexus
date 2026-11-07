@@ -27,6 +27,7 @@ ART: dict[str, tuple[str, SensorDeviceClass | None]] = {
     "energie": ("kWh/Kd", None),
     "abgas": ("K", None),
     "abgasverlust": ("%", None),
+    "arbeitszahl": ("%", None),
 }
 
 

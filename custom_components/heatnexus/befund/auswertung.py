@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date
 from typing import Any
 
-from . import abgas, brennstoff, form, gradtage, haus, heizkreis, kessel, pflege
+from . import abgas, brennstoff, form, gradtage, haus, heizkreis, kessel, pflege, waermepumpe
 from .archiv import Archiv
 from .pflegeziele import Ziel
 
@@ -71,6 +71,17 @@ class Brennstoffgeraet:
 
 
 @dataclass(frozen=True)
+class Waermepumpengeraet:
+    """Eine Wärmepumpe; `bezug_ab` ist der Tag der letzten Verdampferreinigung, wenn bekannt."""
+
+    kennung: str
+    name: str
+    prefix: str
+    fct_type: int
+    bezug_ab: str | None = None
+
+
+@dataclass(frozen=True)
 class Kontext:
     """Was zur Anlage gehört; ohne Kessel und mit fremder Wärme folgt ein Verweis.
 
@@ -88,6 +99,7 @@ class Kontext:
     heute: date | None = None
     abgas: list[Abgasgeraet] = field(default_factory=list)
     brennstoff: list[Brennstoffgeraet] = field(default_factory=list)
+    waermepumpe: list[Waermepumpengeraet] = field(default_factory=list)
 
 
 def _als_dict(befund: form.Befund, **vergleich: Any) -> dict[str, Any]:
@@ -218,6 +230,18 @@ def _brennstoff(archiv: Archiv, g: Brennstoffgeraet, heute: date) -> dict[str, A
     return {"art": "brennstoff", "kennung": g.kennung, "titel": g.name, "befunde": befunde}
 
 
+def _waermepumpe(archiv: Archiv, g: Waermepumpengeraet, heute: date) -> dict[str, Any]:
+    tage = waermepumpe.tagewerte(archiv.wp_tage(g.prefix), g.fct_type)
+    # fctType 27 zählt den Strom gesamt; Warmwasser steckt darin, Heizen allein nicht.
+    befund = waermepumpe.vergleich(tage, g.bezug_ab, heute, inkl_warmwasser=g.fct_type == 27)
+    return {
+        "art": "waermepumpe",
+        "kennung": g.kennung,
+        "titel": g.name,
+        "befunde": [_als_dict(befund)],
+    }
+
+
 def _lage(abschnitte: list[dict[str, Any]], archiv: Archiv) -> dict[str, Any]:
     befunde = [b for a in abschnitte for b in a["befunde"]]
     tage = [d for eintraege in archiv.tage_hk.values() for d in eintraege]
@@ -247,6 +271,7 @@ def anlage(archiv: Archiv, kontext: Kontext) -> dict[str, Any]:
     abschnitte += [_pflege(archiv, g, heute) for g in kontext.pflege if g.ziele]
     abschnitte += [_abgas(archiv, g, heute) for g in kontext.abgas]
     abschnitte += [_brennstoff(archiv, g, heute) for g in kontext.brennstoff]
+    abschnitte += [_waermepumpe(archiv, g, heute) for g in kontext.waermepumpe]
     if not kontext.kessel and kontext.waermequelle_extern:
         abschnitte.append({"art": "waermeerzeuger", "kennung": "", "titel": "", "befunde": []})
     return {"lage": _lage(abschnitte, archiv), "abschnitte": abschnitte}

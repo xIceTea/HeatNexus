@@ -26,7 +26,7 @@ from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from ..texte import woerterbuch
-from . import abgaslauf, auswertung, brennstofflauf, pflegelauf
+from . import abgaslauf, auswertung, brennstofflauf, pflegelauf, waermepumpelauf
 from .archiv import STUNDE, Archiv
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,7 +64,13 @@ TITEL = {
 # Zustände der Automatik, in denen sie an der Steuerung etwas verändert hat.
 EINGRIFFE = frozenset({"sonnentag", "nur_ww", "heizpause", "abwesend"})
 # Der Sensor hinter dem Bild eines Befunds; Heizkreis oder Kessel.
-QUELLE = {"vorlauf": HEIZKREIS["vi"], "laufzeit": BH, "energie": LEISTUNG, "abgas": "/0/11/0"}
+QUELLE = {
+    "vorlauf": HEIZKREIS["vi"],
+    "laufzeit": BH,
+    "energie": LEISTUNG,
+    "abgas": "/0/11/0",
+    "arbeitszahl": "/52/87/0",
+}
 
 
 def befund_holen(hass: HomeAssistant) -> BefundVerwaltung:
@@ -114,7 +120,7 @@ def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]
     for p in kessel_praefixe(coordinator):
         if (device_id := kessel_geraet(coordinator, p)) is not None:
             liste.append((p, device_id, ARTEN_KESSEL))
-    return liste + abgaslauf.arten(coordinator)
+    return liste + abgaslauf.arten(coordinator) + waermepumpelauf.arten(coordinator)
 
 
 def kennungen(entry: ConfigEntry) -> dict[str, str]:
@@ -128,6 +134,7 @@ def kennungen(entry: ConfigEntry) -> dict[str, str]:
     }
     for coordinator in coordinators.values():
         gefunden |= pflegelauf.kennungen(coordinator) | brennstofflauf.kennungen(coordinator)
+        gefunden |= waermepumpelauf.kennungen(coordinator)
     return gefunden
 
 
@@ -173,6 +180,7 @@ class Sammler:
         self._aufgabe: Any = None
         # Seit wann je Kessel Modulation läuft; nur im Speicher, ein Neustart beginnt von vorn.
         self._abgas_lauf: dict[str, dict[str, Any]] = {}
+        self._wp_lauf: dict[str, float | None] = {}
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
@@ -258,6 +266,7 @@ class Sammler:
         pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
         brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
         self._abgas_lauf = abgaslauf.messen(self.coordinator, self.archiv, self._abgas_lauf, zeit)
+        self._wp_lauf = waermepumpelauf.messen(self.coordinator, self.archiv, self._wp_lauf, zeit)
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
@@ -398,6 +407,7 @@ class Sammler:
             pflege=pflegelauf.geraete(self.coordinator),
             abgas=abgaslauf.geraete(self.coordinator, self.archiv),
             brennstoff=brennstofflauf.geraete(self.coordinator),
+            waermepumpe=waermepumpelauf.geraete(self.coordinator, self.archiv),
             heute=dt_util.now().date(),
         )
 
