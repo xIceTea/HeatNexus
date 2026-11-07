@@ -6,6 +6,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
+- Ein Datum je Pflege hält fest, wann sie zuletzt erledigt wurde.
+- LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
+
 ## [1.15.0] - 2026-11-05
 
 ### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild
