@@ -16,6 +16,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
 - Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
 - Der Dienst „Brennstoff geliefert“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
+- In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
+- Der Bezug des Abgaswächters entsteht auch aus der Langzeitstatistik.
+- AeroWIN: Die Auswertung meldet, wenn der Gütegrad seit der Verdampferreinigung sinkt.
+- AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
 
 ## [1.15.0] - 2026-11-05
