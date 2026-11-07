@@ -171,3 +171,15 @@ def test_abgas_tage_bleiben_und_werden_gekuerzt(a):
     assert set(wieder.abgas_tage("/1/60/0")) == {"2025-01-01", "2026-11-01"}
     wieder.kuerzen(date(2026, 11, 20))
     assert set(wieder.abgas_tage("/1/60/0")) == {"2026-11-01"}
+
+
+def test_brennstoff_lager_und_zaehler(a):
+    archiv = a.Archiv()
+    archiv.lager_setzen("/1/60/0", {"bestand": 5.0, "seit": "2026-11-01"})
+    archiv.zaehler_setzen("/1/60/0", "2024-01-01", 1.0)
+    archiv.zaehler_setzen("/1/60/0", "2026-11-19", 11.5)
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert wieder.lager("/1/60/0") == {"bestand": 5.0, "seit": "2026-11-01"}
+    wieder.kuerzen(date(2026, 11, 20))
+    assert wieder.zaehler("/1/60/0") == {"2026-11-19": 11.5}
+    assert wieder.lager("/1/61/0") == {}

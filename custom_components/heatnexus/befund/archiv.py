@@ -116,6 +116,8 @@ class Archiv:
         self.pflege: dict[str, dict[str, dict[str, Any]]] = {}
         # Je Kessel und Tag die Summen des Abgaswächters; die Logik steht in `abgas.py`.
         self.abgas: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel der Lagerstand (`lager`) und der Zählerstand je Tag (`zaehler`).
+        self.brennstoff: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
         self.nachgerechnet = 0
 
@@ -125,7 +127,15 @@ class Archiv:
         archiv = cls()
         if not isinstance(roh, dict):
             return archiv
-        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k", "pflege", "abgas"):
+        for name in (
+            "stunden_hk",
+            "stunden_k",
+            "tage_hk",
+            "tage_k",
+            "pflege",
+            "abgas",
+            "brennstoff",
+        ):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
         stand = roh.get("nachgerechnet")
         archiv.nachgerechnet = (
@@ -143,6 +153,7 @@ class Archiv:
             "tage_k": self.tage_k,
             "pflege": self.pflege,
             "abgas": self.abgas,
+            "brennstoff": self.brennstoff,
         }
 
     def _quellen(self, art: str) -> tuple[dict, dict]:
@@ -251,6 +262,20 @@ class Archiv:
     def abgas_setzen(self, kennung: str, tage: dict[str, dict[str, Any]]) -> None:
         self.abgas[kennung] = {tag: dict(v) for tag, v in tage.items()}
 
+    def lager(self, kennung: str) -> dict[str, Any]:
+        """Der Lagerstand eines Kessels, als Kopie; leer ohne eingetragenen Vorrat."""
+        return dict(self.brennstoff.get(kennung, {}).get("lager", {}))
+
+    def lager_setzen(self, kennung: str, lager: dict[str, Any]) -> None:
+        self.brennstoff.setdefault(kennung, {})["lager"] = dict(lager)
+
+    def zaehler(self, kennung: str) -> dict[str, float]:
+        """Der letzte Zählerstand je Tag, als Kopie."""
+        return dict(self.brennstoff.get(kennung, {}).get("zaehler", {}))
+
+    def zaehler_setzen(self, kennung: str, tag: str, wert: float) -> None:
+        self.brennstoff.setdefault(kennung, {}).setdefault("zaehler", {})[tag] = wert
+
     def kuerzen(self, heute: date) -> None:
         """Stunden älter als 60 Tage und Tage älter als 400 Tage entfernen."""
         grenze_s = (heute - timedelta(days=STUNDEN_TAGE)).isoformat()
@@ -261,3 +286,6 @@ class Archiv:
         for quelle in (self.tage_hk, self.tage_k, self.abgas):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {d: v for d, v in eintraege.items() if d >= grenze_t}
+        for eintrag in self.brennstoff.values():
+            if "zaehler" in eintrag:
+                eintrag["zaehler"] = {d: v for d, v in eintrag["zaehler"].items() if d >= grenze_t}
