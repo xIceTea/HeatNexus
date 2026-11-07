@@ -19,7 +19,7 @@ from homeassistant.util import dt as dt_util
 from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from . import brennstoff
 from .abgasziele import AbgasZiel
-from .brennstofflauf import liefern, vorgabe, ziele_von
+from .brennstofflauf import einstellung, liefern, vorgabe, ziele_von
 from .laufzeit import SIGNAL_NEU, SIGNAL_STAND, Sammler, befund_holen
 
 
@@ -162,7 +162,7 @@ def _anmelden(
     hass: HomeAssistant,
     entry: ConfigEntry,
     add: AddEntitiesCallback,
-    bauen: Callable[[str, AbgasZiel], list[Any]],
+    bauen: Callable[[Sammler, AbgasZiel], list[Any]],
 ) -> None:
     bekannt: set[str] = set()
 
@@ -173,7 +173,7 @@ def _anmelden(
             if sammler.entry.entry_id != entry.entry_id:
                 continue
             for ziel in ziele_von(sammler.coordinator):
-                for entitaet in bauen(sammler.anlage_id, ziel):
+                for entitaet in bauen(sammler, ziel):
                     if entitaet.unique_id not in bekannt:
                         bekannt.add(entitaet.unique_id)
                         neu.append(entitaet)
@@ -192,10 +192,18 @@ def _anmelden(
 @callback
 def anmelden_sensor(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     """Je Kessel mit Lager das Datum „reicht bis“."""
-    _anmelden(hass, entry, add, lambda a, z: [BrennstoffReichweite(a, z)])
+    _anmelden(hass, entry, add, lambda s, z: [BrennstoffReichweite(s.anlage_id, z)])
 
 
 @callback
 def anmelden_number(hass: HomeAssistant, entry: ConfigEntry, add: AddEntitiesCallback) -> None:
     """Je Kessel mit Lager Vorrat und Heizwert bzw. Füllmenge."""
-    _anmelden(hass, entry, add, lambda a, z: [BrennstoffVorrat(a, z), BrennstoffEinstellung(a, z)])
+    _anmelden(hass, entry, add, _zahlen)
+
+
+def _zahlen(sammler: Sammler, ziel: AbgasZiel) -> list[Any]:
+    """Der Vorrat immer; Heizwert bzw. Füllmenge nur, wo die Rechnung sie braucht."""
+    zahlen: list[Any] = [BrennstoffVorrat(sammler.anlage_id, ziel)]
+    if einstellung(sammler.coordinator, ziel):
+        zahlen.append(BrennstoffEinstellung(sammler.anlage_id, ziel))
+    return zahlen

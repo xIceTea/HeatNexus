@@ -76,13 +76,21 @@ def geraete(coordinator: Any) -> list[Brennstoffgeraet]:
     ]
 
 
+def einstellung(coordinator: Any, z: AbgasZiel) -> str | None:
+    """Welche Einstellung die Rechnung braucht: Füllmenge am LogWIN, Heizwert ohne Zähler."""
+    if z.logwin:
+        return "fuellmenge"
+    return "heizwert" if vorgabe(coordinator, z)["weise"] == "waerme" else None
+
+
 def kennungen(coordinator: Any) -> dict[str, str]:
     """Kennung → Domäne der Brennstoff-Entitäten; ohne sie gälten sie als verwaist."""
     gefunden: dict[str, str] = {}
     for z in ziele_von(coordinator):
         gefunden[f"{z.device_id}-befund-brennstoff"] = "sensor"
         gefunden[f"{z.device_id}-brennstoffvorrat"] = "number"
-        gefunden[f"{z.device_id}-brennstoff-{'fuellmenge' if z.logwin else 'heizwert'}"] = "number"
+        if art := einstellung(coordinator, z):
+            gefunden[f"{z.device_id}-brennstoff-{art}"] = "number"
     return gefunden
 
 
