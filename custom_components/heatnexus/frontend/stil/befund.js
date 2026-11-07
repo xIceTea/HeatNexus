@@ -109,6 +109,9 @@ export const BEFUND = `
   .befund-eingabe { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
   .befund-eingabe .befund-sprung { margin-top: 6px; }
   .befund-offen > .befund-eingabe { margin: -4px 0 4px; }
+  .befund-felder { display: grid; grid-template-columns: fit-content(55%) auto minmax(0, 1fr); align-items: center; gap: 12px 10px; margin-top: 18px; }
+  .befund-felder .dialog-zahl-zeile { display: contents; }
+  .befund-felder .befund-datum { width: 150px; }
   .befund-fehler { margin-top: 12px; color: var(--hn-sonne); }
   .befund-fuss { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
 `;

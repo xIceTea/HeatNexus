@@ -32,7 +32,7 @@ function panelBauen() {
   return { element, gerufen };
 }
 
-const BRENNSTOFF = { art: "brennstoff", angaben: { einheit: "Srm" }, eingabe: { art: "vorrat", entity: VORRAT } };
+const BRENNSTOFF = { art: "brennstoff", angaben: { einheit: "Srm", bestand: 15 }, eingabe: { art: "vorrat", entity: VORRAT } };
 const PFLEGE = { art: "pflege_hauptreinigung", angaben: {}, eingabe: { art: "datum", entity: DATUM, pflege: "hauptreinigung" } };
 
 const abwarten = async () => {
@@ -84,20 +84,18 @@ const faelle = [];
 
 {
   const { element, gerufen } = oeffnen(BRENNSTOFF, "Bestand eintragen");
+  if (felder(element)[0].value !== "15") throw new Error(`Vorgabe ${felder(element)[0].value} statt des gerechneten Vorrats`);
   felder(element)[0].value = "7.5";
   await speichern(element);
   const ruf = gerufen[0];
   if (gerufen.length !== 1 || ruf.bereich !== "number" || ruf.daten.entity_id !== VORRAT || ruf.daten.value !== 7.5) {
     throw new Error(JSON.stringify(gerufen));
   }
-  faelle.push("Bestand: Zahl auf den Vorrat");
+  faelle.push("Bestand: Vorgabe gerechnet, Zahl auf den Vorrat");
 }
 
 {
-  const { element, gerufen, leiste } = oeffnen(PFLEGE, "Datum nachtragen");
-  if (!leiste.querySelectorAll("span").some((s) => s.textContent.includes("24.10.2026"))) {
-    throw new Error("das bisherige Datum fehlt");
-  }
+  const { element, gerufen } = oeffnen(PFLEGE, "Datum nachtragen");
   const feld = felder(element)[0];
   if (feld.value !== "2026-10-24") throw new Error(`Vorgabe ${feld.value}`);
   feld.value = "2026-11-01";

@@ -1272,14 +1272,14 @@
   "Befüllung eintragen": "Record a refill",
   "Bestand eintragen": "Record the stock",
   "Datum nachtragen": "Enter the date",
-  "Zuletzt am {datum}": "Last done on {datum}",
   "Verdampferreinigung": "Evaporator cleaning",
-  "Der Tag, an dem die Pflege zuletzt erledigt wurde. Ab diesem Tag rechnen Termin und Vergleich.": "The day the care task was last done. Due date and comparison count from this day.",
   "Erledigt am": "Done on",
   "Eine Lieferung oder eine eigene Befüllung des Lagers. Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch. Ohne Rest gilt der gerechnete Vorrat.": "A delivery or your own refill of the store. With the remainder before it, the calculation learns the actual consumption. Without a remainder, the calculated stock applies.",
   "Menge": "Quantity",
   "Rest davor (optional)": "Remainder before (optional)",
   "Der Vorrat, der jetzt im Lager liegt. Mit dem vorigen Stand lernt die Rechnung den tatsächlichen Verbrauch.": "The stock now in the store. With the previous level, the calculation learns the actual consumption.",
   "Die Eingabe ist unvollständig oder ungültig.": "The entry is incomplete or invalid.",
-  "Die Eingabe konnte nicht gespeichert werden.": "The entry could not be saved."
+  "Die Eingabe konnte nicht gespeichert werden.": "The entry could not be saved.",
+  "Der Tag, an dem die Pflege zuletzt erledigt wurde.": "The day the care task was last done.",
+  "Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich.": "The day the cleaning was last done. The first days after it form the reference for the comparison."
 }

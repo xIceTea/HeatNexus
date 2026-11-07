@@ -1277,14 +1277,14 @@
   "Befüllung eintragen": "Vulling invoeren",
   "Bestand eintragen": "Voorraad invoeren",
   "Datum nachtragen": "Datum invoeren",
-  "Zuletzt am {datum}": "Laatst uitgevoerd op {datum}",
   "Verdampferreinigung": "Verdamperreiniging",
-  "Der Tag, an dem die Pflege zuletzt erledigt wurde. Ab diesem Tag rechnen Termin und Vergleich.": "De dag waarop de verzorging het laatst is uitgevoerd. Termijn en vergelijking rekenen vanaf deze dag.",
   "Erledigt am": "Uitgevoerd op",
   "Eine Lieferung oder eine eigene Befüllung des Lagers. Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch. Ohne Rest gilt der gerechnete Vorrat.": "Een levering of een eigen vulling van de opslag. Met de rest daarvoor leert de berekening het werkelijke verbruik. Zonder rest geldt de berekende voorraad.",
   "Menge": "Hoeveelheid",
   "Rest davor (optional)": "Rest daarvoor (optioneel)",
   "Der Vorrat, der jetzt im Lager liegt. Mit dem vorigen Stand lernt die Rechnung den tatsächlichen Verbrauch.": "De voorraad die nu in de opslag ligt. Met de vorige stand leert de berekening het werkelijke verbruik.",
   "Die Eingabe ist unvollständig oder ungültig.": "De invoer is onvolledig of ongeldig.",
-  "Die Eingabe konnte nicht gespeichert werden.": "De invoer kon niet worden opgeslagen."
+  "Die Eingabe konnte nicht gespeichert werden.": "De invoer kon niet worden opgeslagen.",
+  "Der Tag, an dem die Pflege zuletzt erledigt wurde.": "De dag waarop de verzorging het laatst is uitgevoerd.",
+  "Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich.": "De dag waarop de reiniging het laatst is uitgevoerd. De eerste dagen daarna vormen de referentie voor de vergelijking."
 }

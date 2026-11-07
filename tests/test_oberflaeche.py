@@ -804,7 +804,7 @@ def eingabe() -> dict:
         "Befüllung ohne Rest: nur die Menge",
         "Befüllung mit Rest: Menge und Rest",
         "Befüllung ohne Menge: kein Aufruf, Hinweis",
-        "Bestand: Zahl auf den Vorrat",
+        "Bestand: Vorgabe gerechnet, Zahl auf den Vorrat",
         "Datum: Tag auf die Datumsentität",
         "Datum in der Zukunft: kein Aufruf",
         "Abbruch: kein Aufruf",

@@ -50,12 +50,8 @@ export const BefundEingabeMixin = (Basis) =>
       }
       const stand = this._hass && this._hass.states[e.entity];
       const zuletzt = stand && /^\d{4}-\d{2}-\d{2}$/.test(stand.state) ? stand.state : null;
-      if (zuletzt) {
-        leiste.appendChild(
-          element("span", "befund-leise", this._tMit("Zuletzt am {datum}", { datum: `${zuletzt.slice(8, 10)}.${zuletzt.slice(5, 7)}.${zuletzt.slice(0, 4)}` }))
-        );
-      }
-      leiste.appendChild(this._befundTaste(this._t("Datum nachtragen"), () => this._befundDatum(e, zuletzt)));
+      // Das bisherige Datum zeigt die Karte selbst; die Taste bringt es nur als Vorgabe mit.
+      leiste.appendChild(this._befundTaste(this._t("Datum nachtragen"), () => this._befundDatum(e, zuletzt, b.art)));
       return leiste;
     }
 
@@ -69,14 +65,16 @@ export const BefundEingabeMixin = (Basis) =>
       return taste;
     }
 
-    _befundDatum(e, zuletzt) {
+    _befundDatum(e, zuletzt, art) {
       const feld = element("input", "dialog-zahl befund-datum");
       feld.type = "date";
       feld.max = heute();
       feld.value = zuletzt || heute();
       this._befundFenster(
         this._t(PFLEGE_TITEL[e.pflege] || "Datum nachtragen"),
-        this._t("Der Tag, an dem die Pflege zuletzt erledigt wurde. Ab diesem Tag rechnen Termin und Vergleich."),
+        art.startsWith("pflege_")
+          ? this._t("Der Tag, an dem die Pflege zuletzt erledigt wurde.")
+          : this._t("Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich."),
         [[this._t("Erledigt am"), feld, ""]],
         () => (/^\d{4}-\d{2}-\d{2}$/.test(feld.value) && feld.value <= heute() ? feld.value : null),
         (datum) => this._hass.callService("date", "set_value", { entity_id: e.entity, date: datum })
@@ -107,6 +105,8 @@ export const BefundEingabeMixin = (Basis) =>
 
     _befundBestand(entity, b) {
       const vorrat = this._befundZahlfeld();
+      const bestand = (b.angaben || {}).bestand;
+      if (bestand !== null && bestand !== undefined) vorrat.value = String(bestand);
       this._befundFenster(
         this._t("Bestand eintragen"),
         this._t("Der Vorrat, der jetzt im Lager liegt. Mit dem vorigen Stand lernt die Rechnung den tatsächlichen Verbrauch."),
@@ -136,12 +136,14 @@ export const BefundEingabeMixin = (Basis) =>
       const schleier = element("div", "schleier");
       const dialog = element("div", "dialog");
       dialog.append(element("h3", "dialog-titel", titel), element("div", "dialog-text", text));
+      // Drei Spalten je Zeile – Beschriftung, Feld, Einheit –, damit die Felder bündig stehen.
+      const raster = element("div", "befund-felder");
       felder.forEach(([beschriftung, feld, einheit]) => {
         const zeile = element("label", "dialog-zahl-zeile");
-        zeile.append(beschriftung, feld);
-        if (einheit) zeile.append(` ${einheit}`);
-        dialog.appendChild(zeile);
+        zeile.append(element("span", null, beschriftung), feld, element("span", null, einheit));
+        raster.appendChild(zeile);
       });
+      dialog.appendChild(raster);
       const fehler = element("div", "befund-leise befund-fehler");
       fehler.hidden = true;
       const leiste = element("div", "dialog-leiste");
