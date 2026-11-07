@@ -75,6 +75,31 @@ def test_tageszaehler_nach_mitternacht_zum_vortag(wp):
     assert tage["2026-12-01"]["q"] == 61.0
 
 
+def test_spaet_zurueckgesetzter_tageszaehler_geht_zum_vortag(wp):
+    leer = wp.Probe(None, None, 0, 3)
+    tage = wp.sammeln(
+        {}, datetime(2026, 12, 1, 22, 0), 7, leer, False, {"q": 60.0, "cop": 3.9, "bh": 9.0}
+    )
+    # Nach der ersten Stunde des Tages noch der alte Stand, dann das Rücksetzen.
+    stale = {"q": 61.0, "cop": 3.8, "bh": 9.2}
+    tage = wp.sammeln(tage, datetime(2026, 12, 2, 1, 10), 7, leer, False, stale)
+    tage = wp.sammeln(
+        tage, datetime(2026, 12, 2, 1, 15), 7, leer, False, {"q": 0.3, "cop": 3.0, "bh": 0.1}
+    )
+    assert tage["2026-12-01"]["q"] == 61.0
+    assert tage["2026-12-01"]["cop"] == 3.8
+    assert tage["2026-12-02"]["q"] == 0.3
+    # Ein einzelner niedriger Wert ohne fallende Stunden bleibt ein Ausreißer.
+    tage = wp.sammeln(
+        tage, datetime(2026, 12, 2, 9, 0), 7, leer, False, {"q": 20.0, "cop": 4.0, "bh": 4.0}
+    )
+    tage = wp.sammeln(
+        tage, datetime(2026, 12, 2, 9, 5), 7, leer, False, {"q": 2.0, "cop": 4.0, "bh": 4.1}
+    )
+    assert tage["2026-12-02"]["q"] == 20.0
+    assert tage["2026-12-01"]["q"] == 61.0
+
+
 def test_tagewerte_aus_tageszaehlern(wp):
     eintrag = {"n": 100, "vl": 3500.0, "luft": 200.0, "q": 80.0, "cop": 4.0, "bh": 10.0}
     werte = wp.tagewerte({"2026-12-01": eintrag, "2026-12-02": eintrag | {"bh": 2.0}}, 7)

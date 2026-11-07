@@ -30,7 +30,7 @@ VERGLEICH_TAGE = 28
 BEZUG_JE_BAND = 10
 MIN_BEZUG, MIN_JETZT = 5, 3
 GRENZE_PROZENT = -10.0
-RUECKSETZ_KWH = 0.05
+RUECKSETZ_KWH, RUECKSETZ_H = 0.05, 0.05
 VERLAUF_TAGE = 120
 # Heizen und Silentmode Heizen (`50/6`) bzw. Heizen (`50/70`); Abtauen und Warmwasser zählen nicht.
 PHASEN_HEIZEN = {7: frozenset({4, 7}), 27: frozenset({4})}
@@ -96,7 +96,7 @@ def _zieltag(tage: dict[str, dict[str, Any]], zeit: datetime, q: float, bh: floa
     alt = tage.get(vortag) or {}
     if zeit.hour != 0 or alt.get("q") is None or q < alt["q"] - RUECKSETZ_KWH:
         return tag
-    return vortag if bh is None or alt.get("bh") is None or bh >= alt["bh"] - 0.05 else tag
+    return vortag if bh is None or alt.get("bh") is None or bh >= alt["bh"] - RUECKSETZ_H else tag
 
 
 def sammeln(
@@ -131,9 +131,32 @@ def _tageszaehler(
     q, bh = zaehler.get("q"), zaehler.get("bh")
     if q is None:
         return
-    ziel = tage.setdefault(_zieltag(tage, zeit, q, bh), {"n": 0, "vl": 0.0, "luft": 0.0})
-    if q >= (ziel.get("q") if ziel.get("q") is not None else -1.0):
-        ziel |= {"q": q, "cop": zaehler.get("cop"), "bh": bh}
+    tag = _zieltag(tage, zeit, q, bh)
+    ziel = tage.setdefault(tag, {"n": 0, "vl": 0.0, "luft": 0.0})
+    neu = {"q": q, "cop": zaehler.get("cop"), "bh": bh}
+    if ziel.get("q") is None or q >= ziel["q"]:
+        ziel |= neu
+    elif _zurueckgesetzt(ziel, q, bh):
+        # Spät zurückgesetzt: der Stand davor gehörte noch zum Vortag.
+        vortag = tage.setdefault(_vortag(tag), {"n": 0, "vl": 0.0, "luft": 0.0})
+        if vortag.get("q") is None or ziel["q"] > vortag["q"]:
+            vortag |= {k: ziel.get(k) for k in neu}
+        ziel |= neu
+
+
+def _vortag(tag: str) -> str:
+    return (date.fromisoformat(tag) - timedelta(days=1)).isoformat()
+
+
+def _zurueckgesetzt(ziel: dict[str, Any], q: float, bh: float | None) -> bool:
+    """Wärme und Stunden fallen zusammen; ein einzelner niedriger Wert bleibt ein Ausreißer."""
+    alt_bh = ziel.get("bh")
+    return (
+        q < ziel["q"] - RUECKSETZ_KWH
+        and bh is not None
+        and alt_bh is not None
+        and bh < alt_bh - RUECKSETZ_H
+    )
 
 
 def _mittel(eintrag: dict[str, Any]) -> tuple[float, float] | None:
