@@ -14,6 +14,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Datum je Pflege hält fest, wann sie zuletzt erledigt wurde.
 - Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
 - Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
+- Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
+- Der Dienst „Brennstoff geliefert“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
 
 ## [1.15.0] - 2026-11-05

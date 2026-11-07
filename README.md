@@ -25,7 +25,7 @@ zeigt die Anlage als Schaubild.
 - **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready und Kostenvergleich.
 - **Thermostat je Heizkreis** mit befristeter Vorgabe, wie in der Windhager-App.
 - **Automatik je Heizkreis**: Heizpause an milden Tagen, Absenkung bei Sonne, gelerntes Hausmodell.
-- **Pflege und Abgas**: Die Auswertung zeigt Pflegetermine und meldet, wenn das Abgas seit der Reinigung wärmer wird.
+- **Pflege, Abgas und Brennstoff**: Die Auswertung zeigt Pflegetermine, meldet wärmeres Abgas seit der Reinigung und sagt, bis wann der Brennstoff reicht.
 - **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
 - **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
 - **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.

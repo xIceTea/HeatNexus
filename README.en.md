@@ -25,7 +25,7 @@ in the sidebar shows the system as a diagram.
 - **Heat pump and hybrid**: AeroWIN and hybrid manager with power, COP, SG Ready and cost comparison.
 - **Thermostat per heating circuit** with a timed override, as in the Windhager app.
 - **Automation per heating circuit**: heating pause on mild days, setback in sunshine, learned house model.
-- **Care and flue gas**: the analysis shows care dates and reports when the flue gas gets warmer since cleaning.
+- **Care, flue gas and fuel**: the analysis shows care dates, reports warmer flue gas since cleaning and tells how long the fuel lasts.
 - **Faults in plain text** with remedies, plus the message list of the control panel.
 - **System state per controller** as a sensor for notifications.
 - **Dashboard and seven automation blueprints** built from what the system provides.
