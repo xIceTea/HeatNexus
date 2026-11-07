@@ -142,3 +142,23 @@ def test_tag_ohne_angabe_zur_automatik_bleibt_offen(a):
     for h in range(25):
         archiv.messen("hk", t + timedelta(hours=h), werte())
     assert archiv.tage_heizkreis("hk")[0]["automatik_h"] is None
+
+
+def test_pflege_bleibt_beim_speichern(a):
+    archiv = a.Archiv()
+    archiv.pflege_setzen("/1/60/0", "wartung", {"rest": 1730.0, "zuletzt": "2026-09-01"})
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert wieder.pflege_eintrag("/1/60/0", "wartung") == {"rest": 1730.0, "zuletzt": "2026-09-01"}
+    assert archiv.als_dict()["fassung"] == 2
+
+
+def test_altes_archiv_ohne_pflege_laedt(a):
+    alt = {"fassung": 1, "stunden_hk": {}, "tage_k": {}}
+    assert a.Archiv.aus_dict(alt).pflege_eintrag("/1/60/0", "wartung") == {}
+
+
+def test_pflege_eintrag_ist_eine_kopie(a):
+    archiv = a.Archiv()
+    archiv.pflege_setzen("/1/60/0", "asche", {"rest": 5.0})
+    archiv.pflege_eintrag("/1/60/0", "asche")["rest"] = 99.0
+    assert archiv.pflege_eintrag("/1/60/0", "asche")["rest"] == 5.0

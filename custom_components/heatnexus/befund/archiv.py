@@ -10,7 +10,7 @@ from typing import Any
 STUNDEN_TAGE = 60
 TAGE_TAGE = 400
 UNTER_K = 3.0
-FASSUNG = 1
+FASSUNG = 2
 HEIZKREIS = "hk"
 KESSEL = "k"
 MESSWERTE = ("at", "vl", "vi", "soll")
@@ -112,6 +112,8 @@ class Archiv:
         self.stunden_k: dict[str, dict[str, dict[str, Any]]] = {}
         self.tage_hk: dict[str, dict[str, dict[str, Any]]] = {}
         self.tage_k: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel und Pflege der letzte Stand; die Logik dazu steht in `pflege.py`.
+        self.pflege: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
         self.nachgerechnet = 0
 
@@ -121,7 +123,7 @@ class Archiv:
         archiv = cls()
         if not isinstance(roh, dict):
             return archiv
-        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k"):
+        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k", "pflege"):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
         stand = roh.get("nachgerechnet")
         archiv.nachgerechnet = (
@@ -137,6 +139,7 @@ class Archiv:
             "stunden_k": self.stunden_k,
             "tage_hk": self.tage_hk,
             "tage_k": self.tage_k,
+            "pflege": self.pflege,
         }
 
     def _quellen(self, art: str) -> tuple[dict, dict]:
@@ -230,6 +233,13 @@ class Archiv:
             {"datum": d, **v, "at": at_je_tag.get(d), "heiztag": False}
             for d, v in sorted(self.tage_k.get(kessel, {}).items())
         ]
+
+    def pflege_eintrag(self, kennung: str, art: str) -> dict[str, Any]:
+        """Der gespeicherte Stand einer Pflege, als Kopie; leer, wenn es keinen gibt."""
+        return dict(self.pflege.get(kennung, {}).get(art, {}))
+
+    def pflege_setzen(self, kennung: str, art: str, eintrag: dict[str, Any]) -> None:
+        self.pflege.setdefault(kennung, {})[art] = dict(eintrag)
 
     def kuerzen(self, heute: date) -> None:
         """Stunden älter als 60 Tage und Tage älter als 400 Tage entfernen."""
