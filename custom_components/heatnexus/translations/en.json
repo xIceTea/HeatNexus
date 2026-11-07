@@ -128,7 +128,8 @@
           "sprache": "HeatNexus language",
           "sprache_anlage": "Language of this system",
           "startwerte": "Take over start values from the system",
-          "stoerung_zuruecksetzen": "Allow resetting faults at the boiler"
+          "stoerung_zuruecksetzen": "Allow resetting faults at the boiler",
+          "heizraum": "Boiler room sensor"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -140,7 +141,8 @@
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
           "sprache": "Applies to every system in HeatNexus: datapoint names, interface and dashboard. With “Automatic” the language of Home Assistant applies. A change here switches all systems.",
           "sprache_anlage": "Sets a separate language for this system only: for names, states, fault texts and its page in the interface. “Same as HeatNexus” uses the HeatNexus language.",
-          "stoerung_zuruecksetzen": "Enables the “Reset fault at the boiler” button in the message list. Controllers from version 2 clear a fault at the boiler with it, including a locking one. Only reset when you know the cause and have fixed it."
+          "stoerung_zuruecksetzen": "Enables the “Reset fault at the boiler” button in the message list. Controllers from version 2 clear a fault at the boiler with it, including a locking one. Only reset when you know the cause and have fixed it.",
+          "heizraum": "Temperature sensor in the boiler room. The flue gas monitor uses it for the flue gas loss instead of an estimated 20 °C."
         }
       },
       "system": {

@@ -74,7 +74,7 @@ def test_sammeln_ist_unveraenderlich(ab):
     neu = ab.sammeln(alt, "2026-11-20", "50", 50.0, 7.0, 120.0)
     neu = ab.sammeln(neu, "2026-11-20", "50", 52.0, None, 122.0)
     assert alt == {}
-    assert neu["2026-11-20"]["50"] == [102.0, 2, 7.0, 1, 242.0]
+    assert neu["2026-11-20"]["50"] == [102.0, 2, 7.0, 1, 242.0, 0.0, 0]
 
 
 def test_konstanten_je_brennstoff(ab):
@@ -94,14 +94,47 @@ def test_abgasverlust_nach_siegert(ab):
     assert ab.abgasverlust(140.0, 20.0, 21.0, k) is None
 
 
-def tage(ab, start: date, anzahl: int, dt: float, n: int = 6, stufe="50", o2=7.0):
+def tage(ab, start: date, anzahl: int, dt: float, n: int = 6, stufe="50", o2=7.0, tl=None):
     """Je Tag `n` Messungen mit Überhöhung `dt` und Abgas `70 + dt`."""
     ergebnis: dict = {}
     for i in range(anzahl):
         tag = (start + timedelta(days=i)).isoformat()
         for _ in range(n):
-            ergebnis = ab.sammeln(ergebnis, tag, stufe, dt, o2, 70.0 + dt)
+            ergebnis = ab.sammeln(ergebnis, tag, stufe, dt, o2, 70.0 + dt, tl)
     return ergebnis
+
+
+def test_raumluft_gemessen_geht_in_den_verlust(ab):
+    """Im Winter 12 °C, im Bezug 22 °C Raumluft: 10 K mehr Abstand zur Luft heben den Verlust."""
+    heute = date(2026, 11, 30)
+    bezug = tage(ab, date(2026, 10, 1), 14, 40.0, tl=22.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 40.0, tl=12.0)
+    _, verlust = ab.vergleich(bezug | jetzt, "2026-10-01", heute, False, "pellets")
+    assert verlust.wert == pytest.approx(10.0 * (0.68 / 14 + 0.0085), abs=0.01)
+    assert verlust.angaben["luft_geschaetzt"] is False
+    assert verlust.angaben["verlust_jetzt"] == pytest.approx(
+        (110 - 12) * (0.68 / 14 + 0.0085), abs=0.01
+    )
+
+
+def test_raumluft_nur_in_einem_zeitraum_bleibt_geschaetzt(ab):
+    heute = date(2026, 11, 30)
+    bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 40.0, tl=12.0)
+    _, verlust = ab.vergleich(bezug | jetzt, "2026-10-01", heute, False, "pellets")
+    assert verlust.wert == pytest.approx(0.0, abs=0.01)
+    assert verlust.angaben["luft_geschaetzt"] is True
+
+
+def test_unplausible_raumluft_zaehlt_nicht(ab):
+    neu = ab.sammeln({}, "2026-11-20", "50", 50.0, 7.0, 120.0, 85.0)
+    assert neu["2026-11-20"]["50"][5:] == [0.0, 0]
+
+
+def test_alte_tage_ohne_raumluft_lesbar(ab):
+    alt = {"2026-11-20": {"50": [50.0, 1, 7.0, 1, 120.0]}}
+    neu = ab.sammeln(alt, "2026-11-20", "50", 50.0, 7.0, 120.0, 20.0)
+    assert neu["2026-11-20"]["50"] == [100.0, 2, 14.0, 2, 240.0, 20.0, 1]
 
 
 def test_vergleich_zeigt_anstieg_seit_reinigung(ab):

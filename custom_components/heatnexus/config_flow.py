@@ -47,6 +47,7 @@ from .const import (
     CONF_AUSSENTEMPERATUR,
     CONF_COUNT,
     CONF_DASHBOARD,
+    CONF_HEIZRAUM,
     CONF_HILFE,
     CONF_IDS_ANPASSEN,
     CONF_LABEL,
@@ -766,11 +767,11 @@ class WindhagerOptionsFlow(OptionsFlow):
                 options[schluessel] = bool(user_input.get(schluessel, vorgabe))
             self._sprache_uebernehmen(options, user_input)
             options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
-            gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
-            if gewaehlt:
-                options[CONF_AUSSENTEMPERATUR] = gewaehlt
-            else:
-                options.pop(CONF_AUSSENTEMPERATUR, None)
+            for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
+                if gewaehlt := (user_input.get(feld) or "").strip():
+                    options[feld] = gewaehlt
+                else:
+                    options.pop(feld, None)
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -803,6 +804,12 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_HEIZRAUM,
+                        description={"suggested_value": options.get(CONF_HEIZRAUM, "")},
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="sensor", device_class="temperature")
+                    ),
                     **self._sprachfelder(options),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
@@ -949,8 +956,9 @@ class WindhagerOptionsFlow(OptionsFlow):
             alt = vorher.get(CONF_LABEL) or host
             umbenannt = entity_ids_umbenennen(self.hass, self.config_entry, alt, self._bezeichnung)
             # Die gewählte Außentemperatur zieht mit, sonst zeigt sie ins Leere.
-            if (aussen := options.get(CONF_AUSSENTEMPERATUR)) in umbenannt:
-                options[CONF_AUSSENTEMPERATUR] = umbenannt[aussen]
+            for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
+                if (gewaehlt := options.get(feld)) in umbenannt:
+                    options[feld] = umbenannt[gewaehlt]
         if neu == vorher:
             return
         neue = [neu if s[CONF_HOST] == host else s for s in systeme]

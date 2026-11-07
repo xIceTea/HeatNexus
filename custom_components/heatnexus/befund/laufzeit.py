@@ -21,7 +21,7 @@ from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
-from ..const import BEFUND_UMZUG, DOMAIN
+from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
@@ -219,6 +219,15 @@ class Sammler:
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
         return geraete_der_anlage(self.coordinator)
 
+    def _heizraum(self) -> float | None:
+        """Die Raumluft am Kessel aus dem gewählten Fühler; ohne Wahl oder Wert `None`."""
+        entity_id = (self.entry.options or {}).get(CONF_HEIZRAUM)
+        zustand = self.hass.states.get(entity_id) if entity_id else None
+        if zustand is None:
+            return None
+        messung = raum_messung(entity_id, zustand.state, zustand.attributes)
+        return messung.ist if messung else None
+
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)
 
@@ -265,7 +274,9 @@ class Sammler:
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
         pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
         brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
-        self._abgas_lauf = abgaslauf.messen(self.coordinator, self.archiv, self._abgas_lauf, zeit)
+        self._abgas_lauf = abgaslauf.messen(
+            self.coordinator, self.archiv, self._abgas_lauf, zeit, self._heizraum()
+        )
         self._wp_lauf = waermepumpelauf.messen(self.coordinator, self.archiv, self._wp_lauf, zeit)
         if geschlossen:
             self.archiv.kuerzen(zeit.date())

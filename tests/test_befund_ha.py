@@ -484,3 +484,24 @@ async def test_waermepumpe_entitaeten(hass, anlage):
     domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
     assert domaenen["SN1-60-1-verdampfer-erledigt"] == "button"
     assert domaenen["SN1-60-1-befund-arbeitszahl"] == "sensor"
+
+
+async def test_heizraum_fuehler_geht_in_den_abgaswaechter(hass, anlage):
+    """Mit gewähltem Fühler Heizraum trägt jeder gültige Takt die Raumluft ein."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.const import CONF_HEIZRAUM
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    hass.config_entries.async_update_entry(
+        eintrag, options={**eintrag.options, CONF_HEIZRAUM: "sensor.heizraum"}
+    )
+    hass.states.async_set("sensor.heizraum", "14.5", {"unit_of_measurement": "°C"})
+    assert sammler._heizraum() == 14.5
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in range(0, 25, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    summe = next(iter(sammler.archiv.abgas_tage(KESSEL).values()))["50"]
+    assert summe[5:] == [29.0, 2]

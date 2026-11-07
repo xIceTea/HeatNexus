@@ -128,7 +128,8 @@
           "sprache": "Sprache von HeatNexus",
           "sprache_anlage": "Sprache dieser Anlage",
           "startwerte": "Startwerte von der Anlage übernehmen",
-          "stoerung_zuruecksetzen": "Störungen am Kessel zurücksetzen erlauben"
+          "stoerung_zuruecksetzen": "Störungen am Kessel zurücksetzen erlauben",
+          "heizraum": "Fühler Heizraum"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -140,7 +141,8 @@
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Gilt für alle Anlagen in HeatNexus: Namen der Datenpunkte, Oberfläche und Dashboard. Bei „Automatisch“ gilt die Sprache von Home Assistant. Eine Änderung hier stellt alle Anlagen um.",
           "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus.",
-          "stoerung_zuruecksetzen": "Schaltet in der Meldungsliste die Taste „Störung am Kessel zurücksetzen“ frei. Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat."
+          "stoerung_zuruecksetzen": "Schaltet in der Meldungsliste die Taste „Störung am Kessel zurücksetzen“ frei. Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat.",
+          "heizraum": "Temperaturfühler im Heizraum. Der Abgaswächter rechnet den Abgasverlust damit statt mit geschätzten 20 °C."
         }
       },
       "system": {

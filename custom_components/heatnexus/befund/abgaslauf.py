@@ -29,7 +29,11 @@ def mit_o2(coordinator: Any, prefix: str) -> bool:
 
 
 def messen(
-    coordinator: Any, archiv: Any, zustaende: dict[str, dict[str, Any]], zeit: datetime
+    coordinator: Any,
+    archiv: Any,
+    zustaende: dict[str, dict[str, Any]],
+    zeit: datetime,
+    raumluft: float | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Je Kessel einen Takt bewerten; liefert die neuen Laufzustände, gültige Takte gehen ins Archiv."""
     neu: dict[str, dict[str, Any]] = {}
@@ -51,6 +55,7 @@ def messen(
             dt,
             messung.o2,
             messung.abgas,
+            raumluft,
         )
         archiv.abgas_setzen(z.prefix, tage)
     return neu

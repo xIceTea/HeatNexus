@@ -21,6 +21,9 @@ MIN_MESSUNGEN = 12
 LOGWIN_BELASTBAR = 36
 GRENZE_K = 20.0
 LUFT_GESCHAETZT = 20.0
+# Ein Fühler im Heizraum zählt nur mit plausiblen Werten; sonst gilt die Schätzung.
+LUFT_MIN, LUFT_MAX = -10.0, 45.0
+FELDER = 7
 # Siegert `qA = (tA − tL)·(A2/(21 − O2) + B)`, Formel wie in der 1. BImSchV. Die Holzwerte stammen
 # aus einer Verbrennungsrechnung je Wassergehalt, die die amtlichen Öl- und Gaswerte nachbildet.
 KONSTANTEN: dict[str, tuple[float, float]] = {
@@ -80,18 +83,28 @@ def sammeln(
     dt: float,
     o2: float | None,
     ta: float,
+    tl: float | None = None,
 ) -> dict[str, dict[str, list[float]]]:
-    """Eine gültige Messung in die Tagessummen `[Σ dT, n, Σ O2, n O2, Σ Abgas]`; liefert neue Summen."""
-    s_dt, n, s_o2, n_o2, s_ta = (tage.get(tag, {}).get(stufe_) or [0.0, 0, 0.0, 0, 0.0])[:5]
+    """Eine Messung in die Tagessummen `[Σ dT, n, Σ O2, n O2, Σ Abgas, Σ Raumluft, n Raumluft]`."""
+    s_dt, n, s_o2, n_o2, s_ta, s_tl, n_tl = _voll(tage.get(tag, {}).get(stufe_))
     mit_o2 = o2 is not None
+    mit_tl = tl is not None and LUFT_MIN <= tl <= LUFT_MAX
     summe = [
         round(s_dt + dt, 2),
         n + 1,
         round(s_o2 + (o2 if mit_o2 else 0.0), 2),
         n_o2 + int(mit_o2),
         round(s_ta + ta, 2),
+        round(s_tl + (tl if mit_tl and tl is not None else 0.0), 2),
+        n_tl + int(mit_tl),
     ]
     return {**tage, tag: {**tage.get(tag, {}), stufe_: summe}}
+
+
+def _voll(werte: list[float] | None) -> list[float]:
+    """Summen auf sieben Felder; ältere Tage haben noch keine Raumluft."""
+    werte = list(werte or [])[:FELDER]
+    return werte + [0.0] * (FELDER - len(werte))
 
 
 def brennstoff(fct_type: int | None, code: float | None) -> str:
@@ -121,8 +134,8 @@ def _summen(tage: dict[str, dict[str, list[float]]], auswahl: list[str]) -> dict
     summen: dict[str, list[float]] = {}
     for tag in auswahl:
         for stufe_, werte in tage[tag].items():
-            alt = summen.get(stufe_, [0.0, 0, 0.0, 0, 0.0])
-            summen[stufe_] = [a + b for a, b in zip(alt, werte[:5], strict=True)]
+            alt = summen.get(stufe_, [0.0] * FELDER)
+            summen[stufe_] = [a + b for a, b in zip(alt, _voll(werte), strict=True)]
     return summen
 
 
@@ -154,21 +167,31 @@ def _gewichtet(paare: list[tuple[float, float]]) -> float:
     return round(sum(w * g for w, g in paare) / gewicht, 2)
 
 
+def _raumluft(summe: list[float]) -> float | None:
+    """Mittlere Raumluft, wenn der Fühler mindestens die Hälfte der Messungen lieferte."""
+    return summe[5] / summe[6] if summe[6] and summe[6] * 2 >= summe[1] else None
+
+
 def _verlust(
     b: dict[str, list[float]], v: dict[str, list[float]], stufen: list[str], k: tuple[float, float]
 ) -> form.Befund:
-    paare, absolut = [], []
+    paare, absolut, gemessen = [], [], True
     for s in stufen:
         if not (b[s][3] and v[s][3]):
             continue
-        q_b = abgasverlust(b[s][4] / b[s][1], LUFT_GESCHAETZT, b[s][2] / b[s][3], k)
-        q_v = abgasverlust(v[s][4] / v[s][1], LUFT_GESCHAETZT, v[s][2] / v[s][3], k)
+        # Gemessen zählt nur in beiden Zeiträumen; gemischt entstünde ein Unterschied aus dem Fühler.
+        tl_b, tl_v = _raumluft(b[s]), _raumluft(v[s])
+        if tl_b is None or tl_v is None:
+            tl_b = tl_v = LUFT_GESCHAETZT
+            gemessen = False
+        q_b = abgasverlust(b[s][4] / b[s][1], tl_b, b[s][2] / b[s][3], k)
+        q_v = abgasverlust(v[s][4] / v[s][1], tl_v, v[s][2] / v[s][3], k)
         if q_b is not None and q_v is not None:
             paare.append((q_v - q_b, v[s][1]))
             absolut.append((q_v, v[s][1]))
     if not paare:
         return form.fehlt("abgasverlust", "o2")
-    angaben = {"verlust_jetzt": _gewichtet(absolut), "luft_geschaetzt": True}
+    angaben = {"verlust_jetzt": _gewichtet(absolut), "luft_geschaetzt": not gemessen}
     stufe_ = form.BELASTBAR if len(paare) >= 2 else form.VORLAEUFIG
     return form.Befund("abgasverlust", form.UNAUFFAELLIG, _gewichtet(paare), "%", stufe_, angaben)
 

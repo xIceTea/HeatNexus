@@ -128,7 +128,8 @@
           "sprache": "Taal van HeatNexus",
           "sprache_anlage": "Taal van deze installatie",
           "startwerte": "Startwaarden van de installatie overnemen",
-          "stoerung_zuruecksetzen": "Storingen aan de ketel resetten toestaan"
+          "stoerung_zuruecksetzen": "Storingen aan de ketel resetten toestaan",
+          "heizraum": "Sensor stookruimte"
         },
         "data_description": {
           "update_interval": "Hoe vaak de installatie wordt opgevraagd. De waarde geldt voor de snelle waarden (thermostaat, temperaturen, pompen); trage waarden houden hun eigen interval — 2 minuten voor bedrijfswaarden, 15 minuten voor tellers. Aanbevolen: 30 seconden voor één installatie, 60 seconden voor meerdere of voor installaties met veel datapunten.",
@@ -140,7 +141,8 @@
           "hilfe": "Zet een „?“ naast kaarten en bedieningselementen, dat uitlegt wat een waarde betekent en wat een bediening doet.",
           "sprache": "Geldt voor alle installaties in HeatNexus: namen van datapunten, interface en dashboard. Bij “Automatisch” geldt de taal van Home Assistant. Een wijziging hier geldt voor alle installaties.",
           "sprache_anlage": "Stelt alleen voor deze installatie een eigen taal in: voor namen, toestanden, storingsteksten en de eigen pagina in de interface. “Zoals HeatNexus” gebruikt de taal van HeatNexus.",
-          "stoerung_zuruecksetzen": "Schakelt in de meldingenlijst de knop „Storing aan de ketel resetten” vrij. Besturingen vanaf versie 2 heffen daarmee een storing aan de ketel op, ook een vergrendelende. Reset alleen als u de oorzaak kent en hebt verholpen."
+          "stoerung_zuruecksetzen": "Schakelt in de meldingenlijst de knop „Storing aan de ketel resetten” vrij. Besturingen vanaf versie 2 heffen daarmee een storing aan de ketel op, ook een vergrendelende. Reset alleen als u de oorzaak kent en hebt verholpen.",
+          "heizraum": "Temperatuursensor in de stookruimte. De rookgasbewaking berekent het rookgasverlies daarmee in plaats van met geschatte 20 °C."
         }
       },
       "system": {

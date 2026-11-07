@@ -71,7 +71,7 @@ const TITEL = {
 };
 
 const HILFE_ABGAS =
-  "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert, mit 20 °C Raumluft.";
+  "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert. Die Raumluft kommt vom Fühler Heizraum aus den Optionen, sonst gelten 20 °C.";
 
 const HILFE_BRENNSTOFF =
   "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
@@ -566,7 +566,7 @@ export const BefundMixin = (Basis) =>
         [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
         [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
-        [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
+        [a.verlust_jetzt, a.luft_geschaetzt === false ? "Abgasverlust zuletzt, Raumluft gemessen" : "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
         [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],
         [a.guete_jetzt, "Gütegrad der letzten 28 Tage", (w) => `${this._befundZahl(w * 100)} %`],
         ...Object.entries(b.art === "arbeitszahl" ? a.baender || {} : {}).sort(([x], [y]) => x - y).map(([unten, [bezug, jetzt]]) => [
