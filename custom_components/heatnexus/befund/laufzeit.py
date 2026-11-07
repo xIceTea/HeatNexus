@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -15,6 +15,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.seitenleiste import entfernen as meldung_entfernen
@@ -226,7 +227,11 @@ class Sammler:
         if zustand is None:
             return None
         messung = raum_messung(entity_id, zustand.state, zustand.attributes)
-        return messung.ist if messung else None
+        einheit = zustand.attributes.get("unit_of_measurement")
+        if messung is None or einheit not in TemperatureConverter.VALID_UNITS:
+            return messung.ist if messung else None
+        # Siegert rechnet in °C; ein Fühler in °F oder K wird umgerechnet.
+        return TemperatureConverter.convert(messung.ist, einheit, UnitOfTemperature.CELSIUS)
 
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)

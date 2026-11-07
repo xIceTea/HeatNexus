@@ -505,6 +505,8 @@ async def test_heizraum_fuehler_geht_in_den_abgaswaechter(hass, anlage):
         await sammler.messen(jetzt + timedelta(minutes=minute))
     summe = next(iter(sammler.archiv.abgas_tage(KESSEL).values()))["50"]
     assert summe[5:] == [29.0, 2]
+    hass.states.async_set("sensor.heizraum", "59", {"unit_of_measurement": "°F"})
+    assert sammler._heizraum() == pytest.approx(15.0)
 
 
 async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
