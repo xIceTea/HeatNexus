@@ -207,3 +207,44 @@ async def test_hinweis_erscheint_in_der_seitenleiste_wenn_gewuenscht(hass, anlag
     hinweis["status"] = "unauffaellig"
     sammler.melden()
     assert persistent_notification._async_get_or_create_notifications(hass) == {}
+
+
+def purowin_zaehler(sammler, rest="140"):
+    """Die Fixture-Anlage bekommt am Kessel einen PuroWIN-Restzähler für die Hauptreinigung."""
+    daten = sammler.coordinator.data
+    daten["devices"].append(
+        {
+            "type": "sensor",
+            "id": "SN1-1-1-39-92-0",
+            "device_id": "SN1-1-0",
+            "prefix": KESSEL,
+            "oid": f"{KESSEL}/39/92/0",
+            "fct_type": 25,
+            "device_name": "PuroWIN",
+        }
+    )
+    daten["oids"][f"{KESSEL}/39/92/0"] = rest
+
+
+async def test_pflege_wird_fortgeschrieben_und_erscheint(hass, anlage):
+    """Ein Restwert im Takt landet im Archiv und als Abschnitt der Auswertung."""
+    from datetime import date
+
+    from custom_components.heatnexus.befund import pflegelauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_zaehler(sammler)
+    pflegelauf.messen(sammler.coordinator, sammler.archiv, date(2026, 11, 20))
+    assert sammler.archiv.pflege_eintrag(KESSEL, "hauptreinigung")["rest"] == 140.0
+    assert any(a["art"] == "pflege" for a in sammler.stand()["abschnitte"])
+
+
+async def test_pflege_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
+    from custom_components.heatnexus import verwaiste
+
+    verwaltung, eintrag = anlage
+    purowin_zaehler(next(iter(verwaltung.sammler.values())))
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-1-0-befund-pflege-hauptreinigung"] == "sensor"
+    assert domaenen["SN1-1-0-pflege-hauptreinigung-zuletzt"] == "date"

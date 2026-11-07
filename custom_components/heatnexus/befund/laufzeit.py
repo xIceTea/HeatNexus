@@ -26,14 +26,14 @@ from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from ..texte import woerterbuch
-from . import auswertung
+from . import auswertung, pflegelauf
 from .archiv import STUNDE, Archiv
 
 _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 2
+NACHRECHNEN_FASSUNG = 3
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"
@@ -118,14 +118,17 @@ def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]
 
 
 def kennungen(entry: ConfigEntry) -> dict[str, str]:
-    """Kennung -> Domäne aller Befund-Sensoren; ohne sie gälten sie beim Aufräumen als verwaist."""
+    """Kennung -> Domäne aller Befund-Entitäten; ohne sie gälten sie beim Aufräumen als verwaist."""
     coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
-    return {
+    gefunden = {
         unique_id(device_id, art): "sensor"
         for coordinator in coordinators.values()
         for _, device_id, arten in geraete_der_anlage(coordinator)
         for art in arten
     }
+    for coordinator in coordinators.values():
+        gefunden |= pflegelauf.kennungen(coordinator)
+    return gefunden
 
 
 def unique_id(device_id: str, art: str) -> str:
@@ -250,6 +253,7 @@ class Sammler:
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
+        pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
@@ -315,11 +319,22 @@ class Sammler:
             else:
                 self._kessel_stunden(kennung, stunden)
                 neu += self.archiv.nachtragen_kessel(kennung, stunden)
+        neu += await self._pflege_nachrechnen()
         self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
         self.archiv.kuerzen(dt_util.now().date())
         self.speichern()
         self.aktualisieren()
         return neu
+
+    async def _pflege_nachrechnen(self) -> int:
+        register = er.async_get(self.hass)
+        return await pflegelauf.nachrechnen(
+            self.coordinator,
+            self.archiv,
+            lambda device_id, adresse: _entitaet(register, device_id, adresse),
+            self._statistik,
+            _stunde,
+        )
 
     # --- Auswerten ------------------------------------------------------------
     def _kreis(self, b: dict[str, Any]) -> auswertung.Kreis:
@@ -376,6 +391,8 @@ class Sammler:
             waermequelle_extern=not kessel,
             versorgte_heiztage=versorgt,
             versorgte_eingriffe=self._versorgte_eingriffe() if kessel else {},
+            pflege=pflegelauf.geraete(self.coordinator),
+            heute=dt_util.now().date(),
         )
 
     def _versorgte_eingriffe(self) -> dict[str, bool | None]:
