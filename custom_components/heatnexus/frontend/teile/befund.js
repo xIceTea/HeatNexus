@@ -67,6 +67,7 @@ const TITEL = {
   abgas: "Abgas über Kessel seit Reinigung",
   abgasverlust: "Mehrverlust Abgas",
   brennstoff: "Brennstoff im Lager",
+  arbeitszahl: "Gütegrad der Wärmepumpe seit Reinigung",
 };
 
 const HILFE_ABGAS =
@@ -74,6 +75,9 @@ const HILFE_ABGAS =
 
 const HILFE_BRENNSTOFF =
   "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
+
+const HILFE_WAERMEPUMPE =
+  "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet das mit der Carnot-Zahl heraus: Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser bleibt draußen, außer die Wärmepumpe zählt nur den gesamten Strom. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.";
 
 const HILFE_PFLEGE =
   "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
@@ -103,9 +107,10 @@ const HILFE = {
   abgas: HILFE_ABGAS,
   abgasverlust: HILFE_ABGAS,
   brennstoff: HILFE_BRENNSTOFF,
+  arbeitszahl: HILFE_WAERMEPUMPE,
 };
 
-const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege", abgas: "Abgas", brennstoff: "Brennstoff" };
+const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege", abgas: "Abgas", brennstoff: "Brennstoff", waermepumpe: "Wärmepumpe" };
 
 // Kurzname je Befund für Aufzählungen in der Kopfkarte.
 const KURZ = {
@@ -125,6 +130,7 @@ const KURZ = {
   abgas: "Abgas",
   abgasverlust: "Abgasverlust",
   brennstoff: "Brennstoff",
+  arbeitszahl: "Gütegrad",
 };
 
 const SYMBOL = { unauffaellig: "mdi:check", hinweis: "mdi:exclamation" };
@@ -530,6 +536,7 @@ export const BefundMixin = (Basis) =>
           starts: "Starts je Gradtag mit Automatik gegenüber ohne",
           abgas: "mehr als nach der Reinigung",
           abgasverlust: "Prozentpunkte mehr Abgasverlust",
+          arbeitszahl: "Gütegrad gegenüber dem Bezug",
           energie: "je Heizgradtag",
         }[b.art] || ""
       );
@@ -560,6 +567,14 @@ export const BefundMixin = (Basis) =>
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
         [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
         [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
+        [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],
+        [a.guete_jetzt, "Gütegrad der letzten 28 Tage", (w) => `${this._befundZahl(w * 100)} %`],
+        ...Object.entries(a.baender || {}).map(([unten, [bezug, jetzt]]) => [
+          jetzt,
+          this._tMit("Luft {von} bis {bis} °C, Gütegrad", { von: unten, bis: Number(unten) + 5 }),
+          (w) => `${this._befundZahl(bezug * 100)} % → ${this._befundZahl(w * 100)} %`,
+        ]),
+        [b.art === "arbeitszahl" && a.inkl_warmwasser ? true : null, "Strom", () => this._t("gesamt, mit Warmwasser")],
       ].filter(([wert]) => wert !== null && wert !== undefined);
       if (!zeilen.length) return null;
       const liste = knoten("div", "befund-vergleich");
@@ -584,6 +599,9 @@ export const BefundMixin = (Basis) =>
       }
       if (b.art === "abgas" && (a.je_tag || []).length) {
         return this._bildBalken(a.je_tag, "Abgas über Kessel je Tag", "an", b.quelle, (d, k) => this._tMit("{datum}: {k} K", { datum: kurzdatum(d), k: this._befundZahl(k) }));
+      }
+      if (b.art === "arbeitszahl" && (a.je_tag || []).length) {
+        return this._bildBalken(a.je_tag, "Gütegrad je Tag", "an", b.quelle, (d, g) => this._tMit("{datum}: {g} %", { datum: kurzdatum(d), g: this._befundZahl(g * 100) }));
       }
       if (b.art === "energie" && (a.punkte || []).length) return this._bildSignatur(a.punkte, b.quelle);
       return null;

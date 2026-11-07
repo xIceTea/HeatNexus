@@ -1254,5 +1254,16 @@
   "reicht etwa bis {datum}": "lasts until around {datum}",
   "Verbrauch je Tag": "Consumption per day",
   "Korrektur aus Lieferungen": "Correction from deliveries",
-  "Vorrat im Lager": "Stock in store"
+  "Vorrat im Lager": "Stock in store",
+  "Gütegrad der Wärmepumpe seit Reinigung": "Heat pump efficiency since cleaning",
+  "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet das mit der Carnot-Zahl heraus: Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser bleibt draußen, außer die Wärmepumpe zählt nur den gesamten Strom. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.": "The coefficient of performance depends mainly on how far the heat pump has to lift heat from the air to the flow. The card removes this with the Carnot figure: the efficiency grade is the heat produced divided by the heat an ideal machine would deliver with the same electricity. For each 5 K band of air temperature, the last 28 days are compared with the first days after the last evaporator cleaning. Days with at least 4 hours of heating count. Defrosting stays in the coefficient of performance. Hot water stays out, unless the heat pump only counts its total electricity. According to Windhager, leaves and dirt clog the evaporator fins. A notice appears from 10 % less efficiency grade.",
+  "Gütegrad": "Efficiency grade",
+  "Gütegrad gegenüber dem Bezug": "efficiency grade compared with the reference",
+  "Arbeitszahl der letzten 28 Tage": "Coefficient of performance, last 28 days",
+  "Gütegrad der letzten 28 Tage": "Efficiency grade, last 28 days",
+  "Luft {von} bis {bis} °C, Gütegrad": "Air {von} to {bis} °C, efficiency grade",
+  "Strom": "Electricity",
+  "gesamt, mit Warmwasser": "total, including hot water",
+  "Gütegrad je Tag": "Efficiency grade per day",
+  "{datum}: {g} %": "{datum}: {g} %"
 }

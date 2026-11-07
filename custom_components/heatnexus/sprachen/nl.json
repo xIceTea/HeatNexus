@@ -1259,5 +1259,16 @@
   "reicht etwa bis {datum}": "volstaat tot ongeveer {datum}",
   "Verbrauch je Tag": "Verbruik per dag",
   "Korrektur aus Lieferungen": "Correctie uit leveringen",
-  "Vorrat im Lager": "Voorraad in opslag"
+  "Vorrat im Lager": "Voorraad in opslag",
+  "Gütegrad der Wärmepumpe seit Reinigung": "Rendement warmtepomp sinds reiniging",
+  "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet das mit der Carnot-Zahl heraus: Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser bleibt draußen, außer die Wärmepumpe zählt nur den gesamten Strom. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.": "Het rendement (COP) hangt vooral af van hoe ver de warmtepomp de warmte van de lucht naar de aanvoer moet tillen. De kaart rekent dat eruit met het Carnot-getal: de kwaliteitsgraad is de geproduceerde warmte gedeeld door de warmte die een ideale machine met dezelfde stroom zou leveren. Per band van 5 K luchttemperatuur worden de laatste 28 dagen vergeleken met de eerste dagen na de laatste reiniging van de verdamper. Dagen met ten minste 4 uur verwarmen tellen mee. Ontdooien blijft in de COP. Warm water blijft erbuiten, tenzij de warmtepomp alleen haar totale stroom telt. Volgens Windhager raken de lamellen van de verdamper verstopt door bladeren en vuil. Vanaf 10 % lagere kwaliteitsgraad verschijnt een melding.",
+  "Gütegrad": "Kwaliteitsgraad",
+  "Gütegrad gegenüber dem Bezug": "kwaliteitsgraad ten opzichte van de referentie",
+  "Arbeitszahl der letzten 28 Tage": "COP van de laatste 28 dagen",
+  "Gütegrad der letzten 28 Tage": "Kwaliteitsgraad van de laatste 28 dagen",
+  "Luft {von} bis {bis} °C, Gütegrad": "Lucht {von} tot {bis} °C, kwaliteitsgraad",
+  "Strom": "Stroom",
+  "gesamt, mit Warmwasser": "totaal, inclusief warm water",
+  "Gütegrad je Tag": "Kwaliteitsgraad per dag",
+  "{datum}: {g} %": "{datum}: {g} %"
 }
