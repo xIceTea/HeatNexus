@@ -171,3 +171,59 @@ def test_letzte_erledigung_aus_statistik(p):
 def test_kennung_des_terminsensors(p):
     assert p.befund_kennung("dev", "pflege_hauptreinigung") == "dev-befund-pflege-hauptreinigung"
     assert p.befund_kennung("dev", "laufzeit") is None
+
+
+def kesseltage(ende: date, tage: int, winter: float = 10.0, sommer: float = 0.5) -> dict:
+    """Zählerstand `bh` je Tag: Oktober bis April `winter` Stunden am Tag, sonst `sommer`."""
+    stand, ergebnis = 1000.0, {}
+    for i in range(tage, 0, -1):
+        tag = ende - timedelta(days=i)
+        stand += winter if tag.month in (10, 11, 12, 1, 2, 3, 4) else sommer
+        ergebnis[tag.isoformat()] = {"bh": stand}
+    return ergebnis
+
+
+def test_jahresverlauf_aus_betriebsstunden(p):
+    jahr = p.jahresverlauf(kesseltage(HEUTE, 380), HEUTE)
+    assert jahr["01-15"] == 10.0
+    assert jahr["07-15"] == 0.5
+    assert len(jahr) >= 360
+
+
+def test_jahresverlauf_mit_luecken_unbrauchbar(p):
+    assert p.jahresverlauf(kesseltage(HEUTE, 100), HEUTE) == {}
+
+
+def test_vorschau_ueberspringt_den_sommer(p):
+    jahr = p.jahresverlauf(kesseltage(date(2027, 4, 1), 380), date(2027, 4, 1))
+    # 400 h Rest am 01.04.: April 290 h, Sommer 76,5 h, der Rest fällt in den Oktober.
+    datum = p.vorschau(400.0, date(2027, 4, 1), jahr)
+    assert date(2027, 10, 1) < datum < date(2027, 10, 31)
+
+
+def test_vorschau_ueber_ein_jahr(p):
+    jahr = p.jahresverlauf(kesseltage(HEUTE, 380), HEUTE)
+    assert p.vorschau(99999.0, HEUTE, jahr) is None
+
+
+def test_befund_mit_vorjahr_statt_linear(p):
+    jahr = p.jahresverlauf(kesseltage(date(2027, 4, 1), 380), date(2027, 4, 1))
+    eintrag = {"rest": 400.0, "verlauf": verlauf(540.0, 10.0, 15, date(2027, 4, 1))}
+    b = p.befund(zaehler(p), eintrag, date(2027, 4, 1), jahr)
+    assert b.angaben["vorjahr"] is True
+    assert b.angaben["datum"] > "2027-10-01"
+
+
+def test_ohne_vorjahr_ueber_ein_jahr_kein_datum(p):
+    eintrag = {"rest": 1741.0, "verlauf": verlauf(1790.0, 3.5, 15)}
+    b = p.befund(zaehler(p, "wartung"), eintrag, HEUTE)
+    assert b.wert is None
+    assert b.angaben["ueber_jahr"] is True
+
+
+def test_sommer_mit_vorjahr_zeigt_datum_statt_ruhe(p):
+    heute = date(2027, 7, 1)
+    jahr = p.jahresverlauf(kesseltage(heute, 380), heute)
+    eintrag = {"rest": 140.0, "verlauf": verlauf(143.0, 0.2, 15, heute)}
+    b = p.befund(zaehler(p), eintrag, heute, jahr)
+    assert b.angaben["datum"] > "2027-10-01"

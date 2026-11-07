@@ -1227,7 +1227,6 @@
   "Asche entleeren": "As legen",
   "Jahresreinigung": "Jaarlijkse reiniging",
   "Pflege": "Verzorging",
-  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "De besturing telt de bedrijfsuren af tot de volgende verzorging. De datum rekent met de afname van de laatste 14 dagen. Een sprong van de teller omhoog geldt als uitgevoerde verzorging. Na de melding „Onderhoud” geeft Windhager drie maanden. Zonder teller geldt het interval uit de gebruiksaanwijzing.",
   "Die Steuerung meldet keinen Restwert.": "De besturing meldt geen restwaarde.",
   "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Heeft de datum van de laatste verzorging nodig. Die is in te stellen bij het apparaat.",
   "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Rust, de ketel draait nauwelijks. Een datum volgt met het stookseizoen.",
@@ -1248,5 +1247,10 @@
   "Bezug seit Reinigung": "Referentie sinds reiniging",
   "Abgasverlust zuletzt, Raumluft 20 °C geschätzt": "Rookgasverlies recent, ruimtelucht 20 °C geschat",
   "Abgas über Kessel je Tag": "Rookgas boven ketel per dag",
-  "{datum}: {k} K": "{datum}: {k} K"
+  "{datum}: {k} K": "{datum}: {k} K",
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "De besturing telt de bedrijfsuren af tot de volgende verzorging. Met een jaar historie rekent de datum met de bedrijfsuren van vorig jaar per kalenderdag en slaat zo de zomer over. Anders rekent hij met de afname van de laatste 14 dagen. Een sprong van de teller omhoog geldt als uitgevoerde verzorging. Na de melding „Onderhoud” geeft Windhager drie maanden. Zonder teller geldt het interval uit de gebruiksaanwijzing.",
+  "Fällig in mehr als einem Jahr.": "Gepland over meer dan een jaar.",
+  "Vorschau": "Prognose",
+  "nach Betriebsstunden des Vorjahrs": "op basis van bedrijfsuren van vorig jaar",
+  "nach den letzten 14 Tagen": "op basis van de laatste 14 dagen"
 }

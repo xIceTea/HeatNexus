@@ -165,3 +165,24 @@ def test_abgas_abschnitt_mit_und_ohne_o2(m):
     assert [b["art"] for b in teile[0]["befunde"]] == ["abgas", "abgasverlust"]
     assert [b["art"] for b in teile[1]["befunde"]] == ["abgas"]
     assert teile[0]["befunde"][0]["status"] == "sammelt"
+
+
+def test_pflege_nutzt_das_vorjahr_des_kessels(m):
+    from datetime import date, timedelta
+
+    aus, arch = m
+    pfl = load_standalone("befund.pflege")
+    ziele = load_standalone("befund.pflegeziele")
+    heute = date(2026, 11, 20)
+    archiv = arch.Archiv()
+    archiv.tage_k["/1/60/0"] = {
+        (heute - timedelta(days=i)).isoformat(): {"bh": 5000.0 - 8 * i} for i in range(1, 380)
+    }
+    archiv.pflege_setzen("/1/60/0", "wartung", {"rest": 1741.0})
+    ziel = ziele.Ziel("/1/60/0", "dev", pfl.PFLEGE[25][2])
+    k = aus.Kontext("AT", pflege=[aus.Pflegegeraet("dev", "PuroWIN", [ziel])], heute=heute)
+    befund = next(x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "pflege")[
+        "befunde"
+    ][0]
+    assert befund["angaben"]["vorjahr"] is True
+    assert befund["wert"] == 218.0

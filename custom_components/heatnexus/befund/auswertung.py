@@ -182,10 +182,12 @@ def _kessel(
 
 
 def _pflege(archiv: Archiv, geraet: Pflegegeraet, heute: date) -> dict[str, Any]:
-    befunde = [
-        _als_dict(pflege.befund(z.pflege, archiv.pflege_eintrag(z.prefix, z.pflege.art), heute))
-        for z in geraet.ziele
-    ]
+    befunde = []
+    for z in geraet.ziele:
+        # Die Pflegezähler laufen mit den Betriebsstunden; ihr Vorjahr gibt die Jahreszeit vor.
+        jahr = pflege.jahresverlauf(archiv.tage_k.get(z.prefix, {}), heute)
+        eintrag = archiv.pflege_eintrag(z.prefix, z.pflege.art)
+        befunde.append(_als_dict(pflege.befund(z.pflege, eintrag, heute, jahr)))
     return {"art": "pflege", "kennung": geraet.kennung, "titel": geraet.name, "befunde": befunde}
 
 

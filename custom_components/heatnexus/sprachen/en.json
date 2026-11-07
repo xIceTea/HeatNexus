@@ -1222,7 +1222,6 @@
   "Asche entleeren": "Empty ash",
   "Jahresreinigung": "Annual cleaning",
   "Pflege": "Care",
-  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "The controller counts the operating hours down to the next care task. The date uses the decrease of the last 14 days. An upward jump of the counter counts as care done. After the “Maintenance” message Windhager allows three months. Without a counter the interval from the operating manual applies.",
   "Die Steuerung meldet keinen Restwert.": "The controller reports no remaining value.",
   "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Needs the date of the last care task. It can be set on the device.",
   "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Idle, the boiler hardly runs. A date follows with the heating season.",
@@ -1243,5 +1242,10 @@
   "Bezug seit Reinigung": "Reference since cleaning",
   "Abgasverlust zuletzt, Raumluft 20 °C geschätzt": "Recent flue gas loss, room air 20 °C estimated",
   "Abgas über Kessel je Tag": "Flue gas above boiler per day",
-  "{datum}: {k} K": "{datum}: {k} K"
+  "{datum}: {k} K": "{datum}: {k} K",
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "The controller counts the operating hours down to the next care task. With a year of history the date uses last year's operating hours per calendar day and so skips the summer. Otherwise it uses the decrease of the last 14 days. An upward jump of the counter counts as care done. After the “Maintenance” message Windhager allows three months. Without a counter the interval from the operating manual applies.",
+  "Fällig in mehr als einem Jahr.": "Due in more than a year.",
+  "Vorschau": "Forecast",
+  "nach Betriebsstunden des Vorjahrs": "from last year's operating hours",
+  "nach den letzten 14 Tagen": "from the last 14 days"
 }

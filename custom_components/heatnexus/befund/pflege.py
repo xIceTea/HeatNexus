@@ -25,6 +25,9 @@ SPRUNG_MIN_H = 24.0
 OHNE_MAX = 65534
 BALD_TAGE = 7
 STUFEN = {"vorlaeufig": 7, "belastbar": 14}
+VORSCHAU_TAGE = 365
+# Unter so vielen Tagen Verlauf im letzten Jahr gilt die Vorschau nach Jahreszeit nicht.
+JAHR_MIN_TAGE = 300
 
 
 @dataclass(frozen=True)
@@ -103,6 +106,30 @@ def abnahme_je_tag(verlauf: dict[str, float], heute: date) -> tuple[float | None
     return (round(abnahme / tage, 2) if tage else None), tage
 
 
+def jahresverlauf(tage_kessel: dict[str, dict[str, Any]], heute: date) -> dict[str, float]:
+    """Betriebsstunden je Kalendertag (`MM-TT`) im letzten Jahr; leer, wenn zu wenig Verlauf da ist."""
+    grenze = (heute - timedelta(days=VORSCHAU_TAGE)).isoformat()
+    punkte = sorted((d, _zahl(v.get("bh"))) for d, v in tage_kessel.items() if d >= grenze)
+    je_tag: dict[str, float] = {}
+    for (tag_a, a), (tag_b, b) in pairwise(punkte):
+        folgetag = (date.fromisoformat(tag_b) - date.fromisoformat(tag_a)).days == 1
+        if a is not None and b is not None and folgetag and 0 <= b - a <= 24:
+            je_tag[tag_b[5:]] = round(b - a, 2)
+    return je_tag if len(je_tag) >= JAHR_MIN_TAGE else {}
+
+
+def vorschau(rest: float, heute: date, jahr: dict[str, float]) -> date | None:
+    """Der Tag, an dem die Betriebsstunden des Vorjahrs den Rest aufbrauchen; über ein Jahr keiner."""
+    ersatz = sum(jahr.values()) / len(jahr) if jahr else 0.0
+    summe = 0.0
+    for i in range(VORSCHAU_TAGE + 1):
+        tag = heute + timedelta(days=i)
+        if summe >= rest:
+            return tag
+        summe += jahr.get((tag + timedelta(days=1)).strftime("%m-%d"), ersatz)
+    return None
+
+
 def _monate(tag: date, monate: int) -> date:
     jahr, monat = divmod(tag.month - 1 + monate, 12)
     ziel = date(tag.year + jahr, monat + 1, 1)
@@ -150,7 +177,21 @@ def _termin(
     return form.Befund(art, status, float(tage), "d", stufe, angaben)
 
 
-def _zaehler(art: str, pflege: Pflege, eintrag: dict[str, Any], heute: date) -> form.Befund:
+def _datum(
+    rest: float, rate: float | None, heute: date, jahr: dict[str, float]
+) -> tuple[date | None, bool]:
+    """Fälligkeit nach dem Vorjahr, sonst linear mit der Abnahme; `True`, wenn sie ruht."""
+    if jahr:
+        return vorschau(rest, heute, jahr), False
+    if rate is None or rate < RUHE_H_JE_TAG:
+        return None, True
+    tage = math.ceil(max(rest, 0.0) / rate)
+    return (heute + timedelta(days=tage) if tage <= VORSCHAU_TAGE else None), False
+
+
+def _zaehler(
+    art: str, pflege: Pflege, eintrag: dict[str, Any], heute: date, jahr: dict[str, float]
+) -> form.Befund:
     rest = _zahl(eintrag.get("rest")) or 0.0
     angaben: dict[str, Any] = {"rest_h": rest, "zuletzt": eintrag.get("zuletzt")}
     if gemeldet := eintrag.get("gemeldet"):
@@ -159,22 +200,29 @@ def _zaehler(art: str, pflege: Pflege, eintrag: dict[str, Any], heute: date) -> 
         return _termin(art, frist, heute, 10**6, angaben, form.BELASTBAR)
     rate, tage = abnahme_je_tag(eintrag.get("verlauf") or {}, heute)
     stufe = form.stufe(tage, **STUFEN)
-    angaben["abnahme_je_tag"] = rate
-    if rate is None or stufe == form.SAMMELT:
+    angaben |= {"abnahme_je_tag": rate, "vorjahr": bool(jahr)}
+    if stufe == form.SAMMELT and not jahr:
         return form.Befund(art, form.SAMMELT, angaben=angaben)
-    if rate < RUHE_H_JE_TAG:
-        return form.Befund(art, form.UNAUFFAELLIG, None, "d", stufe, angaben | {"ruht": True})
-    datum = heute + timedelta(days=math.ceil(max(rest, 0.0) / rate))
+    stufe = form.VORLAEUFIG if stufe == form.SAMMELT else stufe
+    datum, ruht = _datum(rest, rate, heute, jahr)
+    if datum is None:
+        angaben[("ruht" if ruht else "ueber_jahr")] = True
+        return form.Befund(art, form.UNAUFFAELLIG, None, "d", stufe, angaben)
     return _termin(art, datum, heute, BALD_TAGE, angaben, stufe)
 
 
-def befund(pflege: Pflege, eintrag: dict[str, Any], heute: date) -> form.Befund:
-    """Der Befund einer Pflege: Tage bis zur Fälligkeit, das Datum in den Angaben."""
+def befund(
+    pflege: Pflege, eintrag: dict[str, Any], heute: date, jahr: dict[str, float] | None = None
+) -> form.Befund:
+    """Der Befund einer Pflege: Tage bis zur Fälligkeit, das Datum in den Angaben.
+
+    `jahr` sind die Betriebsstunden je Kalendertag des Vorjahrs; damit überspringt die Vorschau den Sommer.
+    """
     art = f"pflege_{pflege.art}"
     if pflege.weise == ZAEHLER:
         if _zahl(eintrag.get("rest")) is None:
             return form.fehlt(art, "pflege")
-        return _zaehler(art, pflege, eintrag, heute)
+        return _zaehler(art, pflege, eintrag, heute, jahr or {})
     if not (zuletzt := eintrag.get("zuletzt")):
         return form.fehlt(art, "zuletzt")
     intervall = pflege.intervall_tage or 0

@@ -72,7 +72,7 @@ const HILFE_ABGAS =
   "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert, mit 20 °C Raumluft.";
 
 const HILFE_PFLEGE =
-  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
 
 const HILFE = {
   waermespeicher:
@@ -497,6 +497,7 @@ export const BefundMixin = (Basis) =>
       if (b.grund === "o2") return this._t("Braucht ein O2-Signal im Modulationsbetrieb.");
       if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
       if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.");
+      if ((b.angaben || {}).ueber_jahr) return this._t("Fällig in mehr als einem Jahr.");
       if ((b.angaben || {}).ruht) return this._t("Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.");
       return this._t("Sammelt noch Tage.");
     }
@@ -542,6 +543,7 @@ export const BefundMixin = (Basis) =>
         [a.rest_h, "Rest laut Steuerung", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
+        [b.art.startsWith("pflege_") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
         [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
         [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
