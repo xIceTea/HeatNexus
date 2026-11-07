@@ -114,6 +114,8 @@ class Archiv:
         self.tage_k: dict[str, dict[str, dict[str, Any]]] = {}
         # Je Kessel und Pflege der letzte Stand; die Logik dazu steht in `pflege.py`.
         self.pflege: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel und Tag die Summen des Abgaswächters; die Logik steht in `abgas.py`.
+        self.abgas: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
         self.nachgerechnet = 0
 
@@ -123,7 +125,7 @@ class Archiv:
         archiv = cls()
         if not isinstance(roh, dict):
             return archiv
-        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k", "pflege"):
+        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k", "pflege", "abgas"):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
         stand = roh.get("nachgerechnet")
         archiv.nachgerechnet = (
@@ -140,6 +142,7 @@ class Archiv:
             "tage_hk": self.tage_hk,
             "tage_k": self.tage_k,
             "pflege": self.pflege,
+            "abgas": self.abgas,
         }
 
     def _quellen(self, art: str) -> tuple[dict, dict]:
@@ -241,6 +244,13 @@ class Archiv:
     def pflege_setzen(self, kennung: str, art: str, eintrag: dict[str, Any]) -> None:
         self.pflege.setdefault(kennung, {})[art] = dict(eintrag)
 
+    def abgas_tage(self, kennung: str) -> dict[str, dict[str, Any]]:
+        """Die Tagessummen des Abgaswächters eines Kessels, als Kopie."""
+        return {tag: dict(v) for tag, v in self.abgas.get(kennung, {}).items()}
+
+    def abgas_setzen(self, kennung: str, tage: dict[str, dict[str, Any]]) -> None:
+        self.abgas[kennung] = {tag: dict(v) for tag, v in tage.items()}
+
     def kuerzen(self, heute: date) -> None:
         """Stunden älter als 60 Tage und Tage älter als 400 Tage entfernen."""
         grenze_s = (heute - timedelta(days=STUNDEN_TAGE)).isoformat()
@@ -248,6 +258,6 @@ class Archiv:
         for quelle in (self.stunden_hk, self.stunden_k):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {k: v for k, v in eintraege.items() if k[:10] >= grenze_s}
-        for quelle in (self.tage_hk, self.tage_k):
+        for quelle in (self.tage_hk, self.tage_k, self.abgas):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {d: v for d, v in eintraege.items() if d >= grenze_t}

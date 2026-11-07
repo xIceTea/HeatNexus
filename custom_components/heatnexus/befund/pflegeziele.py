@@ -17,7 +17,7 @@ class Ziel:
     max_feld: object = None
 
 
-def _praefix(oid: str) -> str | None:
+def praefix(oid: str) -> str | None:
     """`/1/<Knoten>/<Funktion>` aus einer vollen Adresse; Sensoren tragen keinen eigenen Präfix."""
     teile = oid.strip("/").split("/")
     return "/" + "/".join(teile[:3]) if len(teile) >= 3 else None
@@ -27,7 +27,7 @@ def _zaehler(beschreibungen: list[dict]) -> list[Ziel]:
     gefunden = []
     for b in beschreibungen:
         oid, device_id = b.get("oid") or "", b.get("device_id")
-        prefix = _praefix(oid)
+        prefix = praefix(oid)
         for pflege in PFLEGE.get(b.get("fct_type"), ()):
             if device_id and prefix and pflege.adresse and oid == f"{prefix}{pflege.adresse}":
                 gefunden.append(Ziel(prefix, device_id, pflege, b.get("max")))
@@ -37,7 +37,7 @@ def _zaehler(beschreibungen: list[dict]) -> list[Ziel]:
 def _logwin(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[Ziel]:
     geraete: dict[str, str] = {}
     for b in beschreibungen:
-        prefix = _praefix(b.get("oid") or "")
+        prefix = praefix(b.get("oid") or "")
         if b.get("fct_type") != 10 or not b.get("device_id") or prefix is None:
             continue
         if geraeteklasse.get(prefix.split("/")[2]) == LOGWIN_KLASSE:

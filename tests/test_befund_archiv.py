@@ -162,3 +162,12 @@ def test_pflege_eintrag_ist_eine_kopie(a):
     archiv.pflege_setzen("/1/60/0", "asche", {"rest": 5.0})
     archiv.pflege_eintrag("/1/60/0", "asche")["rest"] = 99.0
     assert archiv.pflege_eintrag("/1/60/0", "asche")["rest"] == 5.0
+
+
+def test_abgas_tage_bleiben_und_werden_gekuerzt(a):
+    archiv = a.Archiv()
+    archiv.abgas_setzen("/1/60/0", {"2025-01-01": {"50": [1.0, 1, 0.0, 0, 1.0]}, "2026-11-01": {}})
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert set(wieder.abgas_tage("/1/60/0")) == {"2025-01-01", "2026-11-01"}
+    wieder.kuerzen(date(2026, 11, 20))
+    assert set(wieder.abgas_tage("/1/60/0")) == {"2026-11-01"}

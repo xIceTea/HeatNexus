@@ -58,3 +58,21 @@ def test_praefix_aus_der_adresse(z):
 
 def test_ohne_geraet_ergibt_nichts(z):
     assert z.ziele([d("/1/60/0", "39/92", 25, device=None)], {}) == []
+
+
+def test_abgasziele_an_biowin_purowin_und_logwin(z):
+    az = load_standalone("befund.abgasziele")
+    b = [
+        d("/1/60/0", "0/11", 25, device="puro"),
+        d("/1/61/0", "0/11", 9, device="bio"),
+        d("/1/65/0", "0/11", 10, device="log"),
+        d("/1/66/0", "0/11", 10, device="fremd"),
+        d("/1/70/0", "0/11", 6, device="gas"),
+    ]
+    ziele = az.ziele(b, {"65": "2009", "66": "1415"})
+    assert [(x.device_id, x.fct_type, x.logwin, x.bezug_art) for x in ziele] == [
+        ("puro", 25, False, "hauptreinigung"),
+        ("bio", 9, False, "hauptreinigung"),
+        ("log", 10, True, "jahresreinigung"),
+    ]
+    assert ziele[0].prefix == "/1/60/0"
