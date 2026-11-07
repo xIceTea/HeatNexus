@@ -113,11 +113,14 @@ def stunde_aus_statistik(
 ) -> tuple[str, float, float | None, float] | None:
     """Stufe, `dT`, O2 und Abgas einer Stunde; sie gilt nur, wenn der Kessel durchgehend ruhig moduliert.
 
-    Das Minimum der Leistung zeigt, dass der Brenner die ganze Stunde lief; die Spanne, dass er ruhig lief.
+    Minimum und Spanne der Leistung zeigen ruhigen Betrieb; ein O2-Maximum unter Luft, dass Feuer brannte.
     """
     unten, oben, mittel = leistung.get("min"), leistung.get("max"), leistung.get("mean")
     ta, tk = abgas.get("mean"), kessel.get("mean")
     if None in (unten, oben, mittel, ta, tk) or unten < MIN_LEISTUNG or oben - unten > MAX_SPRUNG:
+        return None
+    # Beim Anheizen steht die Leistung schon auf der Vorgabe, die Sonde misst aber noch Luft.
+    if o2.get("max") is not None and o2["max"] >= O2_MAX:
         return None
     return stufe(mittel), round(ta - tk, 2), o2.get("mean"), ta
 

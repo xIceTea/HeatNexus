@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 4
+NACHRECHNEN_FASSUNG = 5
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"

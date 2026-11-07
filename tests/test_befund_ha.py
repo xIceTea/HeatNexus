@@ -635,6 +635,45 @@ async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
     assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {"bis": "2026-10-01"}
 
 
+async def test_nachgerechnete_abgastage_entstehen_neu(hass, anlage):
+    """Ein früher nachgerechneter Tag wird verworfen und aus der Statistik neu gebildet."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.abgas_setzen(
+        KESSEL,
+        {
+            "2026-10-01": {"90": [5.0, 12, 0.0, 0, 70.0]},
+            "2026-10-05": {"50": [40.0, 1, 0.0, 0, 110.0]},
+        },
+    )
+    sammler.archiv.pflege_setzen(KESSEL, abgaslauf.NACHGERECHNET, {"bis": "2026-10-01"})
+    statistik = {
+        "e.leistung": [{"start": "2026-10-01 10", "mean": 55.0, "min": 50.0, "max": 58.0}],
+        "e.abgas": [{"start": "2026-10-01 10", "mean": 120.0}],
+        "e.kessel": [{"start": "2026-10-01 10", "mean": 70.0}],
+    }
+
+    async def holen(ids, arten):
+        return statistik
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    assert set(tage["2026-10-01"]) == {"50"}
+    assert tage["2026-10-01"]["50"][:2] == [600.0, 12]
+    assert tage["2026-10-05"]["50"][:2] == [40.0, 1]
+
+
 def test_waermepumpe_27_waehlt_zaehler_der_ebenen():
     """Bei fctType 27 gehen Wärme `60/18`, Strom `52/81` und Kühlen `60/19` vor Modbus."""
     from custom_components.heatnexus.befund import waermepumpelauf

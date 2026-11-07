@@ -274,6 +274,15 @@ def test_stunde_aus_statistik_nur_bei_ruhiger_modulation(ab):
     assert ab.stunde_aus_statistik(leistung, {}, kessel, {}) is None
 
 
+def test_stunde_beim_anheizen_zaehlt_nicht(ab):
+    """Leistung auf der Vorgabe, die Sonde misst Luft: Es brannte kein Feuer."""
+    leistung = {"mean": 100.0, "min": 100.0, "max": 100.0}
+    abgas_, kessel = {"mean": 60.0}, {"mean": 62.0}
+    assert ab.stunde_aus_statistik(leistung, abgas_, kessel, {"mean": 20.5, "max": 21.2}) is None
+    assert ab.stunde_aus_statistik(leistung, abgas_, kessel, {"mean": 6.0, "max": 7.5}) is not None
+    assert ab.stunde_aus_statistik(leistung, abgas_, kessel, {}) is not None
+
+
 def test_nachgerechnete_stunde_zaehlt_zwoelf_takte(ab):
     neu = ab.sammeln({}, "2026-10-01", "50", 50.0, 7.5, 120.0, None, 12)
     assert neu["2026-10-01"]["50"] == [600.0, 12, 90.0, 12, 1440.0, 0.0, 0]

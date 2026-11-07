@@ -137,7 +137,10 @@ async def nachrechnen(
     statistik = await holen(ids, {"mean", "min", "max"}) if ids else {}
     neu = 0
     for prefix, felder in reihen.items():
-        tage, vorhanden = archiv.abgas_tage(prefix), set(archiv.abgas_tage(prefix))
+        # Früher nachgerechnete Tage entstehen neu; die Langzeitstatistik hat sie noch.
+        bis = archiv.pflege_eintrag(prefix, NACHGERECHNET).get("bis") or ""
+        tage = {d: v for d, v in archiv.abgas_tage(prefix).items() if d > bis}
+        vorhanden = set(tage)
         for stunde, werte in sorted(_je_stunde(statistik, felder, stunde_von).items()):
             tag = stunde[:10]
             ergebnis = abgas.stunde_aus_statistik(*(werte.get(n) or {} for n in FELDER_STATISTIK))
