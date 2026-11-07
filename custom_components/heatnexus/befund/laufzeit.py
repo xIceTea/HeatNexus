@@ -182,6 +182,8 @@ class Sammler:
         # Seit wann je Kessel Modulation läuft; nur im Speicher, ein Neustart beginnt von vorn.
         self._abgas_lauf: dict[str, dict[str, Any]] = {}
         self._wp_lauf: dict[str, float | None] = {}
+        # Adressen, die der Befund selbst zum Lesen angemeldet hat; `beenden` meldet sie ab.
+        self._abruf: set[str] = set()
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
@@ -210,6 +212,10 @@ class Sammler:
     async def beenden(self) -> None:
         if self._aufgabe is not None and not self._aufgabe.done():
             self._aufgabe.cancel()
+        if abmelden := getattr(self._client(), "unregister_poll_oid", None):
+            for oid in self._abruf:
+                abmelden(oid)
+        self._abruf = set()
         await self._store.async_save(self.archiv.als_dict())
 
     # --- Quellen ------------------------------------------------------------
@@ -219,6 +225,18 @@ class Sammler:
 
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
         return geraete_der_anlage(self.coordinator)
+
+    def _client(self) -> Any:
+        return getattr(self.coordinator, "client", None)
+
+    def _abruf_anmelden(self) -> None:
+        """Was Abgaswächter und Wärmepumpe brauchen, wird gelesen, auch ohne aktivierte Entität."""
+        if (anmelden := getattr(self._client(), "register_poll_oid", None)) is None:
+            return
+        noetig = abgaslauf.abruf(self.coordinator) | waermepumpelauf.abruf(self.coordinator)
+        for oid in sorted(noetig - self._abruf):
+            anmelden(oid)
+            self._abruf.add(oid)
 
     def _heizraum(self) -> float | None:
         """Die Raumluft am Kessel aus dem gewählten Fühler; ohne Wahl oder Wert `None`."""
@@ -279,6 +297,7 @@ class Sammler:
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
         pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
         brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
+        self._abruf_anmelden()
         self._abgas_lauf = abgaslauf.messen(
             self.coordinator, self.archiv, self._abgas_lauf, zeit, self._heizraum()
         )

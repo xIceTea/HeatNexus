@@ -49,7 +49,7 @@ def test_takt_zaehlt_nur_im_heizbetrieb(wp):
     assert wp.zaehlt(7, heizen, None)
     assert not wp.zaehlt(7, wp.Probe(38.0, 3.0, 60.0, 6), None)  # Abtauen
     assert not wp.zaehlt(7, wp.Probe(38.0, 3.0, 0.0, 4), None)  # Verdichter steht
-    assert not wp.zaehlt(7, wp.Probe(50.0, 3.0, 60.0, 4, ww_h=12.1), 12.0)  # Warmwasser
+    assert not wp.zaehlt(7, wp.Probe(50.0, 3.0, 60.0, 4, ww=12.4), 12.0)  # Warmwasser
     assert wp.zaehlt(27, heizen, None)
     assert not wp.zaehlt(27, wp.Probe(38.0, 3.0, 60.0, 7), None)
 

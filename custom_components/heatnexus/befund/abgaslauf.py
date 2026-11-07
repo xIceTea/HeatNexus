@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
-from ..helpers import get_oid_value
+from ..helpers import get_oid_raw, get_oid_value
 from . import abgas
 from .abgasziele import AbgasZiel, ziele
 from .auswertung import Abgasgeraet
@@ -28,9 +28,16 @@ def ziele_von(coordinator: Any) -> list[AbgasZiel]:
 
 
 def mit_o2(coordinator: Any, prefix: str) -> bool:
-    """Ob die Erkennung am Kessel ein O2-Signal fand; ohne Sonde gibt es keinen Verlust."""
+    """Ob der Kessel ein O2-Signal führt, als Entität oder als gelesener Wert; sonst kein Verlust."""
     oid = f"{prefix}{O2}"
-    return any(b.get("oid") == oid for b in (coordinator.data or {}).get("devices") or [])
+    beschrieben = any(b.get("oid") == oid for b in (coordinator.data or {}).get("devices") or [])
+    return beschrieben or get_oid_raw(coordinator, O2, prefix) is not None
+
+
+def abruf(coordinator: Any) -> set[str]:
+    """Die Adressen je Kessel, die frisch sein müssen; O2 liegt meist nur auf der Serviceebene."""
+    adressen = (ABGAS, KESSEL, LEISTUNG, PHASE, O2)
+    return {f"{z.prefix}{a}" for z in ziele_von(coordinator) for a in adressen}
 
 
 def messen(

@@ -45,7 +45,7 @@ class Probe:
     luft: float | None
     leistung: float | None
     phase: float | None
-    ww_h: float | None = None
+    ww: float | None = None
     eheizung: float | None = None
 
 
@@ -86,7 +86,7 @@ def zaehlt(fct_type: int, probe: Probe, ww_vorher: float | None) -> bool:
         return False
     if probe.phase is None or int(probe.phase) not in PHASEN_HEIZEN.get(fct_type, frozenset()):
         return False
-    return not (probe.ww_h is not None and ww_vorher is not None and probe.ww_h > ww_vorher)
+    return not (probe.ww is not None and ww_vorher is not None and probe.ww > ww_vorher)
 
 
 def _zieltag(tage: dict[str, dict[str, Any]], zeit: datetime, q: float, bh: float | None) -> str:

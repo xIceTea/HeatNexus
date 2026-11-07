@@ -15,12 +15,14 @@ from .pflegeziele import praefix
 LUFT, LEISTUNG, EHEIZUNG = "/52/12/0", "/50/26/0", "/56/5/0"
 # fctType 7 führt Tageszähler und den COP des Tages; fctType 27 nur Gesamtzähler.
 TAGESZAEHLER = {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"}
-WW_HEUTE = "/52/53/0"
+# Wärmemenge Warmwasser heute: steigt in 0,1 kWh und damit in jedem Takt der Bereitung.
+WW_HEUTE = "/52/62/0"
 VORLAUF = {7: "/52/15/0", 27: "/50/76/0"}
 PHASE = {7: "/50/6/0", 27: "/50/70/0"}
 WAERME_27 = ("/60/18/0", "/52/59/0")
 STROM_27 = ("/52/81/0", "/52/120/0")
-BH_27, KUEHLEN_27 = "/52/50/0", "/52/63/0"
+KUEHLEN_27 = ("/60/19/0", "/52/63/0")
+BH_27 = "/52/50/0"
 # Der Bezug beginnt neu mit dem Tag, an dem der Verdampfer gereinigt wurde.
 PFLEGE_ART = "verdampfer"
 
@@ -34,6 +36,7 @@ class WpZiel:
     fct_type: int
     waerme: str | None = None
     strom: str | None = None
+    kuehlen: str | None = None
     einheit: dict[str, str | None] | None = None
 
 
@@ -45,31 +48,47 @@ def _erstes(vorhanden: dict[str, dict], prefix: str, adressen: tuple[str, ...]) 
     return next((a for a in adressen if f"{prefix}{a}" in vorhanden), None)
 
 
+def _ziel_27(vorhanden: dict[str, dict], prefix: str, device_id: str) -> WpZiel | None:
+    waerme, strom = _erstes(vorhanden, prefix, WAERME_27), _erstes(vorhanden, prefix, STROM_27)
+    if not (waerme and strom and f"{prefix}{BH_27}" in vorhanden):
+        return None
+    kuehlen = _erstes(vorhanden, prefix, KUEHLEN_27)
+    einheit = {
+        a: vorhanden[f"{prefix}{a}"].get("unit") for a in (waerme, strom, kuehlen) if a is not None
+    }
+    return WpZiel(prefix, device_id, 27, waerme, strom, kuehlen, einheit)
+
+
 def ziele_von(coordinator: Any) -> list[WpZiel]:
-    """AeroWIN nach Funktionstyp, wenn Luft, Vorlauf und die Zähler der Arbeitszahl gemeldet werden."""
+    """AeroWIN nach Funktionstyp, wenn die Zähler der Arbeitszahl gemeldet werden.
+
+    Luft und Vorlauf stehen bei fctType 7 in keinem Menü oder nur auf der Serviceebene;
+    `abruf` meldet sie selbst zum Lesen an, statt eine Entität dafür vorauszusetzen.
+    """
     vorhanden = _beschreibungen(coordinator)
     gefunden: dict[str, WpZiel] = {}
     for oid, b in vorhanden.items():
         fct, prefix, device_id = b.get("fct_type"), praefix(oid), b.get("device_id")
         if fct not in waermepumpe.FUNKTIONSTYPEN or not prefix or not device_id:
             continue
-        if prefix in gefunden or f"{prefix}{LUFT}" not in vorhanden:
-            continue
-        if f"{prefix}{VORLAUF[fct]}" not in vorhanden:
+        if prefix in gefunden:
             continue
         if fct == 7:
             if all(f"{prefix}{a}" in vorhanden for a in TAGESZAEHLER.values()):
                 gefunden[prefix] = WpZiel(prefix, device_id, fct)
-            continue
-        waerme, strom = _erstes(vorhanden, prefix, WAERME_27), _erstes(vorhanden, prefix, STROM_27)
-        if waerme and strom and f"{prefix}{BH_27}" in vorhanden:
-            einheit = {
-                a: vorhanden[f"{prefix}{a}"].get("unit")
-                for a in (waerme, strom, KUEHLEN_27)
-                if f"{prefix}{a}" in vorhanden
-            }
-            gefunden[prefix] = WpZiel(prefix, device_id, fct, waerme, strom, einheit)
+        elif ziel := _ziel_27(vorhanden, prefix, device_id):
+            gefunden[prefix] = ziel
     return [gefunden[p] for p in sorted(gefunden)]
+
+
+def abruf(coordinator: Any) -> set[str]:
+    """Die Adressen, die je Takt frisch sein müssen, auch ohne aktivierte Entität."""
+    oids: set[str] = set()
+    for z in ziele_von(coordinator):
+        adressen = [LUFT, LEISTUNG, VORLAUF[z.fct_type], PHASE[z.fct_type]]
+        adressen += [WW_HEUTE] if z.fct_type == 7 else [EHEIZUNG]
+        oids |= {f"{z.prefix}{a}" for a in adressen}
+    return oids
 
 
 def _kwh(coordinator: Any, z: WpZiel, adresse: str | None) -> float | None:
@@ -85,14 +104,14 @@ def _zaehler(coordinator: Any, z: WpZiel) -> dict[str, float | None]:
         "wz": _kwh(coordinator, z, z.waerme),
         "sz": _kwh(coordinator, z, z.strom),
         "bhz": get_oid_value(coordinator, BH_27, z.prefix),
-        "kz": _kwh(coordinator, z, KUEHLEN_27),
+        "kz": _kwh(coordinator, z, z.kuehlen),
     }
 
 
 def messen(
     coordinator: Any, archiv: Any, ww_vorher: dict[str, float | None], zeit: datetime
 ) -> dict[str, float | None]:
-    """Je Wärmepumpe einen Takt; liefert die Warmwasserstunden für den nächsten Vergleich."""
+    """Je Wärmepumpe einen Takt; liefert die Warmwasserwärme für den nächsten Vergleich."""
     neu: dict[str, float | None] = {}
     for z in ziele_von(coordinator):
 
@@ -106,7 +125,7 @@ def messen(
             wert(LEISTUNG),
             wert(PHASE[z.fct_type]),
             ww,
-            wert(EHEIZUNG),
+            wert(EHEIZUNG) if z.fct_type == 27 else None,
         )
         gezaehlt = waermepumpe.zaehlt(z.fct_type, probe, ww_vorher.get(z.prefix))
         tage = waermepumpe.sammeln(

@@ -403,9 +403,12 @@ AEROWIN = "/1/60/1"
 
 
 def aerowin(sammler, phase="4"):
-    """Die Fixture-Anlage bekommt eine AeroWIN (fctType 7) mit Tageszählern und Temperaturen."""
+    """Die Fixture-Anlage bekommt eine AeroWIN (fctType 7) mit Tageszählern und Temperaturen.
+
+    Die Außentemperatur `52/12` liegt nur auf der Serviceebene und hat deshalb keine Entität.
+    """
     daten = sammler.coordinator.data
-    for gnmn in ("52/12", "52/15", "52/60", "52/87", "52/51", "52/53", "50/26", "50/6"):
+    for gnmn in ("52/15", "52/60", "52/87", "52/51", "52/62", "50/26", "50/6"):
         daten["devices"].append(
             {
                 "type": "sensor",
@@ -422,7 +425,7 @@ def aerowin(sammler, phase="4"):
         f"{AEROWIN}/52/60/0": "40.0",
         f"{AEROWIN}/52/87/0": "4.0",
         f"{AEROWIN}/52/51/0": "6.0",
-        f"{AEROWIN}/52/53/0": "0.5",
+        f"{AEROWIN}/52/62/0": "0.5",
         f"{AEROWIN}/50/26/0": "60",
         f"{AEROWIN}/50/6/0": phase,
     }
@@ -440,11 +443,36 @@ async def test_waermepumpe_sammelt_im_heizbetrieb(hass, anlage):
         await sammler.messen(jetzt + timedelta(minutes=minute))
     tag = sammler.archiv.wp_tage(AEROWIN)[jetzt.date().isoformat()]
     assert tag["n"] == 3
+    assert tag["luft"] == 6.0
     assert tag["vl"] == 105.0
     assert tag["q"] == 40.0
     teil = next(a for a in sammler.stand()["abschnitte"] if a["art"] == "waermepumpe")
     assert teil["befunde"][0]["art"] == "arbeitszahl"
     assert teil["befunde"][0]["status"] == "sammelt"
+
+
+async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
+    """Luft und Vorlauf werden gelesen, auch wenn ihre Entität fehlt oder deaktiviert ist."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    angemeldet: list[str] = []
+    abgemeldet: list[str] = []
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1",
+        register_poll_oid=angemeldet.append,
+        unregister_poll_oid=abgemeldet.append,
+    )
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    await sammler.messen(jetzt)
+    await sammler.messen(jetzt + timedelta(minutes=5))
+    erwartet = {f"{AEROWIN}{a}" for a in ("/52/12/0", "/52/15/0", "/50/6/0", "/50/26/0")}
+    assert erwartet | {f"{AEROWIN}/52/62/0"} == set(angemeldet)
+    assert len(angemeldet) == 5
+    await sammler.beenden()
+    assert sorted(abgemeldet) == sorted(angemeldet)
 
 
 async def test_waermepumpe_abtauen_zaehlt_nicht(hass, anlage):
@@ -546,3 +574,40 @@ async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
     assert tage["2026-10-01"]["50"][:2] == [1200.0, 24]
     assert tage["2026-10-02"]["50"][:2] == [10.0, 1]
     assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {"bis": "2026-10-01"}
+
+
+def test_waermepumpe_27_waehlt_zaehler_der_ebenen():
+    """Bei fctType 27 gehen Wärme `60/18`, Strom `52/81` und Kühlen `60/19` vor Modbus."""
+    from custom_components.heatnexus.befund import waermepumpelauf
+
+    def d(gnmn: str, unit: str | None = None) -> dict:
+        return {
+            "type": "sensor",
+            "oid": f"/1/61/0/{gnmn}/0",
+            "device_id": "SN1-61-0",
+            "fct_type": 27,
+            "unit": unit,
+        }
+
+    adressen = [("60/18", "MWh"), ("52/59", "MWh"), ("52/81", "kWh"), ("52/50", "h")]
+    adressen += [("60/19", "MWh"), ("52/63", "MWh"), ("50/76", "°C"), ("50/70", None)]
+    koordinator = SimpleNamespace(data={"devices": [d(*a) for a in adressen], "oids": {}})
+    (ziel,) = waermepumpelauf.ziele_von(koordinator)
+    assert (ziel.waerme, ziel.strom, ziel.kuehlen) == ("/60/18/0", "/52/81/0", "/60/19/0")
+    assert ziel.einheit == {"/60/18/0": "MWh", "/52/81/0": "kWh", "/60/19/0": "MWh"}
+    assert "/1/61/0/56/5/0" in waermepumpelauf.abruf(koordinator)
+
+
+async def test_abgas_o2_ohne_entitaet_wird_gelesen(hass, anlage):
+    """O2 liegt nur auf der Serviceebene; der Wächter meldet sie zum Abruf an und rechnet mit ihr."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    daten = sammler.coordinator.data
+    daten["devices"] = [b for b in daten["devices"] if b.get("oid") != f"{KESSEL}/0/42/0"]
+    assert f"{KESSEL}/0/42/0" in abgaslauf.abruf(sammler.coordinator)
+    assert abgaslauf.mit_o2(sammler.coordinator, KESSEL)
+    del daten["oids"][f"{KESSEL}/0/42/0"]
+    assert not abgaslauf.mit_o2(sammler.coordinator, KESSEL)
