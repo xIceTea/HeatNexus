@@ -23,6 +23,11 @@ function kurzdatum(datum) {
   return `${datum.slice(8, 10)}.${datum.slice(5, 7)}.`;
 }
 
+/** „2026-12-25“ wird „25.12.2026“ */
+function datumVoll(datum) {
+  return `${kurzdatum(datum)}${datum.slice(0, 4)}`;
+}
+
 /** Pfad eines Kreisbogens von `von` bis `bis` Grad, im Uhrzeigersinn ab zwölf Uhr. */
 function bogen(cx, cy, r, von, bis) {
   const punkt = (grad) => {
@@ -54,7 +59,15 @@ const TITEL = {
   laufzeit: "Starts und Laufzeit",
   starts: "Starts mit Automatik",
   energie: "Energie je Heizgradtag",
+  pflege_reinigung: "Reinigung",
+  pflege_hauptreinigung: "Hauptreinigung",
+  pflege_wartung: "Wartung",
+  pflege_asche: "Asche entleeren",
+  pflege_jahresreinigung: "Jahresreinigung",
 };
+
+const HILFE_PFLEGE =
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
 
 const HILFE = {
   waermespeicher:
@@ -73,9 +86,14 @@ const HILFE = {
     "Verglichen werden Brennerstarts je Gradtag an Heiztagen mit Eingriff der Automatik und an Heiztagen ohne. Als Eingriff zählen mindestens zwei Stunden Sonnentag, Heizpause, nur Warmwasser oder Abwesenheit. Ein Gradtag ist hier 20 °C minus Tagesmittel außen. Die Automatik greift eher an milden, sonnigen Tagen ein; der Wert zeigt deshalb einen Zusammenhang, keinen Beweis.",
   energie:
     "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Sie zählt jeden Tag, dessen Mittel außen unter der Heizgrenze der Norm liegt, mit 20 °C minus Tagesmittel. Diese Grenze ist ein fester Rechenwert, in Deutschland 15 °C, in Österreich und der Schweiz 12 °C, und keine Einstellung der Anlage. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.",
+  pflege_reinigung: HILFE_PFLEGE,
+  pflege_hauptreinigung: HILFE_PFLEGE,
+  pflege_wartung: HILFE_PFLEGE,
+  pflege_asche: HILFE_PFLEGE,
+  pflege_jahresreinigung: HILFE_PFLEGE,
 };
 
-const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel" };
+const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege" };
 
 // Kurzname je Befund für Aufzählungen in der Kopfkarte.
 const KURZ = {
@@ -87,6 +105,11 @@ const KURZ = {
   laufzeit: "Laufzeit",
   starts: "Starts",
   energie: "Energie",
+  pflege_reinigung: "Reinigung",
+  pflege_hauptreinigung: "Hauptreinigung",
+  pflege_wartung: "Wartung",
+  pflege_asche: "Asche",
+  pflege_jahresreinigung: "Jahresreinigung",
 };
 
 const SYMBOL = { unauffaellig: "mdi:check", hinweis: "mdi:exclamation" };
@@ -462,11 +485,17 @@ export const BefundMixin = (Basis) =>
       if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
       if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
+      if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
+      if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.");
+      if ((b.angaben || {}).ruht) return this._t("Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.");
       return this._t("Sammelt noch Tage.");
     }
 
     _befundBeisatz(b) {
       const a = b.angaben || {};
+      if (b.art.startsWith("pflege_")) {
+        return a.datum ? this._tMit("Tage, fällig etwa am {datum}", { datum: datumVoll(a.datum) }) : "";
+      }
       if (b.art === "laufzeit" && a.starts_tag !== null && a.starts_tag !== undefined) {
         return this._tMit("je Start · {n} Starts am Tag", { n: this._befundZahl(a.starts_tag) });
       }
@@ -498,6 +527,10 @@ export const BefundMixin = (Basis) =>
         [a.ohne_gradtag || null, "Heiztage ohne Gradtag nach VDI 3807", (w) => String(w)],
         [b.art === "starts" ? a.mit : null, "Mit Eingriff der Automatik", (g) => this._befundGruppe(g)],
         [b.art === "starts" ? a.ohne : null, "Ohne Eingriff der Automatik", (g) => this._befundGruppe(g)],
+        [a.rest_h, "Rest laut Steuerung", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
+        [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
+        [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
+        [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
       ].filter(([wert]) => wert !== null && wert !== undefined);
       if (!zeilen.length) return null;
       const liste = knoten("div", "befund-vergleich");

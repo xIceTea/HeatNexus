@@ -1218,5 +1218,18 @@
   "Schiefer": "Slate",
   "Schwarz": "Black",
   "Weiß": "White",
-  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Text and background are hard to tell apart."
+  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Text and background are hard to tell apart.",
+  "Asche entleeren": "Empty ash",
+  "Jahresreinigung": "Annual cleaning",
+  "Pflege": "Care",
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "The controller counts the operating hours down to the next care task. The date uses the decrease of the last 14 days. An upward jump of the counter counts as care done. After the “Maintenance” message Windhager allows three months. Without a counter the interval from the operating manual applies.",
+  "Die Steuerung meldet keinen Restwert.": "The controller reports no remaining value.",
+  "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Needs the date of the last care task. It can be set on the device.",
+  "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Idle, the boiler hardly runs. A date follows with the heating season.",
+  "Tage, fällig etwa am {datum}": "days, due around {datum}",
+  "Rest laut Steuerung": "Remaining per controller",
+  "Abnahme je Tag": "Decrease per day",
+  "Zuletzt erledigt": "Last done",
+  "Wartung gemeldet am": "Maintenance reported on",
+  "{h} h": "{h} h"
 }

@@ -1223,5 +1223,18 @@
   "Schiefer": "Leisteen",
   "Schwarz": "Zwart",
   "Weiß": "Wit",
-  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Tekst en achtergrond zijn moeilijk te onderscheiden."
+  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Tekst en achtergrond zijn moeilijk te onderscheiden.",
+  "Asche entleeren": "As legen",
+  "Jahresreinigung": "Jaarlijkse reiniging",
+  "Pflege": "Verzorging",
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.": "De besturing telt de bedrijfsuren af tot de volgende verzorging. De datum rekent met de afname van de laatste 14 dagen. Een sprong van de teller omhoog geldt als uitgevoerde verzorging. Na de melding „Onderhoud” geeft Windhager drie maanden. Zonder teller geldt het interval uit de gebruiksaanwijzing.",
+  "Die Steuerung meldet keinen Restwert.": "De besturing meldt geen restwaarde.",
+  "Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.": "Heeft de datum van de laatste verzorging nodig. Die is in te stellen bij het apparaat.",
+  "Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.": "Rust, de ketel draait nauwelijks. Een datum volgt met het stookseizoen.",
+  "Tage, fällig etwa am {datum}": "dagen, gepland rond {datum}",
+  "Rest laut Steuerung": "Rest volgens besturing",
+  "Abnahme je Tag": "Afname per dag",
+  "Zuletzt erledigt": "Laatst uitgevoerd",
+  "Wartung gemeldet am": "Onderhoud gemeld op",
+  "{h} h": "{h} u"
 }
