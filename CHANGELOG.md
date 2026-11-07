@@ -12,6 +12,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
 - Ein Datum je Pflege hält fest, wann sie zuletzt erledigt wurde.
+- Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
+- Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
 
 ## [1.15.0] - 2026-11-05
