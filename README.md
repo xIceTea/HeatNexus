@@ -25,6 +25,7 @@ zeigt die Anlage als Schaubild.
 - **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready und Kostenvergleich.
 - **Thermostat je Heizkreis** mit befristeter Vorgabe, wie in der Windhager-App.
 - **Automatik je Heizkreis**: Heizpause an milden Tagen, Absenkung bei Sonne, gelerntes Hausmodell.
+- **Pflegetermine**: Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
 - **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
 - **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
 - **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.
@@ -50,6 +51,7 @@ Voraussetzung ist ein Bediengerät mit Netzwerkanschluss im eigenen Netz. Öffne
 | 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heizkreis, Pufferladung, Pumpen und Relais | 🟢 geprüft |
 | 🧩 | **Infinity PLUS**, Infinity PLUS Wall, Puffer am Kessel | Heizkreis, Warmwasser, Puffer | 🔵 bei Nutzern im Einsatz |
 | 🔥 | **BioWIN Alpha** | Pellets | ⚪ ohne Rückmeldung |
+| 🔥 | **MinoWIN**, MultiWIN 2 Plus | Gas-Brennwert | ⚪ ohne Rückmeldung |
 | 🧩 | **Solar ES**, Kaskade, Umschaltung, IO5500 | Solar, mehrere Kessel, Energiezähler | ⚪ ohne Rückmeldung |
 | ➕ | Andere Wärmepumpen, Gas- und Ölkessel, E-Heizung | | ⚪ ohne Rückmeldung |
 

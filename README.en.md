@@ -25,6 +25,7 @@ in the sidebar shows the system as a diagram.
 - **Heat pump and hybrid**: AeroWIN and hybrid manager with power, COP, SG Ready and cost comparison.
 - **Thermostat per heating circuit** with a timed override, as in the Windhager app.
 - **Automation per heating circuit**: heating pause on mild days, setback in sunshine, learned house model.
+- **Care dates**: the analysis shows when cleaning, main cleaning and maintenance are due.
 - **Faults in plain text** with remedies, plus the message list of the control panel.
 - **System state per controller** as a sensor for notifications.
 - **Dashboard and seven automation blueprints** built from what the system provides.
@@ -50,6 +51,7 @@ You need a control panel with a network connection on your own network. Open
 | 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heating circuit, buffer charging, pumps and relays | 🟢 tested |
 | 🧩 | **Infinity PLUS**, Infinity PLUS Wall, buffer at the boiler | Heating circuit, hot water, buffer | 🔵 in use by users |
 | 🔥 | **BioWIN Alpha** | Pellets | ⚪ no feedback yet |
+| 🔥 | **MinoWIN**, MultiWIN 2 Plus | Gas condensing | ⚪ no feedback yet |
 | 🧩 | **Solar ES**, cascade, changeover, IO5500 | Solar, several boilers, energy meters | ⚪ no feedback yet |
 | ➕ | Other heat pumps, gas and oil boilers, electric heating | | ⚪ no feedback yet |
 
