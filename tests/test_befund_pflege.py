@@ -48,6 +48,11 @@ def test_sprung_nur_ueber_zehn_prozent(p):
     assert p.sprung(None, 757.0, 757.0) is False
 
 
+def test_kleiner_gelernter_hoechstwert_macht_kein_rauschen_zum_sprung(p):
+    assert p.sprung(5.0, 6.0, 5.0) is False
+    assert p.sprung(5.0, 757.0, 5.0) is True
+
+
 def test_zuruecksetzen_seit_service(p):
     assert p.zurueckgesetzt(1500.0, 3.0) is True
     assert p.zurueckgesetzt(1500.0, 1501.0) is False

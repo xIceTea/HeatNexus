@@ -18,6 +18,9 @@ FENSTER_TAGE = 14
 VERLAUF_TAGE = 30
 RUHE_H_JE_TAG = 0.5
 SPRUNG_ANTEIL = 0.1
+# Ein Rücksetzen hebt den Zähler auf das ganze Intervall; ein gelernter kleiner Höchstwert darf
+# Schwankungen um wenige Stunden nicht zur erledigten Pflege machen.
+SPRUNG_MIN_H = 24.0
 # Ab hier ist das `max` eines Datenpunkts sein Wertebereich, kein Intervall.
 OHNE_MAX = 65534
 BALD_TAGE = 7
@@ -74,7 +77,7 @@ def sprung(alt: float | None, neu: float | None, hoechst_: float | None) -> bool
     """Ein Restzähler springt nach erledigter Pflege um mehr als ein Zehntel des Intervalls."""
     if alt is None or neu is None or not hoechst_:
         return False
-    return neu - alt > SPRUNG_ANTEIL * hoechst_
+    return neu - alt > max(SPRUNG_ANTEIL * hoechst_, SPRUNG_MIN_H)
 
 
 def zurueckgesetzt(alt: float | None, neu: float | None) -> bool:
