@@ -569,7 +569,7 @@ export const BefundMixin = (Basis) =>
         [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
         [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],
         [a.guete_jetzt, "Gütegrad der letzten 28 Tage", (w) => `${this._befundZahl(w * 100)} %`],
-        ...Object.entries(a.baender || {}).map(([unten, [bezug, jetzt]]) => [
+        ...Object.entries(b.art === "arbeitszahl" ? a.baender || {} : {}).sort(([x], [y]) => x - y).map(([unten, [bezug, jetzt]]) => [
           jetzt,
           this._tMit("Luft {von} bis {bis} °C, Gütegrad", { von: unten, bis: Number(unten) + 5 }),
           (w) => `${this._befundZahl(bezug * 100)} % → ${this._befundZahl(w * 100)} %`,
