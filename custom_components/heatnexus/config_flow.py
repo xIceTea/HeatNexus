@@ -605,6 +605,28 @@ ALLGEMEINE_SCHALTER = (
 )
 
 
+def _fuehlerfelder(options: dict[str, Any]) -> dict[Any, Any]:
+    """Außentemperatur der Kopfzeile und Fühler Heizraum; leer bleibt die Wahl der Anlage."""
+    return {
+        vol.Optional(
+            CONF_AUSSENTEMPERATUR,
+            description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
+        ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Optional(
+            CONF_HEIZRAUM,
+            description={"suggested_value": options.get(CONF_HEIZRAUM, "")},
+        ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="temperature")),
+    }
+
+
+def _fuehler_uebernehmen(options: dict[str, Any], user_input: dict[str, Any]) -> None:
+    for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
+        if gewaehlt := (user_input.get(feld) or "").strip():
+            options[feld] = gewaehlt
+        else:
+            options.pop(feld, None)
+
+
 class WindhagerOptionsFlow(OptionsFlow):
     """Umfang je Anlage und Abfrageintervall nachträglich ändern."""
 
@@ -767,11 +789,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                 options[schluessel] = bool(user_input.get(schluessel, vorgabe))
             self._sprache_uebernehmen(options, user_input)
             options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
-            for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
-                if gewaehlt := (user_input.get(feld) or "").strip():
-                    options[feld] = gewaehlt
-                else:
-                    options.pop(feld, None)
+            _fuehler_uebernehmen(options, user_input)
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -800,16 +818,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                             mode=SelectSelectorMode.LIST,
                         )
                     ),
-                    vol.Optional(
-                        CONF_AUSSENTEMPERATUR,
-                        description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
-                    ): EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_HEIZRAUM,
-                        description={"suggested_value": options.get(CONF_HEIZRAUM, "")},
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="sensor", device_class="temperature")
-                    ),
+                    **_fuehlerfelder(options),
                     **self._sprachfelder(options),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
