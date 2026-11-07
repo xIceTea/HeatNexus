@@ -551,6 +551,12 @@
       },
       "befund_pflege_jahresreinigung": {
         "name": "Annual cleaning due"
+      },
+      "befund_abgas": {
+        "name": "Flue gas above boiler since cleaning"
+      },
+      "befund_abgasverlust": {
+        "name": "Additional flue gas loss"
       }
     },
     "binary_sensor": {

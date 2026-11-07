@@ -148,3 +148,20 @@ def test_ohne_pflegegeraet_kein_abschnitt(m):
     aus, arch = m
     abschnitte = aus.anlage(arch.Archiv(), kontext(aus))["abschnitte"]
     assert not any(x["art"] == "pflege" for x in abschnitte)
+
+
+def test_abgas_abschnitt_mit_und_ohne_o2(m):
+    from datetime import date
+
+    aus, arch = m
+    archiv = arch.Archiv()
+    geraete = [
+        aus.Abgasgeraet("puro", "PuroWIN", "/1/60/0", False, "hackgut", None, True),
+        aus.Abgasgeraet("bio", "BioWIN", "/1/61/0", False, "pellets", None, False),
+    ]
+    k = aus.Kontext("AT", abgas=geraete, heute=date(2026, 11, 20))
+    teile = [x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "abgas"]
+    assert [x["kennung"] for x in teile] == ["puro", "bio"]
+    assert [b["art"] for b in teile[0]["befunde"]] == ["abgas", "abgasverlust"]
+    assert [b["art"] for b in teile[1]["befunde"]] == ["abgas"]
+    assert teile[0]["befunde"][0]["status"] == "sammelt"

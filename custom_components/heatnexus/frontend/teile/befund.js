@@ -64,7 +64,12 @@ const TITEL = {
   pflege_wartung: "Wartung",
   pflege_asche: "Asche entleeren",
   pflege_jahresreinigung: "Jahresreinigung",
+  abgas: "Abgas über Kessel seit Reinigung",
+  abgasverlust: "Mehrverlust Abgas",
 };
+
+const HILFE_ABGAS =
+  "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert, mit 20 °C Raumluft.";
 
 const HILFE_PFLEGE =
   "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Das Datum rechnet mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
@@ -91,9 +96,11 @@ const HILFE = {
   pflege_wartung: HILFE_PFLEGE,
   pflege_asche: HILFE_PFLEGE,
   pflege_jahresreinigung: HILFE_PFLEGE,
+  abgas: HILFE_ABGAS,
+  abgasverlust: HILFE_ABGAS,
 };
 
-const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege" };
+const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege", abgas: "Abgas" };
 
 // Kurzname je Befund für Aufzählungen in der Kopfkarte.
 const KURZ = {
@@ -110,6 +117,8 @@ const KURZ = {
   pflege_wartung: "Wartung",
   pflege_asche: "Asche",
   pflege_jahresreinigung: "Jahresreinigung",
+  abgas: "Abgas",
+  abgasverlust: "Abgasverlust",
 };
 
 const SYMBOL = { unauffaellig: "mdi:check", hinweis: "mdi:exclamation" };
@@ -485,6 +494,7 @@ export const BefundMixin = (Basis) =>
       if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
       if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
+      if (b.grund === "o2") return this._t("Braucht ein O2-Signal im Modulationsbetrieb.");
       if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
       if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.");
       if ((b.angaben || {}).ruht) return this._t("Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.");
@@ -507,6 +517,8 @@ export const BefundMixin = (Basis) =>
           vorlauf: "der Heizstunden mehr als 3 K unter Soll",
           laufzeit: "je Start",
           starts: "Starts je Gradtag mit Automatik gegenüber ohne",
+          abgas: "mehr als nach der Reinigung",
+          abgasverlust: "Prozentpunkte mehr Abgasverlust",
           energie: "je Heizgradtag",
         }[b.art] || ""
       );
@@ -531,6 +543,8 @@ export const BefundMixin = (Basis) =>
         [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
+        [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
+        [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
       ].filter(([wert]) => wert !== null && wert !== undefined);
       if (!zeilen.length) return null;
       const liste = knoten("div", "befund-vergleich");
@@ -552,6 +566,9 @@ export const BefundMixin = (Basis) =>
       }
       if (b.art === "laufzeit" && (a.je_tag || []).length) {
         return this._bildBalken(a.je_tag, "Betriebsstunden je Tag", "an", b.quelle, (d, h) => this._tMit("{datum}: {h} Betriebsstunden", { datum: kurzdatum(d), h: this._befundZahl(h) }));
+      }
+      if (b.art === "abgas" && (a.je_tag || []).length) {
+        return this._bildBalken(a.je_tag, "Abgas über Kessel je Tag", "an", b.quelle, (d, k) => this._tMit("{datum}: {k} K", { datum: kurzdatum(d), k: this._befundZahl(k) }));
       }
       if (b.art === "energie" && (a.punkte || []).length) return this._bildSignatur(a.punkte, b.quelle);
       return null;

@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date
 from typing import Any
 
-from . import form, gradtage, haus, heizkreis, kessel, pflege
+from . import abgas, form, gradtage, haus, heizkreis, kessel, pflege
 from .archiv import Archiv
 from .pflegeziele import Ziel
 
@@ -48,6 +48,19 @@ class Pflegegeraet:
 
 
 @dataclass(frozen=True)
+class Abgasgeraet:
+    """Ein Kessel mit Abgaswächter; `bezug_ab` ist der Tag der letzten Reinigung, wenn bekannt."""
+
+    kennung: str
+    name: str
+    prefix: str
+    logwin: bool
+    brennstoff: str
+    bezug_ab: str | None
+    mit_o2: bool
+
+
+@dataclass(frozen=True)
 class Kontext:
     """Was zur Anlage gehört; ohne Kessel und mit fremder Wärme folgt ein Verweis.
 
@@ -63,6 +76,7 @@ class Kontext:
     versorgte_eingriffe: dict[str, bool | None] = field(default_factory=dict)
     pflege: list[Pflegegeraet] = field(default_factory=list)
     heute: date | None = None
+    abgas: list[Abgasgeraet] = field(default_factory=list)
 
 
 def _als_dict(befund: form.Befund, **vergleich: Any) -> dict[str, Any]:
@@ -175,6 +189,13 @@ def _pflege(archiv: Archiv, geraet: Pflegegeraet, heute: date) -> dict[str, Any]
     return {"art": "pflege", "kennung": geraet.kennung, "titel": geraet.name, "befunde": befunde}
 
 
+def _abgas(archiv: Archiv, g: Abgasgeraet, heute: date) -> dict[str, Any]:
+    tage = archiv.abgas_tage(g.prefix)
+    dt, verlust = abgas.vergleich(tage, g.bezug_ab, heute, g.logwin, g.brennstoff)
+    befunde = [_als_dict(dt)] + ([_als_dict(verlust)] if g.mit_o2 else [])
+    return {"art": "abgas", "kennung": g.kennung, "titel": g.name, "befunde": befunde}
+
+
 def _lage(abschnitte: list[dict[str, Any]], archiv: Archiv) -> dict[str, Any]:
     befunde = [b for a in abschnitte for b in a["befunde"]]
     tage = [d for eintraege in archiv.tage_hk.values() for d in eintraege]
@@ -202,6 +223,7 @@ def anlage(archiv: Archiv, kontext: Kontext) -> dict[str, Any]:
     abschnitte += [_kessel(archiv, k, kontext, grenze, heizgrenze) for k in kontext.kessel]
     heute = kontext.heute or date.today()
     abschnitte += [_pflege(archiv, g, heute) for g in kontext.pflege if g.ziele]
+    abschnitte += [_abgas(archiv, g, heute) for g in kontext.abgas]
     if not kontext.kessel and kontext.waermequelle_extern:
         abschnitte.append({"art": "waermeerzeuger", "kennung": "", "titel": "", "befunde": []})
     return {"lage": _lage(abschnitte, archiv), "abschnitte": abschnitte}

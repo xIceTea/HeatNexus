@@ -32,7 +32,8 @@ def messen(coordinator: Any, archiv: Any, heute: date) -> None:
         archiv.pflege_setzen(z.prefix, z.pflege.art, neu)
 
 
-def _geraetename(coordinator: Any, device_id: str) -> str:
+def geraetename(coordinator: Any, device_id: str) -> str:
+    """Der Name eines Geräts aus seinen Beschreibungen; ohne Namen die Kennung."""
     for b in (coordinator.data or {}).get("devices") or []:
         if b.get("device_id") == device_id and b.get("device_name"):
             return str(b["device_name"])
@@ -44,7 +45,7 @@ def geraete(coordinator: Any) -> list[Pflegegeraet]:
     je_geraet: dict[str, list[Ziel]] = {}
     for z in pflegeziele_von(coordinator):
         je_geraet.setdefault(z.device_id, []).append(z)
-    return [Pflegegeraet(d, _geraetename(coordinator, d), zs) for d, zs in je_geraet.items()]
+    return [Pflegegeraet(d, geraetename(coordinator, d), zs) for d, zs in je_geraet.items()]
 
 
 def kennungen(coordinator: Any) -> dict[str, str]:

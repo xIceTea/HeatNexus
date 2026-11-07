@@ -551,6 +551,12 @@
       },
       "befund_pflege_jahresreinigung": {
         "name": "Jahresreinigung fällig"
+      },
+      "befund_abgas": {
+        "name": "Abgas über Kessel seit Reinigung"
+      },
+      "befund_abgasverlust": {
+        "name": "Mehrverlust Abgas"
       }
     },
     "binary_sensor": {

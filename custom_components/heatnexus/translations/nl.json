@@ -551,6 +551,12 @@
       },
       "befund_pflege_jahresreinigung": {
         "name": "Jaarlijkse reiniging gepland"
+      },
+      "befund_abgas": {
+        "name": "Rookgas boven ketel sinds reiniging"
+      },
+      "befund_abgasverlust": {
+        "name": "Extra rookgasverlies"
       }
     },
     "binary_sensor": {

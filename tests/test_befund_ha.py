@@ -304,3 +304,54 @@ async def test_purowin_bekommt_keine_taste(hass, anlage):
     tasten = []
     pe.anmelden_taste(hass, eintrag, tasten.extend)
     assert tasten == []
+
+
+def purowin_abgas(sammler, phase="8"):
+    """Die Fixture-Anlage bekommt am Kessel Abgas, Phase und O2 einer PuroWIN."""
+    daten = sammler.coordinator.data
+    for gnmn in ("0/11", "0/42"):
+        daten["devices"].append(
+            {
+                "type": "sensor",
+                "id": f"SN1-1-1-{gnmn.replace('/', '-')}-0",
+                "device_id": "SN1-1-0",
+                "oid": f"{KESSEL}/{gnmn}/0",
+                "fct_type": 25,
+                "device_name": "PuroWIN",
+            }
+        )
+    daten["oids"] |= {
+        f"{KESSEL}/0/11/0": "120",
+        f"{KESSEL}/0/7/0": "70",
+        f"{KESSEL}/2/1/0": phase,
+        f"{KESSEL}/0/42/0": "7",
+    }
+
+
+async def test_abgas_sammelt_im_ruhigen_betrieb(hass, anlage):
+    """Nach 15 Minuten Modulation landet je Takt eine Messung in den Tagessummen."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in range(0, 25, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    summe = next(iter(tage.values()))["50"]
+    assert summe[1] == 2
+    assert summe[0] == 100.0
+    teil = next(a for a in sammler.stand()["abschnitte"] if a["art"] == "abgas")
+    assert [b["art"] for b in teil["befunde"]] == ["abgas", "abgasverlust"]
+
+
+async def test_abgas_sensoren_entstehen(hass, anlage):
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    purowin_abgas(next(iter(verwaltung.sammler.values())))
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    kennungen = {s.unique_id for s in angelegt}
+    assert {"SN1-1-0-befund-abgas", "SN1-1-0-befund-abgasverlust"} <= kennungen

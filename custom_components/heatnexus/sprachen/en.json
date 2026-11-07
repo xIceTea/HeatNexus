@@ -1231,5 +1231,17 @@
   "Zuletzt erledigt": "Last done",
   "Wartung gemeldet am": "Maintenance reported on",
   "{h} h": "{h} h",
-  "fällig etwa am {datum}": "due around {datum}"
+  "fällig etwa am {datum}": "due around {datum}",
+  "Abgas über Kessel seit Reinigung": "Flue gas above boiler since cleaning",
+  "Mehrverlust Abgas": "Additional flue gas loss",
+  "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert, mit 20 °C Raumluft.": "Compared is the flue gas temperature above the boiler temperature in steady modulation, per output step. The reference is the first 14 days after the last main cleaning, for the LogWIN after the annual cleaning. Deposits on the heat exchanger raise the value. According to Windhager, every millimetre of ash deposit costs about 5 % fuel. With an O2 signal the card calculates the additional loss after Siegert, with 20 °C room air.",
+  "Abgasverlust": "Flue gas loss",
+  "Braucht ein O2-Signal im Modulationsbetrieb.": "Needs an O2 signal during modulation.",
+  "mehr als nach der Reinigung": "more than after cleaning",
+  "Prozentpunkte mehr Abgasverlust": "percentage points more flue gas loss",
+  "Bezug seit, ohne Reinigungsdatum": "Reference since, without cleaning date",
+  "Bezug seit Reinigung": "Reference since cleaning",
+  "Abgasverlust zuletzt, Raumluft 20 °C geschätzt": "Recent flue gas loss, room air 20 °C estimated",
+  "Abgas über Kessel je Tag": "Flue gas above boiler per day",
+  "{datum}: {k} K": "{datum}: {k} K"
 }
