@@ -389,6 +389,34 @@ async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
     assert vorrat.native_value == 25.0
 
 
+async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):
+    """Ein gezählter Stand wirkt wie eine Befüllung ohne Menge: Der Rest lernt die Korrektur."""
+    from datetime import date, timedelta
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    heute = date.today()
+    sammler.archiv.tage_k[KESSEL] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    seit = (heute - timedelta(days=14)).isoformat()
+    sammler.archiv.lager_setzen(KESSEL, {"bestand": 20.0, "seit": seit})
+    zahlen = []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
+    vorrat.hass = hass
+
+    await vorrat.async_set_native_value(5.0)
+
+    lager = sammler.archiv.lager(KESSEL)
+    assert lager["bestand"] == 5.0
+    assert lager["seit"] == heute.isoformat()
+    assert lager["korrekturen"] == [2.0]
+
+
 async def test_brennstoff_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
     from custom_components.heatnexus import verwaiste
 

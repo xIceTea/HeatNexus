@@ -92,7 +92,7 @@ class BrennstoffReichweite(_Lager, SensorEntity):
 
 
 class BrennstoffVorrat(_Lager, NumberEntity):
-    """Der Vorrat im Lager; setzen trägt ihn ein, der Dienst `brennstoff_geliefert` lernt dazu."""
+    """Der Vorrat im Lager; ein gezählter Stand und der Dienst `brennstoff_geliefert` lernen dazu."""
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0.0
@@ -113,9 +113,8 @@ class BrennstoffVorrat(_Lager, NumberEntity):
         return (self._befund().get("angaben") or {}).get("bestand")
 
     async def async_set_native_value(self, value: float) -> None:
-        heute = dt_util.now().date().isoformat()
-        lager = self._sammler.archiv.lager(self._ziel.prefix) if self._sammler else {}
-        self._speichern(lager | {"bestand": float(value), "seit": heute})
+        # Ein gezählter Stand ist eine Befüllung ohne Menge: Der Rest korrigiert die Rechnung.
+        await self.async_geliefert(menge=0.0, rest=float(value))
 
     async def async_geliefert(self, menge: float, rest: float | None = None) -> None:
         if (s := self._sammler) is None:
