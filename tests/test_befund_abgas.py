@@ -126,6 +126,24 @@ def test_raumluft_nur_in_einem_zeitraum_bleibt_geschaetzt(ab):
     assert verlust.angaben["luft_geschaetzt"] is True
 
 
+def test_raumluft_fehlt_in_einer_stufe_gilt_fuer_alle_geschaetzt(ab):
+    """Eine Grundlage für alle Stufen: fehlt der Fühler in einer, rechnen alle mit 20 °C."""
+    heute = date(2026, 11, 30)
+    tage_ = tage(ab, date(2026, 10, 1), 14, 40.0, tl=22.0)
+    tage_ |= tage(ab, date(2026, 11, 23), 7, 40.0, tl=12.0)
+    for i in range(14):
+        tag = (date(2026, 10, 1) + timedelta(days=i)).isoformat()
+        for _ in range(6):
+            tage_ = ab.sammeln(tage_, tag, "100", 40.0, 7.0, 110.0)
+    for i in range(7):
+        tag = (date(2026, 11, 23) + timedelta(days=i)).isoformat()
+        for _ in range(6):
+            tage_ = ab.sammeln(tage_, tag, "100", 40.0, 7.0, 110.0, 12.0)
+    _, verlust = ab.vergleich(tage_, "2026-10-01", heute, False, "pellets")
+    assert verlust.angaben["luft_geschaetzt"] is True
+    assert verlust.wert == pytest.approx(0.0, abs=0.01)
+
+
 def test_unplausible_raumluft_zaehlt_nicht(ab):
     neu = ab.sammeln({}, "2026-11-20", "50", 50.0, 7.0, 120.0, 85.0)
     assert neu["2026-11-20"]["50"][5:] == [0.0, 0]

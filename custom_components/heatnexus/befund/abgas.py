@@ -192,15 +192,14 @@ def _raumluft(summe: list[float]) -> float | None:
 def _verlust(
     b: dict[str, list[float]], v: dict[str, list[float]], stufen: list[str], k: tuple[float, float]
 ) -> form.Befund:
-    paare, absolut, gemessen = [], [], True
-    for s in stufen:
-        if not (b[s][3] and v[s][3]):
-            continue
-        # Gemessen zählt nur in beiden Zeiträumen; gemischt entstünde ein Unterschied aus dem Fühler.
-        tl_b, tl_v = _raumluft(b[s]), _raumluft(v[s])
-        if tl_b is None or tl_v is None:
-            tl_b = tl_v = LUFT_GESCHAETZT
-            gemessen = False
+    paare, absolut = [], []
+    mit = [s for s in stufen if b[s][3] and v[s][3]]
+    # Gemessen zählt nur, wenn jede Stufe in beiden Zeiträumen Fühlerwerte hat; gemischt entstünde
+    # ein Unterschied aus dem Fühler, und die Karte nennt eine Grundlage für alle Stufen.
+    luft = {s: (_raumluft(b[s]), _raumluft(v[s])) for s in mit}
+    gemessen = all(None not in paar for paar in luft.values())
+    for s in mit:
+        tl_b, tl_v = luft[s] if gemessen else (LUFT_GESCHAETZT, LUFT_GESCHAETZT)
         q_b = abgasverlust(b[s][4] / b[s][1], tl_b, b[s][2] / b[s][3], k)
         q_v = abgasverlust(v[s][4] / v[s][1], tl_v, v[s][2] / v[s][3], k)
         if q_b is not None and q_v is not None:
