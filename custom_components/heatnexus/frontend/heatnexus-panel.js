@@ -30,6 +30,7 @@ import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { BefundMixin } from "./teile/befund.js";
+import { BefundEingabeMixin } from "./teile/befundeingabe.js";
 import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
@@ -54,7 +55,7 @@ const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
-        BefundMixin(AutomatikMixin(
+        BefundEingabeMixin(BefundMixin(AutomatikMixin(
           EinrichtungMixin(
             KennwerteMixin(
               TagesbildMixin(
@@ -66,7 +67,7 @@ const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
               )
             )
           )
-        ))
+        )))
       )
     )
   )

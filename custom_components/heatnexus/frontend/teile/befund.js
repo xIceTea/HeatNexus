@@ -1,5 +1,5 @@
 /**
- * Reiter „Auswertung“: gemessene Kennwerte je Anlage, ohne Empfehlung und ohne Bedienung.
+ * Reiter „Auswertung“: gemessene Kennwerte je Anlage, ohne Empfehlung und ohne Bedienung der Anlage.
  *
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin. Die Zahlen rechnet der
  * Server (`befund/`), hier entstehen nur Text und Bild.
@@ -74,7 +74,7 @@ const HILFE_ABGAS =
   "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert. Die Raumluft kommt vom Fühler Heizraum aus den Optionen, sonst gelten 20 °C.";
 
 const HILFE_BRENNSTOFF =
-  "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
+  "Der Vorrat ist der Stand der letzten Befüllung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer bei einer Befüllung den Rest davor angibt oder später den Bestand einträgt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
 
 const HILFE_WAERMEPUMPE =
   "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet das mit der Carnot-Zahl heraus: Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser bleibt draußen, außer die Wärmepumpe zählt nur den gesamten Strom. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.";
@@ -282,6 +282,8 @@ export const BefundMixin = (Basis) =>
           knoten("span", "befund-leise", this._befundGrund(b))
         );
         liste.appendChild(zeile);
+        const eingabe = this._befundEingabe(b);
+        if (eingabe) liste.appendChild(eingabe);
       });
       karte.appendChild(liste);
       if (offen.some(({ b }) => b.grund === "raeume" || b.grund === "automatik")) karte.appendChild(this._befundZurAutomatik());
@@ -460,6 +462,8 @@ export const BefundMixin = (Basis) =>
       const vergleich = this._befundVergleich(b);
       if (vergleich) karte.appendChild(vergleich);
       if (b.art === "raeume" && (b.angaben || {}).zu_warm) karte.appendChild(knoten("div", "befund-leise", this._t("Die Räume liegen meist mehr als 0,5 K über dem Ziel. Der Heizkreis liefert mehr Wärme, als sie abnehmen. Laut Windhager-Anleitung hilft: Auslegungstemperatur oder Fußpunkt senken oder Behaglichkeit verringern.")));
+      const eingabe = this._befundEingabe(b);
+      if (eingabe) karte.appendChild(eingabe);
       karte.appendChild(knoten("div", "befund-fuss", this._tMit("Verlässlichkeit: {stufe}", { stufe: this._befundStufe(b.stufe) })));
       return karte;
     }
@@ -506,10 +510,10 @@ export const BefundMixin = (Basis) =>
       if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
       if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
-      if (b.grund === "vorrat") return this._t("Braucht den Vorrat im Lager. Er lässt sich am Gerät eintragen.");
+      if (b.grund === "vorrat") return this._t("Braucht den Vorrat im Lager. Er lässt sich hier eintragen.");
       if (b.grund === "o2") return this._t("Braucht ein O2-Signal im Modulationsbetrieb.");
       if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
-      if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.");
+      if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich hier nachtragen.");
       if ((b.angaben || {}).ueber_jahr) return this._t("Fällig in mehr als einem Jahr.");
       if ((b.angaben || {}).ruht) return this._t("Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.");
       return this._t("Sammelt noch Tage.");

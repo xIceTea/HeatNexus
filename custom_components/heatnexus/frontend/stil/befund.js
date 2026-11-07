@@ -106,5 +106,9 @@ export const BEFUND = `
   .befund-offen { display: grid; gap: 8px; font-size: 14px; }
   .befund-zahlmarke { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--hn-flaeche); color: var(--hn-gedaempft); }
   .befund-offen > div { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+  .befund-eingabe { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+  .befund-eingabe .befund-sprung { margin-top: 6px; }
+  .befund-offen > .befund-eingabe { margin: -4px 0 4px; }
+  .befund-fehler { margin-top: 12px; color: var(--hn-sonne); }
   .befund-fuss { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
 `;

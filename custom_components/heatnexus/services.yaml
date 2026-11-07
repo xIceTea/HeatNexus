@@ -195,10 +195,10 @@ dashboard_ausgeben:
     anlegen, Rohkonfigurations-Editor öffnen, Text einfügen.
 
 brennstoff_geliefert:
-  name: Brennstoff geliefert
+  name: Brennstoff nachgefüllt
   description: >-
-    Trägt eine Lieferung in den Vorrat des Kessels ein. Mit dem Rest vor der
-    Lieferung lernt die Rechnung den tatsächlichen Verbrauch.
+    Trägt eine Lieferung oder eigene Befüllung in den Vorrat des Kessels ein.
+    Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch.
   target:
     entity:
       integration: heatnexus
@@ -206,7 +206,7 @@ brennstoff_geliefert:
   fields:
     menge:
       name: Menge
-      description: Gelieferte Menge in der Einheit des Vorrats.
+      description: Nachgefüllte Menge in der Einheit des Vorrats.
       required: true
       selector:
         number:
@@ -215,8 +215,8 @@ brennstoff_geliefert:
           step: 0.01
           mode: box
     rest:
-      name: Rest vor der Lieferung
-      description: Was vor der Lieferung noch im Lager lag; leer ist 0.
+      name: Rest davor
+      description: Was davor noch im Lager lag; leer gilt der gerechnete Vorrat.
       required: false
       selector:
         number:

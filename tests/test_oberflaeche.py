@@ -780,6 +780,41 @@ def test_ein_laufender_kaminkehrer_endet_ueber_die_gegentaste(dialog):
     assert "läuft: Beenden drückt die Gegentaste" in dialog["faelle"]
 
 
+# Eingaben der Auswertung: Befüllung, Bestand und Datum der letzten Pflege.
+EINGABE = Path(__file__).parent / "js" / "befund-eingabe.mjs"
+
+
+@pytest.fixture(scope="module")
+def eingabe() -> dict:
+    """Die Eingabedialoge in Node fahren – ohne Browser, ohne Anlage."""
+    lauf = subprocess.run(
+        ["node", str(EINGABE), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+@pytest.mark.parametrize(
+    "fall",
+    [
+        "Befüllung ohne Rest: nur die Menge",
+        "Befüllung mit Rest: Menge und Rest",
+        "Befüllung ohne Menge: kein Aufruf, Hinweis",
+        "Bestand: Zahl auf den Vorrat",
+        "Datum: Tag auf die Datumsentität",
+        "Datum in der Zukunft: kein Aufruf",
+        "Abbruch: kein Aufruf",
+        "ohne Eingabe: keine Tasten",
+    ],
+)
+def test_eingaben_der_auswertung(eingabe, fall):
+    assert fall in eingabe["faelle"]
+
+
 def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):
     """Der Text sagt, was ansteht; die Abhilfe, was zu tun ist."""
     assert durchlauf["uebersicht"]["abhilfe"] == ["schließen"]

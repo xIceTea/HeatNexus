@@ -961,16 +961,16 @@
       }
     },
     "brennstoff_geliefert": {
-      "name": "Fuel delivered",
-      "description": "Adds a delivery to the boiler's fuel stock. With the remaining stock before the delivery the calculation learns the actual consumption.",
+      "name": "Fuel refilled",
+      "description": "Adds a delivery or your own refill to the boiler's fuel stock. With the remaining stock before it the calculation learns the actual consumption.",
       "fields": {
         "menge": {
           "name": "Quantity",
-          "description": "Delivered quantity in the unit of the stock."
+          "description": "Quantity added, in the unit of the stock."
         },
         "rest": {
-          "name": "Remaining before delivery",
-          "description": "What was left in the store before the delivery; empty is 0."
+          "name": "Remaining before",
+          "description": "What was left in the store before; if empty, the calculated stock applies."
         }
       }
     }

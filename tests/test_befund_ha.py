@@ -417,6 +417,37 @@ async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):
     assert lager["korrekturen"] == [2.0]
 
 
+async def test_karten_tragen_ihre_eingabe(hass, anlage):
+    """Pflege, Abgas und Wärmepumpe zeigen auf ihr Datum, der Brennstoff auf den Vorrat."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.befund.websocket import _eingabe
+    from custom_components.heatnexus.const import DOMAIN
+
+    register = er.async_get(hass)
+    for domaene, kennung in (
+        ("number", "G1-brennstoffvorrat"),
+        ("date", "G1-pflege-hauptreinigung-zuletzt"),
+        ("date", "G2-pflege-jahresreinigung-zuletzt"),
+        ("date", "G3-verdampfer-zuletzt"),
+    ):
+        register.async_get_or_create(domaene, DOMAIN, kennung)
+    eid = lambda d, k: register.async_get_entity_id(d, DOMAIN, k)  # noqa: E731
+
+    assert _eingabe(register, "G1", "brennstoff") == {
+        "art": "vorrat",
+        "entity": eid("number", "G1-brennstoffvorrat"),
+    }
+    assert _eingabe(register, "G1", "pflege_hauptreinigung")["pflege"] == "hauptreinigung"
+    assert _eingabe(register, "G1", "abgas")["entity"] == eid(
+        "date", "G1-pflege-hauptreinigung-zuletzt"
+    )
+    assert _eingabe(register, "G2", "abgas")["pflege"] == "jahresreinigung"
+    assert _eingabe(register, "G3", "arbeitszahl")["entity"] == eid("date", "G3-verdampfer-zuletzt")
+    assert _eingabe(register, "G1", "abgasverlust") is None
+    assert _eingabe(register, "G9", "pflege_wartung") is None
+
+
 async def test_brennstoff_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
     from custom_components.heatnexus import verwaiste
 

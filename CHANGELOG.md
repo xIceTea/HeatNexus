@@ -15,7 +15,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
 - Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
 - Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
-- Der Dienst „Brennstoff geliefert“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
+- Der Dienst „Brennstoff nachgefüllt“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
+- In der Auswertung lassen sich Befüllung, Bestand und die letzte Pflege eintragen.
 - In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
 - Der Bezug des Abgaswächters entsteht auch aus der Langzeitstatistik.
 - AeroWIN: Die Auswertung meldet, wenn der Gütegrad seit der Verdampferreinigung sinkt.

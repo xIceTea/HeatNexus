@@ -96,7 +96,7 @@ Reiter Automatik oder mit den Tasten **Empfehlung übernehmen** und
 | `stoerung_zuruecksetzen` | Sensor | Setzt eine anliegende Störung am Kessel zurück; nur mit eingeschalteter Option. |
 | `heizkreis_umbenennen` | Thermostat | Schreibt den Namen des Heizkreises in die Steuerung, höchstens 20 Byte. |
 | `dashboard_ausgeben` | — | Gibt das mitgelieferte Dashboard als YAML zurück. |
-| `brennstoff_geliefert` | Brennstoffvorrat | Trägt eine Lieferung ein; mit dem Rest vor der Lieferung lernt die Rechnung den Verbrauch. |
+| `brennstoff_geliefert` | Brennstoffvorrat | Trägt eine Lieferung oder Befüllung ein; mit dem Rest davor lernt die Rechnung den Verbrauch. |
 
 ### Befristete Vorgabe
 

@@ -961,16 +961,16 @@
       }
     },
     "brennstoff_geliefert": {
-      "name": "Brandstof geleverd",
-      "description": "Voegt een levering toe aan de brandstofvoorraad van de ketel. Met de rest vóór de levering leert de berekening het werkelijke verbruik.",
+      "name": "Brandstof bijgevuld",
+      "description": "Voegt een levering of een eigen vulling toe aan de brandstofvoorraad van de ketel. Met de rest daarvoor leert de berekening het werkelijke verbruik.",
       "fields": {
         "menge": {
           "name": "Hoeveelheid",
-          "description": "Geleverde hoeveelheid in de eenheid van de voorraad."
+          "description": "Bijgevulde hoeveelheid in de eenheid van de voorraad."
         },
         "rest": {
-          "name": "Rest vóór de levering",
-          "description": "Wat vóór de levering nog in de opslag lag; leeg is 0."
+          "name": "Rest daarvoor",
+          "description": "Wat daarvoor nog in de opslag lag; leeg betekent de berekende voorraad."
         }
       }
     }

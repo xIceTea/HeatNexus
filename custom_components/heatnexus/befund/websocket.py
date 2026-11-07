@@ -59,6 +59,30 @@ async def _nacht_einsetzen(
                 befund["angaben"]["nacht"] = haus.nacht(befund["wert"], raum, aussen)
 
 
+def _eingabe(register: er.EntityRegistry, device_id: str, art: str) -> dict[str, str] | None:
+    """Was die Karte nachtragen lässt: Datum der letzten Pflege oder den Vorrat im Lager."""
+    if art == "brennstoff":
+        vorrat = register.async_get_entity_id("number", DOMAIN, f"{device_id}-brennstoffvorrat")
+        return {"art": "vorrat", "entity": vorrat} if vorrat else None
+    if art.startswith("pflege_"):
+        pflegen = [art.removeprefix("pflege_")]
+    elif art == "abgas":
+        pflegen = ["hauptreinigung", "jahresreinigung"]
+    elif art == "arbeitszahl":
+        pflegen = ["verdampfer"]
+    else:
+        return None
+    for pflege_art in pflegen:
+        kennung = (
+            f"{device_id}-verdampfer-zuletzt"
+            if pflege_art == "verdampfer"
+            else f"{device_id}-pflege-{pflege_art}-zuletzt"
+        )
+        if datum := register.async_get_entity_id("date", DOMAIN, kennung):
+            return {"art": "datum", "entity": datum, "pflege": pflege_art}
+    return None
+
+
 def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str, Any]) -> None:
     """Je Befund die Entität des Sensors; die Seite öffnet darüber den Verlauf."""
     register = er.async_get(hass)
@@ -75,6 +99,7 @@ def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str
                 else ""
             )
             befund["entity"] = register.async_get_entity_id("sensor", DOMAIN, kennung)
+            befund["eingabe"] = _eingabe(register, device_id, befund["art"]) if device_id else None
             adresse = QUELLE.get(befund["art"])
             befund["quelle"] = (
                 quelle_entitaet(register, device_id, adresse) if adresse and device_id else None
