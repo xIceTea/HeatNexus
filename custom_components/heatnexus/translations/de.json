@@ -560,6 +560,9 @@
       },
       "befund_brennstoff": {
         "name": "Brennstoff reicht bis"
+      },
+      "befund_arbeitszahl": {
+        "name": "Gütegrad gegen Bezug"
       }
     },
     "binary_sensor": {
@@ -594,6 +597,9 @@
       },
       "pflege_jahresreinigung_erledigt": {
         "name": "Jahresreinigung erledigt"
+      },
+      "verdampfer_erledigt": {
+        "name": "Verdampfer gereinigt"
       }
     },
     "date": {
@@ -611,6 +617,9 @@
       },
       "pflege_jahresreinigung_zuletzt": {
         "name": "Letzte Jahresreinigung"
+      },
+      "verdampfer_zuletzt": {
+        "name": "Letzte Verdampferreinigung"
       }
     },
     "number": {

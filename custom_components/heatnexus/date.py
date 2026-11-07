@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .befund.pflege_entitaeten import anmelden_datum
+from .befund.waermepumpe_entitaeten import anmelden_datum as verdampfer_datum
 from .entity import WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -35,6 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up Windhager date entities from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"date": WindhagerDate})
     anmelden_datum(hass, entry, async_add_entities)
+    verdampfer_datum(hass, entry, async_add_entities)
 
 
 class WindhagerDate(WindhagerEntity, DateEntity):

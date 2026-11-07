@@ -560,6 +560,9 @@
       },
       "befund_brennstoff": {
         "name": "Fuel lasts until"
+      },
+      "befund_arbeitszahl": {
+        "name": "Heat pump efficiency vs. reference"
       }
     },
     "binary_sensor": {
@@ -594,6 +597,9 @@
       },
       "pflege_jahresreinigung_erledigt": {
         "name": "Annual cleaning done"
+      },
+      "verdampfer_erledigt": {
+        "name": "Evaporator cleaned"
       }
     },
     "date": {
@@ -611,6 +617,9 @@
       },
       "pflege_jahresreinigung_zuletzt": {
         "name": "Last annual cleaning"
+      },
+      "verdampfer_zuletzt": {
+        "name": "Last evaporator cleaning"
       }
     },
     "number": {

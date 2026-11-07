@@ -397,3 +397,90 @@ async def test_brennstoff_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
     domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
     assert domaenen["SN1-1-0-brennstoffvorrat"] == "number"
     assert domaenen["SN1-1-0-befund-brennstoff"] == "sensor"
+
+
+AEROWIN = "/1/60/1"
+
+
+def aerowin(sammler, phase="4"):
+    """Die Fixture-Anlage bekommt eine AeroWIN (fctType 7) mit Tageszählern und Temperaturen."""
+    daten = sammler.coordinator.data
+    for gnmn in ("52/12", "52/15", "52/60", "52/87", "52/51", "52/53", "50/26", "50/6"):
+        daten["devices"].append(
+            {
+                "type": "sensor",
+                "id": f"SN1-60-1-{gnmn.replace('/', '-')}-0",
+                "device_id": "SN1-60-1",
+                "oid": f"{AEROWIN}/{gnmn}/0",
+                "fct_type": 7,
+                "device_name": "AeroWIN",
+            }
+        )
+    daten["oids"] |= {
+        f"{AEROWIN}/52/12/0": "2.0",
+        f"{AEROWIN}/52/15/0": "35.0",
+        f"{AEROWIN}/52/60/0": "40.0",
+        f"{AEROWIN}/52/87/0": "4.0",
+        f"{AEROWIN}/52/51/0": "6.0",
+        f"{AEROWIN}/52/53/0": "0.5",
+        f"{AEROWIN}/50/26/0": "60",
+        f"{AEROWIN}/50/6/0": phase,
+    }
+
+
+async def test_waermepumpe_sammelt_im_heizbetrieb(hass, anlage):
+    """Im Heizbetrieb landen Temperaturen und Tageszähler im Archiv, der Abschnitt erscheint."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    for minute in range(0, 15, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    tag = sammler.archiv.wp_tage(AEROWIN)[jetzt.date().isoformat()]
+    assert tag["n"] == 3
+    assert tag["vl"] == 105.0
+    assert tag["q"] == 40.0
+    teil = next(a for a in sammler.stand()["abschnitte"] if a["art"] == "waermepumpe")
+    assert teil["befunde"][0]["art"] == "arbeitszahl"
+    assert teil["befunde"][0]["status"] == "sammelt"
+
+
+async def test_waermepumpe_abtauen_zaehlt_nicht(hass, anlage):
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler, phase="6")
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    await sammler.messen(jetzt)
+    assert sammler.archiv.wp_tage(AEROWIN)[jetzt.date().isoformat()]["n"] == 0
+
+
+async def test_waermepumpe_entitaeten(hass, anlage):
+    """Sensor, Datum und Taste entstehen; die Taste setzt den Bezug auf heute."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus import verwaiste
+    from custom_components.heatnexus.befund import waermepumpe_entitaeten as we
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    sensoren, daten, tasten = [], [], []
+    anmelden(hass, eintrag, sensoren.extend)
+    we.anmelden_datum(hass, eintrag, daten.extend)
+    we.anmelden_taste(hass, eintrag, tasten.extend)
+    assert "SN1-60-1-befund-arbeitszahl" in {s.unique_id for s in sensoren}
+    assert [d.unique_id for d in daten] == ["SN1-60-1-verdampfer-zuletzt"]
+    taste = tasten[0]
+    taste.hass = hass
+    await taste.async_press()
+    datum = daten[0]
+    datum.hass = hass
+    assert datum.native_value == dt_util.now().date()
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-60-1-verdampfer-erledigt"] == "button"
+    assert domaenen["SN1-60-1-befund-arbeitszahl"] == "sensor"

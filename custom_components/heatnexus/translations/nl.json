@@ -560,6 +560,9 @@
       },
       "befund_brennstoff": {
         "name": "Brandstof volstaat tot"
+      },
+      "befund_arbeitszahl": {
+        "name": "Rendement t.o.v. referentie"
       }
     },
     "binary_sensor": {
@@ -594,6 +597,9 @@
       },
       "pflege_jahresreinigung_erledigt": {
         "name": "Jaarlijkse reiniging uitgevoerd"
+      },
+      "verdampfer_erledigt": {
+        "name": "Verdamper gereinigd"
       }
     },
     "date": {
@@ -611,6 +617,9 @@
       },
       "pflege_jahresreinigung_zuletzt": {
         "name": "Laatste jaarlijkse reiniging"
+      },
+      "verdampfer_zuletzt": {
+        "name": "Laatste reiniging verdamper"
       }
     },
     "number": {
