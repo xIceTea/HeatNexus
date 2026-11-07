@@ -66,10 +66,14 @@ const TITEL = {
   pflege_jahresreinigung: "Jahresreinigung",
   abgas: "Abgas über Kessel seit Reinigung",
   abgasverlust: "Mehrverlust Abgas",
+  brennstoff: "Brennstoff im Lager",
 };
 
 const HILFE_ABGAS =
   "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert, mit 20 °C Raumluft.";
+
+const HILFE_BRENNSTOFF =
+  "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
 
 const HILFE_PFLEGE =
   "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
@@ -98,9 +102,10 @@ const HILFE = {
   pflege_jahresreinigung: HILFE_PFLEGE,
   abgas: HILFE_ABGAS,
   abgasverlust: HILFE_ABGAS,
+  brennstoff: HILFE_BRENNSTOFF,
 };
 
-const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege", abgas: "Abgas" };
+const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel", pflege: "Pflege", abgas: "Abgas", brennstoff: "Brennstoff" };
 
 // Kurzname je Befund für Aufzählungen in der Kopfkarte.
 const KURZ = {
@@ -119,6 +124,7 @@ const KURZ = {
   pflege_jahresreinigung: "Jahresreinigung",
   abgas: "Abgas",
   abgasverlust: "Abgasverlust",
+  brennstoff: "Brennstoff",
 };
 
 const SYMBOL = { unauffaellig: "mdi:check", hinweis: "mdi:exclamation" };
@@ -494,6 +500,7 @@ export const BefundMixin = (Basis) =>
       if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
       if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
+      if (b.grund === "vorrat") return this._t("Braucht den Vorrat im Lager. Er lässt sich am Gerät eintragen.");
       if (b.grund === "o2") return this._t("Braucht ein O2-Signal im Modulationsbetrieb.");
       if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
       if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich am Gerät setzen.");
@@ -504,6 +511,9 @@ export const BefundMixin = (Basis) =>
 
     _befundBeisatz(b) {
       const a = b.angaben || {};
+      if (b.art === "brennstoff") {
+        return a.datum ? this._tMit("reicht etwa bis {datum}", { datum: datumVoll(a.datum) }) : "";
+      }
       if (b.art.startsWith("pflege_")) {
         return a.datum ? this._tMit("fällig etwa am {datum}", { datum: datumVoll(a.datum) }) : "";
       }
@@ -543,7 +553,10 @@ export const BefundMixin = (Basis) =>
         [a.rest_h, "Rest laut Steuerung", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
-        [b.art.startsWith("pflege_") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
+        [b.art === "brennstoff" ? a.bestand : null, "Vorrat", (w) => `${this._befundZahl(w, 2)} ${a.einheit || ""}`],
+        [b.art === "brennstoff" ? a.je_tag : null, "Verbrauch je Tag", (w) => `${this._befundZahl(w, 3)} ${a.einheit || ""}`],
+        [b.art === "brennstoff" && a.korrektur && a.korrektur !== 1 ? a.korrektur : null, "Korrektur aus Lieferungen", (w) => `× ${this._befundZahl(w, 2)}`],
+        [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
         [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
         [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
         [a.verlust_jetzt, "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],

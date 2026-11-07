@@ -26,7 +26,7 @@ from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from ..texte import woerterbuch
-from . import abgaslauf, auswertung, pflegelauf
+from . import abgaslauf, auswertung, brennstofflauf, pflegelauf
 from .archiv import STUNDE, Archiv
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ def kennungen(entry: ConfigEntry) -> dict[str, str]:
         for art in arten
     }
     for coordinator in coordinators.values():
-        gefunden |= pflegelauf.kennungen(coordinator)
+        gefunden |= pflegelauf.kennungen(coordinator) | brennstofflauf.kennungen(coordinator)
     return gefunden
 
 
@@ -256,6 +256,7 @@ class Sammler:
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
         pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
+        brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
         self._abgas_lauf = abgaslauf.messen(self.coordinator, self.archiv, self._abgas_lauf, zeit)
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
@@ -396,6 +397,7 @@ class Sammler:
             versorgte_eingriffe=self._versorgte_eingriffe() if kessel else {},
             pflege=pflegelauf.geraete(self.coordinator),
             abgas=abgaslauf.geraete(self.coordinator, self.archiv),
+            brennstoff=brennstofflauf.geraete(self.coordinator),
             heute=dt_util.now().date(),
         )
 

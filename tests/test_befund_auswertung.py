@@ -186,3 +186,22 @@ def test_pflege_nutzt_das_vorjahr_des_kessels(m):
     ][0]
     assert befund["angaben"]["vorjahr"] is True
     assert befund["wert"] == 218.0
+
+
+def test_brennstoff_abschnitt_aus_lager_und_waerme(m):
+    from datetime import date, timedelta
+
+    aus, arch = m
+    heute = date(2026, 11, 20)
+    archiv = arch.Archiv()
+    archiv.tage_k["/1/60/0"] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    archiv.lager_setzen("/1/60/0", {"bestand": 10.0, "seit": heute.isoformat()})
+    vorgabe = {"art": "hackgut", "weise": "waerme"}
+    k = aus.Kontext(
+        "AT", brennstoff=[aus.Brennstoffgeraet("puro", "PuroWIN", "/1/60/0", vorgabe)], heute=heute
+    )
+    teil = next(x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "brennstoff")
+    assert teil["befunde"][0]["wert"] == 56.0
+    assert teil["befunde"][0]["angaben"]["einheit"] == "Srm"

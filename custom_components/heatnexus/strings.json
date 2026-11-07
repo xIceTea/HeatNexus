@@ -557,6 +557,9 @@
       },
       "befund_abgasverlust": {
         "name": "Additional flue gas loss"
+      },
+      "befund_brennstoff": {
+        "name": "Fuel lasts until"
       }
     },
     "binary_sensor": {
@@ -608,6 +611,17 @@
       },
       "pflege_jahresreinigung_zuletzt": {
         "name": "Last annual cleaning"
+      }
+    },
+    "number": {
+      "brennstoffvorrat": {
+        "name": "Fuel stock"
+      },
+      "brennstoff_heizwert": {
+        "name": "Fuel calorific value"
+      },
+      "brennstoff_fuellmenge": {
+        "name": "Fill quantity per firing"
       }
     }
   },
@@ -932,6 +946,20 @@
         "eintrag": {
           "name": "Entry",
           "description": "Number of the entry in the message list, as listed in the “eintraege” attribute of the messages sensor."
+        }
+      }
+    },
+    "brennstoff_geliefert": {
+      "name": "Fuel delivered",
+      "description": "Adds a delivery to the boiler's fuel stock. With the remaining stock before the delivery the calculation learns the actual consumption.",
+      "fields": {
+        "menge": {
+          "name": "Quantity",
+          "description": "Delivered quantity in the unit of the stock."
+        },
+        "rest": {
+          "name": "Remaining before delivery",
+          "description": "What was left in the store before the delivery; empty is 0."
         }
       }
     }

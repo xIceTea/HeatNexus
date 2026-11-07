@@ -1252,5 +1252,11 @@
   "Fällig in mehr als einem Jahr.": "Gepland over meer dan een jaar.",
   "Vorschau": "Prognose",
   "nach Betriebsstunden des Vorjahrs": "op basis van bedrijfsuren van vorig jaar",
-  "nach den letzten 14 Tagen": "op basis van de laatste 14 dagen"
+  "nach den letzten 14 Tagen": "op basis van de laatste 14 dagen",
+  "Brennstoff im Lager": "Brandstof in opslag",
+  "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.": "De voorraad is de stand van de laatste levering min het verbruik sindsdien. De BioWIN telt zijn pelletverbruik zelf, de LogWIN zijn stookbeurten; anders rekent de kaart met de geproduceerde warmte, de verbrandingswaarde en 90 % rendement. Wie bij de dienst „Brandstof geleverd” de rest vóór de levering opgeeft, corrigeert de berekening met het werkelijke verbruik. Verbrandingswaarden volgens LWF-blad 12.",
+  "Braucht den Vorrat im Lager. Er lässt sich am Gerät eintragen.": "Heeft de voorraad in de opslag nodig. Die is in te voeren bij het apparaat.",
+  "reicht etwa bis {datum}": "volstaat tot ongeveer {datum}",
+  "Verbrauch je Tag": "Verbruik per dag",
+  "Korrektur aus Lieferungen": "Correctie uit leveringen"
 }

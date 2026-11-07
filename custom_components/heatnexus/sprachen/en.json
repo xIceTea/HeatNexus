@@ -1247,5 +1247,11 @@
   "Fällig in mehr als einem Jahr.": "Due in more than a year.",
   "Vorschau": "Forecast",
   "nach Betriebsstunden des Vorjahrs": "from last year's operating hours",
-  "nach den letzten 14 Tagen": "from the last 14 days"
+  "nach den letzten 14 Tagen": "from the last 14 days",
+  "Brennstoff im Lager": "Fuel in store",
+  "Der Vorrat ist der Stand der letzten Lieferung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer beim Dienst „Brennstoff geliefert“ den Rest vor der Lieferung angibt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.": "The stock is the level of the last delivery minus the consumption since. The BioWIN counts its pellet consumption itself, the LogWIN its firings; otherwise the card calculates from the heat produced, the calorific value and 90 % efficiency. Entering the remaining stock before the delivery in the service “Fuel delivered” corrects the calculation with the actual consumption. Calorific values after LWF leaflet 12.",
+  "Braucht den Vorrat im Lager. Er lässt sich am Gerät eintragen.": "Needs the stock in the store. It can be entered on the device.",
+  "reicht etwa bis {datum}": "lasts until around {datum}",
+  "Verbrauch je Tag": "Consumption per day",
+  "Korrektur aus Lieferungen": "Correction from deliveries"
 }

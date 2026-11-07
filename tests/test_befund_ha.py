@@ -355,3 +355,45 @@ async def test_abgas_sensoren_entstehen(hass, anlage):
     anmelden(hass, eintrag, angelegt.extend)
     kennungen = {s.unique_id for s in angelegt}
     assert {"SN1-1-0-befund-abgas", "SN1-1-0-befund-abgasverlust"} <= kennungen
+
+
+async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
+    """Vorrat setzen, Lieferung mit Rest eintragen; die Reichweite folgt aus dem Verbrauch."""
+    from datetime import date, timedelta
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    heute = date.today()
+    sammler.archiv.tage_k[KESSEL] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    zahlen, sensoren = [], []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    be.anmelden_sensor(hass, eintrag, sensoren.extend)
+    assert {z.unique_id for z in zahlen} == {
+        "SN1-1-0-brennstoffvorrat",
+        "SN1-1-0-brennstoff-heizwert",
+    }
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
+    vorrat.hass = hass
+    await vorrat.async_set_native_value(10.0)
+    assert vorrat.native_unit_of_measurement == "Srm"
+    assert vorrat.native_value == 10.0
+    reichweite = sensoren[0]
+    reichweite.hass = hass
+    assert reichweite.native_value == heute + timedelta(days=56)
+    await vorrat.async_geliefert(menge=20.0, rest=5.0)
+    assert vorrat.native_value == 25.0
+
+
+async def test_brennstoff_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
+    from custom_components.heatnexus import verwaiste
+
+    verwaltung, eintrag = anlage
+    purowin_abgas(next(iter(verwaltung.sammler.values())))
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-1-0-brennstoffvorrat"] == "number"
+    assert domaenen["SN1-1-0-befund-brennstoff"] == "sensor"

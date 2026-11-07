@@ -557,6 +557,9 @@
       },
       "befund_abgasverlust": {
         "name": "Extra rookgasverlies"
+      },
+      "befund_brennstoff": {
+        "name": "Brandstof volstaat tot"
       }
     },
     "binary_sensor": {
@@ -608,6 +611,17 @@
       },
       "pflege_jahresreinigung_zuletzt": {
         "name": "Laatste jaarlijkse reiniging"
+      }
+    },
+    "number": {
+      "brennstoffvorrat": {
+        "name": "Brandstofvoorraad"
+      },
+      "brennstoff_heizwert": {
+        "name": "Verbrandingswaarde brandstof"
+      },
+      "brennstoff_fuellmenge": {
+        "name": "Vulhoeveelheid per stookbeurt"
       }
     }
   },
@@ -932,6 +946,20 @@
         "eintrag": {
           "name": "Item",
           "description": "Nummer van het item in de meldingenlijst, zoals vermeld in het attribuut „eintraege” van de sensor meldingen."
+        }
+      }
+    },
+    "brennstoff_geliefert": {
+      "name": "Brandstof geleverd",
+      "description": "Voegt een levering toe aan de brandstofvoorraad van de ketel. Met de rest vóór de levering leert de berekening het werkelijke verbruik.",
+      "fields": {
+        "menge": {
+          "name": "Hoeveelheid",
+          "description": "Geleverde hoeveelheid in de eenheid van de voorraad."
+        },
+        "rest": {
+          "name": "Rest vóór de levering",
+          "description": "Wat vóór de levering nog in de opslag lag; leeg is 0."
         }
       }
     }
