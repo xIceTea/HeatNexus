@@ -553,7 +553,7 @@ export const BefundMixin = (Basis) =>
         [a.rest_h, "Rest laut Steuerung", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
-        [b.art === "brennstoff" ? a.bestand : null, "Vorrat", (w) => `${this._befundZahl(w, 2)} ${a.einheit || ""}`],
+        [b.art === "brennstoff" ? a.bestand : null, "Vorrat im Lager", (w) => `${this._befundZahl(w, 2)} ${a.einheit || ""}`],
         [b.art === "brennstoff" ? a.je_tag : null, "Verbrauch je Tag", (w) => `${this._befundZahl(w, 3)} ${a.einheit || ""}`],
         [b.art === "brennstoff" && a.korrektur && a.korrektur !== 1 ? a.korrektur : null, "Korrektur aus Lieferungen", (w) => `× ${this._befundZahl(w, 2)}`],
         [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],

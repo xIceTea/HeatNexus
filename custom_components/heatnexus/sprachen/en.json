@@ -1253,5 +1253,6 @@
   "Braucht den Vorrat im Lager. Er lässt sich am Gerät eintragen.": "Needs the stock in the store. It can be entered on the device.",
   "reicht etwa bis {datum}": "lasts until around {datum}",
   "Verbrauch je Tag": "Consumption per day",
-  "Korrektur aus Lieferungen": "Correction from deliveries"
+  "Korrektur aus Lieferungen": "Correction from deliveries",
+  "Vorrat im Lager": "Stock in store"
 }
