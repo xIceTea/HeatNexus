@@ -536,6 +536,21 @@
             "name": "Operating phase"
           }
         }
+      },
+      "befund_pflege_reinigung": {
+        "name": "Cleaning due"
+      },
+      "befund_pflege_hauptreinigung": {
+        "name": "Main cleaning due"
+      },
+      "befund_pflege_wartung": {
+        "name": "Maintenance due"
+      },
+      "befund_pflege_asche": {
+        "name": "Ash emptying due"
+      },
+      "befund_pflege_jahresreinigung": {
+        "name": "Annual cleaning due"
       }
     },
     "binary_sensor": {
@@ -564,6 +579,29 @@
       },
       "automatik_empfehlung_verwerfen": {
         "name": "Discard recommendation"
+      },
+      "pflege_asche_erledigt": {
+        "name": "Ash emptied"
+      },
+      "pflege_jahresreinigung_erledigt": {
+        "name": "Annual cleaning done"
+      }
+    },
+    "date": {
+      "pflege_reinigung_zuletzt": {
+        "name": "Last cleaning"
+      },
+      "pflege_hauptreinigung_zuletzt": {
+        "name": "Last main cleaning"
+      },
+      "pflege_wartung_zuletzt": {
+        "name": "Last maintenance"
+      },
+      "pflege_asche_zuletzt": {
+        "name": "Ash last emptied"
+      },
+      "pflege_jahresreinigung_zuletzt": {
+        "name": "Last annual cleaning"
       }
     }
   },

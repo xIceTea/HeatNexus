@@ -248,3 +248,59 @@ async def test_pflege_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
     domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
     assert domaenen["SN1-1-0-befund-pflege-hauptreinigung"] == "sensor"
     assert domaenen["SN1-1-0-pflege-hauptreinigung-zuletzt"] == "date"
+
+
+def logwin(sammler):
+    """Die Fixture-Anlage bekommt einen LogWIN (Funktionstyp 10, Geräteklasse 2009)."""
+    sammler.coordinator.data["devices"].append(
+        {
+            "type": "sensor",
+            "id": "SN1-65-0-0-11-0",
+            "device_id": "SN1-65-0",
+            "prefix": "/1/65/0",
+            "oid": "/1/65/0/0/11/0",
+            "fct_type": 10,
+            "device_name": "LogWIN",
+        }
+    )
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1", geraeteklasse={"65": "2009"}
+    )
+
+
+async def test_logwin_taste_traegt_heute_ein(hass, anlage):
+    """Am LogWIN entstehen Termin, Datum und Taste; die Taste trägt heute ein."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import pflege_entitaeten as pe
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    logwin(sammler)
+    tasten, daten, termine = [], [], []
+    pe.anmelden_taste(hass, eintrag, tasten.extend)
+    pe.anmelden_datum(hass, eintrag, daten.extend)
+    pe.anmelden_sensor(hass, eintrag, termine.extend)
+    assert {t.unique_id for t in tasten} == {
+        "SN1-65-0-pflege-asche-erledigt",
+        "SN1-65-0-pflege-jahresreinigung-erledigt",
+    }
+    asche = next(t for t in tasten if "asche" in t.unique_id)
+    asche.hass = hass
+    await asche.async_press()
+    datum = next(d for d in daten if d.unique_id == "SN1-65-0-pflege-asche-zuletzt")
+    datum.hass = hass
+    assert datum.native_value == dt_util.now().date()
+    termin = next(s for s in termine if s.unique_id == "SN1-65-0-befund-pflege-asche")
+    termin.hass = hass
+    assert termin.native_value is not None
+
+
+async def test_purowin_bekommt_keine_taste(hass, anlage):
+    from custom_components.heatnexus.befund import pflege_entitaeten as pe
+
+    verwaltung, eintrag = anlage
+    purowin_zaehler(next(iter(verwaltung.sammler.values())))
+    tasten = []
+    pe.anmelden_taste(hass, eintrag, tasten.extend)
+    assert tasten == []

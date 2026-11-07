@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from .automatik.entitaeten import TASTEN_ARTEN
 from .automatik.entitaeten import anmelden as automatik_anmelden
+from .befund.pflege_entitaeten import anmelden_taste
 from .client.gemeinsam import gnmn_aus_oid
 from .const import FCT_ENTITY_MAP, NACHFASS_FOLGEN
 from .entity import WindhagerEntity, async_setup_entities
@@ -32,6 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities,
         {"button": WindhagerButton, "refresh": WindhagerAbfrageTaste},
     )
+    anmelden_taste(hass, entry, async_add_entities)
 
 
 class WindhagerButton(WindhagerEntity, ButtonEntity):

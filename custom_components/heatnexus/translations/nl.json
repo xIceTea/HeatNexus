@@ -536,6 +536,21 @@
             "name": "Bedrijfsfase"
           }
         }
+      },
+      "befund_pflege_reinigung": {
+        "name": "Reiniging gepland"
+      },
+      "befund_pflege_hauptreinigung": {
+        "name": "Hoofdreiniging gepland"
+      },
+      "befund_pflege_wartung": {
+        "name": "Onderhoud gepland"
+      },
+      "befund_pflege_asche": {
+        "name": "As legen gepland"
+      },
+      "befund_pflege_jahresreinigung": {
+        "name": "Jaarlijkse reiniging gepland"
       }
     },
     "binary_sensor": {
@@ -564,6 +579,29 @@
       },
       "automatik_empfehlung_verwerfen": {
         "name": "Advies verwerpen"
+      },
+      "pflege_asche_erledigt": {
+        "name": "As geleegd"
+      },
+      "pflege_jahresreinigung_erledigt": {
+        "name": "Jaarlijkse reiniging uitgevoerd"
+      }
+    },
+    "date": {
+      "pflege_reinigung_zuletzt": {
+        "name": "Laatste reiniging"
+      },
+      "pflege_hauptreinigung_zuletzt": {
+        "name": "Laatste hoofdreiniging"
+      },
+      "pflege_wartung_zuletzt": {
+        "name": "Laatste onderhoud"
+      },
+      "pflege_asche_zuletzt": {
+        "name": "As laatst geleegd"
+      },
+      "pflege_jahresreinigung_zuletzt": {
+        "name": "Laatste jaarlijkse reiniging"
       }
     }
   },

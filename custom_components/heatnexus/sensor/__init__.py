@@ -22,6 +22,7 @@ from ..automatik.entitaeten import anmelden as automatik_anmelden
 from ..automatik.system import SENSOR_ARTEN as SYSTEM_SENSOREN
 from ..automatik.system import anmelden as system_anmelden
 from ..befund.entitaeten import anmelden as befund_anmelden
+from ..befund.pflege_entitaeten import anmelden_sensor as pflege_anmelden
 from ..entity import WindhagerEntity, async_setup_entities
 from .ableitungen import (
     WindhagerAbleitungSensor,
@@ -59,6 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     for art in SYSTEM_SENSOREN:
         system_anmelden(hass, entry, async_add_entities, art)
     befund_anmelden(hass, entry, async_add_entities)
+    pflege_anmelden(hass, entry, async_add_entities)
 
     platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
     # Quittieren, Zurücksetzen und Löschen im Störspeicher des Bediengeräts.
