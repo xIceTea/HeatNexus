@@ -123,3 +123,28 @@ def test_eingriffstage_der_mitversorgten_zaehlen_beim_kessel(m):
     archiv = gefuellt(arch)
     tage = aus.eingriffstage(archiv, ["hk"])
     assert tage and set(tage.values()) == {None}
+
+
+def test_pflege_abschnitt_je_geraet(m):
+    from datetime import date
+
+    aus, arch = m
+    pfl = load_standalone("befund.pflege")
+    ziele = load_standalone("befund.pflegeziele")
+    archiv = arch.Archiv()
+    archiv.pflege_setzen("/1/60/0", "hauptreinigung", {"rest": 140.0})
+    ziel = ziele.Ziel("/1/60/0", "dev", pfl.PFLEGE[25][1])
+    k = aus.Kontext(
+        "AT", pflege=[aus.Pflegegeraet("dev", "PuroWIN", [ziel])], heute=date(2026, 11, 20)
+    )
+    abschnitte = aus.anlage(archiv, k)["abschnitte"]
+    teil = next(x for x in abschnitte if x["art"] == "pflege")
+    assert teil["kennung"] == "dev"
+    assert teil["befunde"][0]["art"] == "pflege_hauptreinigung"
+    assert teil["befunde"][0]["status"] == "sammelt"
+
+
+def test_ohne_pflegegeraet_kein_abschnitt(m):
+    aus, arch = m
+    abschnitte = aus.anlage(arch.Archiv(), kontext(aus))["abschnitte"]
+    assert not any(x["art"] == "pflege" for x in abschnitte)
