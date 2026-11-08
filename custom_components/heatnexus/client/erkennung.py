@@ -810,6 +810,7 @@ class ErkennungMixin:
                     "alt_device_id": muster.get("alt_device_id"),
                     "device_name": muster["device_name"],
                     "fct_type": muster.get("fct_type"),
+                    "node_id": muster["oid"].strip("/").split("/")[1],
                 }
             )
 

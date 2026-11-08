@@ -167,3 +167,16 @@ def test_steuerung_ohne_auskunft_bleibt_benutzbar():
     info = steuerung_info(coordinator)
     assert info["model"] == "Steuerung"
     assert "sw_version" not in info
+
+
+@pytest.mark.parametrize("ohne_adresse", [{"node_id": "62"}, {"type": "refresh", "node_id": "62"}])
+def test_entitaeten_ohne_adresse_nennen_dasselbe_modell(ohne_adresse):
+    """Status, Meldung und Abfragetaste tragen keine Adresse; die Klasse kommt vom Knoten."""
+    coordinator = _coordinator()
+    coordinator.client.geraeteklasse = {"62": "1417"}
+    mit = _beschreibung(fct_type=7, oid="/1/62/0/50/5/0")
+    mit.pop("prefix")
+    ohne = _beschreibung(fct_type=7, **ohne_adresse)
+    ohne.pop("prefix")
+    assert geraet_info(coordinator, ohne)["model"] == geraet_info(coordinator, mit)["model"]
+    assert geraet_info(coordinator, mit)["model"] == "AeroWIN EVO Wärmepumpe"

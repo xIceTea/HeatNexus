@@ -124,7 +124,11 @@ def _knoten(beschreibung: dict) -> str | None:
     """Die Knotennummer, an der diese Beschreibung hängt."""
     quelle = beschreibung.get("prefix") or beschreibung.get("oid") or ""
     teile = str(quelle).strip("/").split("/")
-    return teile[1] if len(teile) >= 2 else None
+    if len(teile) >= 2:
+        return teile[1]
+    # Status, Meldung und Abfragetaste tragen keine Adresse, nur den Knoten.
+    knoten = beschreibung.get("node_id")
+    return str(knoten) if knoten is not None else None
 
 
 def _modulwert(coordinator: Any, beschreibung: dict, gn_mn: str) -> str | None:
