@@ -43,7 +43,13 @@ def _o2_merken(coordinator: Any, archiv: Any, prefix: str, tag: str) -> None:
 def abruf(coordinator: Any) -> set[str]:
     """Die Adressen je Kessel, die frisch sein müssen; O2 liegt meist nur auf der Serviceebene."""
     adressen = (ABGAS, KESSEL, LEISTUNG, PHASE, O2)
-    return {f"{z.prefix}{a}" for z in ziele_von(coordinator) for a in adressen}
+    # Der LogWIN wertet keine Leistung aus; sie wird dort nicht abgefragt.
+    return {
+        f"{z.prefix}{a}"
+        for z in ziele_von(coordinator)
+        for a in adressen
+        if not (z.logwin and a == LEISTUNG)
+    }
 
 
 def messen(
@@ -157,7 +163,10 @@ async def nachrechnen(
             if tag in vorhanden or tag >= heute or ergebnis is None:
                 continue
             stufe_, dt, o2, ta = ergebnis
-            tage = abgas.sammeln(tage, tag, stufe_, dt, o2, ta, None, abgas.TAKTE_JE_STUNDE)
+            # Nur den einen Tag fortschreiben; `tage` ist hier schon eine eigene Kopie.
+            tage[tag] = abgas.sammeln(
+                {tag: tage.get(tag, {})}, tag, stufe_, dt, o2, ta, None, abgas.TAKTE_JE_STUNDE
+            )[tag]
             neu += 1
         archiv.abgas_setzen(prefix, tage)
         if neu_tage := sorted(set(tage) - vorhanden):
