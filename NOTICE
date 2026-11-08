@@ -12,10 +12,7 @@ wurden; ab 1.6.0 gilt die GPL-3.0.
 Herkunftsnachweise
 ------------------
 
-Der ausgelieferte Code ist ausschließlich eigener. Die frühere
-Digest-Authentifizierung (abgeleitet vom Projekt "requests", Apache License
-2.0) ist mit 1.5.0-beta.4 entfallen, weil aiohttp diese Aufgabe selbst
-übernimmt.
+Der ausgelieferte Code ist ausschließlich eigener.
 
 Die Projektseite unter docs/ liefert zwei Schriften mit. Sie stehen unter der
 SIL Open Font License 1.1; die Lizenztexte liegen als OFL-*.txt neben den
@@ -27,19 +24,18 @@ Schriftdateien in docs/assets/fonts/.
 Dank
 ----
 
-HeatNexus entsteht an einer einzigen Anlage. Alles darüber hinaus beruht
-darauf, dass jemand einen Abzug seiner eigenen beisteuert.
-
-@wiesi12 – Abzug einer BioWIN 2 Touch mit MES INFINITY. Er hat gezeigt, dass
-ein Kessel antworten kann, ohne sich in der Anlagenstruktur anzukündigen.
+Jede Baureihe über die Entwickleranlage hinaus stützt sich auf Abzüge,
+Fehlerberichte und Beiträge von Nutzern. Die Mitwirkenden nennt GitHub unter
+"Contributors", die übernommenen Beiträge stehen in den Release-Texten.
 
 Geräteangaben
 -------------
 
 Datenpunktnamen, Enum-Texte und Störungstexte in device_db.json und
-error_texts_de.json sind aus den öffentlich abrufbaren Parameterdateien von
-Windhager abgeleitet. Windhager, PuroWIN und BioWIN sind Marken der
-Windhager Zentralheizung GmbH. Dieses Projekt steht in keiner Verbindung zum
+error_texts_de.json sind aus den öffentlich abrufbaren Parameterdateien und
+Unterlagen von Windhager abgeleitet. Windhager und die Namen der Baureihen,
+etwa PuroWIN, BioWIN, LogWIN und AeroWIN, sind Marken der Windhager
+Zentralheizung GmbH. Dieses Projekt steht in keiner Verbindung zum
 Hersteller und wird von ihm weder unterstützt noch geprüft.
 
 Name und Logo

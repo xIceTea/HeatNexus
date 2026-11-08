@@ -29,7 +29,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
-- Die Geräteseite nennt BioWIN 2, AeroWIN EVO und Infinity PLUS als Modell.
+- Die Geräteseite nennt das Modell auch für BioWIN 2, AeroWIN, LogWIN und Infinity PLUS.
 - Zirkulationswerte erscheinen nur, wenn die Betriebsart der Zirkulationspumpe sie nutzt.
 - Am Infinity-Heizkreis erscheinen Heiz- oder Vorlaufprogramme passend zur Regelart.
 - Mischermotor und Mischerlaufzeit am Infinity-Heizkreis lassen sich nur noch ablesen.
