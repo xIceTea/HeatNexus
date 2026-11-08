@@ -11,6 +11,8 @@ from . import statuszeilen
 
 FCT_TYPE = 7
 MODELL = "Wärmepumpe"
+# Die Klasse 1417 ist die AeroWIN EVO; ihre Ebenen führen die EVO-Zähler `51/125`, `51/126`.
+MODELLE_JE_KLASSE: dict[str, str] = {"1417": "AeroWIN EVO Wärmepumpe"}
 # Hinter den Kesseln: Am Hybridmanager kommt der Kessel von links, die Wärmepumpe von rechts.
 RANG = 11
 SYMBOL = "mdi:heat-pump"

@@ -8,6 +8,12 @@ from __future__ import annotations
 
 FCT_TYPE = 14
 MODELL = "Heizkreis (UML/UMLZ)"
+# Derselbe Funktionstyp läuft auch in der AeroWIN EVO (1417) und im Infinity PLUS (2101, 2102).
+MODELLE_JE_KLASSE: dict[str, str] = {
+    "1417": "Heizkreis (AeroWIN EVO)",
+    "2101": "Heizkreis (Infinity PLUS)",
+    "2102": "Heizkreis (Infinity PLUS)",
+}
 RANG = 30
 SYMBOL = "mdi:radiator"
 SCHAUBILD = "heizkreis"
@@ -72,6 +78,7 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
         "schaltpunkt_anteil": -1.0,
     },
 )
+
 
 ENTITAETEN: list[dict] = [
     # --- Infoebene Heizkreis / Warmwasser (read only) ---

@@ -10,6 +10,8 @@ from . import quittung, statuszeilen
 
 FCT_TYPE = 9
 MODELL = "BioWIN Pelletskessel"
+# Geräteklasse aus der `programId`. Die Klasse 1415 ist der BioWIN 2.
+MODELLE_JE_KLASSE: dict[str, str] = {"1415": "BioWIN 2 Pelletskessel"}
 RANG = 10
 SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"

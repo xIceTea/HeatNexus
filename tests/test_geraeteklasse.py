@@ -41,6 +41,25 @@ def test_der_logwin_heisst_nach_seiner_klasse(geraete):
     assert geraete.modell(10, "2009") == "LogWIN Holzvergaserkessel"
 
 
+@pytest.mark.parametrize(
+    ("fct_type", "klasse", "modell"),
+    [
+        (9, "1415", "BioWIN 2 Pelletskessel"),
+        (7, "1417", "AeroWIN EVO Wärmepumpe"),
+        (14, "1417", "Heizkreis (AeroWIN EVO)"),
+        (2, "1417", "Warmwasser (AeroWIN EVO)"),
+        (14, "2101", "Heizkreis (Infinity PLUS)"),
+        (14, "2102", "Heizkreis (Infinity PLUS)"),
+    ],
+)
+def test_baureihen_heissen_nach_ihrer_klasse(geraete, fct_type, klasse, modell):
+    assert geraete.modell(fct_type, klasse) == modell
+
+
+def test_eine_waermepumpe_im_biowin_2_bleibt_waermepumpe(geraete):
+    assert geraete.modell(7, "1415") == "Wärmepumpe"
+
+
 @pytest.mark.parametrize("klasse", [None, "", "1415"])
 def test_ohne_eigene_klasse_bleibt_das_modell_des_funktionstyps(geraete, klasse):
     assert geraete.modell(10, klasse) == "Automatik-/Zusatzkessel"

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 FCT_TYPE = 2
 MODELL = "Warmwasser"
+# Geräteklasse aus der `programId`. Die Klasse 1417 ist die AeroWIN EVO.
+MODELLE_JE_KLASSE: dict[str, str] = {"1417": "Warmwasser (AeroWIN EVO)"}
 RANG = 42
 SYMBOL = "mdi:water-boiler"
 SCHAUBILD = "wasser"
@@ -31,4 +33,5 @@ NAMEN: dict[str, str] = {
 }
 
 NUR_BUS: tuple[str, ...] = ()
+
 ENTITAETEN: list[dict] = []

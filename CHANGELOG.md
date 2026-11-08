@@ -23,6 +23,10 @@ wenn dort Vorabversionen zugelassen sind.
 - AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
 
+### Geändert
+
+- Die Geräteseite nennt BioWIN 2, AeroWIN EVO und Infinity PLUS als Modell.
+
 ## [1.15.0] - 2026-11-05
 
 ### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild
