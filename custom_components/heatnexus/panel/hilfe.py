@@ -28,7 +28,7 @@ HILFE: tuple[tuple[str, str], ...] = (
     ),
     (
         r"^silentmode$",
-        "Macht die Wärmepumpe im Zeitfenster des Zeitprogramms Silentmode leiser, etwa in der Nacht.\n\n• Aus — kein Silentmode\n• Mode 1 — Lüfter und Verdichter werden mit dem Silentmode Faktor begrenzt; die Wärmepumpe liefert weniger Leistung und ist leiser\n• Mode 2 — die Wärmepumpe ist im Zeitfenster gesperrt; an einer Hybridanlage übernimmt der Kessel\n\nAußerhalb des Zeitfensters läuft die Wärmepumpe normal.",
+        "Macht die Wärmepumpe im Zeitfenster des Zeitprogramms Silentmode leiser, etwa in der Nacht.\n\n• Aus — kein Silentmode\n• Mode 1 — Lüfter und Verdichter werden mit dem Silentmode Faktor begrenzt; die Wärmepumpe liefert weniger Leistung und ist leiser. 100 % ist volle Leistung, 50 % halbe; je kleiner, desto leiser\n• Mode 2 — die Wärmepumpe ist im Zeitfenster gesperrt; an einer Hybridanlage übernimmt der Kessel\n\nAußerhalb des Zeitfensters läuft die Wärmepumpe normal.",
     ),
     (
         r"serviceausbrand",
