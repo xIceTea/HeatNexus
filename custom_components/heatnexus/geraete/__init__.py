@@ -172,11 +172,11 @@ KESSELARTEN: dict[int, str] = {m.FCT_TYPE: m.KESSELART for m in MODULE if m.KESS
 # Bauart je Geräteklasse, wie die Kesselwahl der Steuerung sie zuordnet. Sie
 # gilt für den Kessel selbst; ein PuroWIN verbrennt Hackgut oder Pellets.
 KESSELART_JE_KLASSE: dict[str, str] = {
-    **dict.fromkeys(("1403", "1407", "140a", "140b", "140c", "1415", "1416", "2015"), "pellets"),
+    **dict.fromkeys(("1403", "1407", "140a", "140b", "140c", "1415", "2015"), "pellets"),
     **dict.fromkeys(("1414", "2014"), "hackgut"),
     **dict.fromkeys(("1404", "1409", "2009"), "scheitholz"),
     "1203": "gas_oel",
-    "2016": "waermepumpe",
+    **dict.fromkeys(("1416", "1417", "2016"), "waermepumpe"),
 }
 
 SCHALTPUNKTE: tuple[dict[str, object], ...] = tuple(

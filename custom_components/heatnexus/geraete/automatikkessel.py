@@ -10,8 +10,11 @@ from . import statuszeilen
 
 FCT_TYPE = 10
 MODELL = "Automatik-/Zusatzkessel"
-# Geräteklasse aus der `programId`. Die Klasse 2009 ist der LogWIN.
-MODELLE_JE_KLASSE: dict[str, str] = {"2009": "LogWIN Holzvergaserkessel"}
+# Geräteklasse aus der `programId`. Die Klasse 2009 ist der LogWIN, 1409 sein Vorgänger.
+MODELLE_JE_KLASSE: dict[str, str] = {
+    "1409": "LogWIN Holzvergaserkessel",
+    "2009": "LogWIN Holzvergaserkessel",
+}
 RANG = 14
 SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"

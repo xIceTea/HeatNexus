@@ -11,6 +11,8 @@ from . import statuszeilen
 
 FCT_TYPE = 27
 MODELL = "Wärmepumpe"
+# Die Typenliste des Herstellers führt die Klasse 2016 als AeroWIN Deluxe.
+MODELLE_JE_KLASSE: dict[str, str] = {"2016": "AeroWIN Deluxe Wärmepumpe"}
 # Hinter den Kesseln: Am Hybridmanager kommt der Kessel von links, die Wärmepumpe von rechts.
 RANG = 11
 SYMBOL = "mdi:heat-pump"

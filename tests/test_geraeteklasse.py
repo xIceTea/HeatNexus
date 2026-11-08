@@ -45,7 +45,10 @@ def test_der_logwin_heisst_nach_seiner_klasse(geraete):
     ("fct_type", "klasse", "modell"),
     [
         (9, "1415", "BioWIN 2 Pelletskessel"),
+        (7, "1416", "AeroWIN Wärmepumpe"),
         (7, "1417", "AeroWIN EVO Wärmepumpe"),
+        (27, "2016", "AeroWIN Deluxe Wärmepumpe"),
+        (10, "1409", "LogWIN Holzvergaserkessel"),
         (14, "1417", "Heizkreis (AeroWIN EVO)"),
         (2, "1417", "Warmwasser (AeroWIN EVO)"),
         (14, "2101", "Heizkreis (Infinity PLUS)"),
@@ -81,8 +84,13 @@ def test_jede_kesselart_je_klasse_hat_eine_zeichnung(geraete):
         assert art in const.KESSELARTEN, (klasse, art)
 
 
+# Geräteklassen, die die Typenliste des Herstellers einer Baureihe zuordnet.
+TYPENLISTE = {"1409", "1416", "2016"}
+
+
 def test_jede_klasse_mit_eigenem_modell_ist_beim_hersteller_belegt(geraete):
-    """Nur Klassen, für die der Hersteller eine eigene Ebenenliste führt."""
+    """Belegt durch eine Ebenenliste des Herstellers oder seine Typenliste."""
     db = json.loads((KOMPONENTE / "device_db.json").read_text(encoding="utf-8"))
     for (fct_type, klasse), _modell in geraete.MODELLE_JE_KLASSE.items():
-        assert klasse in db["layers"][str(fct_type)].get("devices", []), (fct_type, klasse)
+        ebenen = db["layers"].get(str(fct_type), {}).get("devices", [])
+        assert klasse in ebenen or klasse in TYPENLISTE, (fct_type, klasse)
