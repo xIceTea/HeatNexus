@@ -64,6 +64,20 @@ def test_die_namen_kommen_aus_knoten_und_funktion(anlage):
     }
 
 
+def test_gleiche_namen_tragen_die_knotennummer(anlage):
+    zwilling = {"nodeId": 17, "name": "WFBPK", "functions": [{"fctId": 1, "fctType": 16}]}
+    namen = anlage._teilnamen_lesen([*STRUKTUR, zwilling])
+    assert namen["/1/15/1"] == "WFBPK Pellet"
+    assert namen["/1/16/1"] == "WFBPK (Knoten 16)"
+    assert namen["/1/17/1"] == "WFBPK (Knoten 17)"
+
+
+def test_die_knotennummer_folgt_der_sprache(anlage):
+    zwilling = {"nodeId": 17, "name": "WFBPK", "functions": [{"fctId": 1, "fctType": 16}]}
+    anlage.sprache = "en"
+    assert anlage._teilnamen_lesen([*STRUKTUR, zwilling])["/1/16/1"] == "WFBPK (Node 16)"
+
+
 def test_ein_teil_ohne_antwort_und_ohne_wert_ist_stumm(anlage):
     anlage._wurzel_ohne_antwort = {"/1/15/1", "/1/60/0"}
     anlage.devices = [
