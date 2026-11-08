@@ -31,7 +31,7 @@
     "custom_components.heatnexus"
   ],
   "requirements": [],
-  "version": "1.15.1",
+  "version": "1.15.2",
   "zeroconf": [
     {
       "type": "_workstation._tcp.local.",

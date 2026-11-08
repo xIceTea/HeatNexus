@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.15.2] - 2026-11-08
+
+### Behoben
+
+- Der Verlauf zeigt Diagramme auch, wenn vorher kein Dashboard geöffnet war.
+
 ## [1.15.1] - 2026-11-08
 
 ### Neu
