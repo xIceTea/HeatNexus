@@ -92,6 +92,40 @@ def test_sommer_ruht(p):
     assert b.angaben["ruht"] is True
 
 
+def zaehler_auf_null(tage_auf_null: int, ende: date = HEUTE) -> dict[str, float]:
+    """Zehn Tage Abnahme bis null, danach `tage_auf_null` Tage auf null."""
+    start = ende - timedelta(days=tage_auf_null + 10)
+    return {
+        (start + timedelta(days=i)).isoformat(): max(40.0 - 4.0 * i, 0.0)
+        for i in range(tage_auf_null + 11)
+    }
+
+
+@pytest.mark.parametrize("art", ["reinigung", "hauptreinigung", "asche"])
+def test_zaehler_auf_null_ist_faellig_statt_ruhe(p, art):
+    pflege_ = next(x for x in p.PFLEGE[9] + p.PFLEGE[25] if x.art == art)
+    eintrag = {"rest": 0.0, "verlauf": zaehler_auf_null(20)}
+    b = p.befund(pflege_, eintrag, HEUTE)
+    assert b.status == "hinweis"
+    assert b.wert == 0.0
+    assert b.angaben["datum"] == HEUTE.isoformat()
+    assert "ruht" not in b.angaben
+
+
+def test_zaehler_auf_null_mit_kurzem_verlauf_ist_faellig(p):
+    eintrag = {"rest": 0.0, "verlauf": {HEUTE.isoformat(): 0.0}}
+    assert p.befund(zaehler(p), eintrag, HEUTE).status == "hinweis"
+
+
+def test_zaehler_auf_null_mit_vorjahr_ist_faellig(p):
+    heute = date(2027, 7, 1)
+    jahr = p.jahresverlauf(kesseltage(heute, 380), heute)
+    eintrag = {"rest": 0.0, "verlauf": zaehler_auf_null(20, heute)}
+    b = p.befund(zaehler(p), eintrag, heute, jahr)
+    assert b.status == "hinweis"
+    assert b.angaben["datum"] == heute.isoformat()
+
+
 def test_zu_kurzer_verlauf_sammelt(p):
     eintrag = {"rest": 140.0, "verlauf": verlauf(148.0, 4.0, 3)}
     assert p.befund(zaehler(p), eintrag, HEUTE).status == "sammelt"

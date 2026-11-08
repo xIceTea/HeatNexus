@@ -201,6 +201,9 @@ def _zaehler(
     rate, tage = abnahme_je_tag(eintrag.get("verlauf") or {}, heute)
     stufe = form.stufe(tage, **STUFEN)
     angaben |= {"abnahme_je_tag": rate, "vorjahr": bool(jahr)}
+    if rest <= 0:
+        # Ein Zähler auf null sinkt nicht weiter; die fehlende Abnahme heißt hier fällig, nicht Ruhe.
+        return _termin(art, heute, heute, BALD_TAGE, angaben, form.BELASTBAR)
     if stufe == form.SAMMELT and not jahr:
         return form.Befund(art, form.SAMMELT, angaben=angaben)
     stufe = form.VORLAEUFIG if stufe == form.SAMMELT else stufe
