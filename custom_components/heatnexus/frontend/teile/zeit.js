@@ -48,6 +48,20 @@ export function zeitTeile(datum, zone) {
   return { jahr, monat, tag, stunde: wert("hour") % 24, minute: wert("minute"), kalendertag: `${jahr}-${monat}-${tag}` };
 }
 
+/** Ein Kalendertag „JJJJ-MM-TT“ als Datum in der Sprache von Home Assistant. */
+export function kalenderdatumText(tag, hass) {
+  const [jahr, monat, wert] = String(tag).split("-").map(Number);
+  const sprache = (hass && hass.locale && hass.locale.language) || (hass && hass.language) || "de";
+  const optionen = { day: "2-digit", month: "2-digit", year: "numeric" };
+  return formatierer(sprache, optionen, "UTC").format(new Date(Date.UTC(jahr, monat - 1, wert)));
+}
+
+/** Heute als „JJJJ-MM-TT“ in der Zeitzone, mit der Home Assistant rechnet. */
+export function heuteServer(hass) {
+  const { jahr, monat, tag } = zeitTeile(new Date(), serverzone(hass));
+  return `${jahr}-${String(monat).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+}
+
 /** Ein Schlüssel für den Kalendertag in einer Zone, zum Vergleichen. */
 export function kalendertagIn(datum, zone) {
   return zeitTeile(datum, zone).kalendertag;

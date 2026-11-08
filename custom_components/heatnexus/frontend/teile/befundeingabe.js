@@ -5,6 +5,8 @@
  * nur in HeatNexus (Datums- und Zahlentitäten, Dienst `brennstoff_geliefert`), nie in die Anlage.
  */
 
+import { heuteServer } from "./zeit.js";
+
 // Wie die Pflege im Dialog heißt; der Schlüssel kommt vom Server (`eingabe.pflege`).
 const PFLEGE_TITEL = {
   reinigung: "Reinigung",
@@ -20,12 +22,6 @@ function element(tag, klasse, text) {
   if (klasse) el.className = klasse;
   if (text !== undefined && text !== null) el.textContent = text;
   return el;
-}
-
-/** Heute als „JJJJ-MM-TT“ in der Ortszeit des Browsers. */
-function heute() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /** Der Wert eines Zahlenfelds; ein leeres Feld ist `null`, Unlesbares `NaN`. */
@@ -68,15 +64,15 @@ export const BefundEingabeMixin = (Basis) =>
     _befundDatum(e, zuletzt, art) {
       const feld = element("input", "dialog-zahl befund-datum");
       feld.type = "date";
-      feld.max = heute();
-      feld.value = zuletzt || heute();
+      feld.max = heuteServer(this._hass);
+      feld.value = zuletzt || heuteServer(this._hass);
       this._befundFenster(
         this._t(PFLEGE_TITEL[e.pflege] || "Datum nachtragen"),
         art.startsWith("pflege_")
           ? this._t("Der Tag, an dem die Pflege zuletzt erledigt wurde.")
           : this._t("Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich."),
         [[this._t("Erledigt am"), feld, ""]],
-        () => (/^\d{4}-\d{2}-\d{2}$/.test(feld.value) && feld.value <= heute() ? feld.value : null),
+        () => (/^\d{4}-\d{2}-\d{2}$/.test(feld.value) && feld.value <= heuteServer(this._hass) ? feld.value : null),
         (datum) => this._hass.callService("date", "set_value", { entity_id: e.entity, date: datum })
       );
     }

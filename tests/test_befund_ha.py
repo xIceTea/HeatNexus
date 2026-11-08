@@ -389,6 +389,23 @@ async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
     assert vorrat.native_value == 25.0
 
 
+def test_lieferung_speichert_nur_eigene_werte():
+    """Werte der Anlage bleiben Vorgabe; nur eingetragene Werte stehen im Lager."""
+    from datetime import date
+
+    from custom_components.heatnexus.befund.archiv import Archiv
+    from custom_components.heatnexus.befund.brennstofflauf import liefern
+
+    archiv = Archiv()
+    archiv.lager_setzen(KESSEL, {"fuellmenge": 55.0})
+    vorgabe = {"art": "pellets", "weise": "waerme", "heizwert": 4800.0, "wirkungsgrad": 0.9}
+    liefern(archiv, KESSEL, vorgabe | {"fuellmenge": 50.0}, 5.0, None, date(2026, 11, 20))
+    lager = archiv.lager(KESSEL)
+    assert lager["bestand"] == 5.0
+    assert lager["fuellmenge"] == 55.0
+    assert not {"art", "weise", "heizwert", "wirkungsgrad"} & set(lager)
+
+
 async def test_heizwert_lehnt_eine_brennstofflieferung_ab(hass, anlage):
     from homeassistant.exceptions import ServiceValidationError
 

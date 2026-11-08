@@ -6,6 +6,7 @@
  */
 
 import { zahl } from "./automatik.js";
+import { kalenderdatumText } from "./zeit.js";
 
 const NS = "http://www.w3.org/2000/svg";
 // So alt darf der Stand werden, solange der Reiter offen ist; danach lädt er neu.
@@ -21,11 +22,6 @@ function knoten(tag, klasse, text) {
 /** „2026-10-01“ wird „01.10.“ */
 function kurzdatum(datum) {
   return `${datum.slice(8, 10)}.${datum.slice(5, 7)}.`;
-}
-
-/** „2026-12-25“ wird „25.12.2026“ */
-function datumVoll(datum) {
-  return `${kurzdatum(datum)}${datum.slice(0, 4)}`;
 }
 
 /** Pfad eines Kreisbogens von `von` bis `bis` Grad, im Uhrzeigersinn ab zwölf Uhr. */
@@ -522,10 +518,10 @@ export const BefundMixin = (Basis) =>
     _befundBeisatz(b) {
       const a = b.angaben || {};
       if (b.art === "brennstoff") {
-        return a.datum ? this._tMit("reicht etwa bis {datum}", { datum: datumVoll(a.datum) }) : "";
+        return a.datum ? this._tMit("reicht etwa bis {datum}", { datum: kalenderdatumText(a.datum, this._hass) }) : "";
       }
       if (b.art.startsWith("pflege_")) {
-        return a.datum ? this._tMit("fällig etwa am {datum}", { datum: datumVoll(a.datum) }) : "";
+        return a.datum ? this._tMit("fällig etwa am {datum}", { datum: kalenderdatumText(a.datum, this._hass) }) : "";
       }
       if (b.art === "laufzeit" && a.starts_tag !== null && a.starts_tag !== undefined) {
         return this._tMit("je Start · {n} Starts am Tag", { n: this._befundZahl(a.starts_tag) });
@@ -563,13 +559,13 @@ export const BefundMixin = (Basis) =>
         [b.art === "starts" ? a.ohne : null, "Ohne Eingriff der Automatik", (g) => this._befundGruppe(g)],
         [a.rest_h, "Rest laut Steuerung", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
         [a.abnahme_je_tag, "Abnahme je Tag", (w) => this._tMit("{h} h", { h: this._befundZahl(w) })],
-        [a.zuletzt ? datumVoll(a.zuletzt) : null, "Zuletzt erledigt", (w) => w],
+        [a.zuletzt ? kalenderdatumText(a.zuletzt, this._hass) : null, "Zuletzt erledigt", (w) => w],
         [b.art === "brennstoff" ? a.bestand : null, "Vorrat im Lager", (w) => `${this._befundZahl(w, 2)} ${a.einheit || ""}`],
         [b.art === "brennstoff" ? a.je_tag : null, "Verbrauch je Tag", (w) => `${this._befundZahl(w, 3)} ${a.einheit || ""}`],
         [b.art === "brennstoff" && a.korrektur && a.korrektur !== 1 ? a.korrektur : null, "Korrektur aus Lieferungen", (w) => `× ${this._befundZahl(w, 2)}`],
         [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
-        [a.gemeldet ? datumVoll(a.gemeldet) : null, "Wartung gemeldet am", (w) => w],
-        [a.bezug_seit ? datumVoll(a.bezug_seit) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
+        [a.gemeldet ? kalenderdatumText(a.gemeldet, this._hass) : null, "Wartung gemeldet am", (w) => w],
+        [a.bezug_seit ? kalenderdatumText(a.bezug_seit, this._hass) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
         [a.nachgerechnet ? true : null, "Bezug", () => this._t("aus der Langzeitstatistik nachgerechnet")],
         [a.verlust_jetzt, a.luft_geschaetzt === false ? "Abgasverlust zuletzt, Raumluft gemessen" : "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
         [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],

@@ -13,6 +13,7 @@ import voluptuous as vol
 from ..automatik.verwaltung import verwaltung_holen
 from ..const import DOMAIN
 from ..rechte import darf_lesen
+from ..registrierung import geraetename
 from . import haus, pflege
 from .laufzeit import QUELLE, Sammler, befund_holen, quelle_entitaet, unique_id
 
@@ -91,6 +92,11 @@ def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str
         # Ein Pflegeabschnitt trägt das Gerät selbst als Kennung.
         eigen = abschnitt["art"] == "pflege"
         device_id = abschnitt["kennung"] if eigen else geraete.get(abschnitt["kennung"])
+        # Abschnitte je Gerät heißen wie das Gerät in Home Assistant, auch nach dem Umbenennen.
+        if device_id and abschnitt["art"] in ("pflege", "abgas", "brennstoff", "waermepumpe"):
+            abschnitt["titel"] = geraetename(
+                hass, device_id, sammler.entry.entry_id, abschnitt["titel"]
+            )
         for befund in abschnitt["befunde"]:
             kennung = (
                 pflege.befund_kennung(device_id, befund["art"])

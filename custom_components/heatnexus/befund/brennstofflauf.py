@@ -92,9 +92,11 @@ def liefern(
     heute: date,
 ) -> None:
     """Eine Lieferung eintragen; ohne `rest` gilt der gerechnete Vorrat als Rest."""
-    lager = vorgabe_ | archiv.lager(prefix)
+    eigen = archiv.lager(prefix)
+    lager = vorgabe_ | eigen
     tage_k, zaehler = archiv.tage_k.get(prefix, {}), archiv.zaehler(prefix)
     roh = brennstoff.tagesverbrauch(lager, tage_k, zaehler, mit_korrektur=False)
     aktuell = brennstoff.bestand(lager, brennstoff.tagesverbrauch(lager, tage_k, zaehler))
     neu = brennstoff.geliefert(lager, menge, rest, heute, roh, aktuell)
-    archiv.lager_setzen(prefix, {k: v for k, v in neu.items() if k not in ("art", "weise")})
+    # Werte der Anlage bleiben Vorgabe; ins Lager kommt nur, was eingetragen oder gelernt ist.
+    archiv.lager_setzen(prefix, {k: v for k, v in neu.items() if k in eigen or k not in vorgabe_})
