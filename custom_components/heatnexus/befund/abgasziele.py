@@ -8,6 +8,7 @@ from .pflege import LOGWIN_KLASSE
 from .pflegeziele import praefix
 
 ABGAS = "/0/11/0"
+BRENNSTOFF_PUROWIN = "/38/127/0"
 # Gas-Brennwertgeräte kondensieren; ihre Abgastemperatur sagt nichts über Belag am Tauscher.
 FUNKTIONSTYPEN = (9, 25, 10)
 

@@ -16,7 +16,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import freigabe, texte
-from .client.gemeinsam import gnmn_aus_oid
 from .const import (
     DOMAIN,
     OID_HARDWAREVERSION,
@@ -444,21 +443,26 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     _require_value_for_available = True
 
     @property
+    def _freigabe_praefix(self) -> str | None:
+        """Funktionspräfix, wenn die Bedienung an Freigaben hängt; sonst `None`."""
+        if not self._descriptor.get("freigabe"):
+            return None
+        return _funktionspraefix(self._descriptor)
+
+    @property
     def _freigabe_adressen(self) -> list[str]:
         """Die Adressen, von denen die Freigabe dieser Bedienung abhängt."""
-        regeln = self._descriptor.get("freigabe")
-        if not regeln or not self._oid:
+        if (praefix := self._freigabe_praefix) is None:
             return []
-        return freigabe.adressen(regeln, self._oid.removesuffix(f"/{gnmn_aus_oid(self._oid)}/0"))
+        return freigabe.adressen(self._descriptor["freigabe"], praefix)
 
     @property
     def freigegeben(self) -> bool:
         """Ob die Anlage diese Bedienung im aktuellen Zustand zulässt."""
-        regeln = self._descriptor.get("freigabe")
-        if not regeln or not self._oid:
+        if (praefix := self._freigabe_praefix) is None:
             return True
-        praefix = self._oid.removesuffix(f"/{gnmn_aus_oid(self._oid)}/0")
-        return freigabe.freigegeben(regeln, praefix, (self.coordinator.data or {}).get("oids", {}))
+        werte = (self.coordinator.data or {}).get("oids", {})
+        return freigabe.freigegeben(self._descriptor["freigabe"], praefix, werte)
 
     @property
     def available(self) -> bool:

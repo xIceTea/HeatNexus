@@ -7,26 +7,15 @@ from typing import Any
 
 from ..helpers import get_oid_value
 from . import brennstoff
-from .abgasziele import AbgasZiel, ziele
+from .abgaslauf import ziele_von
+from .abgasziele import BRENNSTOFF_PUROWIN, AbgasZiel
 from .auswertung import Brennstoffgeraet
-from .pflegelauf import geraetename
+from .pflegelauf import beschrieben, geraetename
 
-BRENNSTOFF_PUROWIN = "/38/127/0"
 HEIZWERT_BIOWIN = "/43/104/0"
 NENN = ("/39/61/0", "/11/2/0")
 # Der Hybridmanager führt den Wirkungsgrad des Pelletskessels für seinen Kostenvergleich.
 WIRKUNGSGRAD_HYBRID = "/54/2/0"
-
-
-def ziele_von(coordinator: Any) -> list[AbgasZiel]:
-    """Dieselben Kessel wie beim Abgaswächter: BioWIN, PuroWIN, LogWIN."""
-    beschreibungen = (coordinator.data or {}).get("devices") or []
-    klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
-    return ziele(beschreibungen, klassen)
-
-
-def _hat(coordinator: Any, oid: str) -> bool:
-    return any(b.get("oid") == oid for b in (coordinator.data or {}).get("devices") or [])
 
 
 def _wirkungsgrad(coordinator: Any) -> float | None:
@@ -46,7 +35,7 @@ def vorgabe(coordinator: Any, z: AbgasZiel) -> dict[str, Any]:
     code = wert(BRENNSTOFF_PUROWIN) if z.fct_type == 25 else None
     art = brennstoff.art_von(z.fct_type, code)
     zaehler = brennstoff.ZAEHLER.get(z.fct_type)
-    hat_zaehler = bool(zaehler) and _hat(coordinator, f"{z.prefix}{zaehler}")
+    hat_zaehler = bool(zaehler) and beschrieben(coordinator, f"{z.prefix}{zaehler}")
     ergebnis: dict[str, Any] = {"art": art, "weise": brennstoff.weise_von(z.fct_type, hat_zaehler)}
     if (heizwert := wert(HEIZWERT_BIOWIN)) and art == "pellets":
         ergebnis["heizwert"] = heizwert * 1000

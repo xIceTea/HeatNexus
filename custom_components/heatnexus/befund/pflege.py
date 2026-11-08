@@ -177,13 +177,17 @@ def _termin(
     return form.Befund(art, status, float(tage), "d", stufe, angaben)
 
 
-def _datum(
-    rest: float, rate: float | None, heute: date, jahr: dict[str, float]
+def datum_vorschau(
+    rest: float,
+    rate: float | None,
+    heute: date,
+    jahr: dict[str, float],
+    ruhe: float = RUHE_H_JE_TAG,
 ) -> tuple[date | None, bool]:
-    """Fälligkeit nach dem Vorjahr, sonst linear mit der Abnahme; `True`, wenn sie ruht."""
+    """Wann der Rest aufgebraucht ist: nach dem Vorjahr, sonst linear; `True`, wenn er ruht."""
     if jahr:
         return vorschau(rest, heute, jahr), False
-    if rate is None or rate < RUHE_H_JE_TAG:
+    if rate is None or rate <= 0 or rate < ruhe:
         return None, True
     tage = math.ceil(max(rest, 0.0) / rate)
     return (heute + timedelta(days=tage) if tage <= VORSCHAU_TAGE else None), False
@@ -207,7 +211,7 @@ def _zaehler(
     if stufe == form.SAMMELT and not jahr:
         return form.Befund(art, form.SAMMELT, angaben=angaben)
     stufe = form.VORLAEUFIG if stufe == form.SAMMELT else stufe
-    datum, ruht = _datum(rest, rate, heute, jahr)
+    datum, ruht = datum_vorschau(rest, rate, heute, jahr)
     if datum is None:
         angaben[("ruht" if ruht else "ueber_jahr")] = True
         return form.Befund(art, form.UNAUFFAELLIG, None, "d", stufe, angaben)

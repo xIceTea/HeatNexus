@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from itertools import pairwise
-import math
 from typing import Any
 
-from . import form
-from .pflege import JAHR_MIN_TAGE, VORSCHAU_TAGE, vorschau
+from . import abgas, form
+from .pflege import JAHR_MIN_TAGE, VORSCHAU_TAGE, datum_vorschau
 
 EINHEIT = {"pellets": "t", "hackgut": "Srm", "scheitholz": "Rm"}
 # Heizwert je Lagereinheit (LWF-Merkblatt 12): Pellets 4,8 kWh/kg, Hackgut Fichte W30 je
@@ -25,16 +24,11 @@ MAX_JE_TAG = {"zaehler": 1.0, "anheizen": 20.0}
 # Ab Werk liegen 23/103 (Brennstoffverbrauch gesamt, t) an der BioWIN und 20/112
 # (Anheizvorgänge) am LogWIN; die PuroWIN zählt keinen Brennstoff.
 ZAEHLER = {9: "/23/103/0", 10: "/20/112/0"}
-PUROWIN_PELLETS = 2
 
 
 def art_von(fct_type: int | None, brennstoff_code: float | None) -> str:
     """Pellets, Hackgut oder Scheitholz nach Baureihe; die PuroWIN meldet ihn in `38/127`."""
-    if fct_type == 10:
-        return "scheitholz"
-    if fct_type == 25:
-        return "pellets" if brennstoff_code == PUROWIN_PELLETS else "hackgut"
-    return "pellets"
+    return abgas.brennstoff(fct_type, brennstoff_code).split("_")[0]
 
 
 def weise_von(fct_type: int | None, hat_zaehler: bool) -> str:
@@ -153,12 +147,8 @@ def befund(lager: dict[str, Any], verbrauch: dict[str, float], heute: date) -> f
     stufe = form.BELASTBAR if gezaehlt else form.VORLAEUFIG
     if mittel is None and not jahr:
         return form.Befund("brennstoff", form.SAMMELT, angaben=angaben)
-    if jahr:
-        datum = vorschau(max(vorrat, 0.0), heute, jahr)
-    elif mittel and mittel > 0:
-        tage = math.ceil(max(vorrat, 0.0) / mittel)
-        datum = heute + timedelta(days=tage) if tage <= VORSCHAU_TAGE else None
-    else:
+    datum, ruht = datum_vorschau(max(vorrat, 0.0), mittel, heute, jahr, ruhe=0.0)
+    if ruht:
         return form.Befund(
             "brennstoff", form.UNAUFFAELLIG, None, "d", stufe, angaben | {"ruht": True}
         )

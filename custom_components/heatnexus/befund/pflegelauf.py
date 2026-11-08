@@ -14,11 +14,24 @@ from .pflegeziele import Ziel, ziele
 Statistik = Callable[[set[str]], Awaitable[dict[str, list[dict[str, Any]]]]]
 
 
+def beschreibungen(coordinator: Any) -> list[dict[str, Any]]:
+    """Die Datenpunkt-Beschreibungen der Erkennung."""
+    return (coordinator.data or {}).get("devices") or []
+
+
+def klassen(coordinator: Any) -> dict[str, str]:
+    """Die Geräteklasse je Knoten aus der Erkennung."""
+    return getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
+
+
+def beschrieben(coordinator: Any, oid: str) -> bool:
+    """Ob die Erkennung die Adresse als Datenpunkt führt."""
+    return any(b.get("oid") == oid for b in beschreibungen(coordinator))
+
+
 def pflegeziele_von(coordinator: Any) -> list[Ziel]:
     """Die Pflegeziele einer Anlage aus Beschreibungen und Geräteklassen der Erkennung."""
-    beschreibungen = (coordinator.data or {}).get("devices") or []
-    klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
-    return ziele(beschreibungen, klassen)
+    return ziele(beschreibungen(coordinator), klassen(coordinator))
 
 
 def messen(coordinator: Any, archiv: Any, heute: date) -> None:

@@ -69,8 +69,8 @@ QUELLE = {
     "vorlauf": HEIZKREIS["vi"],
     "laufzeit": BH,
     "energie": LEISTUNG,
-    "abgas": "/0/11/0",
-    "arbeitszahl": "/52/87/0",
+    "abgas": abgaslauf.ABGAS,
+    "arbeitszahl": waermepumpelauf.TAGESZAEHLER["cop"],
 }
 
 

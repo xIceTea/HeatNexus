@@ -8,12 +8,11 @@ from typing import Any
 
 from ..helpers import get_oid_raw, get_oid_value
 from . import abgas
-from .abgasziele import AbgasZiel, ziele
+from .abgasziele import ABGAS, BRENNSTOFF_PUROWIN, AbgasZiel, ziele
 from .auswertung import Abgasgeraet
-from .pflegelauf import geraetename
+from .pflegelauf import beschreibungen, beschrieben, geraetename, klassen
 
-ABGAS, KESSEL, LEISTUNG, PHASE, O2 = "/0/11/0", "/0/7/0", "/0/9/0", "/2/1/0", "/0/42/0"
-BRENNSTOFF_PUROWIN = "/38/127/0"
+KESSEL, LEISTUNG, PHASE, O2 = "/0/7/0", "/0/9/0", "/2/1/0", "/0/42/0"
 # Im Pflegestand des Archivs: bis zu welchem Tag Abgastage aus der Langzeitstatistik stammen.
 NACHGERECHNET = "abgas_nachgerechnet"
 # Ebenda: seit wann ein O2-Wert gelesen wurde; ohne eigene Entität kommt er erst mit dem ersten Takt.
@@ -24,17 +23,15 @@ FELDER_STATISTIK = {"leistung": LEISTUNG, "abgas": ABGAS, "kessel": KESSEL, "o2"
 
 def ziele_von(coordinator: Any) -> list[AbgasZiel]:
     """Die Kessel mit Abgaswächter aus Beschreibungen und Geräteklassen der Erkennung."""
-    beschreibungen = (coordinator.data or {}).get("devices") or []
-    klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
-    return ziele(beschreibungen, klassen)
+    return ziele(beschreibungen(coordinator), klassen(coordinator))
 
 
 def mit_o2(coordinator: Any, prefix: str, archiv: Any = None) -> bool:
     """Ob der Kessel ein O2-Signal führt: als Entität, als gelesener Wert oder laut Archiv."""
-    oid = f"{prefix}{O2}"
-    beschrieben = any(b.get("oid") == oid for b in (coordinator.data or {}).get("devices") or [])
     gesehen = archiv is not None and bool(archiv.pflege_eintrag(prefix, O2_GESEHEN))
-    return beschrieben or gesehen or get_oid_raw(coordinator, O2, prefix) is not None
+    if gesehen or beschrieben(coordinator, f"{prefix}{O2}"):
+        return True
+    return get_oid_raw(coordinator, O2, prefix) is not None
 
 
 def _o2_merken(coordinator: Any, archiv: Any, prefix: str, tag: str) -> None:

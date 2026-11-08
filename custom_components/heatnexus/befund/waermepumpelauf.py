@@ -9,7 +9,7 @@ from typing import Any
 from ..helpers import get_oid_value
 from . import waermepumpe
 from .auswertung import Waermepumpengeraet
-from .pflegelauf import geraetename
+from .pflegelauf import beschreibungen, geraetename
 from .pflegeziele import praefix
 
 LUFT, LEISTUNG, EHEIZUNG = "/52/12/0", "/50/26/0", "/56/5/0"
@@ -41,7 +41,7 @@ class WpZiel:
 
 
 def _beschreibungen(coordinator: Any) -> dict[str, dict]:
-    return {b.get("oid") or "": b for b in (coordinator.data or {}).get("devices") or []}
+    return {b.get("oid") or "": b for b in beschreibungen(coordinator)}
 
 
 def _erstes(vorhanden: dict[str, dict], prefix: str, adressen: tuple[str, ...]) -> str | None:
