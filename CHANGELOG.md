@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Wärmepumpe: Silentmode, Faktor und Zeitfenster lassen sich in der Steuerung einstellen ([#53](https://github.com/xIceTea/HeatNexus/issues/53)).
+- AeroWIN: Silentmode, Faktor und Zeitfenster lassen sich in der Steuerung einstellen ([#53](https://github.com/xIceTea/HeatNexus/issues/53)).
 
 ### Geändert
 
