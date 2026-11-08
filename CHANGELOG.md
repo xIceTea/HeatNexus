@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- AeroWIN: Silentmode, Faktor und Zeitfenster lassen sich in der Steuerung einstellen ([#53](https://github.com/xIceTea/HeatNexus/issues/53)).
+
 ### Geändert
 
 - Die Reparaturen nennen Anlagenteile, die keine Werte liefern.

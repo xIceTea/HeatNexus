@@ -41,6 +41,7 @@ import { StoerspeicherMixin } from "./teile/stoerspeicher.js";
 import { TagesbildMixin } from "./teile/tagesbild.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
 import { VerlaufMixin } from "./teile/verlauf.js";
+import { WaermepumpeMixin } from "./teile/waermepumpe.js";
 import { WartungMixin } from "./teile/wartung.js";
 import { WerteMixin } from "./teile/werte.js";
 import { ZeitprogrammeMixin } from "./teile/zeitprogramme.js";
@@ -50,7 +51,7 @@ import { GemeinsamMixin } from "./teile/gemeinsam.js";
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
-const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
+const Grundlage = GemeinsamMixin(WaermepumpeMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
@@ -70,7 +71,7 @@ const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
       )
     )
   )
-));
+)));
 
 class HeatNexusPanel extends Grundlage {
   constructor() {
