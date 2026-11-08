@@ -187,14 +187,6 @@ def stumme_teile_melden(
     )
 
 
-def stumme_teile_entfernen(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Die Reparatureinträge eines entfernten Eintrags abräumen."""
-    for system in systems(entry):
-        ir.async_delete_issue(
-            hass, DOMAIN, f"stumme_teile_{entry.entry_id}_{system.get(CONF_HOST)}"
-        )
-
-
 def laufzeitdaten(entry: ConfigEntry) -> dict | None:
     """Die Laufzeitdaten eines Konfigurationseintrags, falls er geladen ist.
 

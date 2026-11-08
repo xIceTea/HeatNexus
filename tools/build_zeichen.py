@@ -59,7 +59,8 @@ def innen() -> str:
 
 def zeichen_js() -> str:
     """`frontend/zeichen.js`; die Kennungen der Verläufe sind je Zeichen eigene."""
-    teil = innen()
+    # Die Gruppen brauchen nur die Projektseite; im Panel stünde ihre `id` mehrfach.
+    teil = re.sub(r' id="zeichen-(?:haus|heizkoerper)"', "", innen())
     for kennung, name in (
         ("zeichen-oben", "oben"),
         ("zeichen-unten", "unten"),

@@ -128,3 +128,8 @@ def test_der_abschnitt_der_laufenden_fassung_ist_sauber():
 
 def test_aerowin_ist_eine_baureihe():
     assert _arten("AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.") == []
+
+
+def test_alle_baureihen_des_herstellers_sind_bekannt():
+    for name in ("AquaWIN", "MinoWIN", "MultiWIN", "SilvaWIN", "TerraWIN", "VestoWIN"):
+        assert _arten(f"{name}: Die Taste erscheint.") == []

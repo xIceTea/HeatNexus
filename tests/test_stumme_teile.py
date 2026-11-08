@@ -15,10 +15,8 @@ if not ha_fehlt():
     from homeassistant.helpers import issue_registry as ir
 
     from custom_components.heatnexus.const import CONF_LABEL, CONF_SYSTEMS, DOMAIN
-    from custom_components.heatnexus.erkennungsstand import (
-        stumme_teile_entfernen,
-        stumme_teile_melden,
-    )
+    from custom_components.heatnexus.erkennungsstand import stumme_teile_melden
+    from custom_components.heatnexus.repairs import adresshinweise_entfernen
 
 HOST = "192.0.2.20"
 STRUKTUR = [
@@ -64,6 +62,20 @@ def test_die_namen_kommen_aus_knoten_und_funktion(anlage):
         "/1/15/1": "WFBPK Pellet",
         "/1/16/1": "WFBPK",
     }
+
+
+def test_gleiche_namen_tragen_die_knotennummer(anlage):
+    zwilling = {"nodeId": 17, "name": "WFBPK", "functions": [{"fctId": 1, "fctType": 16}]}
+    namen = anlage._teilnamen_lesen([*STRUKTUR, zwilling])
+    assert namen["/1/15/1"] == "WFBPK Pellet"
+    assert namen["/1/16/1"] == "WFBPK (Knoten 16)"
+    assert namen["/1/17/1"] == "WFBPK (Knoten 17)"
+
+
+def test_die_knotennummer_folgt_der_sprache(anlage):
+    zwilling = {"nodeId": 17, "name": "WFBPK", "functions": [{"fctId": 1, "fctType": 16}]}
+    anlage.sprache = "en"
+    assert anlage._teilnamen_lesen([*STRUKTUR, zwilling])["/1/16/1"] == "WFBPK (Node 16)"
 
 
 def test_ein_teil_ohne_antwort_und_ohne_wert_ist_stumm(anlage):
@@ -123,5 +135,13 @@ async def test_ein_vollstaendiger_lauf_nimmt_den_eintrag_zurueck(hass):
 
 async def test_das_entfernen_des_eintrags_raeumt_auf(hass):
     stumme_teile_melden(hass, _eintrag(), HOST, ["WFBPK"])
-    stumme_teile_entfernen(hass, _eintrag())
+    adresshinweise_entfernen(hass, "e1")
+    assert _eintrag_im_register(hass) is None
+
+
+async def test_der_eintrag_faellt_mit_seiner_adresse(hass):
+    stumme_teile_melden(hass, _eintrag(), HOST, ["WFBPK"])
+    adresshinweise_entfernen(hass, "e1", "192.0.2.21")
+    assert _eintrag_im_register(hass) is not None
+    adresshinweise_entfernen(hass, "e1", HOST)
     assert _eintrag_im_register(hass) is None
