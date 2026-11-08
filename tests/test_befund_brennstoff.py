@@ -79,6 +79,20 @@ def test_bestand_zieht_verbrauch_seit_lieferung_ab(bs):
     assert bs.bestand({}, verbrauch) is None
 
 
+def test_gerechneter_vorrat_faellt_nicht_unter_null(bs):
+    """Ergibt die Rechnung mehr Verbrauch als Vorrat, zeigen Entität und Bestandsdialog null."""
+    lager = {"art": "pellets", "bestand": 1.0, "seit": "2026-11-17"}
+    verbrauch = {"2026-11-18": 0.9, "2026-11-19": 0.9}
+    assert bs.bestand(lager, verbrauch) == 0.0
+    assert bs.befund(lager, verbrauch, HEUTE).angaben["bestand"] == 0.0
+
+
+def test_lieferung_ohne_rest_nach_leerem_vorrat_zieht_nichts_ab(bs):
+    lager = {"bestand": 2.0, "seit": "2026-11-01"}
+    neu = bs.geliefert(lager, 5.0, None, HEUTE, {"2026-11-05": 2.8}, aktuell=-0.8)
+    assert neu["bestand"] == 5.0
+
+
 def test_lieferung_mit_rest_lernt_korrektur(bs):
     lager = {"art": "hackgut", "weise": "waerme", "bestand": 10.0, "seit": "2026-11-01"}
     roh = {"2026-11-05": 2.0, "2026-11-10": 2.0}

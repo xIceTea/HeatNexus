@@ -87,11 +87,11 @@ def tagesverbrauch(
 
 
 def bestand(lager: dict[str, Any], verbrauch: dict[str, float]) -> float | None:
-    """Vorrat heute: Stand der letzten Lieferung minus Verbrauch der Tage danach."""
+    """Vorrat heute: Stand der letzten Lieferung minus Verbrauch der Tage danach, nicht unter null."""
     if lager.get("bestand") is None:
         return None
     seit = lager.get("seit") or ""
-    return round(lager["bestand"] - sum(v for t, v in verbrauch.items() if t > seit), 3)
+    return max(round(lager["bestand"] - sum(v for t, v in verbrauch.items() if t > seit), 3), 0.0)
 
 
 def geliefert(
@@ -111,7 +111,8 @@ def geliefert(
         tatsaechlich = lager["bestand"] - rest
         faktor = min(KORREKTUR_MAX, max(KORREKTUR_MIN, tatsaechlich / berechnet))
         korrekturen = [*korrekturen, round(faktor, 3)][-KORREKTUREN:]
-    vorher = rest if rest is not None else (aktuell or 0.0)
+    # Ein gerechneter Vorrat unter null heißt leer; der Überhang zählt nicht gegen die neue Menge.
+    vorher = rest if rest is not None else max(aktuell or 0.0, 0.0)
     eintrag = {"tag": heute.isoformat(), "menge": menge, "rest": rest}
     neu |= {
         "bestand": round(vorher + menge, 3),
