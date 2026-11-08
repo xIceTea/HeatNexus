@@ -27,6 +27,10 @@ HILFE: tuple[tuple[str, str], ...] = (
         "Womit der Kessel rechnet. Die Anlage kennt vier Einstellungen:\n\n• Hackgut normal — Wassergehalt 15 bis 30 %, Aschegehalt bis 1,5 %\n• Hackgut feucht — über 30 %, höchstens 35 % Wassergehalt\n• Hackgut normal schlackend — 15 bis 30 % Wasser, Aschegehalt über 1,5 bis etwa 3 %\n• Hackgut feucht schlackend — über 30 % Wasser, Aschegehalt über 1,5 bis etwa 3 %\n\n„Schlackend“ erkennt man an festen Klumpen in der Asche; die Anlage verlängert dann die Entaschungsintervalle. Bei unter 25 % Wassergehalt rät der Hersteller von „feucht“ ab. Nach einem Brennstoffwechsel lohnt ein Blick in die Asche: zu viele Holzkohlereste sprechen wieder für „normal“ oder „feucht“.\n\nDie Umstellung wirkt erst, nachdem der Kessel am Hauptschalter aus- und wieder eingeschaltet wurde.",
     ),
     (
+        r"^silentmode$",
+        "Macht die Wärmepumpe im Zeitfenster des Zeitprogramms Silentmode leiser, etwa in der Nacht.\n\n• Aus — kein Silentmode\n• Mode 1 — Lüfter und Verdichter werden mit dem Silentmode Faktor begrenzt; die Wärmepumpe liefert weniger Leistung und ist leiser\n• Mode 2 — die Wärmepumpe ist im Zeitfenster gesperrt; an einer Hybridanlage übernimmt der Kessel\n\nAußerhalb des Zeitfensters läuft die Wärmepumpe normal.",
+    ),
+    (
         r"serviceausbrand",
         "Brennt den Kessel gezielt aus, bis weder Glut noch unverbrannter Brennstoff im Brenner liegt — danach ist er zur Reinigung bereit. Vor Reinigungs-, Wartungs- und Servicearbeiten schaltet man den Kessel so ab. Der Vorgang dauert und lässt sich nicht abbrechen.",
     ),

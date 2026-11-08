@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Wärmepumpe: Silentmode, Faktor und Zeitfenster lassen sich in der Steuerung einstellen ([#53](https://github.com/xIceTea/HeatNexus/issues/53)).
+
 ### Behoben
 
 - BioWIN: An einer Hybridanlage fehlt die Betriebswahl der Wärmepumpe im Schnellzugriff ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).

@@ -34,6 +34,9 @@ from .muster import (
     LAGERRAUM_ANFORDERN,
     LAGERRAUM_BEENDEN,
     LAGERRAUM_ZEILEN,
+    SILENTMODE,
+    SILENTMODE_FAKTOR,
+    SILENTMODE_PROGRAMM,
     UEBERSTEUERUNG_DAUER,
     UEBERSTEUERUNG_TEMPERATUR,
     WARMWASSER,
@@ -447,6 +450,31 @@ def _lagerraum_karte(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> dict
     }
 
 
+def _waermepumpen_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Je Wärmepumpe mit Silentmode eine Karte: Modus, Faktor und Zeitprogramm.
+
+    Der Silentmode gehört zur Wärmepumpe selbst, nicht zum Hybridmanager; die
+    Karte erscheint deshalb an jeder Wärmepumpe, die ihn führt.
+    """
+    karten = []
+    for teil in anlage["teile"]:
+        entitaeten = teil["entitaeten"]
+        modus = kennung_suchen(entitaeten, SILENTMODE, ("select",))
+        if modus is None:
+            continue
+        karten.append(
+            {
+                "id": teil["id"],
+                "titel": teil["name"],
+                "silentmode": modus,
+                "silentmode_hilfe": hilfe("Silentmode"),
+                "faktor": kennung_suchen(entitaeten, SILENTMODE_FAKTOR, ("number",)),
+                "programm": kennung_suchen(entitaeten, SILENTMODE_PROGRAMM, ("sensor",)),
+            }
+        )
+    return karten
+
+
 def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     """Der Reiter „Steuerung": alles, was man an der Anlage wirklich verstellt.
 
@@ -459,4 +487,5 @@ def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
         "warmwasser": _warmwasser_karte(anlage, alle),
         "kessel": _kessel_karten(anlage),
         "lagerraum": _lagerraum_karte(anlage, alle),
+        "waermepumpen": _waermepumpen_karten(anlage),
     }

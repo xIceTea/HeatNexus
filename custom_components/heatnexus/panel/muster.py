@@ -308,6 +308,11 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
 )
 
+# Wärmepumpe: Silentmode (50/11), sein Faktor (50/32) und sein Zeitprogramm (50/14).
+SILENTMODE = namensmuster(r"^silentmode$")
+SILENTMODE_FAKTOR = namensmuster(r"^silentmode faktor$")
+SILENTMODE_PROGRAMM = namensmuster(r"^zeitprogramm silentmode$")
+
 # ---------------------------------------------------------------------------
 # Reiter „Wartung"
 # ---------------------------------------------------------------------------

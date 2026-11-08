@@ -1,8 +1,8 @@
 /**
  * Reiter „Steuerung“ – die Anlage bedienen.
  *
- * Heizkreis mit Sollwertregler, Eco und Comfort, Warmwasser, Lagerraum und
- * Kessel. Jede Karte hier schreibt an die Anlage; das Muster dafür steht in
+ * Heizkreis mit Sollwertregler, Eco und Comfort, Warmwasser, Lagerraum,
+ * Kessel und Wärmepumpe. Jede Karte hier schreibt an die Anlage; das Muster dafür steht in
  * `bedienen.js`.
  *
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin, damit die
@@ -41,6 +41,12 @@ export const SteuerungMixin = (Basis) =>
         titel: "Lagerraum befüllen",
         knoten: steuerung.lagerraum ? this._lagerraumKarte(steuerung.lagerraum) : null,
       },
+      // Je Wärmepumpe mit Silentmode eine Karte, mit oder ohne Hybridmanager.
+      ...(steuerung.waermepumpen || []).map((pumpe) => ({
+        id: `waermepumpe:${pumpe.id}`,
+        titel: pumpe.titel,
+        knoten: this._waermepumpeKarte(pumpe),
+      })),
       // Nur an der Anlage mit Hybridmanager; sonst bleibt der Knoten leer.
       { id: "hybridmanager", titel: "Hybridmanager", knoten: this._hybridKarte(anlage) }
     );

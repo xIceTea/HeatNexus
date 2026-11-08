@@ -1223,5 +1223,13 @@
   "Schiefer": "Leisteen",
   "Schwarz": "Zwart",
   "Weiß": "Wit",
-  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Tekst en achtergrond zijn moeilijk te onderscheiden."
+  "Schrift und Hintergrund sind kaum zu unterscheiden.": "Tekst en achtergrond zijn moeilijk te onderscheiden.",
+  "Silentmode": "Stille modus",
+  "Silentmode Faktor": "Factor stille modus",
+  "Zeitfenster": "Tijdvenster",
+  "Zeitprogramm Silentmode": "Tijdprogramma stille modus",
+  "Zeitfenster bearbeiten": "Tijdvenster bewerken",
+  "ganztägig": "de hele dag",
+  "kein Zeitfenster": "geen tijdvenster",
+  "Macht die Wärmepumpe im Zeitfenster des Zeitprogramms Silentmode leiser, etwa in der Nacht.\n\n• Aus — kein Silentmode\n• Mode 1 — Lüfter und Verdichter werden mit dem Silentmode Faktor begrenzt; die Wärmepumpe liefert weniger Leistung und ist leiser\n• Mode 2 — die Wärmepumpe ist im Zeitfenster gesperrt; an einer Hybridanlage übernimmt der Kessel\n\nAußerhalb des Zeitfensters läuft die Wärmepumpe normal.": "Maakt de warmtepomp stiller binnen het venster van het tijdprogramma stille modus, bijvoorbeeld 's nachts.\n\n• Aus — geen stille modus\n• Mode 1 — ventilator en compressor worden begrensd door de factor stille modus; de warmtepomp levert minder vermogen en is stiller\n• Mode 2 — de warmtepomp is binnen het venster geblokkeerd; bij een hybride installatie neemt de ketel het over\n\nBuiten het venster werkt de warmtepomp normaal."
 }
