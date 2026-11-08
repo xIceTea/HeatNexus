@@ -137,6 +137,10 @@ def test_zeitfenster_als_text(tmp_path, fall, bloecke, erwartet):
         encoding="utf-8",
     )
     ausgabe = subprocess.run(
-        ["node", str(skript), json.dumps(bloecke)], capture_output=True, text=True, check=True
+        ["node", str(skript), json.dumps(bloecke)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
     )
     assert ausgabe.stdout.strip() == erwartet
