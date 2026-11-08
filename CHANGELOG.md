@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- BioWIN: An einer Hybridanlage fehlt die Betriebswahl der Wärmepumpe im Schnellzugriff ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).
+
 ## [1.15.0] - 2026-11-05
 
 ### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild
