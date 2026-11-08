@@ -15,7 +15,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import texte
+from . import freigabe, texte
+from .client.gemeinsam import gnmn_aus_oid
 from .const import (
     DOMAIN,
     OID_HARDWAREVERSION,
@@ -23,6 +24,7 @@ from .const import (
     SIGNAL_NEUE_ENTITAETEN,
 )
 from .error_texts import parse_messages
+from .exceptions import WindhagerWriteError, mit_text
 from .geraete import modell
 from .helpers import enum_texte, parse_value
 from .lon import ungueltig as lon_ungueltig
@@ -346,6 +348,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         „nicht verfügbar".
         """
         await super().async_added_to_hass()
+        for adresse in self._freigabe_adressen:
+            self.coordinator.client.register_poll_oid(adresse)
         if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.register_poll_oid(self._oid)
             # Den einen Wert sofort holen: Wer eine Entität einschaltet, lädt den Eintrag
@@ -371,6 +375,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Beim Entfernen/Deaktivieren die OID wieder abmelden."""
+        for adresse in self._freigabe_adressen:
+            self.coordinator.client.unregister_poll_oid(adresse)
         if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.unregister_poll_oid(self._oid)
         await super().async_will_remove_from_hass()
@@ -438,7 +444,26 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     _require_value_for_available = True
 
     @property
+    def _freigabe_adressen(self) -> list[str]:
+        """Die Adressen, von denen die Freigabe dieser Bedienung abhängt."""
+        regeln = self._descriptor.get("freigabe")
+        if not regeln or not self._oid:
+            return []
+        return freigabe.adressen(regeln, self._oid.removesuffix(f"/{gnmn_aus_oid(self._oid)}/0"))
+
+    @property
+    def freigegeben(self) -> bool:
+        """Ob die Anlage diese Bedienung im aktuellen Zustand zulässt."""
+        regeln = self._descriptor.get("freigabe")
+        if not regeln or not self._oid:
+            return True
+        praefix = self._oid.removesuffix(f"/{gnmn_aus_oid(self._oid)}/0")
+        return freigabe.freigegeben(regeln, praefix, (self.coordinator.data or {}).get("oids", {}))
+
+    @property
     def available(self) -> bool:
+        if not self.freigegeben:
+            return False
         if not self._require_value_for_available:
             return super().available
         if self.raw_value is not None:
@@ -452,6 +477,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
         Kein voller Durchlauf: Ein Dienstaufruf wartete sonst, bis die ganze Anlage gelesen ist.
         """
+        if not self.freigegeben:
+            raise mit_text(WindhagerWriteError, "bedienung_gesperrt", oid=self._oid)
         await self.coordinator.client.update(self._oid, value)
         self._sofort_anzeigen(value)
         self._nachfassen(value)

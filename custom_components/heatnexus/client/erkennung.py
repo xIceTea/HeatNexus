@@ -52,6 +52,8 @@ DESKRIPTOR_VORGABE: dict = {
     "max": None,
     "step": None,
     "press_value": None,
+    # Bedienbar nur bei diesen Werten der Anlage: {"gn/mn": (Werte, ...)}.
+    "freigabe": None,
     # Schaltwerte eines Schalters auf einer Betriebswahl. Ohne Angabe gelten
     # 1 und 0.
     "ein_wert": None,
@@ -349,6 +351,7 @@ class ErkennungMixin:
             max=definition.get("max"),
             step=definition.get("step"),
             press_value=definition.get("press_value"),
+            freigabe=definition.get("freigabe"),
             ein_wert=definition.get("ein_wert"),
             aus_wert=definition.get("aus_wert"),
             zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,
@@ -571,7 +574,10 @@ class ErkennungMixin:
         layers = get_layers(fct_type) or {}
         if not nur_kern:
             level_of, _ = self._ebenen_und_gruppen(layers)
+            klasse = self.geraeteklasse.get(prefix.split("/")[2])
             for definition in FCT_ENTITY_MAP.get(fct_type, []):
+                if (klassen := definition.get("klassen")) and klasse not in klassen:
+                    continue
                 self._add_entity(definition, prefix, device_id, fct, level_of)
 
         # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern

@@ -22,6 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 - AeroWIN: Die Auswertung meldet, wenn der Gütegrad seit der Verdampferreinigung sinkt.
 - AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
+- LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
 
 ### Geändert
 

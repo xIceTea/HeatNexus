@@ -383,6 +383,44 @@ def test_eine_taste_liest_sofort_nach_was_sie_veraendert(oid, press_value, endun
     assert koordinator.nachgefasst == [folgen]
 
 
+_ZUENDOPTION = "/1/65/0/46/100/0"
+_ZUENDBEREIT = {"12/105": ("1",), "2/1": ("3", "6", "13")}
+
+
+def _zuendtaste(werte: dict[str, str]):
+    from custom_components.heatnexus.button import WindhagerButton
+
+    return _entitaet(
+        WindhagerButton,
+        werte,
+        type="button",
+        oid=_ZUENDOPTION,
+        press_value="2",
+        freigabe=_ZUENDBEREIT,
+    )
+
+
+def test_eine_gesperrte_taste_ist_nicht_verfuegbar_und_schreibt_nichts():
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    entity, koordinator = _zuendtaste({"/1/65/0/12/105/0": "0", "/1/65/0/2/1/0": "3"})
+    assert entity.available is False
+    with pytest.raises(WindhagerWriteError):
+        asyncio.run(entity.async_press())
+    assert koordinator.client.geschrieben == []
+
+
+def test_eine_freigegebene_taste_schreibt_ihren_wert():
+    entity, koordinator = _zuendtaste({"/1/65/0/12/105/0": "1", "/1/65/0/2/1/0": "13"})
+    asyncio.run(entity.async_press())
+    assert koordinator.client.geschrieben == [(_ZUENDOPTION, "2")]
+
+
+def test_die_freigabe_meldet_ihre_adressen_zum_abruf_an():
+    entity, _ = _zuendtaste({})
+    assert entity._freigabe_adressen == ["/1/65/0/12/105/0", "/1/65/0/2/1/0"]
+
+
 def test_button_ohne_angabe_schreibt_eins():
     from custom_components.heatnexus.button import WindhagerButton
 

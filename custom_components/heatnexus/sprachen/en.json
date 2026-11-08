@@ -1285,5 +1285,14 @@
   "Die Eingabe ist unvollständig oder ungültig.": "The entry is incomplete or invalid.",
   "Die Eingabe konnte nicht gespeichert werden.": "The entry could not be saved.",
   "Der Tag, an dem die Pflege zuletzt erledigt wurde.": "The day the care task was last done.",
-  "Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich.": "The day the cleaning was last done. The first days after it form the reference for the comparison."
+  "Der Tag, an dem die Reinigung zuletzt erledigt wurde. Die ersten Tage danach bilden den Bezug für den Vergleich.": "The day the cleaning was last done. The first days after it form the reference for the comparison.",
+  "Sofort zünden": "Ignite now",
+  "Automatisch zünden": "Ignite automatically",
+  "Zündung sperren bis": "Lock ignition until",
+  "Zündung abbrechen": "Cancel ignition",
+  "Zündung um": "Ignition time",
+  "Zündung am": "Ignition date",
+  "Elektrische Zündung": "Electric ignition",
+  "Zündzeit Vorgabe": "Default ignition time",
+  "Zündmodus": "Ignition mode"
 }
