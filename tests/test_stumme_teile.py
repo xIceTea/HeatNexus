@@ -15,10 +15,8 @@ if not ha_fehlt():
     from homeassistant.helpers import issue_registry as ir
 
     from custom_components.heatnexus.const import CONF_LABEL, CONF_SYSTEMS, DOMAIN
-    from custom_components.heatnexus.erkennungsstand import (
-        stumme_teile_entfernen,
-        stumme_teile_melden,
-    )
+    from custom_components.heatnexus.erkennungsstand import stumme_teile_melden
+    from custom_components.heatnexus.repairs import adresshinweise_entfernen
 
 HOST = "192.0.2.20"
 STRUKTUR = [
@@ -123,5 +121,13 @@ async def test_ein_vollstaendiger_lauf_nimmt_den_eintrag_zurueck(hass):
 
 async def test_das_entfernen_des_eintrags_raeumt_auf(hass):
     stumme_teile_melden(hass, _eintrag(), HOST, ["WFBPK"])
-    stumme_teile_entfernen(hass, _eintrag())
+    adresshinweise_entfernen(hass, "e1")
+    assert _eintrag_im_register(hass) is None
+
+
+async def test_der_eintrag_faellt_mit_seiner_adresse(hass):
+    stumme_teile_melden(hass, _eintrag(), HOST, ["WFBPK"])
+    adresshinweise_entfernen(hass, "e1", "192.0.2.21")
+    assert _eintrag_im_register(hass) is not None
+    adresshinweise_entfernen(hass, "e1", HOST)
     assert _eintrag_im_register(hass) is None
