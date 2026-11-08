@@ -6,26 +6,37 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.16.0-beta.1] - 2026-11-08
+
+### Highlight: Pflege, Abgas und Brennstoff im Blick
+
+Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind. Sie meldet wärmeres Abgas seit der letzten Reinigung und sagt, bis wann der Brennstoff im Lager reicht. An der AeroWIN vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
 
 ### Neu
 
+**Pflege**
 - Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
 - Ein Datum je Pflege hält fest, wann sie zuletzt erledigt wurde.
-- Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
-- Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
-- Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
-- Der Dienst „Brennstoff nachgefüllt“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
-- In der Auswertung lassen sich Befüllung, Bestand und die letzte Pflege eintragen.
-- In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
-- Mit aktivierter Entität „O2 Signal“ entsteht der Bezug des Abgaswächters auch aus der Langzeitstatistik.
 - AeroWIN: Die Auswertung meldet, wenn der Gütegrad seit der Verdampferreinigung sinkt.
 - AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
-- LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
+
+**Abgas**
+- Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
+- Mit O2-Signal zeigt sie den Mehrverlust durch den Kamin.
+- In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
+- Mit aktivierter Entität „O2 Signal“ entsteht der Bezug des Abgaswächters auch aus der Langzeitstatistik.
+
+**Brennstoff**
+- Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
+- Der Dienst „Brennstoff nachgefüllt“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
+- In der Auswertung lassen sich Befüllung, Bestand und die letzte Pflege eintragen.
+
+**Anlagenteile**
 - An Kaskade und Umschaltung erscheinen Pumpen, Ventile und Zusatzkessel einzeln.
 - Solar zeigt, ob und wohin die Anlage gerade lädt.
 - Neue Werte erscheinen: Betriebszustand, PV-Überschuss, Einfluss des Energy Pilot und Aktorentest-Freigabe.
+- LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
 
 ### Geändert
 
