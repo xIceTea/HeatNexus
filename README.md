@@ -22,12 +22,13 @@ zeigt die Anlage als Schaubild.
 - **Automatische Erkennung** aller Funktionen der Anlage, mit Wertebereichen und Auswahlwerten vom Gerät.
 - **Eigene Oberfläche** mit Schaubild, Systemstatus, Steuerung, Wartung, Verlauf und Zeitprogrammen.
 - **Anlagenschaubild** aus den erkannten Teilen, auch als Karte für eigene Dashboards.
-- **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready und Kostenvergleich.
+- **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready, Silentmode und Kostenvergleich.
 - **Thermostat je Heizkreis** mit befristeter Vorgabe, wie in der Windhager-App.
 - **Automatik je Heizkreis**: Heizpause an milden Tagen, Absenkung bei Sonne, gelerntes Hausmodell.
 - **Pflege, Abgas, Brennstoff und Wärmepumpe**: Die Auswertung zeigt Pflegetermine, meldet wärmeres Abgas seit der Reinigung und sagt, bis wann der Brennstoff reicht. An der Wärmepumpe vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
 - **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
 - **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
+- **Reparaturen** in Home Assistant nennen eine nicht erreichbare Steuerung und Anlagenteile, die keine Werte liefern.
 - **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.
 - **Deutsch, Englisch und Niederländisch** in Oberfläche, Datenpunkten und Störungstexten.
 
@@ -51,6 +52,7 @@ Voraussetzung ist ein Bediengerät mit Netzwerkanschluss im eigenen Netz. Öffne
 | 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heizkreis, Pufferladung, Pumpen und Relais | 🟢 geprüft |
 | 🧩 | **Infinity PLUS**, Infinity PLUS Wall, Puffer am Kessel | Heizkreis, Warmwasser, Puffer | 🔵 bei Nutzern im Einsatz |
 | 🔥 | **BioWIN Alpha** | Pellets | ⚪ ohne Rückmeldung |
+| 🔥 | **FireWIN**, SilvaWIN, BioWIN XL | Pellets, Scheitholz | ⚪ ohne Rückmeldung |
 | 🔥 | **MinoWIN**, MultiWIN 2 Plus | Gas-Brennwert | ⚪ ohne Rückmeldung |
 | 🧩 | **Solar ES**, Kaskade, Umschaltung, IO5500 | Solar, mehrere Kessel, Energiezähler | ⚪ ohne Rückmeldung |
 | ➕ | Andere Wärmepumpen, Gas- und Ölkessel, E-Heizung | | ⚪ ohne Rückmeldung |

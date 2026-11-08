@@ -188,6 +188,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
               <tr><td>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
               <tr><td>AeroWIN</td><td>Strom</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
               <tr><td>BioWIN Alpha</td><td>Pellets</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>FireWIN, SilvaWIN, BioWIN XL</td><td>Pellets, Scheitholz</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
 <tr><td>Andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
               <tr><td>MinoWIN, MultiWIN 2 Plus</td><td>Gas</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
               <tr><td>Andere Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>

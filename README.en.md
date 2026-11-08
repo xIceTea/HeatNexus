@@ -22,12 +22,13 @@ in the sidebar shows the system as a diagram.
 - **Automatic discovery** of every function of the system, with ranges and options from the device.
 - **Own panel** with diagram, system status, controls, maintenance, history and time programmes.
 - **Plant diagram** built from the discovered parts, also as a card for your own dashboards.
-- **Heat pump and hybrid**: AeroWIN and hybrid manager with power, COP, SG Ready and cost comparison.
+- **Heat pump and hybrid**: AeroWIN and hybrid manager with power, COP, SG Ready, silent mode and cost comparison.
 - **Thermostat per heating circuit** with a timed override, as in the Windhager app.
 - **Automation per heating circuit**: heating pause on mild days, setback in sunshine, learned house model.
 - **Care, flue gas, fuel and heat pump**: the analysis shows care dates, reports warmer flue gas since cleaning and tells how long the fuel lasts. On the heat pump it compares the efficiency grade with the state after the last evaporator cleaning.
 - **Faults in plain text** with remedies, plus the message list of the control panel.
 - **System state per controller** as a sensor for notifications.
+- **Repairs** in Home Assistant list an unreachable controller and system parts that deliver no values.
 - **Dashboard and seven automation blueprints** built from what the system provides.
 - **German, English and Dutch** in the panel, datapoints and fault texts.
 
@@ -51,6 +52,7 @@ You need a control panel with a network connection on your own network. Open
 | 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heating circuit, buffer charging, pumps and relays | 🟢 tested |
 | 🧩 | **Infinity PLUS**, Infinity PLUS Wall, buffer at the boiler | Heating circuit, hot water, buffer | 🔵 in use by users |
 | 🔥 | **BioWIN Alpha** | Pellets | ⚪ no feedback yet |
+| 🔥 | **FireWIN**, SilvaWIN, BioWIN XL | Pellets, log wood | ⚪ no feedback yet |
 | 🔥 | **MinoWIN**, MultiWIN 2 Plus | Gas condensing | ⚪ no feedback yet |
 | 🧩 | **Solar ES**, cascade, changeover, IO5500 | Solar, several boilers, energy meters | ⚪ no feedback yet |
 | ➕ | Other heat pumps, gas and oil boilers, electric heating | | ⚪ no feedback yet |
