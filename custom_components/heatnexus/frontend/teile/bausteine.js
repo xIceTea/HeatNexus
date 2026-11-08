@@ -288,6 +288,28 @@ export const BausteineMixin = (Basis) =>
       }
     }
 
+    /** Neu zeichnen; der Neuaufbau leert die Seite kurz, ohne Merken spränge sie nach oben. */
+    _zeichnenAnOrt() {
+      const lagen = this._scrollLagen();
+      this._zeichnen();
+      lagen.forEach(([element, oben]) => {
+        element.scrollTop = oben;
+      });
+    }
+
+    /** Alle gescrollten Vorfahren, auch über Shadow-Grenzen, mit ihrer Lage. */
+    _scrollLagen() {
+      const lagen = [];
+      let element = this;
+      while (element) {
+        if (element.scrollTop > 0) lagen.push([element, element.scrollTop]);
+        element = element.parentElement || (element.getRootNode && element.getRootNode().host) || null;
+      }
+      const seite = typeof document !== "undefined" ? document.scrollingElement : null;
+      if (seite && seite.scrollTop > 0 && !lagen.some(([e]) => e === seite)) lagen.push([seite, seite.scrollTop]);
+      return lagen;
+    }
+
     /** Schließt alle offenen Fenster, zuletzt geöffnetes zuerst; der Abbau der Oberfläche ruft es. */
     _dialogeSchliessen() {
       const stapel = this._dialogStapel || [];
