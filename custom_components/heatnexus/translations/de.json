@@ -792,6 +792,9 @@
     "keine_anlage_zum_einlesen": {
       "message": "Es ist keine Anlage eingerichtet, die neu eingelesen werden könnte."
     },
+    "kein_brennstoffvorrat": {
+      "message": "{entitaet} ist kein Brennstoffvorrat. Nachgefüllter Brennstoff lässt sich nur in den Brennstoffvorrat eines Kessels eintragen."
+    },
     "einstellung_unbekannt": {
       "message": "{name} kennt die Einstellung {option} nicht."
     },

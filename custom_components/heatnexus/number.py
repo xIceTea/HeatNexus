@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 import voluptuous as vol
 
-from .befund.brennstoff_entitaeten import anmelden_number
+from .befund.brennstoff_entitaeten import OhneLieferung, anmelden_number
 from .entity import WindhagerEntity, async_setup_entities
 from .helpers import nachkommastellen
 
@@ -37,7 +37,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     )
 
 
-class WindhagerNumber(WindhagerEntity, NumberEntity):
+class WindhagerNumber(OhneLieferung, WindhagerEntity, NumberEntity):
     """Writable number with enforced min/max/step from the Betreiberebene."""
 
     _require_value_for_available = False

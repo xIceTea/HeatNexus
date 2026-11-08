@@ -241,6 +241,17 @@ def test_number_schreibt_ganze_zahlen_ohne_komma(number_klasse):
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "180")]
 
 
+def test_number_lehnt_eine_brennstofflieferung_ab(number_klasse):
+    """Der Dienst `brennstoff_geliefert` erreicht jede Zahl; nur der Brennstoffvorrat nimmt ihn an."""
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity, koordinator = _entitaet(number_klasse, {}, type="number", min=0, max=400, step=1)
+    with pytest.raises(ServiceValidationError) as fehler:
+        asyncio.run(entity.async_geliefert(menge=5.0))
+    assert fehler.value.translation_key == "kein_brennstoffvorrat"
+    assert koordinator.client.geschrieben == []
+
+
 def test_number_haelt_die_nachkommastelle_bei_feiner_schrittweite(number_klasse):
     """Behaglichkeit geht in 0,1 K – da darf nicht gerundet werden."""
     entity, koordinator = _entitaet(

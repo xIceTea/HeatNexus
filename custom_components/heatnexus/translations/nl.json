@@ -792,6 +792,9 @@
     "keine_anlage_zum_einlesen": {
       "message": "Er is geen installatie ingesteld die opnieuw kan worden ingelezen."
     },
+    "kein_brennstoffvorrat": {
+      "message": "{entitaet} is geen brandstofvoorraad. Bijgevulde brandstof kan alleen aan de brandstofvoorraad van een ketel worden toegevoegd."
+    },
     "einstellung_unbekannt": {
       "message": "{name} kent de instelling {option} niet."
     },

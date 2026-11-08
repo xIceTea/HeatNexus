@@ -792,6 +792,9 @@
     "keine_anlage_zum_einlesen": {
       "message": "No system is set up that could be read in again."
     },
+    "kein_brennstoffvorrat": {
+      "message": "{entitaet} is not a fuel stock. Refilled fuel can only be added to a boiler's fuel stock."
+    },
     "einstellung_unbekannt": {
       "message": "{name} does not know the setting {option}."
     },

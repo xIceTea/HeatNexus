@@ -11,16 +11,27 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from ..exceptions import mit_text
 from . import brennstoff
 from .abgasziele import AbgasZiel
 from .brennstofflauf import einstellung, liefern, vorgabe, ziele_von
 from .laufzeit import SIGNAL_NEU, SIGNAL_STAND, Sammler, befund_holen
+
+
+class OhneLieferung:
+    """Der Dienst `brennstoff_geliefert` erreicht jede HeatNexus-Zahl; nur der Vorrat nimmt ihn an."""
+
+    entity_id: str
+
+    async def async_geliefert(self, menge: float, rest: float | None = None) -> None:
+        raise mit_text(ServiceValidationError, "kein_brennstoffvorrat", entitaet=self.entity_id)
 
 
 class _Lager:
@@ -124,7 +135,7 @@ class BrennstoffVorrat(_Lager, NumberEntity):
         s.aktualisieren()
 
 
-class BrennstoffEinstellung(_Lager, NumberEntity):
+class BrennstoffEinstellung(OhneLieferung, _Lager, NumberEntity):
     """Heizwert je Lagereinheit oder, am LogWIN, Füllmenge je Anheizvorgang."""
 
     _attr_mode = NumberMode.BOX

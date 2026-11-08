@@ -389,6 +389,24 @@ async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
     assert vorrat.native_value == 25.0
 
 
+async def test_heizwert_lehnt_eine_brennstofflieferung_ab(hass, anlage):
+    from homeassistant.exceptions import ServiceValidationError
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    zahlen = []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    heizwert = next(z for z in zahlen if z.unique_id.endswith("heizwert"))
+    heizwert.hass = hass
+    with pytest.raises(ServiceValidationError) as fehler:
+        await heizwert.async_geliefert(menge=5.0)
+    assert fehler.value.translation_key == "kein_brennstoffvorrat"
+    assert sammler.archiv.lager(KESSEL) == {}
+
+
 async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):
     """Ein gezählter Stand wirkt wie eine Befüllung ohne Menge: Der Rest lernt die Korrektur."""
     from datetime import date, timedelta
