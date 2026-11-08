@@ -13,7 +13,7 @@ network and creates every datapoint the controller provides: boiler, heat pump,
 buffer tank, heating circuits, domestic hot water and circulation. Its own page
 in the sidebar shows the system as a diagram.
 
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
+[![Open in the Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
 ![Plant diagram with running pumps, a charging buffer tank and heating circuits](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif?v=2)
 
@@ -60,14 +60,15 @@ listed are discovered as well; details on the
 
 ## Installation
 
-1. Search for **HeatNexus** in HACS, download it and restart Home Assistant.
+1. Search for **HeatNexus** under *Settings → Marketplace* and download it.
+   Up to Home Assistant 2026.10 the catalog is called HACS; restart Home Assistant afterwards.
 2. Add the **HeatNexus** integration under *Settings → Devices & services*.
    Home Assistant usually offers the controller as discovered.
 3. Account `USER`, factory password `123`. If it was changed, see
    [Passwort herausfinden](https://xicetea.github.io/HeatNexus/ANLEITUNG#passwort-herausfinden) (German).
 
-The first run reads the whole system and takes up to two minutes. Without
-HACS: copy `custom_components/heatnexus` from the
+The first run reads the whole system and takes up to two minutes. Without the
+Marketplace or HACS: copy `custom_components/heatnexus` from the
 [release](https://github.com/xIceTea/HeatNexus/releases/latest) into your
 configuration folder.
 

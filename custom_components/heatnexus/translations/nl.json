@@ -572,6 +572,10 @@
       "title": "{anlage} is niet bereikbaar",
       "description": "Van **{anlage}** komen geen waarden meer.\n\nGemeld: {grund}\n\nControleer of de regelaar is ingeschakeld en via het netwerk bereikbaar is. Deze melding verdwijnt vanzelf zodra de installatie weer antwoordt."
     },
+    "stumme_teile": {
+      "title": "{anlage}: delen van de installatie leveren geen waarden",
+      "description": "De regelaar vermeldt deze delen, maar beantwoordt geen enkele vraag over ze: {teile}.\n\nHun waarden ontbreken daarom in Home Assistant. Mogelijke oorzaken zijn een overbelaste gateway of een module zonder verbinding met de bus. Is de oorzaak verholpen, dan leest de actie „Installatie opnieuw herkennen” de delen in. Daarna verdwijnt deze melding vanzelf."
+    },
     "sprache_neustart": {
       "title": "Taal gewijzigd – herstart nodig",
       "description": "De taal van de namen is gewijzigd. HeatNexus leest de nieuwe namen al van de regelaar; ze worden zichtbaar na een herstart van Home Assistant.\n\nDaarna verdwijnt deze melding vanzelf."

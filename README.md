@@ -13,7 +13,7 @@ jeden Datenpunkt an, den die Steuerung führt: Kessel, Wärmepumpe, Puffer,
 Heizkreise, Warmwasser und Zirkulation. Eine eigene Seite in der Seitenleiste
 zeigt die Anlage als Schaubild.
 
-[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
+[![Im Marketplace öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
 ![Anlagenschaubild mit laufenden Pumpen, ladendem Puffer und Heizkreisen](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif?v=2)
 
@@ -60,14 +60,15 @@ der [Projektseite](https://xicetea.github.io/HeatNexus/#anlagen).
 
 ## Installation
 
-1. In HACS nach **HeatNexus** suchen, herunterladen und Home Assistant neu starten.
+1. Unter *Einstellungen → Marketplace* nach **HeatNexus** suchen und herunterladen.
+   Bis Home Assistant 2026.10 heißt der Katalog HACS; danach Home Assistant neu starten.
 2. Unter *Einstellungen → Geräte & Dienste* die Integration **HeatNexus** hinzufügen.
    Meist bietet Home Assistant die Steuerung schon als gefunden an.
 3. Zugang `USER`, Passwort ab Werk `123`. Ist es geändert, hilft
    [Passwort herausfinden](https://xicetea.github.io/HeatNexus/ANLEITUNG#passwort-herausfinden).
 
 Der erste Durchlauf liest die ganze Anlage ein und dauert bis zu zwei Minuten.
-Ohne HACS: `custom_components/heatnexus` aus dem
+Ohne Marketplace oder HACS: `custom_components/heatnexus` aus dem
 [Release](https://github.com/xIceTea/HeatNexus/releases/latest) in den
 Konfigurationsordner kopieren.
 

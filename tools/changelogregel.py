@@ -94,7 +94,23 @@ FETT_AM_ANFANG = re.compile(r"^\*\*")
 
 # Gilt eine Zeile nur für bestimmte Kessel, steht die Baureihe davor:
 # „BioWIN, LogWIN: …". Das Präfix zählt nicht zur Länge.
-BAUREIHEN = frozenset(("BioWIN", "DuoWIN", "FireWIN", "LogWIN", "PuroWIN", "VarioWIN"))
+BAUREIHEN = frozenset(
+    (
+        "AeroWIN",
+        "AquaWIN",
+        "BioWIN",
+        "DuoWIN",
+        "FireWIN",
+        "LogWIN",
+        "MinoWIN",
+        "MultiWIN",
+        "PuroWIN",
+        "SilvaWIN",
+        "TerraWIN",
+        "VarioWIN",
+        "VestoWIN",
+    )
+)
 VORSPANN = re.compile(r"^([^:„“\"`\[\]()]{1,60}?): ")
 
 

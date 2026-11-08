@@ -108,6 +108,11 @@ def test_verkleinern_bleibt_in_einer_reihe_unter_der_obergrenze(reihen):
     assert float(reihen["verkleinern"][0].removesuffix("px")) < 700
 
 
+def test_neuaufbau_beginnt_mit_der_zuletzt_gemessenen_breite(reihen):
+    """Vor der ersten Messung stehen die Reihen schon richtig; die Seitenhöhe springt nicht."""
+    assert reihen["neuaufbau"] == ["480px", "360px"]
+
+
 def test_ohne_wahl_bleibt_das_bild_wie_bisher(reihen):
     """Die Lovelace-Karte hat keine Darstellung; dort bleibt die Hülle direkt in der Karte."""
     assert reihen["ohneWahl"] == {"strang": 0, "huellen": 1}

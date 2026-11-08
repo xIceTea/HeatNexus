@@ -87,6 +87,11 @@ const karteKlein = klein._schaubild(anlage);
 beobachter.at(-1).melden(700);
 ergebnis.verkleinern = breiten(karteKlein);
 
+const wieder = panel({});
+wieder._schaubild(anlage);
+beobachter.at(-1).melden(700);
+ergebnis.neuaufbau = breiten(wieder._schaubild(anlage));
+
 const ohneWahl = panel({});
 ohneWahl._strangWahl = () => null;
 const karteOhne = ohneWahl._schaubild(anlage);

@@ -176,6 +176,9 @@ class WindhagerHttpClient(
         self._wurzel_luecken: set[str] = set()
         # LON-Adressräume ohne Antwort: Bekanntes bleibt, der Lauf gilt trotzdem als vollständig.
         self._wurzel_ueberbrueckt: set[str] = set()
+        # Freie Funktionen aus `/1` mit Namen, dazu jede Menüwurzel ohne Antwort in diesem Lauf.
+        self._teilnamen: dict[str, str] = {}
+        self._wurzel_ohne_antwort: set[str] = set()
         # Abdruck der freien Funktionen aus `/1`, gegen den der Abruf die Struktur prüft.
         self._struktur: list[str] | None = None
         # Zuletzt gemeldeter abweichender Abdruck und ob die Meldung noch abzuholen ist.
@@ -186,6 +189,18 @@ class WindhagerHttpClient(
         # Pause nach gescheiterten Läufen, in langsamen Takten: zuletzt gewählt und noch offen.
         self._struktur_pause = 0
         self._struktur_wartetakte = 0
+
+    @property
+    def stumme_teile(self) -> list[str]:
+        """Freie Funktionen, deren Menüwurzel nicht antwortete und die keinen Datenpunkt ergaben."""
+        # Meldungssensoren hängen am Knoten, nicht an einer Adresse; sie zählen nicht als Wert.
+        mit_werten = {d.get("device_id") for d in self.devices or () if d.get("oid")}
+        return sorted(
+            name
+            for prefix, name in self._teilnamen.items()
+            if prefix in self._wurzel_ohne_antwort
+            and self._geraetekennung(prefix) not in mit_werten
+        )
 
     @property
     def erkennung_unvollstaendig(self) -> bool:

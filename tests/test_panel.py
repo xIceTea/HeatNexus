@@ -854,6 +854,26 @@ def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
     assert teile["button.serviceausbrand"] is None
 
 
+def test_hybridanlage_zeigt_nur_die_betriebswahl_des_hybridmanagers(panel):
+    """Die Betriebswahl der Wärmepumpe ist neben dem Hybridmanager eine Service-Einstellung."""
+    hybrid = teil("Hybrid", 26, [entitaet("select.betriebswahl_hybrid", "Betriebswahl")])
+    wp = teil("AeroWIN", 7, [entitaet("select.betriebswahl_aerowin", "Betriebswahl")])
+
+    eintraege = panel.anlage_daten(anlage(hybrid, wp))["schnellzugriff"]
+
+    wahlen = [e for e in eintraege if e["titel"] == "Betriebswahl"]
+    assert [e["entity"] for e in wahlen] == ["select.betriebswahl_hybrid"]
+    assert "anlagenteil" not in wahlen[0]
+
+
+def test_waermepumpe_ohne_hybridmanager_behaelt_ihre_betriebswahl(panel):
+    wp = teil("AeroWIN", 7, [entitaet("select.betriebswahl_aerowin", "Betriebswahl")])
+
+    eintraege = panel.anlage_daten(anlage(wp))["schnellzugriff"]
+
+    assert [e["entity"] for e in eintraege] == ["select.betriebswahl_aerowin"]
+
+
 # ---------------------------------------------------------------------------
 # Störungen und Kennwerte
 # ---------------------------------------------------------------------------

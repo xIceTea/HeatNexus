@@ -179,6 +179,26 @@ const befund = {};
   befund.menuetaste = ergebnis;
 }
 
+// --- Nach einem Dialog von Home Assistant neu zeichnen -----------------------
+{
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  zeit.zeitLaufenLassen();
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  const schliessen = () => zeit.fenster.ausloesen("dialog-closed", { detail: { dialog: "ha-more-info-dialog" } });
+  schliessen();
+  const ergebnis = { gleichDanach: umriss() };
+  zeit.bilderLaufenLassen();
+  ergebnis.zweiBilderSpaeter = umriss();
+  flaeche._erklaeren("A", "B");
+  schliessen();
+  ergebnis.beiEigenemFenster = umriss();
+  const vorher = zeit.fenster.hoererZahl("dialog-closed");
+  flaeche.disconnectedCallback();
+  ergebnis.hoererNachAbbau = vorher - zeit.fenster.hoererZahl("dialog-closed");
+  befund.nachDialog = ergebnis;
+}
+
 // --- Namen aus der Anlage werden nicht übersetzt -----------------------------
 {
   const { flaeche } = bauen({ texte: { Wohnhaus: "Residence", Hilfe: "Help" } });

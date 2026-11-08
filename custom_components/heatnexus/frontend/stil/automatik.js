@@ -37,7 +37,7 @@ export const AUTOMATIK = `
   .kartenkopf:has(.im-bild) .fragezeichen { margin-left: auto; }
   .automatik-marke.im-bild { border: none; font-family: inherit; cursor: pointer; --mdc-icon-size: 15px; max-width: 100%; }
   .automatik-marke.im-bild span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .bild-automatik-kreis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .bild-automatik-kreis { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .automatik-marke.im-bild::before { display: none; }
   .automatik-marke.z-empfehlung { background: color-mix(in srgb, var(--hn-akzent) 15%, transparent); color: var(--hn-akzent); }
   .bild-automatik { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 10px; }

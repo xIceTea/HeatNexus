@@ -179,7 +179,10 @@ export const SchaubildMixin = (Basis) =>
       if (plan) [...rahmen.children].forEach((fenster, nr) => this._strangStellen(fenster, plan.reihen[nr], plan.massstab, breite));
     };
     this._bindungen.push(() => bindungen.forEach((binden) => binden()));
-    ordnen(0);
+    // Mit der zuletzt gemessenen Breite beginnen: Sonst hat die Seite bis zur ersten Messung eine andere Höhe.
+    const breiten = (this._strangBreiten ||= new Map());
+    const merkname = anlage.name || "";
+    ordnen(breiten.get(merkname) || 0);
     if (typeof ResizeObserver === "function") {
       // Gebaut wird im nächsten Bild: Ein Umbau im Rückruf löst sonst die Meldung über eine Schleife aus.
       const signal = this._aufbauAbbruch?.signal;
@@ -189,7 +192,9 @@ export const SchaubildMixin = (Basis) =>
         if (verfuegbar === zuletzt) return;
         zuletzt = verfuegbar;
         requestAnimationFrame(() => {
-          if (!signal?.aborted) ordnen(verfuegbar);
+          if (signal?.aborted) return;
+          breiten.set(merkname, verfuegbar);
+          ordnen(verfuegbar);
         });
       });
       beobachter.observe(karte);

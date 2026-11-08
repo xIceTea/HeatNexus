@@ -178,7 +178,9 @@ export const DarstellungMixin = (Basis) =>
       if (!entwurf && !this._vorschau) return;
       this._vorschau = entwurf ? { ...entwurf } : null;
       this._gebaut = false;
-      if (!this._abgebaut) this._zeichnen();
+      if (this._abgebaut) return;
+      // Ohne gehaltene Scrolllage verrutscht der Hintergrund bei jeder Wahl.
+      this._zeichnenAnOrt();
     }
 
     /** Das Fenster „Darstellung“: Ein Klick zeigt die Wahl sofort, „Übernehmen“ speichert, „Verwerfen“ stellt zurück. */

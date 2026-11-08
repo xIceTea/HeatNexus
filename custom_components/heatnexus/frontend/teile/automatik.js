@@ -374,27 +374,10 @@ export const AutomatikMixin = (Basis) =>
       }
     }
 
-    /** Neu aufbauen; der Neuaufbau leert die Seite kurz, ohne Merken spränge sie nach oben. */
+    /** Die Automatik neu aufbauen, ohne dass die Seite nach oben springt. */
     _automatikNeuZeichnen() {
-      const lagen = this._automatikScrollLagen();
       this._gebaut = false;
-      this._zeichnen();
-      lagen.forEach(([element, oben]) => {
-        element.scrollTop = oben;
-      });
-    }
-
-    /** Alle gescrollten Vorfahren, auch über Shadow-Grenzen, mit ihrer Lage. */
-    _automatikScrollLagen() {
-      const lagen = [];
-      let element = this;
-      while (element) {
-        if (element.scrollTop > 0) lagen.push([element, element.scrollTop]);
-        element = element.parentElement || (element.getRootNode && element.getRootNode().host) || null;
-      }
-      const seite = typeof document !== "undefined" ? document.scrollingElement : null;
-      if (seite && seite.scrollTop > 0 && !lagen.some(([e]) => e === seite)) lagen.push([seite, seite.scrollTop]);
-      return lagen;
+      this._zeichnenAnOrt();
     }
 
     _automatikUhrStellen() {

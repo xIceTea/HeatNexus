@@ -18,7 +18,12 @@ from .erkennungsstand import laufzeitdaten
 _LOGGER = logging.getLogger(__name__)
 
 # Hinweise, deren Kennung auf `<präfix>_<entry_id>_<adresse>` endet.
-ADRESSHINWEISE = ("nicht_erreichbar", "sprache_neustart", "zirkulation_ohne_ein")
+ADRESSHINWEISE = (
+    "nicht_erreichbar",
+    "sprache_neustart",
+    "stumme_teile",
+    "zirkulation_ohne_ein",
+)
 
 
 def adresshinweise_entfernen(hass: HomeAssistant, entry_id: str, host: str = "") -> None:

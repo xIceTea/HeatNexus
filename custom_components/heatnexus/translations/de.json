@@ -572,6 +572,10 @@
       "title": "{anlage} ist nicht erreichbar",
       "description": "Von der Anlage **{anlage}** kommen keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
     },
+    "stumme_teile": {
+      "title": "{anlage}: Teile der Anlage liefern keine Werte",
+      "description": "Die Steuerung führt diese Teile, beantwortet aber keine Abfrage zu ihnen: {teile}.\n\nIhre Werte fehlen deshalb in Home Assistant. Mögliche Ursachen sind ein überlastetes Gateway oder ein Modul ohne Verbindung zum Bus. Ist die Ursache behoben, liest die Aktion „Anlage neu erkennen“ die Teile ein. Diese Meldung verschwindet dann von selbst."
+    },
     "sprache_neustart": {
       "title": "Sprache geändert – Neustart erforderlich",
       "description": "Die Sprache der Bezeichnungen wurde geändert. Die neuen Namen liest HeatNexus bereits von der Anlage; sichtbar werden sie nach einem Neustart von Home Assistant.\n\nDiese Meldung verschwindet dann von selbst."

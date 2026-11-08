@@ -134,6 +134,31 @@ async def test_entfernen_raeumt_nur_die_eine_steuerung_ab(hass, anlage):
     assert await Store(hass, 1, store_key(eintrag, A)).async_load() is None
 
 
+async def test_entfernen_nimmt_die_hinweise_der_adresse_mit(hass, anlage):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus import steuerungen
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, _ = anlage
+    for host in (A, B):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"stumme_teile_{eintrag.entry_id}_{host}",
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="stumme_teile",
+        )
+    await steuerungen.entfernen(hass, eintrag, A)
+    await hass.async_block_till_done()
+
+    register = ir.async_get(hass)
+    assert register.async_get_issue(DOMAIN, f"stumme_teile_{eintrag.entry_id}_{A}") is None
+    assert register.async_get_issue(DOMAIN, f"stumme_teile_{eintrag.entry_id}_{B}") is not None
+
+
 def test_kennung_des_eintrags_folgt_den_steuerungen():
     from custom_components.heatnexus import steuerungen
 

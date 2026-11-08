@@ -12,6 +12,7 @@ from ..helpers import mustername
 from ..schema import modul_in_betrieb
 from ..schema import passt as _passt
 from .hilfe import hilfe
+from .hybrid import rolle
 from .muster import (
     KAMINKEHRER,
     KENNWERT,
@@ -175,6 +176,11 @@ def _schnellzugriff_eintrag(
     return eintrag
 
 
+def _service_der_waermepumpe(teil: dict[str, Any], schluessel: tuple[str, ...]) -> bool:
+    """Neben einem Hybridmanager ist die Betriebswahl der Wärmepumpe eine Service-Einstellung."""
+    return "mode_selection" in schluessel and rolle(teil) == "waermepumpe"
+
+
 def schnellzugriff(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Die Tasten der Übersicht.
 
@@ -182,11 +188,14 @@ def schnellzugriff(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> list[d
     Datenpunkt existiert am Heizkreis trotzdem.
     """
     hat_warmwasser = bereitet_warmwasser(alle)
+    hat_hybrid = any(rolle(teil) == "hybrid" for teil in anlage["teile"])
     eintraege = []
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             ist_warmwasser = _passt(beschriftung, WARMWASSER)
             if ist_warmwasser and not hat_warmwasser:
+                continue
+            if hat_hybrid and _service_der_waermepumpe(teil, schluessel):
                 continue
             treffer = _schnellzugriff_ziel(teil, muster, schluessel, ist_warmwasser)
             if treffer is not None:

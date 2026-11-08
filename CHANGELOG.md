@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.15.1] - 2026-11-08
+
+### Neu
+
+- AeroWIN: Silentmode, Faktor und Zeitfenster lassen sich in der Steuerung einstellen ([#53](https://github.com/xIceTea/HeatNexus/issues/53)).
+
+### Geändert
+
+- Die Reparaturen nennen Anlagenteile, die keine Werte liefern.
+- Panel und Home Assistant zeigen das neue HeatNexus-Zeichen.
+
+### Behoben
+
+- Auf Mobilgeräten bleibt das Panel nach einem geschlossenen Dialog nicht teilweise schwarz.
+- Das Schaubild zeigt keinen Automatik-Hinweis, solange der Heizkreis nach Programm läuft.
+- Bei der Farbwahl im Fenster „Darstellung“ verrutscht der Hintergrund nicht.
+- BioWIN: Der Schnellzugriff einer Hybridanlage zeigt nur die Betriebswahl des Hybridmanagers ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).
+
 ## [1.15.0] - 2026-11-05
 
 ### Highlight: Wärmepumpen, Hybridsysteme und ein neues Schaubild

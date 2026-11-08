@@ -20,7 +20,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_MELDUNG_EINLESEN, DOMAIN, SIGNAL_NEUE_ENTITAETEN
-from .erkennungsstand import laufzeitdaten, umfang_der_anlage
+from .erkennungsstand import laufzeitdaten, stumme_teile_melden, umfang_der_anlage
 from .stilllegung import abgewaehlte_entitaeten_stilllegen
 from .texte import woerterbuch
 
@@ -153,6 +153,7 @@ async def vollabzug(
         _einlesen_abgeschlossen(hass, entry, host, erfolgreich=False)
         return
     vollstaendig = ergebnis == EINLESEN_VOLL
+    stumme_teile_melden(hass, entry, host, client.stumme_teile)
 
     await coordinator.async_refresh()
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))

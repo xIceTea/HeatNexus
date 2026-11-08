@@ -11,7 +11,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
     <h1>Die ganze Heizung.<br>Auf einen Blick.</h1>
     <p class="unter">HeatNexus bringt deine Windhager-Anlage lokal in Home Assistant. Ohne Cloud, ohne Konto.</p>
     <div class="tasten">
-      <a class="taste voll" href="{{ hacs }}">In HACS öffnen</a>
+      <a class="taste voll" href="{{ hacs }}">Im Marketplace öffnen</a>
       <a class="taste leer" href="#anlagen">Passt das zu meiner Anlage?</a>
     </div>
   </div>
@@ -233,17 +233,17 @@ mitgelieferten Datenbank und wird erkannt, eine Rückmeldung fehlt noch.
   <div class="huelle">
     <div>
       <h2 class="titel">In vier Schritten eingerichtet.</h2>
-      <a class="taste voll" href="{{ hacs }}">In HACS öffnen</a>
+      <a class="taste voll" href="{{ hacs }}">Im Marketplace öffnen</a>
     </div>
     <div>
       <ol class="schritte">
-        <li><span><b>HACS öffnen</b>In HACS nach HeatNexus suchen.</span></li>
-        <li><span><b>Herunterladen</b>Herunterladen und Home Assistant neu starten.</span></li>
+        <li><span><b>Marketplace öffnen</b>Unter Einstellungen, Marketplace nach HeatNexus suchen. Bis Home Assistant 2026.10 heißt der Katalog HACS.</span></li>
+        <li><span><b>Herunterladen</b>Herunterladen. Mit HACS danach Home Assistant neu starten.</span></li>
         <li><span><b>Einrichten</b>Unter Einstellungen, Geräte &amp; Dienste die Integration HeatNexus hinzufügen. Gebraucht werden die IP der Steuerung, der Benutzer <code>USER</code> und das Passwort, ab Werk <code>123</code>.</span></li>
         <li><span><b>Warten</b>Der erste Durchlauf liest die ganze Anlage ein. Danach stehen Geräte, Oberfläche und Dashboard bereit.</span></li>
       </ol>
       <p class="nachsatz">
-        Ohne HACS: Den Ordner <code>custom_components/heatnexus/</code> aus dem
+        Ohne Marketplace oder HACS: Den Ordner <code>custom_components/heatnexus/</code> aus dem
         <a href="https://github.com/xIceTea/HeatNexus/releases/latest">Release</a> in den
         Konfigurationsordner kopieren und neu starten.
       </p>
