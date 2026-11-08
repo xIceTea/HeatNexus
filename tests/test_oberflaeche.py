@@ -1632,3 +1632,19 @@ def test_ein_wechsel_von_profil_oder_heizflaechen_behaelt_eigene_werte():
     quelle = (PANEL_JS.parent / "teile" / "einrichtung.js").read_text(encoding="utf-8")
     assert "{ profil: wahl.value }" in quelle
     assert "nachricht.eigene" not in quelle
+
+
+KARTENHELFER = Path(__file__).parent / "js" / "verlauf-kartenhelfer.mjs"
+
+
+def test_verlauf_laedt_die_kartenhelfer_ohne_vorher_geoeffnetes_dashboard():
+    """Startet Home Assistant nicht in einem Dashboard, fehlen die Kartenhelfer zunächst."""
+    lauf = subprocess.run(
+        ["node", str(KARTENHELFER), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    assert len(json.loads(lauf.stdout)["faelle"]) == 2
