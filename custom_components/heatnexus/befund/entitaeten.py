@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -13,7 +14,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
-from .laufzeit import SIGNAL_NEU, SIGNAL_STAND, befund_holen, unique_id
+from .laufzeit import SIGNAL_NEU, SIGNAL_STAND, Sammler, befund_holen, unique_id
 
 # Einheit und Geräteklasse je Art; Energie je Heizgradtag in Kilowattstunden je Kelvintag.
 ART: dict[str, tuple[str, SensorDeviceClass | None]] = {
@@ -70,26 +71,85 @@ class BefundSensor(SensorEntity):
         )
 
 
+class ZielEntitaet:
+    """Gemeinsamer Teil der Befund-Entitäten je Ziel: Sammler, Gerät und Aktualisierung."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+
+    def __init__(self, anlage_id: str, ziel: Any) -> None:
+        self._anlage_id = anlage_id
+        self._ziel = ziel
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, ziel.device_id)})
+
+    @property
+    def _sammler(self) -> Sammler | None:
+        return befund_holen(self.hass).sammler.get(self._anlage_id)
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, SIGNAL_STAND.format(self._anlage_id), self.async_write_ha_state
+            )
+        )
+
+
+@callback
+def je_ziel_anmelden(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    add: AddEntitiesCallback,
+    ziele_von: Callable[[Any], Iterable[Any]],
+    bauen: Callable[[Sammler, Any], Iterable[Any]],
+) -> None:
+    """Entitäten je Ziel anlegen; `bauen` liefert für ein Ziel keine, eine oder mehrere."""
+
+    def _neu() -> Iterator[tuple[str, Callable[[], Any]]]:
+        for sammler in befund_holen(hass).sammler.values():
+            if sammler.entry.entry_id == entry.entry_id:
+                for ziel in ziele_von(sammler.coordinator):
+                    for entitaet in bauen(sammler, ziel):
+                        yield entitaet.unique_id, lambda e=entitaet: e
+
+    _anmelden(hass, entry, add, _neu)
+
+
 @callback
 def anmelden(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Sensoren anlegen, sobald die Sammler des Eintrags stehen; sie starten nach den Plattformen."""
-    bekannt: set[str] = set()
 
-    @callback
-    def _anlegen() -> None:
-        neu = []
+    def _neu() -> Iterator[tuple[str, Callable[[], Any]]]:
         for sammler in befund_holen(hass).sammler.values():
             if sammler.entry.entry_id != entry.entry_id:
                 continue
             for kennung, device_id, arten in sammler.geraete():
                 for art in arten:
-                    if unique_id(device_id, art) not in bekannt:
-                        bekannt.add(unique_id(device_id, art))
-                        neu.append(BefundSensor(sammler.anlage_id, kennung, device_id, art))
+                    a = (sammler.anlage_id, kennung, device_id, art)
+                    yield unique_id(device_id, art), lambda a=a: BefundSensor(*a)
+
+    _anmelden(hass, entry, async_add_entities, _neu)
+
+
+def _anmelden(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    add: AddEntitiesCallback,
+    neu_von: Callable[[], Iterable[tuple[str, Callable[[], Any]]]],
+) -> None:
+    """Neue Entitäten beim Start, bei neuen Sammlern, neuen Geräten und nach jedem Abruf."""
+    bekannt: set[str] = set()
+
+    @callback
+    def _anlegen() -> None:
+        neu = []
+        for kennung, erzeugen in neu_von():
+            if kennung not in bekannt:
+                bekannt.add(kennung)
+                neu.append(erzeugen())
         if neu:
-            async_add_entities(neu)
+            add(neu)
 
     _anlegen()
     entry.async_on_unload(
