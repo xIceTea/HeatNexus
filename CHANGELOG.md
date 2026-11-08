@@ -18,7 +18,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Dienst „Brennstoff nachgefüllt“ trägt Lieferungen ein und lernt den tatsächlichen Verbrauch.
 - In der Auswertung lassen sich Befüllung, Bestand und die letzte Pflege eintragen.
 - In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
-- Der Bezug des Abgaswächters entsteht auch aus der Langzeitstatistik.
+- Mit aktivierter Entität „O2 Signal“ entsteht der Bezug des Abgaswächters auch aus der Langzeitstatistik.
 - AeroWIN: Die Auswertung meldet, wenn der Gütegrad seit der Verdampferreinigung sinkt.
 - AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.

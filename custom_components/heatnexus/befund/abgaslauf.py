@@ -137,11 +137,14 @@ async def nachrechnen(
     stunde_von: Callable[[dict[str, Any]], str],
     heute: str,
 ) -> int:
-    """Tage vor dem ersten Takt aus Stundenmittel, -minimum und -maximum; der LogWIN meldet keine Leistung."""
+    """Tage vor dem ersten Takt aus Stundenmittel, -minimum und -maximum.
+
+    Ohne Leistung (LogWIN) oder O2 entsteht der Bezug nur im Takt, nach Phase gefiltert.
+    """
     reihen = {}
     for z in ziele_von(coordinator):
         felder = {n: entitaet_von(z.device_id, a) for n, a in FELDER_STATISTIK.items()}
-        if not z.logwin and all(felder[n] for n in ("leistung", "abgas", "kessel")):
+        if not z.logwin and all(felder.values()):
             reihen[z.prefix] = {n: e for n, e in felder.items() if e}
     ids = {e for felder in reihen.values() for e in felder.values()}
     statistik = await holen(ids, {"mean", "min", "max"}) if ids else {}

@@ -613,13 +613,14 @@ async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
         "e.leistung": [zeile(s, 55.0, 50.0, 58.0) for s in stunden],
         "e.abgas": [zeile(s, 120.0) for s in stunden],
         "e.kessel": [zeile(s, 70.0) for s in stunden],
+        "e.o2": [zeile(s, 7.0, 6.5, 7.5) for s in stunden],
     }
 
     async def holen(ids, arten):
         assert arten == {"mean", "min", "max"}
         return statistik
 
-    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel", "/0/42/0": "e.o2"}
     neu = await abgaslauf.nachrechnen(
         sammler.coordinator,
         sammler.archiv,
@@ -654,12 +655,13 @@ async def test_nachgerechnete_abgastage_entstehen_neu(hass, anlage):
         "e.leistung": [{"start": "2026-10-01 10", "mean": 55.0, "min": 50.0, "max": 58.0}],
         "e.abgas": [{"start": "2026-10-01 10", "mean": 120.0}],
         "e.kessel": [{"start": "2026-10-01 10", "mean": 70.0}],
+        "e.o2": [{"start": "2026-10-01 10", "mean": 7.0, "max": 7.5}],
     }
 
     async def holen(ids, arten):
         return statistik
 
-    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel", "/0/42/0": "e.o2"}
     await abgaslauf.nachrechnen(
         sammler.coordinator,
         sammler.archiv,
@@ -744,3 +746,34 @@ async def test_abgas_o2_ohne_entitaet_bleibt_nach_neustart_bekannt(hass, anlage)
     angelegt = []
     anmelden(hass, eintrag, angelegt.extend)
     assert "SN1-1-0-befund-abgasverlust" in {s.unique_id for s in angelegt}
+
+
+async def test_abgas_ohne_o2_statistik_wird_nicht_nachgerechnet(hass, anlage):
+    """Ohne O2 trennt die Statistik Anheizen nicht von Modulation; der Bezug entsteht im Takt."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    stunden = ["2026-10-01 10", "2026-10-01 11"]
+    statistik = {
+        "e.leistung": [{"start": s, "mean": 100.0, "min": 100.0, "max": 100.0} for s in stunden],
+        "e.abgas": [{"start": s, "mean": 60.0} for s in stunden],
+        "e.kessel": [{"start": s, "mean": 62.0} for s in stunden],
+    }
+
+    async def holen(ids, arten):
+        return {e: statistik[e] for e in ids if e in statistik}
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    neu = await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    assert neu == 0
+    assert sammler.archiv.abgas_tage(KESSEL) == {}
+    assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {}

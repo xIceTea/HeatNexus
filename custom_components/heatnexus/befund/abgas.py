@@ -120,7 +120,8 @@ def stunde_aus_statistik(
     if None in (unten, oben, mittel, ta, tk) or unten < MIN_LEISTUNG or oben - unten > MAX_SPRUNG:
         return None
     # Beim Anheizen steht die Leistung schon auf der Vorgabe, die Sonde misst aber noch Luft.
-    if o2.get("max") is not None and o2["max"] >= O2_MAX:
+    # Ohne O2-Maximum ist das nicht zu unterscheiden; die Stunde zählt dann nicht.
+    if o2.get("max") is None or o2["max"] >= O2_MAX:
         return None
     return stufe(mittel), round(ta - tk, 2), o2.get("mean"), ta
 
