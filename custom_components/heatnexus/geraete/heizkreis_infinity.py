@@ -20,11 +20,15 @@ EXTRA_OIDS: tuple[str, ...] = (
     "1/2",
     "1/101",
     "2/9",
+    "58/46",
+    "59/90",
 )
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "58/46": "Aktorentest freigegeben",
+    "59/90": "Einfluss Energy Pilot",
     # Die Herstellertabelle nennt Programme und Sollwerte für Raum- und
     # Vorlauftemperatur gleich. Die Vorlaufwerte tragen deshalb ihre Größe im Namen.
     "58/78": "Programm 1 Vorlauftemperatur",
@@ -44,4 +48,13 @@ NAMEN: dict[str, str] = {
 }
 
 NUR_BUS: tuple[str, ...] = ()
+
+# Mischermotor und Mischerlaufzeit führt die Herstellerdatei als nicht änderbar.
+NUR_ANZEIGE: tuple[str, ...] = ("58/83", "58/84")
+
+# Heizprogramme nur bei Raumregelung (Radiatoren, Fußboden), Vorlaufprogramme nur bei Vorlaufregelung.
+BEDINGUNGEN: dict[str, list[dict]] = {
+    **{a: [{"oid": "7/76", "values": ["1", "2"]}] for a in ("3/61", "3/62", "3/63")},
+    **{a: [{"oid": "7/76", "values": ["4"]}] for a in ("58/78", "58/79", "58/80")},
+}
 ENTITAETEN: list[dict] = []

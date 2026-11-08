@@ -32,12 +32,13 @@ EXTRA_OIDS: tuple[str, ...] = (
     "56/29",
     "59/45",
     "59/71",
+    "59/79",
 )
 STATUSZEILEN = statuszeilen.WAERMEPUMPE
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+NAMEN: dict[str, str] = {"59/79": "PV-Überschuss"}
 
 NUR_BUS: tuple[str, ...] = ()
 

@@ -57,6 +57,8 @@ KANNFELDER = (
     "STATUSZEILEN",
     "BEHAELTER",
     "FUELLGRAD",
+    "BEDINGUNGEN",
+    "TABELLEN",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -126,6 +128,18 @@ ENTITAETEN: dict[int, list[dict]] = {m.FCT_TYPE: m.ENTITAETEN for m in MODULE if
 
 # Adressen, die in keiner Menü-Ebene stehen und einzeln gelesen werden.
 EXTRA_OIDS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.EXTRA_OIDS for m in MODULE if m.EXTRA_OIDS}
+
+# Sichtbarkeit nach Einstellung, wo die Herstellerdatei sie nicht führt: Adresse -> Bedingungssätze.
+BEDINGUNGEN: dict[int, dict[str, list[dict]]] = {
+    m.FCT_TYPE: m.BEDINGUNGEN for m in MODULE if getattr(m, "BEDINGUNGEN", None)
+}
+
+# Zustandstexte für Adressen ohne Tabelle in der Herstellerdatei, deutsch.
+TABELLEN: dict[str, dict[int, str]] = {
+    adresse: tabelle
+    for m in MODULE
+    for adresse, tabelle in (getattr(m, "TABELLEN", None) or {}).items()
+}
 
 # Begriffe, die eine Baureihe nur über den LON-Bus hergibt.
 NUR_BUS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.NUR_BUS for m in MODULE if m.NUR_BUS}

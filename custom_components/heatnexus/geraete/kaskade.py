@@ -19,4 +19,23 @@ KESSELART: str | None = None
 NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
-ENTITAETEN: list[dict] = []
+
+# Die Herstellerdatei zeigt an der Kaskade Brenner und Pumpe des Zusatzkessels aus `2/2` an.
+ENTITAETEN: list[dict] = [
+    {
+        "oid": "/2/2/0",
+        "name": "Brenner ZSK",
+        "platform": "binary_sensor",
+        "bit": 12,
+        "key_suffix": "brenner_zsk",
+        "device_class": "running",
+    },
+    {
+        "oid": "/2/2/0",
+        "name": "Pumpe ZSK",
+        "platform": "binary_sensor",
+        "bit": 13,
+        "key_suffix": "pumpe_zsk",
+        "device_class": "running",
+    },
+]

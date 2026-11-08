@@ -20,11 +20,17 @@ EXTRA_OIDS: tuple[str, ...] = (
     "58/97",
     "43/99",
     "43/101",
+    "58/71",
+    "58/112",
 )
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+NAMEN: dict[str, str] = {
+    "58/71": "Solarladung",
+    "58/112": "Solar-Energiefluss",
+}
+TABELLEN: dict[str, dict[int, str]] = {"58/112": {0: "Pufferspeicher", 1: "Warmwasserspeicher"}}
 
 NUR_BUS: tuple[str, ...] = ()
 

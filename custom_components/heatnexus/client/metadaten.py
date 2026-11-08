@@ -442,7 +442,7 @@ class MetadatenMixin:
                 for d in self.devices
                 if d.get("fct_type") == fct_type and (p := self._praefix_aus_oid(d.get("oid")))
             }
-            bedingungen = get_conditions(fct_type)
+            bedingungen = {**get_conditions(fct_type), **geraete.BEDINGUNGEN.get(fct_type, {})}
             regel = ROLLEN_FILTER.get(fct_type)
             for praefix in praefixe:
                 weg = weg_je_praefix.setdefault(praefix, set())

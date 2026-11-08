@@ -54,6 +54,8 @@ DESKRIPTOR_VORGABE: dict = {
     "press_value": None,
     # Bedienbar nur bei diesen Werten der Anlage: {"gn/mn": (Werte, ...)}.
     "freigabe": None,
+    # Ein Bit des Werts statt des ganzen Werts (Bitmaske wie `2/2`).
+    "bit": None,
     # Schaltwerte eines Schalters auf einer Betriebswahl. Ohne Angabe gelten
     # 1 und 0.
     "ein_wert": None,
@@ -276,6 +278,9 @@ class ErkennungMixin:
         """
         if self.sprache == "de":
             return None
+        if eigene := geraete.TABELLEN.get(gnmn):
+            woerter = texte.Woerterbuch(self.sprache)
+            return {wert: woerter(text) for wert, text in eigene.items()}
         return self._texte.enums.get(gnmn) or get_enum(gnmn, self.sprache)
 
     def _stoerungstexte(self) -> dict[int, str] | None:
@@ -352,6 +357,7 @@ class ErkennungMixin:
             step=definition.get("step"),
             press_value=definition.get("press_value"),
             freigabe=definition.get("freigabe"),
+            bit=definition.get("bit"),
             ein_wert=definition.get("ein_wert"),
             aus_wert=definition.get("aus_wert"),
             zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,

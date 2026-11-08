@@ -38,12 +38,14 @@ EXTRA_OIDS: tuple[str, ...] = (
     "5/65",
     "5/70",
     "5/71",
+    "59/90",
 )
 
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "59/90": "Einfluss Energy Pilot",
     # Menü „Frostschutzgrenzen": Die Herstellertabelle führt die Namen ohne
     # den Menütitel, unter dem sie am Gerät stehen.
     "3/0": "Frostschutzgrenze Raumtemperatur",
@@ -79,6 +81,11 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
     },
 )
 
+# Zirkulationsprogramme nach Betriebsart der Zirkulationspumpe `5/6`: Temperatur- oder Zeit-/Impulssteuerung.
+BEDINGUNGEN: dict[str, list[dict]] = {
+    "5/64": [{"oid": "5/6", "values": ["2"]}],
+    "5/65": [{"oid": "5/6", "values": ["1", "3"]}],
+}
 
 ENTITAETEN: list[dict] = [
     # --- Infoebene Heizkreis / Warmwasser (read only) ---

@@ -421,6 +421,18 @@ def test_die_freigabe_meldet_ihre_adressen_zum_abruf_an():
     assert entity._freigabe_adressen == ["/1/65/0/12/105/0", "/1/65/0/2/1/0"]
 
 
+@pytest.mark.parametrize(
+    ("wert", "an"), [("4096", True), ("8192", False), ("12288", True), ("0", False)]
+)
+def test_ein_bit_der_aktorenmaske_zeigt_seinen_aktor(wert, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor, {"/1/60/0/9/75/0": wert}, type="binary_sensor", bit=12
+    )
+    assert entity.is_on is an
+
+
 def test_button_ohne_angabe_schreibt_eins():
     from custom_components.heatnexus.button import WindhagerButton
 

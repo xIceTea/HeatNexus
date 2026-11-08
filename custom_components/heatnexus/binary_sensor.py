@@ -74,6 +74,8 @@ class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):
         value = self.int_value
         if value is None:
             return None
+        if (bit := self._descriptor.get("bit")) is not None:
+            return bool(value >> int(bit) & 1)
         return value != 0
 
 

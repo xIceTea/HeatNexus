@@ -34,6 +34,7 @@ KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "39/59": "PuroWIN-Typ",
     # „Gerätetyp" heißt auch 12/38; 39/61 meldet die Leistung in kW.
     "39/61": "Nennleistung",
     "43/103": "Wärmemengenzähler Auswahl",

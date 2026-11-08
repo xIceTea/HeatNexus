@@ -23,10 +23,16 @@ wenn dort Vorabversionen zugelassen sind.
 - AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.
 - LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
 - LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
+- An Kaskade und Umschaltung erscheinen Pumpen, Ventile und Zusatzkessel einzeln.
+- Solar zeigt, ob und wohin die Anlage gerade lädt.
+- Neue Werte erscheinen: Kaminkehrer-Restzeit, Betriebszustand, PV-Überschuss und Einfluss des Energy Pilot.
 
 ### Geändert
 
 - Die Geräteseite nennt BioWIN 2, AeroWIN EVO und Infinity PLUS als Modell.
+- Zirkulationswerte erscheinen nur, wenn die Betriebsart der Zirkulationspumpe sie nutzt.
+- Am Infinity-Heizkreis erscheinen Heiz- oder Vorlaufprogramme passend zur Regelart.
+- Mischermotor und Mischerlaufzeit am Infinity-Heizkreis lassen sich nur noch ablesen.
 
 ## [1.15.0] - 2026-11-05
 
