@@ -8,8 +8,16 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- Die Reparaturen nennen Anlagenteile, die keine Werte liefern.
+- Panel und Home Assistant zeigen das neue HeatNexus-Zeichen.
+
 ### Behoben
 
+- Auf Mobilgeräten bleibt das Panel nach einem geschlossenen Dialog nicht teilweise schwarz.
+- Das Schaubild zeigt keinen Automatik-Hinweis, solange der Heizkreis nach Programm läuft.
+- Bei der Farbwahl im Fenster „Darstellung“ verrutscht der Hintergrund nicht.
 - BioWIN: An einer Hybridanlage fehlt die Betriebswahl der Wärmepumpe im Schnellzugriff ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).
 
 ## [1.15.0] - 2026-11-05
