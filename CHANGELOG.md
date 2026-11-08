@@ -6,7 +6,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.15.1] - 2026-11-08
 
 ### Neu
 
@@ -22,7 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Auf Mobilgeräten bleibt das Panel nach einem geschlossenen Dialog nicht teilweise schwarz.
 - Das Schaubild zeigt keinen Automatik-Hinweis, solange der Heizkreis nach Programm läuft.
 - Bei der Farbwahl im Fenster „Darstellung“ verrutscht der Hintergrund nicht.
-- BioWIN: An einer Hybridanlage fehlt die Betriebswahl der Wärmepumpe im Schnellzugriff ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).
+- BioWIN: Der Schnellzugriff einer Hybridanlage zeigt nur die Betriebswahl des Hybridmanagers ([#54](https://github.com/xIceTea/HeatNexus/issues/54)).
 
 ## [1.15.0] - 2026-11-05
 
