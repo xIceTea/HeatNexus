@@ -45,6 +45,10 @@ Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind. S
 - Am Infinity-Heizkreis erscheinen Heiz- oder Vorlaufprogramme passend zur Regelart.
 - Mischermotor und Mischerlaufzeit am Infinity-Heizkreis lassen sich nur noch ablesen.
 
+### Behoben
+
+- Mit mehreren Anlagen werden die Automations-Vorlagen beim Update vollständig erneuert.
+
 ## [1.15.1] - 2026-11-08
 
 ### Neu
