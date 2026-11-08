@@ -709,3 +709,38 @@ async def test_abgas_o2_ohne_entitaet_wird_gelesen(hass, anlage):
     assert abgaslauf.mit_o2(sammler.coordinator, KESSEL)
     del daten["oids"][f"{KESSEL}/0/42/0"]
     assert not abgaslauf.mit_o2(sammler.coordinator, KESSEL)
+
+
+async def test_abgas_o2_ohne_entitaet_bleibt_nach_neustart_bekannt(hass, anlage):
+    """Vor dem ersten Abruf fehlt der O2-Wert; der Mehrverlust gilt aus dem Archiv als bekannt."""
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.befund.archiv import Archiv
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    daten = sammler.coordinator.data
+    daten["devices"] = [b for b in daten["devices"] if b.get("oid") != f"{KESSEL}/0/42/0"]
+    await sammler.messen(dt_util.now())
+    # Neustart: Das Archiv kommt aus dem Speicher, der O2-Wert ist noch nicht gelesen.
+    sammler.archiv = Archiv.aus_dict(sammler.archiv.als_dict())
+    del daten["oids"][f"{KESSEL}/0/42/0"]
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True
+    )
+    registry = er.async_get(hass)
+    verlust = registry.async_get_or_create(
+        "sensor", DOMAIN, "SN1-1-0-befund-abgasverlust", config_entry=eintrag
+    )
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": sammler.coordinator})
+
+    assert registry.async_get(verlust.entity_id).disabled_by is None
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    assert "SN1-1-0-befund-abgasverlust" in {s.unique_id for s in angelegt}

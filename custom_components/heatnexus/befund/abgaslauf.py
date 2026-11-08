@@ -16,6 +16,8 @@ ABGAS, KESSEL, LEISTUNG, PHASE, O2 = "/0/11/0", "/0/7/0", "/0/9/0", "/2/1/0", "/
 BRENNSTOFF_PUROWIN = "/38/127/0"
 # Im Pflegestand des Archivs: bis zu welchem Tag Abgastage aus der Langzeitstatistik stammen.
 NACHGERECHNET = "abgas_nachgerechnet"
+# Ebenda: seit wann ein O2-Wert gelesen wurde; ohne eigene Entität kommt er erst mit dem ersten Takt.
+O2_GESEHEN = "abgas_o2"
 # Reihenfolge wie `abgas.stunde_aus_statistik`.
 FELDER_STATISTIK = {"leistung": LEISTUNG, "abgas": ABGAS, "kessel": KESSEL, "o2": O2}
 
@@ -27,11 +29,18 @@ def ziele_von(coordinator: Any) -> list[AbgasZiel]:
     return ziele(beschreibungen, klassen)
 
 
-def mit_o2(coordinator: Any, prefix: str) -> bool:
-    """Ob der Kessel ein O2-Signal führt, als Entität oder als gelesener Wert; sonst kein Verlust."""
+def mit_o2(coordinator: Any, prefix: str, archiv: Any = None) -> bool:
+    """Ob der Kessel ein O2-Signal führt: als Entität, als gelesener Wert oder laut Archiv."""
     oid = f"{prefix}{O2}"
     beschrieben = any(b.get("oid") == oid for b in (coordinator.data or {}).get("devices") or [])
-    return beschrieben or get_oid_raw(coordinator, O2, prefix) is not None
+    gesehen = archiv is not None and bool(archiv.pflege_eintrag(prefix, O2_GESEHEN))
+    return beschrieben or gesehen or get_oid_raw(coordinator, O2, prefix) is not None
+
+
+def _o2_merken(coordinator: Any, archiv: Any, prefix: str, tag: str) -> None:
+    if archiv.pflege_eintrag(prefix, O2_GESEHEN) or get_oid_raw(coordinator, O2, prefix) is None:
+        return
+    archiv.pflege_setzen(prefix, O2_GESEHEN, {"seit": tag})
 
 
 def abruf(coordinator: Any) -> set[str]:
@@ -54,6 +63,7 @@ def messen(
         def wert(adresse: str, z: AbgasZiel = z) -> float | None:
             return get_oid_value(coordinator, adresse, z.prefix)
 
+        _o2_merken(coordinator, archiv, z.prefix, zeit.date().isoformat())
         leistung = None if z.logwin else wert(LEISTUNG)
         messung = abgas.Messung(wert(ABGAS), wert(KESSEL), leistung, wert(PHASE), wert(O2))
         neu[z.prefix], stufe = abgas.bewerten(zustaende.get(z.prefix, {}), messung, zeit, z.logwin)
@@ -88,20 +98,20 @@ def geraete(coordinator: Any, archiv: Any) -> list[Abgasgeraet]:
                 logwin=z.logwin,
                 brennstoff=abgas.brennstoff(z.fct_type, code),
                 bezug_ab=archiv.pflege_eintrag(z.prefix, z.bezug_art).get("zuletzt"),
-                mit_o2=mit_o2(coordinator, z.prefix),
+                mit_o2=mit_o2(coordinator, z.prefix, archiv),
                 nachgerechnet_bis=archiv.pflege_eintrag(z.prefix, NACHGERECHNET).get("bis"),
             )
         )
     return liste
 
 
-def arten(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]]]:
+def arten(coordinator: Any, archiv: Any = None) -> list[tuple[str, str, tuple[str, ...]]]:
     """Je Kessel Kennung, Gerät und Arten der Befund-Sensoren, wie `geraete_der_anlage` sie führt."""
     return [
         (
             z.device_id,
             z.device_id,
-            ("abgas", "abgasverlust") if mit_o2(coordinator, z.prefix) else ("abgas",),
+            ("abgas", "abgasverlust") if mit_o2(coordinator, z.prefix, archiv) else ("abgas",),
         )
         for z in ziele_von(coordinator)
     ]

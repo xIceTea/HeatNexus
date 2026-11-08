@@ -57,11 +57,11 @@ def _anlagenzustand(coordinators: dict) -> dict[str, str]:
     return {kennung(coordinator): "sensor" for coordinator in coordinators.values()}
 
 
-def _befund(entry: ConfigEntry) -> dict[str, str]:
+def _befund(hass: HomeAssistant | None, entry: ConfigEntry) -> dict[str, str]:
     # Die Befund-Sensoren stehen in keinem Abzug; sie folgen den Heizkreisen und Kesseln.
     from .befund.laufzeit import kennungen
 
-    return kennungen(entry)
+    return kennungen(entry, hass)
 
 
 @callback
@@ -81,7 +81,7 @@ def bekannte_kennungen(
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
     eigene = {
         **_automatik(hass, entry),
-        **_befund(entry),
+        **_befund(hass, entry),
         **_stoerspeicher(coordinators),
         **_anlagenzustand(coordinators),
         **_uhrzeit(coordinators),
@@ -124,7 +124,7 @@ def erwartete_domaenen(
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
     eigene = (
         _automatik(hass, entry)
-        | _befund(entry)
+        | _befund(hass, entry)
         | _stoerspeicher(coordinators)
         | _anlagenzustand(coordinators)
         | _uhrzeit(coordinators)

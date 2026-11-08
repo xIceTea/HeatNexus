@@ -111,7 +111,9 @@ def kessel_geraet(coordinator: Any, prefix: str) -> str | None:
     return next((d["device_id"] for d in geraete if d.get("oid") == oid), None)
 
 
-def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]]]:
+def geraete_der_anlage(
+    coordinator: Any, archiv: Any = None
+) -> list[tuple[str, str, tuple[str, ...]]]:
     """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
     liste = [
         (b["device_id"], b["device_id"], ARTEN_KREIS)
@@ -121,16 +123,22 @@ def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]
     for p in kessel_praefixe(coordinator):
         if (device_id := kessel_geraet(coordinator, p)) is not None:
             liste.append((p, device_id, ARTEN_KESSEL))
-    return liste + abgaslauf.arten(coordinator) + waermepumpelauf.arten(coordinator)
+    return liste + abgaslauf.arten(coordinator, archiv) + waermepumpelauf.arten(coordinator)
 
 
-def kennungen(entry: ConfigEntry) -> dict[str, str]:
+def kennungen(entry: ConfigEntry, hass: HomeAssistant | None = None) -> dict[str, str]:
     """Kennung -> Domäne aller Befund-Entitäten; ohne sie gälten sie beim Aufräumen als verwaist."""
     coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
+    verwaltung = hass.data.get(SCHLUESSEL) if hass is not None else None
+    sammler = list(verwaltung.sammler.values()) if verwaltung is not None else []
+
+    def archiv(coordinator: Any) -> Archiv | None:
+        return next((s.archiv for s in sammler if s.coordinator is coordinator), None)
+
     gefunden = {
         unique_id(device_id, art): "sensor"
         for coordinator in coordinators.values()
-        for _, device_id, arten in geraete_der_anlage(coordinator)
+        for _, device_id, arten in geraete_der_anlage(coordinator, archiv(coordinator))
         for art in arten
     }
     for coordinator in coordinators.values():
@@ -224,7 +232,7 @@ class Sammler:
         return [b for c, b in Verwaltung.heizkreise(self.entry) if c is self.coordinator]
 
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
-        return geraete_der_anlage(self.coordinator)
+        return geraete_der_anlage(self.coordinator, self.archiv)
 
     def _client(self) -> Any:
         return getattr(self.coordinator, "client", None)
