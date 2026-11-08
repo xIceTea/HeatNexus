@@ -48,12 +48,12 @@ export const WaermepumpeMixin = (Basis) =>
     karte.appendChild(kopf);
     karte.appendChild(this._auswahlFeld(this._t("Silentmode"), pumpe.silentmode, pumpe.silentmode_hilfe));
     if (pumpe.faktor) karte.appendChild(this._zahlFeld(this._t("Silentmode Faktor"), pumpe.faktor));
-    if (pumpe.programm) this._waermepumpeZeitfenster(karte, pumpe.programm);
+    if (pumpe.programm) this._waermepumpeZeitfenster(karte, pumpe.programm, pumpe.programm_bezeichnung);
     return karte;
   }
 
   /** Das Zeitfenster des Silentmode und der Weg in seinen Editor. */
-  _waermepumpeZeitfenster(karte, entity) {
+  _waermepumpeZeitfenster(karte, entity, bezeichnung) {
     const text = () => {
       const zustand = this._zustand(entity);
       return zeitfensterText(bloeckeLesen(zustand && zustand.attributes.blocks), this._t.bind(this));
@@ -63,7 +63,10 @@ export const WaermepumpeMixin = (Basis) =>
     );
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
-    const programm = { entity, titel: this._t("Zeitprogramm Silentmode"), art: "schalt" };
+    // Ändert der Dialog die Bezeichnung, baut das Panel die Karte neu; die
+    // Rückmeldung findet ihren neuen Knoten über dieses Attribut.
+    rueckmeldung.dataset.programm = entity;
+    const programm = { entity, titel: this._t("Zeitprogramm Silentmode"), bezeichnung };
     const taste = this._zpTaste("Zeitfenster bearbeiten", "zp-taste", () =>
       this._zeitprogrammBearbeiten(programm, rueckmeldung)
     );

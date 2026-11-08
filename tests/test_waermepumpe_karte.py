@@ -91,6 +91,21 @@ def test_faktor_und_programm_sind_freiwillig():
 
     assert karte["faktor"] is None
     assert karte["programm"] is None
+    assert karte["programm_bezeichnung"] is None
+
+
+@requires_ha()
+def test_karte_reicht_die_bezeichnung_des_programms_weiter():
+    """Ohne sie zeigte der Dialog ein leeres Bezeichnungsfeld."""
+    from custom_components.heatnexus.panel.steuerung import steuerung
+
+    programm = {**_e("sensor.silent_programm", "Zeitprogramm Silentmode"), "bezeichnung": "Nacht"}
+    anlage = {"teile": [_teil("AeroWIN", 7, _e("select.silent", "Silentmode"), programm)]}
+
+    karte = steuerung(anlage)["waermepumpen"][0]
+
+    assert karte["programm"] == "sensor.silent_programm"
+    assert karte["programm_bezeichnung"] == "Nacht"
 
 
 TAEGLICH = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]

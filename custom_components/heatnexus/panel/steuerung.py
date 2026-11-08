@@ -462,6 +462,7 @@ def _waermepumpen_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
         modus = kennung_suchen(entitaeten, SILENTMODE, ("select",))
         if modus is None:
             continue
+        programm = eintrag_suchen(entitaeten, SILENTMODE_PROGRAMM, ("sensor",))
         karten.append(
             {
                 "id": teil["id"],
@@ -469,7 +470,9 @@ def _waermepumpen_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
                 "silentmode": modus,
                 "silentmode_hilfe": hilfe("Silentmode"),
                 "faktor": kennung_suchen(entitaeten, SILENTMODE_FAKTOR, ("number",)),
-                "programm": kennung_suchen(entitaeten, SILENTMODE_PROGRAMM, ("sensor",)),
+                "programm": programm["entity_id"] if programm else None,
+                # Der Dialog zeigt die Bezeichnung aus dem Reiter Zeitprogramme.
+                "programm_bezeichnung": (programm or {}).get("bezeichnung"),
             }
         )
     return karten
