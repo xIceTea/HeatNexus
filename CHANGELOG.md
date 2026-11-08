@@ -25,7 +25,7 @@ wenn dort Vorabversionen zugelassen sind.
 - LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
 - An Kaskade und Umschaltung erscheinen Pumpen, Ventile und Zusatzkessel einzeln.
 - Solar zeigt, ob und wohin die Anlage gerade lädt.
-- Neue Werte erscheinen: Kaminkehrer-Restzeit, Betriebszustand, PV-Überschuss und Einfluss des Energy Pilot.
+- Neue Werte erscheinen: Betriebszustand, PV-Überschuss, Einfluss des Energy Pilot und Aktorentest-Freigabe.
 
 ### Geändert
 

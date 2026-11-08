@@ -49,6 +49,8 @@ NAMEN: dict[str, str] = {
 
 NUR_BUS: tuple[str, ...] = ()
 
+TABELLEN: dict[str, dict[int, str]] = {"58/46": {0: "Nein", 1: "Ja"}}
+
 # Mischermotor und Mischerlaufzeit führt die Herstellerdatei als nicht änderbar.
 NUR_ANZEIGE: tuple[str, ...] = ("58/83", "58/84")
 

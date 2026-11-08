@@ -36,7 +36,6 @@ KESSELART: str | None = None
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
     "20/108": "Betriebszustand",
-    "43/20": "Kaminkehrer Restzeit",
     # Die Tabelle nennt hier nur den Messgrößenteil; wozu er gehört, sagt erst
     # die Einheit und der Bereich, den die Anlage meldet.
     "9/90": "Kaminkehrer Restlaufzeit",

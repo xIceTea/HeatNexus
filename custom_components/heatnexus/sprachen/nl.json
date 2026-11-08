@@ -1300,7 +1300,6 @@
   "Elektrische Zündung": "Elektrische ontsteking",
   "Zündzeit Vorgabe": "Standaard ontstekingstijd",
   "Zündmodus": "Ontstekingsmodus",
-  "Kaminkehrer Restzeit": "Schoorsteenveger resterende tijd",
   "PuroWIN-Typ": "PuroWIN-type",
   "Solarladung": "Zonne-energie laden",
   "Solar-Energiefluss": "Zonne-energiestroom",
@@ -1320,5 +1319,7 @@
   "Keine Zündung": "Geen ontsteking",
   "Sofort": "Direct",
   "Sperrzeit": "Blokkeertijd",
-  "Fern": "Op afstand"
+  "Fern": "Op afstand",
+  "Ja": "Ja",
+  "Nein": "Nee"
 }

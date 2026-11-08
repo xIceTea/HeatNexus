@@ -24,7 +24,6 @@ KESSELART: str | None = None
 # Der Kesselmischer heißt in der Tabelle wie der Heizkreismischer.
 NAMEN: dict[str, str] = {
     "20/108": "Betriebszustand",
-    "43/20": "Kaminkehrer Restzeit",
     "0/7": "Kesseltemperatur Ist",
     "58/115": "Mischer Wärmeerzeuger",
     # „Gerätetyp" heißt auch 12/38; 39/61 meldet die Leistung in kW.
