@@ -75,7 +75,7 @@ def test_baureihen_vorn_zaehlen_nicht_zur_laenge():
 
 def test_unbekannte_baureihe_schlaegt_an():
     assert "unbekannte Baureihe" in _arten("Biowin: Die Betriebswahl steht auf der Werksebene.")
-    assert "unbekannte Baureihe" in _arten("BioWIN, AeroWIN: Die Taste erscheint.")
+    assert "unbekannte Baureihe" in _arten("BioWIN, MegaWIN: Die Taste erscheint.")
 
 
 def test_doppelpunkt_ohne_baureihe_bleibt_unbeanstandet():
@@ -124,3 +124,7 @@ def test_der_abschnitt_der_laufenden_fassung_ist_sauber():
     beginn = text.index("## [1.10.0] - ")
     ende = text.index("## [1.10.0-beta.3]")
     assert regel.pruefe("CHANGELOG.md", text[beginn:ende]) == []
+
+
+def test_aerowin_ist_eine_baureihe():
+    assert _arten("AeroWIN: Datum und Taste halten die Reinigung des Verdampfers fest.") == []
