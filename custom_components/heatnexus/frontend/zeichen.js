@@ -26,11 +26,11 @@ export function zeichenKnoten() {
     <path d="M4.4 16.0H7.26" stroke="#f7a83b" stroke-width="0.95"/>
     <path d="M16.0 25.03V27.76" stroke="#2fa8dc" stroke-width="0.95"/>
     <path d="M24.21 16.0H27.6" stroke="currentColor" stroke-width="1.2"/>
-    <g id="zeichen-haus" fill="none" stroke-width="1.2">
+    <g fill="none" stroke-width="1.2">
     <path stroke="currentColor" d="M7.18 14.28L16.0 6.65L24.74 14.41"/>
     <path stroke="currentColor" d="M7.87 14.28V22.57Q7.87 24.37 9.67 24.37H22.41Q24.21 24.37 24.21 22.57V16.0"/>
     </g>
-    <g id="zeichen-heizkoerper" stroke-width="1.6">
+    <g stroke-width="1.6">
     <path d="M11.83 15.96V21.76M14.65 15.96V21.76M17.43 15.96V21.76" stroke="url(#${glut})"/>
     <path d="M20.25 17.18V21.76" stroke="#3bb4f2"/>
     <circle cx="20.25" cy="14.57" r="0.98" fill="#3bb4f2" stroke="none"/>

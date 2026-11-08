@@ -28,6 +28,7 @@ from .const import (
 from .entity import steuerung_kennung
 from .erkennungsstand import store_key
 from .registrierung import geraet_suchen
+from .repairs import adresshinweise_entfernen
 
 # Hängen an einer bestimmten Anlage und gehen nicht auf eine neue über.
 EIGENE_OPTIONEN = (CONF_MARKEN, CONF_MARKEN_STATUS, CONF_ZUSATZWERTE)
@@ -129,6 +130,7 @@ async def entfernen(hass: HomeAssistant, entry: ConfigEntry, host: str) -> None:
             entitaeten.async_remove(eintrag.entity_id)
         register.async_remove_device(geraet.id)
     await Store(hass, DISCOVERY_STORE_VERSION, store_key(entry, host)).async_remove()
+    adresshinweise_entfernen(hass, entry.entry_id, host)
     systeme = [s for s in mit_kennung(entry, entry.data.get(CONF_SYSTEMS, [])) if s["host"] != host]
     hass.config_entries.async_update_entry(
         entry,

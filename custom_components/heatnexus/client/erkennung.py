@@ -432,6 +432,7 @@ class ErkennungMixin:
         LON-Adressräume fehlen: Ihr Schweigen ist häufig und gilt als überbrückt.
         """
         namen: dict[str, str] = {}
+        knotennummern: dict[str, str] = {}
         for knoten in json_devices:
             if not isinstance(knoten, dict) or knoten.get("nodeId") is None:
                 continue
@@ -446,7 +447,25 @@ class ErkennungMixin:
                 ]
                 prefix = f"/1/{knoten['nodeId']}/{fct.get('fctId')}"
                 namen[prefix] = " ".join(teile) or prefix
-        return namen
+                knotennummern[prefix] = str(knoten["nodeId"])
+        return self._gleiche_namen_trennen(namen, knotennummern)
+
+    def _gleiche_namen_trennen(
+        self, namen: dict[str, str], knotennummern: dict[str, str]
+    ) -> dict[str, str]:
+        """Gleich benannte Teile mit ihrer Knotennummer unterscheidbar machen."""
+        anzahl: dict[str, int] = {}
+        for name in namen.values():
+            anzahl[name] = anzahl.get(name, 0) + 1
+        vorlage = texte.Woerterbuch(self.sprache)("Knoten {knoten}")
+        return {
+            prefix: (
+                f"{name} ({texte.fuellen(vorlage, knoten=knotennummern[prefix])})"
+                if anzahl[name] > 1
+                else name
+            )
+            for prefix, name in namen.items()
+        }
 
     async def _struktur_pruefen(self, antwort: list | None = None) -> None:
         """`/1` mit dem Erkennungsstand vergleichen; erst zwei gleiche Abweichungen zählen.

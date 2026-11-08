@@ -179,12 +179,8 @@ export const DarstellungMixin = (Basis) =>
       this._vorschau = entwurf ? { ...entwurf } : null;
       this._gebaut = false;
       if (this._abgebaut) return;
-      // Der Neuaufbau leert die Seite kurz; ohne Merken verrutscht der Hintergrund bei jeder Wahl.
-      const lagen = this._scrollLagen();
-      this._zeichnen();
-      lagen.forEach(([element, oben]) => {
-        element.scrollTop = oben;
-      });
+      // Ohne gehaltene Scrolllage verrutscht der Hintergrund bei jeder Wahl.
+      this._zeichnenAnOrt();
     }
 
     /** Das Fenster „Darstellung“: Ein Klick zeigt die Wahl sofort, „Übernehmen“ speichert, „Verwerfen“ stellt zurück. */
