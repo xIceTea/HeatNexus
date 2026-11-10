@@ -6,6 +6,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Geändert
+
+- Die Kaskade erscheint nicht mehr als eigener Kasten im Schaubild.
+
+### Behoben
+
+- Das Puffermodul im Kesselregler erscheint im Schaubild als Puffer mit Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+
 ## [1.16.0-beta.1] - 2026-11-08
 
 ### Highlight: Pflege, Abgas und Brennstoff im Blick

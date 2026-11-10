@@ -22,7 +22,6 @@ ARTEN = {
     "wasser",
     "solar",
     "pumpenmodul",
-    "umschaltung",
     "hybridmanager",
 }
 

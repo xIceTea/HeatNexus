@@ -149,7 +149,6 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "zirkulation": (148, 264),
     "pumpenmodul": (150, 266),
     "solar": (158, 244),
-    "umschaltung": (132, 284),
     "hybridmanager": (140, 282),
     "modul": (132, 280),
     "heizstab": (150, 270),

@@ -728,7 +728,6 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
     erwartet = {
         1: "heizkreis",  # Heizkurve, Kühlgrenzen, Estrichprogramm
         2: "wasser",  # WW-Programm, Hygiene-Programm, Zirkulationspumpe
-        4: "umschaltung",  # Weiche, Folgeschaltung, Zusatzkessel ZSK
         5: "solar",  # Kollektortemperatur, Kollektor spülen
         6: "kessel",  # Gas/Öl: Ionisationsstrom, Anlagendruck
         7: "kessel",  # Wärmepumpe: COP, Silentmode
@@ -737,7 +736,7 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         10: "kessel",  # Automatikkessel
         13: "solar",  # „Solar ES", von der Anlage selbst benannt
         14: "heizkreis",
-        15: "umschaltung",  # Automatikkessel / Festbrennstoff / Puffer
+        15: "puffer",  # Puffer oben/mitte/unten, Pufferladepumpe, Umschaltventile
         16: "puffer",
         20: "pumpenmodul",  # ZSP
         21: "puffer",
@@ -752,6 +751,29 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         7: "waermepumpe",
         27: "waermepumpe",
     }
+
+
+def test_puffermodul_des_reglers_wird_als_puffer_mit_ladepumpe_gezeichnet(werte):
+    """FctType 15 trägt die Herstellernamen: oben und unten, die Ladepumpe als Bit von `2/2`."""
+    puffer = _teil(
+        "Puffer",
+        15,
+        [
+            ("sensor.kessel", "Kesseltemperatur"),
+            ("sensor.oben", "Puffertemperatur oben"),
+            ("sensor.unten", "Puffertemperatur unten"),
+            ("binary_sensor.lp", "Pufferladepumpe"),
+        ],
+    )
+    modul = werte.zeichenbare_module([puffer])[0]
+    assert modul["art"] == "puffer"
+    assert [w["entity_id"] for w in modul["werte"]] == ["sensor.oben", "sensor.unten"]
+    assert modul["pumpe"] == "binary_sensor.lp"
+
+
+def test_kaskade_steht_nicht_im_schaubild(werte):
+    kaskade = _teil("Kaskade", 4, [("sensor.t", "Kesseltemperatur")])
+    assert werte.zeichenbare_module([kaskade]) == []
 
 
 def test_warmwasser_und_zirkulation_in_beiden_schreibweisen(werte):

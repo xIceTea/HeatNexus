@@ -120,13 +120,8 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
             ("solar_storage_temperature",),
         ),
     ),
-    # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
     # Der Hybridmanager speichert nichts; seine Puffertemperatur gehört dem Puffer.
     "hybridmanager": (),
-    "umschaltung": (
-        (r"kesseltemperatur(?!.*soll)", "Kessel", ("boiler_temperature",)),
-        (r"puffertemperatur (oben|tpe)|^puffertemperatur$", "Puffer", ("buffer_top",)),
-    ),
     # Eine Wärmepumpe hat weder Kesseltemperatur noch Kesselleistung; sie steht
     # mit Vorlauf und Leistungszahl im Bild. Kein Schlüssel `flow_temperature`:
     # der gehört dem Heizkreis.

@@ -1,7 +1,7 @@
-"""Umschaltung Kessel und Puffer (fctType 15).
+"""Puffermodul mit Kesselumschaltung (fctType 15).
 
-Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+Das Modul führt den Puffer: Fühler oben, mitte, unten und die Ladepumpe. Die
+Umschaltventile wählen zusätzlich zwischen Festbrennstoff- und Automatikkessel.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ FCT_TYPE = 15
 MODELL = "Umschaltung Kessel/Puffer"
 RANG = 18
 SYMBOL = "mdi:valve"
-SCHAUBILD = "umschaltung"
+SCHAUBILD = "puffer"
 
 EXTRA_OIDS: tuple[str, ...] = ("59/24",)
 KESSELART: str | None = None
@@ -33,7 +33,7 @@ def _aktor(bit: int, name: str, endung: str) -> dict:
     }
 
 
-# Die Herstellerdatei zeigt an der Umschaltung diese Bits von `2/2` einzeln an.
+# Die Herstellerdatei zeigt an diesem Modul diese Bits von `2/2` einzeln an.
 ENTITAETEN: list[dict] = [
     _aktor(1, "Pufferladepumpe", "pufferladepumpe"),
     _aktor(2, "Umschaltventil 1", "umschaltventil_1"),

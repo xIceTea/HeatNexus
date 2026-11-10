@@ -1,7 +1,8 @@
 """Kaskade (fctType 4).
 
-Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+Ohne gepflegte Datenpunkttabelle: Name, Rang und Symbol sind belegt, die
+Datenpunkte kommen aus den Menü-Ebenen der Anlage. Im Schaubild steht sie nicht,
+weil sie die Kessel regelt, ohne selbst in der Leitung zu sitzen.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ FCT_TYPE = 4
 MODELL = "Kaskade"
 RANG = 16
 SYMBOL = "mdi:layers-triple"
-SCHAUBILD = "umschaltung"
+SCHAUBILD = None
 
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
