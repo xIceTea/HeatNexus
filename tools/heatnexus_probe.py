@@ -81,6 +81,28 @@ def _load_device_db():
 DEVICE_DB = _load_device_db()
 
 
+def _load_geraete():
+    """Gerätewissen ohne Home Assistant laden: die Zusatzadressen je Funktionstyp."""
+    ordner = REPO / "custom_components" / "heatnexus" / "geraete"
+    name = "heatnexus_geraete"
+    spec = importlib.util.spec_from_file_location(
+        name, ordner / "__init__.py", submodule_search_locations=[str(ordner)]
+    )
+    if not spec or not spec.loader:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(name, None)
+        return None
+    return module
+
+
+GERAETE = _load_geraete()
+
+
 def db_name(gnmn: str) -> str:
     """Datenpunktname aus der Geräte-Datenbank."""
     if DEVICE_DB is None:
@@ -666,6 +688,16 @@ ENDPUNKT_KANDIDATEN = (
     "Zones",
     "kesselwahl",
     "scan/status",
+    # Pfade, die die Integration selbst abfragt, und Funde aus der Firmware.
+    # `windyndata` nur ohne Adresse: Mit Adresse löst die App eine Zündung aus.
+    "info/LONApp",
+    "systemtime",
+    "fehlerlog",
+    "heartbeat",
+    "windyndata",
+    "gui/version",
+    "buildinfo",
+    "version",
 )
 
 # Basispfade, unter denen die Kandidaten gesucht werden.
@@ -680,6 +712,7 @@ ENDPUNKT_BASEN = (
     "/WsFUP7030/api/1.0/",
     "/DcmRC7030/api/1.0/",
     "/InfoWinFehlerlog/api/1.0/",
+    "/InfoWinHeartbeat/api/1.0/",
     # Das Portal spricht `info/deviceinfo` als eigenen Dienst an; welcher Mount
     # das lokal ist, steht nicht fest.
     "/info/api/1.0/",
@@ -1525,18 +1558,75 @@ def gnmn_of(prefix: str, oid: str) -> str:
     return f"{rest[0]}/{rest[1]}" if len(rest) >= 2 else oid
 
 
+def _bekannt(fct_type) -> set[str]:
+    """Adressen, die die Herstellerdaten für einen Funktionstyp führen."""
+    if DEVICE_DB is None:
+        return set()
+    try:
+        layers = DEVICE_DB.get_layers(fct_type) or {}
+    except Exception:
+        return set()
+    return {g for lvl in ("info", "operate", "service") for g in layers.get(lvl, [])}
+
+
+def _zusatz(fct_type) -> set[str]:
+    """Adressen, die die Integration außerhalb der Menüs einzeln liest."""
+    if GERAETE is None:
+        return set()
+    try:
+        return set(GERAETE.EXTRA_OIDS.get(int(fct_type), ()))
+    except (TypeError, ValueError):
+        return set()
+
+
+def einzelziele(menus: dict) -> list[dict]:
+    """Je Funktion die Adressen, die kein Menü der Anlage geliefert hat."""
+    ziele = []
+    for fct in menus["functions"]:
+        fct_type = fct.get("fct_type")
+        if not isinstance(fct_type, int) or fct_type < 0:
+            continue
+        found = {gnmn_of(fct["prefix"], oid) for oid in fct["datapoints"]}
+        zusatz = _zusatz(fct_type)
+        for gnmn in sorted((_bekannt(fct_type) | zusatz) - found, key=_sort_gnmn):
+            ziele.append(
+                {
+                    "oid": f"{fct['prefix']}/{gnmn}/0",
+                    "quelle": "zusatz" if gnmn in zusatz else "hersteller",
+                }
+            )
+    return ziele
+
+
+def hole_einzelwerte(probe: Probe, ziele: list[dict]) -> dict:
+    """Jede Adresse einzeln über `lookup` lesen und Antwort samt Status festhalten."""
+
+    def read(ziel):
+        data, status = probe.lookup(ziel["oid"])
+        return ziel, data, status
+
+    werte = {}
+    lesbar = 0
+    for ziel, data, status in probe.map(read, ziele):
+        gnmn = "/".join(ziel["oid"].split("/")[-3:-1])
+        werte[ziel["oid"]] = {
+            "quelle": ziel["quelle"],
+            "name": db_name(gnmn),
+            "status": status,
+            "data": _gekuerzt(data),
+        }
+        if status == 200 and isinstance(data, dict) and "value" in data:
+            lesbar += 1
+    print(f"    {lesbar} von {len(ziele)} Adressen lesbar")
+    return {"angefragt": len(ziele), "lesbar": lesbar, "werte": werte}
+
+
 def compare(menus: dict) -> list[dict]:
     """Gefundene Datenpunkte gegen die Geräte-Datenbank stellen."""
     rows = []
     for fct in menus["functions"]:
         found = {gnmn_of(fct["prefix"], oid) for oid in fct["datapoints"]}
-        layers = {}
-        if DEVICE_DB is not None:
-            try:
-                layers = DEVICE_DB.get_layers(fct["fct_type"]) or {}
-            except Exception:
-                layers = {}
-        known = {g for lvl in ("info", "operate", "service") for g in layers.get(lvl, [])}
+        known = _bekannt(fct["fct_type"])
         rows.append(
             {
                 "prefix": fct["prefix"],
@@ -1749,7 +1839,7 @@ def run_host(
         written.append(path)
 
     menus = objects = None
-    if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich"}:
+    if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich", "einzeln"}:
         print("    Menü-Ebenen werden gelesen …")
         menus = fetch_menus(probe, structure)
         for fct in menus["functions"]:
@@ -1775,6 +1865,15 @@ def run_host(
                 written.append(path)
 
     nv = None
+    if menus and "einzeln" in actions:
+        with schritt("Einzelabruf"):
+            ziele = einzelziele(menus)
+            print(f"    {len(ziele)} Adressen außerhalb der Menüs werden einzeln gelesen …")
+            einzeln = hole_einzelwerte(probe, ziele)
+            path = out_dir / f"{stem}_einzeln.json"
+            path.write_text(json.dumps(einzeln, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
+
     if menus and actions & {"nv", "vergleich"}:
         with schritt("LON-Netzwerkvariablen"):
             print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
@@ -1951,6 +2050,10 @@ ACTIONS = {
     "12": ("vollabzug", "Vollabzug: alle Datenpunkte über /api/1.0/datapoints"),
     "13": ("vergleich", "Vergleich: liefern LON-Werte etwas, das es als OID nicht gibt"),
     "14": ("stapel", "Messung: liest /api/1.0/datapoints?OID= mehrere Adressen auf einmal"),
+    "15": (
+        "einzeln",
+        "Einzelabruf: Adressen außerhalb der Menüs (Herstellerdaten, Zusatzadressen)",
+    ),
 }
 
 
@@ -2090,6 +2193,7 @@ def main() -> int:
             "vollabzug",
             "vergleich",
             "stapel",
+            "einzeln",
         ],
         help="Aktion (Standard: geführter Modus)",
     )
