@@ -90,6 +90,21 @@ export const SchaubildMixin = (Basis) =>
     return (tabelle && tabelle[dunkel]) || dunkel;
   }
 
+  /** Der Tooltip des Puffers: seine Fühler und, wo gemeldet, der Beladegrad. */
+  _pufferTitel(eintrag, mitMitte) {
+    const werte = {
+      titel: eintrag.titel,
+      oben: this._text(eintrag.oben),
+      mitte: mitMitte ? this._text(eintrag.mitte) : "",
+      unten: this._text(eintrag.unten),
+    };
+    const titel = mitMitte
+      ? this._tMit("{titel} – oben {oben}, mitte {mitte}, unten {unten}", werte)
+      : this._tMit("{titel} – oben {oben}, unten {unten}", werte);
+    if (!eintrag.beladegrad || !this._hatWert(eintrag.beladegrad)) return titel;
+    return `${titel}, ${this._tMit("Beladegrad {wert}", { wert: this._text(eintrag.beladegrad) })}`;
+  }
+
   /**
    * Ob ein Speicher gerade geladen oder entnommen wird.
    *
@@ -206,7 +221,7 @@ export const SchaubildMixin = (Basis) =>
   /** Eine Hülle ohne `reihe`, sonst Ausschnitt, Schrift und mit `unter` die Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
   _strangReihe(anlage, reihe, bindungen, unter) {
     const anfang = this._bindungen.length;
-    const huelle = this._schaubildHuelle(anlage, Boolean(reihe));
+    const huelle = this._schaubildHuelle(anlage, Boolean(reihe), unter);
     const schrift = reihe ? this._strangSchrift(anlage, reihe, unter) : null;
     const leiste = unter ? this._wertleiste(anlage, reihe) : null;
     bindungen.push(...this._bindungen.splice(anfang));
@@ -314,8 +329,8 @@ export const SchaubildMixin = (Basis) =>
     return bild;
   }
 
-  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg. */
-  _schaubildHuelle(anlage, inReihe = false) {
+  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg, `unter` stellt sie unter das Bild. */
+  _schaubildHuelle(anlage, inReihe = false, unter = false) {
     const huelle = this._bildflaeche(anlage);
     huelle.appendChild(
       this._zeichnung(anlage, inReihe ? ohneNamen(anlage.schema_svg) : anlage.schema_svg, "Anlagenschaubild")
@@ -532,14 +547,12 @@ export const SchaubildMixin = (Basis) =>
         // mittleren. Vorher endete der obere Bereich bei 30 % und die
         // Mischfarbe saß bei 62 % – beides zwischen den Nähten, und genau
         // das ließ die Färbung gegenüber der Zeichnung verrutscht aussehen.
+        // Ein gemessener mittlerer Fühler ersetzt den Mittelwert auf der mittleren Naht.
+        const mitte = eintrag.mitte ? this._zahl(eintrag.mitte) : null;
         koerper.style.background =
           `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 29%, ` +
-          `${farbe((oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
-        koerper.title = this._tMit("{titel} – oben {oben}, unten {unten}", {
-          titel: eintrag.titel,
-          oben: this._text(eintrag.oben),
-          unten: this._text(eintrag.unten),
-        });
+          `${farbe(mitte ?? (oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
+        koerper.title = this._pufferTitel(eintrag, mitte !== null);
       });
     });
 
@@ -705,6 +718,9 @@ export const SchaubildMixin = (Basis) =>
       marke.style.top = eintrag.top;
       huelle.appendChild(marke);
       this._bindungen.push(() => {
+        // Steht die Puffermitte als Zahl im Bild, rückt das Wort in die Kuppel.
+        const drei = !unter && this._pufferDrei() && eintrag.mitte && this._hatWert(eintrag.mitte);
+        marke.style.top = drei ? eintrag.top_drei : eintrag.top;
         const { laedt, zieht } = this._speicherzustand(eintrag);
         marke.classList.toggle("laedt", laedt);
         marke.classList.toggle("entlaedt", !laedt && zieht);

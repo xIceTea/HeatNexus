@@ -153,6 +153,12 @@ export const WERTELAGEN = [
   { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
 ];
 
+// Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
+export const PUFFERWERTE = [
+  { schluessel: "zwei", titel: "Oben und unten", hinweis: "Zwei Temperaturen, dazwischen der Ladezustand" },
+  { schluessel: "drei", titel: "Oben, mitte, unten", hinweis: "Drei Temperaturen, wo der Puffer einen mittleren Fühler meldet" },
+];
+
 // Farben der Beschriftung im Schaubild: frei gewählt, als Text gespeichert. Die Werte hier
 // sind der ausgelieferte Stand. Die Schlüssel decken sich mit `anordnung.py`.
 export const BESCHRIFTUNG = {
@@ -236,6 +242,7 @@ export const DARSTELLUNG = {
   strang_groesse: STRANGGROESSEN,
   werte_groesse: WERTEGROESSEN,
   werte_lage: WERTELAGEN,
+  puffer_werte: PUFFERWERTE,
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.

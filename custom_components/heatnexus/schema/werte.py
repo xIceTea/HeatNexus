@@ -62,6 +62,12 @@ KESSELLEISTUNG_IST = r"kesselleistung"
 WP_LEISTUNG_IST = r"^aktuelle leistung$"
 
 
+# Mittlerer Fühler und Beladegrad des Puffers. Die Mitte färbt die Schichtung und
+# steht nur auf Wunsch als Zahl im Bild; der Beladegrad erscheint im Tooltip.
+PUFFER_MITTE = r"^puffer(temperatur)?[ -]?mitte|puffertemperatur tpm"
+BELADEGRAD = r"beladegrad"
+
+
 # Eine Wärmequelle meldet keinen Messwert, sondern ob sie gerade liefert.
 # Daran hängen ihre Lampe und der Fluss in ihrer Stichleitung.
 LIEFERUNG = r"wärmelieferung"
@@ -580,6 +586,8 @@ def _hauptmodul(
         # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
         # der Kreis abgeschaltet ist und der Körper kalt hängt.
         "vorlauf": _entitaet_wenn(art == "heizkreis", entitaeten, VORLAUF_IST, "flow_temperature"),
+        "mitte": _entitaet_wenn(art == "puffer", entitaeten, PUFFER_MITTE, "buffer_middle"),
+        "beladegrad": _entitaet_wenn(art == "puffer", entitaeten, BELADEGRAD),
         # Für Auswertungen, die über die angezeigten Werte
         # hinausgehen – etwa die Lampen des Pumpen-/Relaismoduls.
         "entitaeten": entitaeten,

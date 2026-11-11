@@ -8,6 +8,12 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Unter „Darstellung“ lässt sich am Puffer auch die mittlere Temperatur einblenden ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Farbe des Puffers folgt auch dem mittleren Fühler.
+- Der Tooltip am Puffer nennt die mittlere Temperatur und den Beladegrad.
+
 ### Geändert
 
 - Die Kaskade erscheint nicht mehr als eigener Kasten im Schaubild.

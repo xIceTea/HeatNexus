@@ -239,6 +239,7 @@ def test_jede_wahl_der_darstellung_darf_gespeichert_werden(tmp_path):
     assert im_browser["strang_groesse"] == _liste_der_serverseite("STRANGGROESSEN")
     assert im_browser["werte_groesse"] == _liste_der_serverseite("WERTEGROESSEN")
     assert im_browser["werte_lage"] == _liste_der_serverseite("WERTELAGEN")
+    assert im_browser["puffer_werte"] == _liste_der_serverseite("PUFFERWERTE")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")

@@ -771,6 +771,72 @@ def test_puffermodul_des_reglers_wird_als_puffer_mit_ladepumpe_gezeichnet(werte)
     assert modul["pumpe"] == "binary_sensor.lp"
 
 
+def _puffer_mit_mitte() -> list:
+    return [
+        _teil("LogWIN", 10, [("sensor.kessel", "Kesseltemperatur Ist")]),
+        _teil(
+            "Puffer",
+            15,
+            [
+                ("sensor.oben", "Puffertemperatur oben"),
+                ("sensor.mitte", "Puffertemperatur mitte"),
+                ("sensor.unten", "Puffertemperatur unten"),
+                ("sensor.bg", "Puffer-Beladegrad"),
+            ],
+        ),
+    ]
+
+
+def test_puffermitte_steht_nicht_unter_den_festen_werten(karte, zeichnung):
+    """Die Mitte kommt als eigene Marke an die Stelle des Ladeworts, das Wort rückt nach oben."""
+    bild = karte.anlagenschema(_puffer_mit_mitte())
+    assert [el["entity"] for el in bild["elements"]] == [
+        "sensor.kessel",
+        "sensor.oben",
+        "sensor.unten",
+    ]
+    (mitte,) = bild["werte_mitte"]
+    (speicher,) = bild["speicher"]
+    assert mitte["entity"] == "sensor.mitte"
+    assert float(mitte["style"]["top"].rstrip("%")) == pytest.approx(
+        float(speicher["top"].rstrip("%")), abs=0.1
+    )
+    assert mitte["style"]["left"] == bild["elements"][1]["style"]["left"]
+    assert speicher["mitte"] == "sensor.mitte"
+    assert float(speicher["top_drei"].rstrip("%")) < float(speicher["top"].rstrip("%"))
+    assert zeichnung.KANTEN_JE_ART["puffer"][0] < zeichnung.SPEICHER_DREI_Y
+
+
+def test_schichtung_kennt_mitte_und_beladegrad(karte):
+    (schicht,) = karte.anlagenschema(_puffer_mit_mitte())["schichtung"]
+    assert schicht["mitte"] == "sensor.mitte"
+    assert schicht["beladegrad"] == "sensor.bg"
+
+
+def test_nutzdaten_tragen_die_puffermitte_mit_namen(karte):
+    nutzdaten = karte.schaubild_nutzdaten({"id": "a", "name": "X", "teile": _puffer_mit_mitte()})
+    (mitte,) = nutzdaten["schema_werte_mitte"]
+    assert mitte["entity"] == "sensor.mitte"
+    assert mitte["name"] == "mitte"
+    assert mitte["beschriftung"] is None
+
+
+def test_ohne_mittleren_fuehler_bleibt_alles_wie_bisher(karte, anlage):
+    bild = karte.anlagenschema(anlage)
+    assert bild["werte_mitte"] == []
+    assert bild["schichtung"][0]["mitte"] is None
+    assert bild["schichtung"][0]["beladegrad"] is None
+
+
+def test_schaltdifferenz_puffer_mitte_ist_kein_fuehler(werte):
+    """Ein Sollwert, der die Mitte im Namen trägt, darf nicht als Fühler gelten."""
+    assert not re.search(
+        werte.PUFFER_MITTE, "Schaltdifferenz WW Bereitung Puffer Mitte", re.IGNORECASE
+    )
+    for name in ("Puffertemperatur mitte", "Puffer Mitte", "Puffertemperatur TPM"):
+        assert re.search(werte.PUFFER_MITTE, name, re.IGNORECASE), name
+
+
 def test_kaskade_steht_nicht_im_schaubild(werte):
     kaskade = _teil("Kaskade", 4, [("sensor.t", "Kesseltemperatur")])
     assert werte.zeichenbare_module([kaskade]) == []

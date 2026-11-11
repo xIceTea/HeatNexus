@@ -28,12 +28,22 @@ export const SchaubildWerteMixin = (Basis) =>
       return lage === "unter" || (lage === "automatisch" && MODUL * massstab < UNTER_AB);
     }
 
-    /** Alle Zahlen eines Bildes: die Messwerte und der Befüllgrad des Vorratsbehälters. */
+    /** Ob der Puffer drei Temperaturen zeigt; ohne Darstellung (Karte) bleibt es bei zwei. */
+    _pufferDrei() {
+      return typeof this._stilwahl === "function" && this._stilwahl("puffer_werte") === "drei";
+    }
+
+    /** Alle Zahlen eines Bildes: die Messwerte, auf Wunsch die Puffermitte, der Befüllgrad des Behälters. */
     _zahlwerte(anlage) {
+      const werte = anlage.schema_werte || [];
+      const gezeigt = new Set(werte.map((eintrag) => eintrag.entity));
+      const mitte = this._pufferDrei()
+        ? (anlage.schema_werte_mitte || []).filter((eintrag) => !gezeigt.has(eintrag.entity))
+        : [];
       const fuellgrad = (anlage.schema_vorrat || [])
         .filter((eintrag) => eintrag.art === "fuellgrad")
         .map((eintrag) => ({ ...eintrag, name: this._t("Vorratsbehälter"), fuellgrad: true }));
-      return [...(anlage.schema_werte || []), ...fuellgrad];
+      return [...werte, ...mitte, ...fuellgrad];
     }
 
     /** Ohne Wert keine Zahl; der Befüllgrad bleibt auch bei 0 % weg. */

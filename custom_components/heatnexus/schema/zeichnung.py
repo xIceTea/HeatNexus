@@ -293,6 +293,10 @@ SPEICHER_ARTEN: dict[str, dict[str, Any]] = {
 SPEICHER_Y = 213
 
 
+# Zeigt der Puffer drei Zahlen, steht die mittlere auf SPEICHER_Y und das Wort in der Kuppel.
+SPEICHER_DREI_Y = 134
+
+
 # Wie viel wärmer als der untere Fühler der Kessel sein muss, damit die Ladung
 # gilt. Dort holt die Ladepumpe ihr Wasser; liegt der Kessel darüber, trägt sie
 # Wärme ein – auch wenn der obere Bereich längst wärmer ist als der Kessel.
@@ -484,34 +488,47 @@ def beschriftungen(
     elemente = []
     for wert, y in zip(modul["werte"], hoehen, strict=False):
         dx, y = stellen.get(wert.get("beschriftung"), (MODUL_BREITE // 2, y))
-        elemente.append(
-            {
-                "type": "state-label",
-                "entity": wert["entity_id"],
-                "prefix": (
-                    f"{(buch or _gleich)(wert['beschriftung'])} "
-                    if wert.get("beschriftung") in kurz
-                    else ""
-                ),
-                # Der kurze Name des Werts; unter dem Bild steht jede Zahl mit ihm.
-                "name": (buch or _gleich)(wert["beschriftung"])
-                if wert.get("beschriftung")
-                else None,
-                "style": {
-                    "top": f"{y / HOEHE * 100:.1f}%",
-                    "left": f"{(x + dx) / breite * 100:.1f}%",
-                    "transform": "translate(-50%, -50%)",
-                    "color": "#ffffff",
-                    "font-size": "15px",
-                    "font-weight": "600",
-                    "background": "rgba(10, 14, 19, 0.72)",
-                    "padding": "3px 9px",
-                    "border-radius": "8px",
-                    "white-space": "nowrap",
-                },
-            }
-        )
+        elemente.append(_wertmarke(x + dx, y, wert, wert.get("beschriftung") in kurz, breite, buch))
     return elemente
+
+
+def mittenwerte(
+    x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
+) -> list[dict[str, Any]]:
+    """Der mittlere Pufferfühler als Marke an der Stelle des Worts „lädt“.
+
+    Die Oberfläche zeigt ihn nur, wenn die Darstellung drei Pufferwerte verlangt.
+    """
+    if modul["art"] != "puffer" or not modul.get("mitte"):
+        return []
+    wert = {"entity_id": modul["mitte"], "beschriftung": "mitte"}
+    return [_wertmarke(x + MODUL_BREITE // 2, SPEICHER_Y, wert, False, breite, buch)]
+
+
+def _wertmarke(
+    x: float, y: float, wert: dict[str, Any], kurz: bool, breite: int, buch: Buch | None
+) -> dict[str, Any]:
+    """Ein Live-Wert als picture-elements-Eintrag an der Stelle (x, y) des Gesamtbilds."""
+    name = (buch or _gleich)(wert["beschriftung"]) if wert.get("beschriftung") else None
+    return {
+        "type": "state-label",
+        "entity": wert["entity_id"],
+        "prefix": f"{name} " if kurz else "",
+        # Der kurze Name des Werts; unter dem Bild steht jede Zahl mit ihm.
+        "name": name,
+        "style": {
+            "top": f"{y / HOEHE * 100:.1f}%",
+            "left": f"{x / breite * 100:.1f}%",
+            "transform": "translate(-50%, -50%)",
+            "color": "#ffffff",
+            "font-size": "15px",
+            "font-weight": "600",
+            "background": "rgba(10, 14, 19, 0.72)",
+            "padding": "3px 9px",
+            "border-radius": "8px",
+            "white-space": "nowrap",
+        },
+    }
 
 
 def schaubild_svg(

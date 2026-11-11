@@ -122,7 +122,7 @@ export const DARSTELLUNG = `
   }
   .unter-bedingung { font-weight: 400; color: var(--hn-gedaempft); }
   .darstellung-wahl.kompakt {
-    grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0;
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0;
     border: 1px solid var(--hn-linie); border-radius: 10px; overflow: hidden;
   }
   .darstellung-wahl.kompakt .darstellung-muster {

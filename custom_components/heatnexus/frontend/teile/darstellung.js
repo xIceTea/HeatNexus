@@ -18,7 +18,7 @@ import {
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse"]);
+const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte"]);
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
@@ -393,11 +393,12 @@ export const DarstellungMixin = (Basis) =>
       return { zeile, zeigen };
     }
 
-    /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */
+    /** Lage und Größe der Werte und die Zahl der Pufferwerte, je mit eigenem Namen. */
     _werteWahl(wahl) {
       return [
         [this._t("Lage"), "werte_lage"],
         [this._t("Größe"), "werte_groesse"],
+        [this._t("Puffer"), "puffer_werte"],
       ].map(([name, schluessel]) => {
         const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
         this._unterwahlStellen(block, true);
