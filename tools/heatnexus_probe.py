@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
+import contextvars
 import csv
 import datetime as dt
 import getpass
@@ -56,6 +57,8 @@ RETRIES = 2  # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
 RETRY_PAUSE = 1.5
 # Ein ausgelasteter InfoWIN Plus bricht Abrufe mit 502/504 ab; die Pause wächst je Versuch.
 GATEWAY_RETRIES = 3
+# Wie `GATEWAY_FEHLER` der Integration; 500 und 501 sind Auskünfte, keine Überlastung.
+GATEWAY_FEHLER = frozenset({502, 503, 504})
 PAGE_SIZE = 10  # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
 # Adressen, mit denen der Stapelabruf gemessen wird. Genug für einen
 # belastbaren Vergleich, wenig genug, dass der Lauf Sekunden dauert.
@@ -118,6 +121,11 @@ def db_name(gnmn: str) -> str:
 
 
 # ------------------------------------------------------------------- Client
+def _voruebergehend(status: int, rumpf: str) -> bool:
+    """Ob eine Fehlerantwort eine Wiederholung lohnt; „does not exist“ ist endgültig."""
+    return status in GATEWAY_FEHLER and "does not exist" not in rumpf
+
+
 class Probe:
     """Digest-authentifizierter Lesezugriff auf eine Anlage."""
 
@@ -207,7 +215,7 @@ class Probe:
                 if err.code == 401 and attempt == 0:
                     self._local.opener = None
                     continue
-                if err.code >= 500 and attempt < GATEWAY_RETRIES:
+                if _voruebergehend(err.code, body) and attempt < GATEWAY_RETRIES:
                     time.sleep(RETRY_PAUSE * (attempt + 1))
                     continue
                 try:
@@ -1718,6 +1726,7 @@ def write_report(path: Path, menus: dict, objects: dict, stats: dict) -> None:
         f"- HTTP-Requests: {stats['requests']}",
         f"- Dauer: {stats['seconds']:.1f} s",
     ]
+    lines += [f"  - {name}: {s:.0f} s" for name, s in (stats.get("etappen") or {}).items()]
     erwartet = sum(sum(v or 0 for v in f["menus"].values()) for f in menus["functions"])
     gelesen = sum(len(f["datapoints"]) for f in menus["functions"])
     if erwartet and gelesen < erwartet:
@@ -2072,9 +2081,17 @@ def lebenszeichen():
     return ausgabe()
 
 
+# Je Anlage gesetzt von `run_host`; sammelt die Dauer jedes Schritts für den Bericht.
+ETAPPEN: contextvars.ContextVar[dict[str, float] | None] = contextvars.ContextVar(
+    "etappen", default=None
+)
+
+
 @contextlib.contextmanager
 def etappe(name: str, schuetzen: bool = True):
     """Ein sichtbarer Schritt mit laufender Zeit; geschützt, damit der Lauf weitergeht."""
+    dauern = ETAPPEN.get()
+    begonnen = time.monotonic() if dauern is not None else 0.0
     titel = _t(name)
     ausgabe_jetzt = _aktuelle_ausgabe()
     zeigen = bool(ausgabe_jetzt and ausgabe_jetzt.still)
@@ -2099,13 +2116,19 @@ def etappe(name: str, schuetzen: bool = True):
     finally:
         if zeigen:
             ausgabe_jetzt.status = None
+        if dauern is not None:
+            dauern[name] = time.monotonic() - begonnen
 
 
 # -------------------------------------------------------------------- Ablauf
 def run_host(*args, **kwargs) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen, mit Lebenszeichen."""
-    with lebenszeichen():
-        return _host_lauf(*args, **kwargs)
+    token = ETAPPEN.set({})
+    try:
+        with lebenszeichen():
+            return _host_lauf(*args, **kwargs)
+    finally:
+        ETAPPEN.reset(token)
 
 
 def _host_lauf(
@@ -2293,7 +2316,10 @@ def _host_lauf(
         with etappe("Bericht"):
             path = out_dir / f"{stem}_bericht.md"
             write_report(
-                path, menus, objects or {}, {"requests": probe.requests, "seconds": seconds}
+                path,
+                menus,
+                objects or {},
+                {"requests": probe.requests, "seconds": seconds, "etappen": ETAPPEN.get() or {}},
             )
             written.append(path)
 
