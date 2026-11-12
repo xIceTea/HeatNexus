@@ -565,6 +565,42 @@
       },
       "befund_arbeitszahl": {
         "name": "Gütegrad gegen Bezug"
+      },
+      "verbindung": {
+        "name": "Verbindung",
+        "state": {
+          "stabil": "Stabil",
+          "traege": "Träge",
+          "ueberlastet": "Überlastet",
+          "gestoert": "Gestört",
+          "sammelt": "Sammelt Daten"
+        },
+        "state_attributes": {
+          "bezug_ms": {
+            "name": "Übliche Antwortzeit"
+          },
+          "median_ms": {
+            "name": "Antwortzeit"
+          },
+          "fehlerquote": {
+            "name": "Fehlerquote"
+          },
+          "antworten": {
+            "name": "Antworten in 15 Minuten"
+          },
+          "noch_offen": {
+            "name": "Nicht geschaffte Werte"
+          },
+          "abrufe_mit_rest": {
+            "name": "Abrufe mit Rest in Folge"
+          },
+          "gueltige_stunden": {
+            "name": "Stunden im Bezug"
+          }
+        }
+      },
+      "antwortzeit": {
+        "name": "Antwortzeit"
       }
     },
     "binary_sensor": {

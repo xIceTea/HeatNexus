@@ -57,6 +57,13 @@ def _anlagenzustand(coordinators: dict) -> dict[str, str]:
     return {kennung(coordinator): "sensor" for coordinator in coordinators.values()}
 
 
+def _verbindung(coordinators: dict) -> dict[str, str]:
+    # Verbindung und Antwortzeit hängen an der Steuerung, nicht an einem Datenpunkt.
+    from .sensor.verbindung import kennungen
+
+    return dict.fromkeys(kennungen(coordinators), "sensor")
+
+
 def _befund(hass: HomeAssistant | None, entry: ConfigEntry) -> dict[str, str]:
     # Die Befund-Sensoren stehen in keinem Abzug; sie folgen den Heizkreisen und Kesseln.
     from .befund.laufzeit import kennungen
@@ -85,6 +92,7 @@ def bekannte_kennungen(
         **_stoerspeicher(coordinators),
         **_anlagenzustand(coordinators),
         **_uhrzeit(coordinators),
+        **_verbindung(coordinators),
     }
     return bekannt | quellen | dict.fromkeys(eigene, True)
 
@@ -128,6 +136,7 @@ def erwartete_domaenen(
         | _stoerspeicher(coordinators)
         | _anlagenzustand(coordinators)
         | _uhrzeit(coordinators)
+        | _verbindung(coordinators)
     )
     return domaenen | quellen | eigene
 

@@ -305,3 +305,79 @@ async def test_die_fehlerquote_erscheint_als_ganze_zahl(hass):
     lauf = lauf_bauen(hass, ruhige_stunden())
     gestoert_bis_gemeldet(hass, lauf, reihe, uhr)
     assert eintrag(hass).translation_placeholders["fehlerquote"] == "50"
+
+
+def sensor_koordinator(lauf):
+    """Ein Koordinator mit Kennung der Steuerung und diesem Lauf."""
+    from types import SimpleNamespace
+
+    coordinator = MagicMock()
+    coordinator.last_update_success = True
+    coordinator.client = SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1")
+    coordinator.verbindung = lauf
+    return coordinator
+
+
+async def test_sensoren_am_geraet_steuerung(hass):
+    from homeassistant.const import EntityCategory, UnitOfTime
+
+    from custom_components.heatnexus.entity import steuerung_kennung
+    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
+
+    coordinator = sensor_koordinator(lauf_bauen(hass, ruhige_stunden()))
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    abruf(reihe, uhr, dauer_s=0.12)
+    coordinator.verbindung.nach_abruf(reihe, 0)
+
+    zustand = VerbindungSensor(coordinator)
+    zeit = AntwortzeitSensor(coordinator)
+    kennung = steuerung_kennung(coordinator)
+    assert kennung == "steuerung-SN1"
+    assert zustand.unique_id == f"{kennung}-verbindung"
+    assert zeit.unique_id == f"{kennung}-antwortzeit"
+    assert zustand.options == list(vb.ZUSTAENDE)
+    assert zustand.native_value == vb.STABIL
+    assert zustand.extra_state_attributes["bezug_ms"] == 100
+    assert zeit.native_value == 120
+    assert zeit.native_unit_of_measurement == UnitOfTime.MILLISECONDS
+    assert zustand.entity_category == EntityCategory.DIAGNOSTIC
+
+
+async def test_antwortzeit_ohne_genug_antworten_ist_leer(hass):
+    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor
+
+    coordinator = sensor_koordinator(lauf_bauen(hass))
+    assert AntwortzeitSensor(coordinator).native_value is None
+
+
+async def test_nach_dem_entladen_behalten_die_sensoren_ihren_wert(hass):
+    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
+
+    coordinator = sensor_koordinator(lauf_bauen(hass, ruhige_stunden()))
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    abruf(reihe, uhr, dauer_s=0.12)
+    coordinator.verbindung.nach_abruf(reihe, 0)
+    zustand, zeit = VerbindungSensor(coordinator), AntwortzeitSensor(coordinator)
+
+    coordinator.verbindung = None
+    zustand._auswerten()
+    zeit._auswerten()
+    assert zustand.native_value == vb.STABIL
+    assert zeit.native_value == 120
+
+
+def test_die_sensoren_der_verbindung_gelten_nicht_als_verwaist():
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus import verwaiste
+
+    client = SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True)
+    koordinatoren = {"a": SimpleNamespace(data={"devices": []}, client=client)}
+    eintrag = SimpleNamespace(entry_id="abc123", options={}, data={}, subentries={})
+    domaenen = verwaiste.erwartete_domaenen(eintrag, koordinatoren)
+    bekannt = verwaiste.bekannte_kennungen(eintrag, koordinatoren)
+    for kennung in ("steuerung-SN1-verbindung", "steuerung-SN1-antwortzeit"):
+        assert domaenen[kennung] == "sensor"
+        assert bekannt[kennung] is True

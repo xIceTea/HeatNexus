@@ -565,6 +565,42 @@
       },
       "befund_arbeitszahl": {
         "name": "Rendement t.o.v. referentie"
+      },
+      "verbindung": {
+        "name": "Verbinding",
+        "state": {
+          "stabil": "Stabiel",
+          "traege": "Traag",
+          "ueberlastet": "Overbelast",
+          "gestoert": "Verstoord",
+          "sammelt": "Verzamelt gegevens"
+        },
+        "state_attributes": {
+          "bezug_ms": {
+            "name": "Gebruikelijke responstijd"
+          },
+          "median_ms": {
+            "name": "Responstijd"
+          },
+          "fehlerquote": {
+            "name": "Foutpercentage"
+          },
+          "antworten": {
+            "name": "Antwoorden in 15 minuten"
+          },
+          "noch_offen": {
+            "name": "Niet gelezen waarden"
+          },
+          "abrufe_mit_rest": {
+            "name": "Opvragingen met rest op rij"
+          },
+          "gueltige_stunden": {
+            "name": "Uren in referentie"
+          }
+        }
+      },
+      "antwortzeit": {
+        "name": "Responstijd"
       }
     },
     "binary_sensor": {

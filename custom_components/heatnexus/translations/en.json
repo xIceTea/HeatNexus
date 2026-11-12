@@ -565,6 +565,42 @@
       },
       "befund_arbeitszahl": {
         "name": "Heat pump efficiency vs. reference"
+      },
+      "verbindung": {
+        "name": "Connection",
+        "state": {
+          "stabil": "Stable",
+          "traege": "Slow",
+          "ueberlastet": "Overloaded",
+          "gestoert": "Disrupted",
+          "sammelt": "Collecting data"
+        },
+        "state_attributes": {
+          "bezug_ms": {
+            "name": "Usual response time"
+          },
+          "median_ms": {
+            "name": "Response time"
+          },
+          "fehlerquote": {
+            "name": "Error rate"
+          },
+          "antworten": {
+            "name": "Responses in 15 minutes"
+          },
+          "noch_offen": {
+            "name": "Values not read"
+          },
+          "abrufe_mit_rest": {
+            "name": "Polls with remainder in a row"
+          },
+          "gueltige_stunden": {
+            "name": "Hours in reference"
+          }
+        }
+      },
+      "antwortzeit": {
+        "name": "Response time"
       }
     },
     "binary_sensor": {
