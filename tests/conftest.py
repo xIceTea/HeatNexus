@@ -13,6 +13,7 @@ import copy
 import importlib.util
 import json
 import logging
+import os
 from pathlib import Path
 import re
 import sys
@@ -21,6 +22,9 @@ from types import ModuleType
 import pytest
 
 COMPONENT_DIR = Path(__file__).parent.parent / "custom_components" / "heatnexus"
+
+# Die Sonde spricht die Systemsprache; ihre Tests erwarten die deutschen Texte.
+os.environ.setdefault("HEATNEXUS_SPRACHE", "de")
 
 
 # Ersatzpaket für die HA-freien Module. Ohne ein Paket scheitert jeder
