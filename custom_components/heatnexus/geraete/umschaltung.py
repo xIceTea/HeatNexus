@@ -13,7 +13,8 @@ SYMBOL = "mdi:valve"
 SCHAUBILD = "puffer"
 
 # `22/50` und `1/7` stehen im Menü des Moduls, aber in keiner Herstellerebene.
-EXTRA_OIDS: tuple[str, ...] = ("59/24", "22/50", "1/7")
+# `2/9` führt die Herstellerebene, das Menü des Moduls nicht.
+EXTRA_OIDS: tuple[str, ...] = ("59/24", "22/50", "1/7", "2/9")
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

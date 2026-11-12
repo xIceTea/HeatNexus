@@ -20,7 +20,8 @@ SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"
 
 STATUSZEILEN = statuszeilen.KESSEL
-EXTRA_OIDS: tuple[str, ...] = ()
+# Die Istdrehzahl des Saugzugs steht in der Datenpunktliste der Steuerung, in keinem Menü.
+EXTRA_OIDS: tuple[str, ...] = ("23/89",)
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

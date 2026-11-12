@@ -98,9 +98,14 @@ def test_jede_zusatzadresse_der_waermepumpe_hat_einen_namen(geraete):
 
 def test_das_puffermodul_zeigt_drehzahl_der_ladepumpe_und_kesselsollwert(geraete):
     """Beide stehen im Menü des Moduls, die Herstellerebenen führen sie nicht."""
-    assert {"22/50", "1/7"} <= set(geraete.EXTRA_OIDS[15])
+    assert {"22/50", "1/7", "2/9"} <= set(geraete.EXTRA_OIDS[15])
     # Der Zustand aus `2/2` heißt schon „Pufferladepumpe“.
     assert geraete.NAMEN[15]["22/50"] == "Pufferladepumpe Drehzahl"
+
+
+def test_der_logwin_fragt_die_istdrehzahl_des_saugzugs_ab(geraete):
+    """Die Steuerung führt `23/89` in ihrer Datenpunktliste, aber in keinem Menü."""
+    assert "23/89" in geraete.EXTRA_OIDS[10]
 
 
 def test_zaehler_unter_den_zusatzadressen_sind_anzeigen(geraete):
