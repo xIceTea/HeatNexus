@@ -617,3 +617,32 @@ async def test_der_text_nennt_die_letzte_bekannte_antwortzeit(hass):
     lauf.nach_abruf(reihe, 0)
     assert lauf.fenster.median_ms is None
     assert lauf._platzhalter()["median"] == "100"
+
+
+async def test_ohne_gespeicherten_bezug_gilt_nach_einer_viertelstunde_ein_vorlaeufiger(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    abruf(reihe, uhr, dauer_s=0.1)
+    lauf.nach_abruf(reihe, 0)
+    assert lauf.stand.zustand == vb.SAMMELT
+    for _ in range(int(vb.FENSTER_S / 30)):
+        abruf(reihe, uhr, dauer_s=0.1)
+        lauf.nach_abruf(reihe, 0)
+    assert lauf.stand.zustand == vb.STABIL
+    assert lauf.attribute()["bezug_ms"] == 100
+    assert lauf.attribute()["bezug_vorlaeufig"] is True
+    for _ in range(40):
+        abruf(reihe, uhr, dauer_s=0.5)
+        lauf.nach_abruf(reihe, 0)
+    assert lauf.stand.zustand == vb.TRAEGE
+
+
+async def test_ein_gespeicherter_bezug_gilt_sofort_und_nicht_vorlaeufig(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    abruf(reihe, uhr, dauer_s=0.1)
+    lauf.nach_abruf(reihe, 0)
+    assert lauf.stand.zustand == vb.STABIL
+    assert lauf.attribute()["bezug_vorlaeufig"] is False

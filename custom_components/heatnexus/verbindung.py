@@ -105,10 +105,11 @@ def regel(f: Fenster, bezug_ms: float | None, abrufe_mit_rest: int) -> str | Non
 
 
 def fortschreiben(stand: Stand, ergebnis: str | None) -> Stand:
-    """Ein neuer Zustand gilt erst nach `BESTAETIGUNG` gleichen Ergebnissen; der erste sofort."""
+    """Ein neuer Zustand gilt erst nach `BESTAETIGUNG` gleichen Ergebnissen; der erste und jeder nach „sammelt“ sofort."""
     if ergebnis is None:
         return stand
-    if stand.erster or ergebnis == stand.zustand:
+    # „Sammelt“ ist kein Urteil; das erste echte Urteil gilt sofort.
+    if stand.erster or stand.zustand == SAMMELT or ergebnis == stand.zustand:
         return Stand(ergebnis, erster=False)
     folge = stand.folge + 1 if ergebnis == stand.kandidat else 1
     if folge >= BESTAETIGUNG:
@@ -126,6 +127,13 @@ def stunde_abschliessen(schluessel: str, dauern: list[float], bewertungen: list[
 def stunden_kuerzen(stunden: list[Stunde], neu: Stunde) -> list[Stunde]:
     """Hängt `neu` an und behält die letzten `BEZUG_STUNDEN` Stunden."""
     return [*stunden, neu][-BEZUG_STUNDEN:]
+
+
+def vorlaeufiger_bezug(f: Fenster, seit_start_s: float, abrufe_mit_rest: int) -> float | None:
+    """Median der ersten vollen Viertelstunde, wenn sie ohne Störung und ohne Rest lief."""
+    if seit_start_s < FENSTER_S or f.median_ms is None or abrufe_mit_rest:
+        return None
+    return None if f.fehlerquote >= GRENZE_FEHLER else f.median_ms
 
 
 def bezug(stunden: list[Stunde]) -> float | None:

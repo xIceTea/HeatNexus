@@ -121,3 +121,24 @@ def test_kuerzen_haelt_hundertachtundsechzig_stunden(vb):
     neu = vb.stunden_kuerzen(stunden, vb.Stunde("neu", 100.0, 60, True))
     assert len(neu) == 168
     assert neu[0].schluessel == "k1" and neu[-1].schluessel == "neu"
+
+
+def test_vorlaeufiger_bezug_erst_nach_einer_vollen_viertelstunde(vb):
+    f = vb.fenster(reihe([100.0] * 30), jetzt=1000.0)
+    assert vb.vorlaeufiger_bezug(f, vb.FENSTER_S - 1, 0) is None
+    assert vb.vorlaeufiger_bezug(f, vb.FENSTER_S, 0) == 100.0
+
+
+def test_vorlaeufiger_bezug_nicht_aus_einer_schlechten_viertelstunde(vb):
+    gestoert = vb.fenster(reihe([100.0] * 16, fehler=4), jetzt=1000.0)
+    assert vb.vorlaeufiger_bezug(gestoert, vb.FENSTER_S, 0) is None
+    ruhig = vb.fenster(reihe([100.0] * 30), jetzt=1000.0)
+    assert vb.vorlaeufiger_bezug(ruhig, vb.FENSTER_S, 2) is None
+    leer = vb.fenster(reihe([100.0] * 5), jetzt=1000.0)
+    assert vb.vorlaeufiger_bezug(leer, vb.FENSTER_S, 0) is None
+
+
+def test_aus_sammelt_wechselt_der_zustand_sofort(vb):
+    stand = vb.fortschreiben(vb.Stand(), vb.SAMMELT)
+    stand = vb.fortschreiben(stand, vb.STABIL)
+    assert stand.zustand == vb.STABIL

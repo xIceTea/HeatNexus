@@ -92,6 +92,9 @@ class VerbindungLauf:
         self.abrufe_mit_rest = 0
         self.noch_offen = 0
         self._letzter_median: float | None = None
+        # Bis der Bezug aus den Stunden steht, gilt der Median der ersten ruhigen Viertelstunde.
+        self._start: float | None = None
+        self._vorlaeufig: float | None = None
         # Ein Eintrag aus einem früheren Lauf gehört zu keinem Zustand mehr.
         ir.async_delete_issue(hass, DOMAIN, issue_key(entry_id, host))
 
@@ -120,12 +123,26 @@ class VerbindungLauf:
         self.fenster = vb.fenster(messreihe.eintraege(), jetzt)
         if self.fenster.median_ms is not None:
             self._letzter_median = self.fenster.median_ms
-        ergebnis = vb.regel(self.fenster, self.bezug_ms, self.abrufe_mit_rest)
+        self._vorlaeufig_pruefen(jetzt)
+        ergebnis = vb.regel(self.fenster, self.wirksamer_bezug, self.abrufe_mit_rest)
         self.stand = vb.fortschreiben(self.stand, ergebnis)
         self._bewertungen.append(self.stand.zustand)
         self._melden(jetzt, erfolgreich)
         for rueckruf in tuple(self._zuhoerer):
             rueckruf()
+
+    def _vorlaeufig_pruefen(self, jetzt: float) -> None:
+        if self._start is None:
+            self._start = jetzt
+        if self.bezug_ms is None and self._vorlaeufig is None:
+            self._vorlaeufig = vb.vorlaeufiger_bezug(
+                self.fenster, jetzt - self._start, self.abrufe_mit_rest
+            )
+
+    @property
+    def wirksamer_bezug(self) -> float | None:
+        """Der Bezug aus den Stunden, bis dahin der vorläufige."""
+        return self.bezug_ms if self.bezug_ms is not None else self._vorlaeufig
 
     def abonnieren(self, rueckruf: Callable[[], None]) -> Callable[[], None]:
         """`rueckruf` folgt jeder Bewertung, auch wenn sich die Werte der Anlage nicht ändern."""
@@ -192,8 +209,10 @@ class VerbindungLauf:
 
     def attribute(self) -> dict[str, Any]:
         """Kennzahlen für die Entität und die Diagnose."""
+        bezug = self.wirksamer_bezug
         return {
-            "bezug_ms": None if self.bezug_ms is None else round(self.bezug_ms),
+            "bezug_ms": None if bezug is None else round(bezug),
+            "bezug_vorlaeufig": self.bezug_ms is None and bezug is not None,
             "median_ms": None if self.fenster.median_ms is None else round(self.fenster.median_ms),
             "fehlerquote": round(self.fenster.fehlerquote * 100, 1),
             "antworten": self.fenster.antworten,
