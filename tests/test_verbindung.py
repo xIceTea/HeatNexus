@@ -59,9 +59,9 @@ def test_ohne_bezug_sammelt(vb):
 def test_traege_braucht_faktor_und_abstand(vb):
     langsam = vb.fenster(reihe([400.0] * 30), jetzt=1000.0)
     assert vb.regel(langsam, 200.0, 0) == vb.TRAEGE
-    # 85 ms Bezug: 1,5-fach, aber unter 150 ms Abstand bleibt stabil.
+    # 80 ms Bezug: 1,5-fach, aber unter 150 ms Abstand bleibt stabil.
     klein = vb.fenster(reihe([200.0] * 30), jetzt=1000.0)
-    assert vb.regel(klein, 85.0, 0) == vb.STABIL
+    assert vb.regel(klein, 80.0, 0) == vb.STABIL
 
 
 def test_erster_zustand_gilt_sofort(vb):
