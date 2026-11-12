@@ -1793,6 +1793,43 @@ def write_report(path: Path, menus: dict, objects: dict, stats: dict) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+# ---------------------------------------------------------------- Schwärzen
+# Datenpunkte, die die Anlage eindeutig kennzeichnen: MAC-Adresse und Seriennummer.
+KENNUNGEN = {"39/112": "<mac>", "39/115": "<seriennummer>"}
+# Kürzere Werte bleiben stehen, sonst ersetzte eine „0“ jede Ziffer im Abzug.
+KENNUNG_MIN_LAENGE = 6
+
+
+def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
+    """Kennung -> Platzhalter, in Groß- und Kleinschreibung, MAC auch ohne Trenner."""
+    ersatz: dict[str, str] = {}
+    neurons = sorted({str(n.get("neuronId")) for n in structure if n.get("neuronId")})
+    for lfd, neuron in enumerate(neurons, start=1):
+        ersatz[neuron] = f"SN1-{lfd}"
+    for fct in (menus or {}).get("functions", []):
+        for oid, dp in fct.get("datapoints", {}).items():
+            platzhalter = KENNUNGEN.get("/".join(oid.strip("/").split("/")[3:5]))
+            text = str((dp or {}).get("value") or "").strip()
+            if platzhalter and len(text) >= KENNUNG_MIN_LAENGE:
+                ersatz[text] = platzhalter
+                ersatz[text.replace(":", "").replace("-", "")] = platzhalter
+    return {form: p for k, p in ersatz.items() for form in (k, k.upper(), k.lower())}
+
+
+def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> None:
+    """Seriennummer, MAC-Adresse und Knotenkennungen in den geschriebenen Dateien ersetzen."""
+    ersatz = kennungen_ersatz(structure, menus)
+    if not ersatz:
+        return
+    # Auf Bytes, weil Namensdateien der Steuerung nicht in UTF-8 vorliegen müssen.
+    paare = [(k.encode(), ersatz[k].encode()) for k in sorted(ersatz, key=len, reverse=True)]
+    for datei in dateien:
+        inhalt = datei.read_bytes()
+        for bekannt, platzhalter in paare:
+            inhalt = inhalt.replace(bekannt, platzhalter)
+        datei.write_bytes(inhalt)
+
+
 # -------------------------------------------------------------------- Ablauf
 def run_host(
     host: str,
@@ -1980,8 +2017,10 @@ def run_host(
             )
             written.append(path)
 
+    schwaerzen(written, structure, menus)
     total = sum(len(f["datapoints"]) for f in menus["functions"]) if menus else 0
     print(f"    fertig: {total} Datenpunkte, {probe.requests} Requests, {seconds:.1f} s")
+    print("    Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.")
     for path in written:
         print(f"      -> {path}")
 
