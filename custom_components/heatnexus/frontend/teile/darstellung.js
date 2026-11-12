@@ -18,7 +18,7 @@ import {
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte"]);
+const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung"]);
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
@@ -260,6 +260,11 @@ export const DarstellungMixin = (Basis) =>
           }),
         ],
       ];
+      zeilen.push([
+        this._t("Verbindung"),
+        this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
+        wahl(this._t("Verbindung"), "verbindung", "verbindung"),
+      ]);
       if (this._anlagen().length > 1) {
         zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
       }

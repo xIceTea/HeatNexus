@@ -2014,7 +2014,7 @@ bilanz.meldungBeimSpeichern = meldungen;
   const zustaende = flaeche._hass.states;
   const plakette = (zustand, kennung = "sensor.vb_verbindung") => {
     if (zustand === undefined) delete zustaende["sensor.vb_verbindung"];
-    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: {} };
+    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: { median_ms: 430 } };
     const vorher = flaeche._bindungen.length;
     const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], verbindung: kennung });
     flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
@@ -2034,6 +2034,14 @@ bilanz.meldungBeimSpeichern = meldungen;
     gestoert: plakette("gestoert"),
     ohneSensor: plakette(undefined, null),
   };
+  const vorschauVorher = flaeche._vorschau;
+  flaeche._vorschau = { ...(vorschauVorher || {}), verbindung: "immer" };
+  bilanz.verbindungImmer = {
+    stabil: plakette("stabil"),
+    sammelt: plakette("sammelt"),
+    gestoert: plakette("gestoert"),
+  };
+  flaeche._vorschau = vorschauVorher;
   delete zustaende["sensor.vb_verbindung"];
   flaeche._gebaut = false;
   flaeche._zeichnen();

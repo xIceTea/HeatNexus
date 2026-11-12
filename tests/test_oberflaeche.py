@@ -514,7 +514,7 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3, 2]
+    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3, 2, 2]
     assert darstellung["anfangs"][1:] == [
         ["standard"],
         ["zeichen"],
@@ -523,6 +523,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["automatisch"],
         ["mittel"],
         ["zwei"],
+        ["probleme"],
     ]
     assert darstellung["nachKlick"][1:] == [
         ["farbig"],
@@ -532,6 +533,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["automatisch"],
         ["mittel"],
         ["zwei"],
+        ["probleme"],
     ]
     assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
@@ -1702,6 +1704,21 @@ def test_die_verbindung_zeigt_bei_gutem_zustand_keine_plakette(durchlauf, fall):
 )
 def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text, stufe):
     plakette = durchlauf["verbindungPlakette"][fall]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == text
+    assert plakette["stufe"] == stufe
+
+
+@pytest.mark.parametrize(
+    ("fall", "text", "stufe"),
+    [
+        ("stabil", "Verbindung stabil · 430 ms", []),
+        ("sammelt", "Verbindung wird gemessen · 430 ms", ["info"]),
+        ("gestoert", "Steuerung antwortet gestört · 430 ms", ["fehler"]),
+    ],
+)
+def test_auf_wunsch_steht_die_verbindung_immer_da(durchlauf, fall, text, stufe):
+    plakette = durchlauf["verbindungImmer"][fall]
     assert plakette["anzeige"] == ""
     assert plakette["text"] == text
     assert plakette["stufe"] == stufe

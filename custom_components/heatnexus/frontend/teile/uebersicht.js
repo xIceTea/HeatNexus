@@ -46,7 +46,11 @@ const STUFEN = {
   },
 };
 
-// Plakette der Verbindung; „stabil“ und „sammelt“ zeigen keine.
+// Plakette der Verbindung; „stabil“ und „sammelt“ nur, wenn „Darstellung“ sie immer zeigt.
+const VERBINDUNG_IMMER = {
+  stabil: { text: "Verbindung stabil", symbol: "mdi:lan-connect", stufe: "" },
+  sammelt: { text: "Verbindung wird gemessen", symbol: "mdi:lan-pending", stufe: "info" },
+};
 const VERBINDUNG = {
   traege: { text: "Steuerung antwortet träge", symbol: "mdi:speedometer-slow", stufe: "info" },
   ueberlastet: { text: "Steuerung überlastet", symbol: "mdi:timer-sand", stufe: "fehler" },
@@ -178,7 +182,7 @@ export const UebersichtMixin = (Basis) =>
     return karte;
   }
 
-  /** Plakette, solange die Steuerung träge, überlastet oder gestört antwortet; öffnet den Sensor. */
+  /** Plakette der Verbindung bei Problemen oder, nach Wahl in „Darstellung“, immer; öffnet den Sensor. */
   _verbindungAbzeichen(anlage) {
     const knoten = this._abzeichenKnoten("mdi:lan-connect");
     knoten.classList.add("verbindung");
@@ -186,12 +190,15 @@ export const UebersichtMixin = (Basis) =>
     if (!anlage.verbindung) return knoten;
     this._klickbar(knoten, anlage.verbindung);
     this._bindungen.push(() => {
-      const art = VERBINDUNG[this._zustand(anlage.verbindung)?.state];
+      const zustand = this._zustand(anlage.verbindung);
+      const immer = typeof this._stilwahl === "function" && this._stilwahl("verbindung") === "immer";
+      const art = VERBINDUNG[zustand?.state] || (immer ? VERBINDUNG_IMMER[zustand?.state] : null);
       knoten.style.display = art ? "" : "none";
       if (!art) return;
       knoten.classList.toggle("info", art.stufe === "info");
       knoten.classList.toggle("fehler", art.stufe === "fehler");
-      knoten.lastChild.textContent = this._t(art.text);
+      const ms = zustand.attributes?.median_ms;
+      knoten.lastChild.textContent = this._t(art.text) + (immer && ms != null ? ` · ${ms} ms` : "");
       knoten.firstChild.setAttribute("icon", art.symbol);
     });
     return knoten;
