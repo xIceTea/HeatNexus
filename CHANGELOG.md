@@ -17,6 +17,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
 - Eine Plakette im Panel zeigt den Zustand der Verbindung und die Antwortzeit.
 - Unter „Darstellung“ lässt sich die Plakette auf Probleme beschränken.
+- Die Antwortzeit auf der Plakette lässt sich abschalten.
 
 ### Geändert
 
