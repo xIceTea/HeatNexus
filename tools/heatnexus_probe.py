@@ -1830,8 +1830,59 @@ def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> None
         datei.write_bytes(inhalt)
 
 
+# ------------------------------------------------------------- Lebenszeichen
+# Einzelne Schritte laufen minutenlang ohne Ausgabe; dann meldet sich die Sonde.
+LEBENSZEICHEN_S = 60
+LEBENSZEICHEN_TAKT_S = 5
+
+
+class _Ausgabe:
+    """Leitet an die echte Ausgabe weiter und merkt sich die letzte Schreibzeit."""
+
+    def __init__(self, ziel) -> None:
+        self.ziel = ziel
+        self.zuletzt = time.monotonic()
+
+    def write(self, text: str) -> int:
+        self.zuletzt = time.monotonic()
+        return self.ziel.write(text)
+
+    def __getattr__(self, name: str):
+        return getattr(self.ziel, name)
+
+
+@contextlib.contextmanager
+def lebenszeichen():
+    """Nach `LEBENSZEICHEN_S` ohne Ausgabe eine Zeile „läuft noch“ schreiben."""
+    ausgabe = _Ausgabe(sys.stdout)
+    ende = threading.Event()
+    start = time.monotonic()
+
+    def wachen() -> None:
+        while not ende.wait(LEBENSZEICHEN_TAKT_S):
+            if time.monotonic() - ausgabe.zuletzt >= LEBENSZEICHEN_S:
+                minuten = int((time.monotonic() - start) // 60)
+                print(f"      … läuft noch, seit {minuten} min", flush=True)
+
+    sys.stdout = ausgabe
+    waechter = threading.Thread(target=wachen, daemon=True)
+    waechter.start()
+    try:
+        yield
+    finally:
+        ende.set()
+        waechter.join()
+        sys.stdout = ausgabe.ziel
+
+
 # -------------------------------------------------------------------- Ablauf
-def run_host(
+def run_host(*args, **kwargs) -> dict:
+    """Alle gewählten Aktionen für eine Anlage ausführen, mit Lebenszeichen."""
+    with lebenszeichen():
+        return _host_lauf(*args, **kwargs)
+
+
+def _host_lauf(
     host: str,
     password: str,
     actions: set[str],
@@ -2098,9 +2149,11 @@ ACTIONS = {
 
 def interactive(out_default: str = "probe") -> int:
     """Geführter Modus mit Auswahlmenü."""
-    print("=" * 64)
-    print(" HeatNexus – Anlagen-Probe")
-    print("=" * 64)
+    # `probe.cmd` zeigt einen eigenen Kopf und setzt dafür diese Variable.
+    if not os.environ.get("HEATNEXUS_KOPF_GEZEIGT"):
+        print("=" * 64)
+        print(" HeatNexus – Anlagen-Sonde")
+        print("=" * 64)
 
     out_dir = zielordner(out_default)
     hosts_file = out_dir / HOSTS_FILE
