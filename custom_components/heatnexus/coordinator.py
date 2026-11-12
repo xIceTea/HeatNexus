@@ -228,6 +228,10 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
+            if getattr(self.client, "geschlossen", False) is True:
+                # Nach dem Entladen ist ein gescheiterter Abruf kein Ausfall der Anlage.
+                _LOGGER.debug("Abruf von %s nach dem Schließen beendet: %s", self.host, err)
+                return self.data
             self._langsamer_fragen()
             self._ausfall_protokollieren("Fehler beim Abruf von %s: %s", self.host, err)
             if self._fehlschlaege >= 3:

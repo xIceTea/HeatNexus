@@ -798,6 +798,9 @@ class AbrufMixin:
         if not misslungen:
             self._teilausfall_gemeldet = False
             return
+        if self._geschlossen:
+            # Nach dem Entladen scheitern die letzten Lesungen absichtlich.
+            return
         melden = _LOGGER.debug if self._teilausfall_gemeldet else _LOGGER.warning
         self._teilausfall_gemeldet = True
         melden(

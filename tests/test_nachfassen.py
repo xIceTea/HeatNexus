@@ -97,6 +97,25 @@ async def test_ein_geschlossener_client_fragt_nicht_mehr():
     assert client._session is None
 
 
+async def test_eine_wartende_anfrage_endet_nach_dem_schliessen_als_geschlossen():
+    import asyncio
+
+    from custom_components.heatnexus.client import WindhagerHttpClient
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    warteschlange = asyncio.Semaphore(1)
+    await warteschlange.acquire()
+    anfrage = asyncio.create_task(client._get("http://192.0.2.10/api/1.0/lookup/1", warteschlange))
+    await asyncio.sleep(0)
+    await client.close()
+    warteschlange.release()
+
+    with pytest.raises(CannotConnect):
+        await anfrage
+    assert client._session is None
+
+
 # ---------------------------------------------------------------------------
 # Schreiben wartet nicht auf einen vollen Durchlauf
 # ---------------------------------------------------------------------------

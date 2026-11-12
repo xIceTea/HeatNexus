@@ -165,20 +165,22 @@ class StoerspeicherMixin:
         return self._stoerspeicher
 
     async def _stoerspeicher_senden(self, methode: str, rest: str) -> None:
-        await self._ensure_session()
-        async with (
-            self._semaphore,
-            self._session.request(methode, self._stoerspeicher_url(rest), data=b"") as ret,
-        ):
-            if ret.status >= 400:
-                _LOGGER.debug(
-                    "Störspeicher %s %s scheitert mit HTTP %s: %s",
-                    methode,
-                    rest,
-                    ret.status,
-                    self._decode(await ret.read()),
-                )
-                raise mit_text(WindhagerWriteError, "stoerspeicher_abgelehnt", status=ret.status)
+        async with self._semaphore:
+            await self._ensure_session()
+            async with self._session.request(
+                methode, self._stoerspeicher_url(rest), data=b""
+            ) as ret:
+                if ret.status >= 400:
+                    _LOGGER.debug(
+                        "Störspeicher %s %s scheitert mit HTTP %s: %s",
+                        methode,
+                        rest,
+                        ret.status,
+                        self._decode(await ret.read()),
+                    )
+                    raise mit_text(
+                        WindhagerWriteError, "stoerspeicher_abgelehnt", status=ret.status
+                    )
 
     async def stoerung_quittieren(self, kennung: int) -> None:
         """Als gelesen markieren; das schließt die Meldung am Bediengerät."""

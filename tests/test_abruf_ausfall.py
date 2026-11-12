@@ -110,3 +110,15 @@ async def test_ein_teilausfall_meldet_sich_einmal(client, monkeypatch, caplog):
 
     warnungen = _warnungen(caplog)
     assert len(warnungen) == 1
+
+
+async def test_ein_teilausfall_nach_dem_schliessen_bleibt_still(client, monkeypatch, caplog):
+    client.poll_oids = {"/1/60/0/0/7/0", "/1/60/0/0/8/0"}
+    client.poll_class = dict.fromkeys(client.poll_oids, "fast")
+    _anlage(client, monkeypatch, {"/1/60/0/0/7/0": "61"})
+    await client.close()
+
+    with caplog.at_level(logging.DEBUG):
+        await client.fetch_all()
+
+    assert not _warnungen(caplog)

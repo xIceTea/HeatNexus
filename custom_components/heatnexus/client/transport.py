@@ -80,6 +80,11 @@ class TransportMixin:
                 ),
             )
 
+    @property
+    def geschlossen(self) -> bool:
+        """Nach `close()`: Der Client fragt die Anlage nicht mehr."""
+        return self._geschlossen
+
     async def close(self):
         """Close the client session."""
         self._geschlossen = True
@@ -113,10 +118,11 @@ class TransportMixin:
         gleichzeitigen Anfragen und zweihundert Aufträgen nur noch die eigene
         Warteschlange und hält eine schnelle Anlage für langsam.
         """
-        await self._ensure_session()
         self.request_count += 1
         angefragt = time.monotonic()
         async with semaphore or self._semaphore:
+            # Erst nach dem Warten: Wer in der Zwischenzeit entlädt, bekommt `CannotConnect`.
+            await self._ensure_session()
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
             status: int | None = None
@@ -164,14 +170,12 @@ class TransportMixin:
         sind eine Zugabe, kein Teil der Datenschnittstelle.
         """
         try:
-            await self._ensure_session()
-            async with (
-                self._semaphore,
-                self._session.request("GET", f"http://{self.host}/res/{pfad}") as ret,
-            ):
-                if ret.status != 200:
-                    return None
-                return self._decode(await ret.read())
+            async with self._semaphore:
+                await self._ensure_session()
+                async with self._session.request("GET", f"http://{self.host}/res/{pfad}") as ret:
+                    if ret.status != 200:
+                        return None
+                    return self._decode(await ret.read())
         except Exception as fehler:
             _LOGGER.debug("Ressource %s nicht lesbar: %s", pfad, fehler)
             return None
@@ -320,16 +324,14 @@ class TransportMixin:
         {"value": [{"weekdays": [...], "switchPoints": [{"time","value"}...]}]}.
         """
         try:
-            await self._ensure_session()
-            async with (
-                self._semaphore,
-                self._session.request("GET", self._object_url(full_oid)) as ret,
-            ):
-                status = ret.status
-                try:
-                    data = await ret.json()
-                except Exception:
-                    data = None
+            async with self._semaphore:
+                await self._ensure_session()
+                async with self._session.request("GET", self._object_url(full_oid)) as ret:
+                    status = ret.status
+                    try:
+                        data = await ret.json()
+                    except Exception:
+                        data = None
             return data, status
         except Exception as e:
             _LOGGER.debug("Objekt %s nicht lesbar: %s", full_oid, e)
