@@ -83,6 +83,7 @@ class VerbindungLauf:
         self._problem_seit: float | None = None
         self._gemeldet: str | None = None
         self._beendet = False
+        self._zuhoerer: set[Callable[[], None]] = set()
         self.stand = vb.Stand()
         self.fenster = vb.Fenster(None, 0, 0)
         self.bezug_ms = vb.bezug(stunden)
@@ -116,6 +117,13 @@ class VerbindungLauf:
         self.stand = vb.fortschreiben(self.stand, ergebnis)
         self._bewertungen.append(self.stand.zustand)
         self._melden(jetzt)
+        for rueckruf in tuple(self._zuhoerer):
+            rueckruf()
+
+    def abonnieren(self, rueckruf: Callable[[], None]) -> Callable[[], None]:
+        """`rueckruf` folgt jeder Bewertung, auch wenn sich die Werte der Anlage nicht ändern."""
+        self._zuhoerer.add(rueckruf)
+        return lambda: self._zuhoerer.discard(rueckruf)
 
     def _stunde_pruefen(self, messreihe: Messreihe) -> None:
         aktuell = self._stunde()

@@ -368,6 +368,79 @@ async def test_nach_dem_entladen_behalten_die_sensoren_ihren_wert(hass):
     assert zeit.native_value == 120
 
 
+def ablauf_koordinator(hass, uhr):
+    """Ein echter Koordinator; jeder Abruf liefert dieselben Daten und 25 Antworten."""
+    client = MagicMock()
+    client.auth_errors = 0
+    client.erster_abruf = False
+    client.noch_offen = 0
+    client.messreihe = Messreihe(uhr=uhr)
+    client.steuerung_kennung = lambda: "steuerung-SN1"
+
+    async def fetch_all(budget=None):
+        uhr.t += 30.0
+        for _ in range(25):
+            client.messreihe.antwort(0.1)
+        return {"oids": {}, "devices": []}
+
+    client.fetch_all = AsyncMock(side_effect=fetch_all)
+    eintrag = MagicMock()
+    eintrag.entry_id = "abc123"
+    coordinator = WindhagerDataUpdateCoordinator(hass, client, eintrag, HOST, "Heizhaus", 30)
+    coordinator.verbindung = lauf_bauen(hass)
+    return coordinator, fetch_all
+
+
+async def sensoren_einbinden(hass, coordinator):
+    """Beide Sensoren über eine Plattform in Home Assistant; zurück kommen Plattform und IDs."""
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+
+    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
+
+    plattform = MockEntityPlatform(hass, domain="sensor", platform_name=DOMAIN)
+    await plattform.async_add_entities(
+        [VerbindungSensor(coordinator), AntwortzeitSensor(coordinator)]
+    )
+    await hass.async_block_till_done()
+    reg = er.async_get(hass)
+    ids = [
+        reg.async_get_entity_id("sensor", DOMAIN, f"steuerung-SN1-{endung}")
+        for endung in ("verbindung", "antwortzeit")
+    ]
+    return plattform, *ids
+
+
+async def test_sensoren_folgen_jedem_abruf_auch_bei_gleichen_daten(hass):
+    uhr = Uhr()
+    coordinator, _ = ablauf_koordinator(hass, uhr)
+    _, verbindung, antwortzeit = await sensoren_einbinden(hass, coordinator)
+    for runde in range(1, 4):
+        await coordinator.async_refresh()
+        assert hass.states.get(verbindung).attributes["antworten"] == 25 * runde
+    assert float(hass.states.get(antwortzeit).state) == 100
+    assert hass.states.get(verbindung).state == vb.SAMMELT
+
+
+async def test_sensoren_folgen_der_verfuegbarkeit_und_melden_sich_ab(hass):
+    uhr = Uhr()
+    coordinator, fetch_all = ablauf_koordinator(hass, uhr)
+    plattform, verbindung, antwortzeit = await sensoren_einbinden(hass, coordinator)
+    await coordinator.async_refresh()
+    assert hass.states.get(verbindung).state == vb.SAMMELT
+    coordinator.client.fetch_all.side_effect = RuntimeError("keine Antwort")
+    for _ in range(3):
+        await coordinator.async_refresh()
+    assert hass.states.get(verbindung).state == "unavailable"
+    assert hass.states.get(antwortzeit).state == "unavailable"
+    coordinator.client.fetch_all.side_effect = fetch_all
+    await coordinator.async_refresh()
+    assert hass.states.get(verbindung).state == vb.SAMMELT
+
+    await plattform.async_reset()
+    assert not coordinator.verbindung._zuhoerer
+
+
 def test_die_sensoren_der_verbindung_gelten_nicht_als_verwaist():
     from types import SimpleNamespace
 

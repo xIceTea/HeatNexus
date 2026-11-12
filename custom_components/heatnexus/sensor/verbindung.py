@@ -43,10 +43,16 @@ class _VerbindungBasis(CoordinatorEntity, SensorEntity):
     def _auswerten(self) -> None:
         raise NotImplementedError
 
+    async def async_added_to_hass(self) -> None:
+        # Der Koordinator weckt nur bei geänderten Daten; die Bewertung ändert sich auch ohne sie.
+        await super().async_added_to_hass()
+        if (lauf := self.coordinator.verbindung) is not None:
+            self.async_on_remove(lauf.abonnieren(self._bewertet))
+
     @callback
-    def _handle_coordinator_update(self) -> None:
+    def _bewertet(self) -> None:
         self._auswerten()
-        super()._handle_coordinator_update()
+        self.async_write_ha_state()
 
 
 class VerbindungSensor(_VerbindungBasis):
