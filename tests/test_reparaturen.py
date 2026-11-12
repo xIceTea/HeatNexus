@@ -87,13 +87,16 @@ async def test_der_eintrag_verschwindet_von_selbst(hass, coordinator):
     assert _stoerung(hass, coordinator) is None
 
 
-async def test_ein_abruf_nach_dem_schliessen_ist_kein_ausfall(hass, coordinator, caplog):
+@pytest.mark.parametrize("fehler", ["geschlossen", "zeitueberschreitung"])
+async def test_ein_abruf_nach_dem_schliessen_ist_kein_ausfall(hass, coordinator, caplog, fehler):
     import logging
 
     from custom_components.heatnexus.exceptions import CannotConnect
 
     coordinator.client.geschlossen = True
-    coordinator.client.fetch_all.side_effect = CannotConnect("Verbindung geschlossen")
+    coordinator.client.fetch_all.side_effect = (
+        CannotConnect("Verbindung geschlossen") if fehler == "geschlossen" else TimeoutError()
+    )
     with caplog.at_level(logging.DEBUG):
         for _ in range(3):
             await coordinator._async_update_data()

@@ -208,6 +208,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self._zirkulation_pruefen(data)
                 return data
         except TimeoutError as err:
+            if self._nach_schliessen(err):
+                return self.data
             self._langsamer_fragen()
             self._ausfall_protokollieren(
                 "Zeitüberschreitung beim Abruf von %s (Versuch %d)",
@@ -228,9 +230,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
-            if getattr(self.client, "geschlossen", False) is True:
-                # Nach dem Entladen ist ein gescheiterter Abruf kein Ausfall der Anlage.
-                _LOGGER.debug("Abruf von %s nach dem Schließen beendet: %s", self.host, err)
+            if self._nach_schliessen(err):
                 return self.data
             self._langsamer_fragen()
             self._ausfall_protokollieren("Fehler beim Abruf von %s: %s", self.host, err)
@@ -247,6 +247,13 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                     UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
                 ) from err
             return self.data
+
+    def _nach_schliessen(self, err: BaseException) -> bool:
+        """Nach dem Entladen ist ein gescheiterter Abruf kein Ausfall der Anlage."""
+        if getattr(self.client, "geschlossen", False) is not True:
+            return False
+        _LOGGER.debug("Abruf von %s nach dem Schließen beendet: %s", self.host, err)
+        return True
 
     async def werte_nachlesen(self, oids: list[str]) -> dict | None:
         """Einzelne Adressen sofort lesen und in den Bestand legen; None bei Fehlschlag.
