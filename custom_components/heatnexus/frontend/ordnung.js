@@ -252,7 +252,7 @@ export const DARSTELLUNG = {
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.
-export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel" };
+export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel", verbindung: "immer" };
 
 // Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
 // `ERZEUGER_MAX` in `anordnung.py` passen.

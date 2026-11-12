@@ -46,15 +46,15 @@ const STUFEN = {
   },
 };
 
-// Plakette der Verbindung; „stabil“ und „sammelt“ nur, wenn „Darstellung“ sie immer zeigt.
+// Plakette der Verbindung; „stabil“ und „sammelt“ nur, wenn „Darstellung“ sie immer zeigt (Standard).
 const VERBINDUNG_IMMER = {
-  stabil: { text: "Verbindung stabil", symbol: "mdi:lan-connect", stufe: "" },
-  sammelt: { text: "Verbindung wird gemessen", symbol: "mdi:lan-pending", stufe: "info" },
+  stabil: { text: "Stabil", symbol: "mdi:lan-connect", stufe: "" },
+  sammelt: { text: "Sammelt Daten", symbol: "mdi:lan-pending", stufe: "info" },
 };
 const VERBINDUNG = {
-  traege: { text: "Steuerung antwortet träge", symbol: "mdi:speedometer-slow", stufe: "info" },
-  ueberlastet: { text: "Steuerung überlastet", symbol: "mdi:timer-sand", stufe: "fehler" },
-  gestoert: { text: "Steuerung antwortet gestört", symbol: "mdi:lan-disconnect", stufe: "fehler" },
+  traege: { text: "Träge", symbol: "mdi:speedometer-slow", stufe: "info" },
+  ueberlastet: { text: "Überlastet", symbol: "mdi:timer-sand", stufe: "fehler" },
+  gestoert: { text: "Gestört", symbol: "mdi:lan-disconnect", stufe: "fehler" },
 };
 
 export const UebersichtMixin = (Basis) =>
@@ -198,7 +198,8 @@ export const UebersichtMixin = (Basis) =>
       knoten.classList.toggle("info", art.stufe === "info");
       knoten.classList.toggle("fehler", art.stufe === "fehler");
       const ms = zustand.attributes?.median_ms;
-      knoten.lastChild.textContent = this._t(art.text) + (immer && ms != null ? ` · ${ms} ms` : "");
+      const zusatz = immer && ms != null ? ` · ${ms} ms` : "";
+      knoten.lastChild.textContent = `${this._t("Verbindung")}: ${this._t(art.text)}${zusatz}`;
       knoten.firstChild.setAttribute("icon", art.symbol);
     });
     return knoten;

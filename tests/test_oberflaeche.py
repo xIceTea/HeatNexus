@@ -523,7 +523,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["automatisch"],
         ["mittel"],
         ["zwei"],
-        ["probleme"],
+        ["immer"],
     ]
     assert darstellung["nachKlick"][1:] == [
         ["farbig"],
@@ -533,7 +533,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["automatisch"],
         ["mittel"],
         ["zwei"],
-        ["probleme"],
+        ["immer"],
     ]
     assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
@@ -1697,9 +1697,9 @@ def test_die_verbindung_zeigt_bei_gutem_zustand_keine_plakette(durchlauf, fall):
 @pytest.mark.parametrize(
     ("fall", "text", "stufe"),
     [
-        ("traege", "Steuerung antwortet träge", ["info"]),
-        ("ueberlastet", "Steuerung überlastet", ["fehler"]),
-        ("gestoert", "Steuerung antwortet gestört", ["fehler"]),
+        ("traege", "Verbindung: Träge", ["info"]),
+        ("ueberlastet", "Verbindung: Überlastet", ["fehler"]),
+        ("gestoert", "Verbindung: Gestört", ["fehler"]),
     ],
 )
 def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text, stufe):
@@ -1712,9 +1712,9 @@ def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text,
 @pytest.mark.parametrize(
     ("fall", "text", "stufe"),
     [
-        ("stabil", "Verbindung stabil · 430 ms", []),
-        ("sammelt", "Verbindung wird gemessen · 430 ms", ["info"]),
-        ("gestoert", "Steuerung antwortet gestört · 430 ms", ["fehler"]),
+        ("stabil", "Verbindung: Stabil · 430 ms", []),
+        ("sammelt", "Verbindung: Sammelt Daten · 430 ms", ["info"]),
+        ("gestoert", "Verbindung: Gestört · 430 ms", ["fehler"]),
     ],
 )
 def test_auf_wunsch_steht_die_verbindung_immer_da(durchlauf, fall, text, stufe):
@@ -1722,3 +1722,7 @@ def test_auf_wunsch_steht_die_verbindung_immer_da(durchlauf, fall, text, stufe):
     assert plakette["anzeige"] == ""
     assert plakette["text"] == text
     assert plakette["stufe"] == stufe
+
+
+def test_die_verbindung_steht_standardmaessig_immer_da(durchlauf):
+    assert durchlauf["verbindungStandard"] == "immer"

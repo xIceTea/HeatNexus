@@ -2026,6 +2026,9 @@ bilanz.meldungBeimSpeichern = meldungen;
       stufe: ["info", "fehler"].filter((name) => knoten.classList.contains(name)),
     };
   };
+  const vorschauAnfang = flaeche._vorschau;
+  flaeche._vorschau = { ...(vorschauAnfang || {}), verbindung: "probleme" };
+  bilanz.verbindungStandard = flaeche._stilGespeichert("verbindung");
   bilanz.verbindungPlakette = {
     stabil: plakette("stabil"),
     sammelt: plakette("sammelt"),
@@ -2034,6 +2037,7 @@ bilanz.meldungBeimSpeichern = meldungen;
     gestoert: plakette("gestoert"),
     ohneSensor: plakette(undefined, null),
   };
+  flaeche._vorschau = vorschauAnfang;
   const vorschauVorher = flaeche._vorschau;
   flaeche._vorschau = { ...(vorschauVorher || {}), verbindung: "immer" };
   bilanz.verbindungImmer = {
