@@ -80,7 +80,9 @@ class VerbindungLauf:
         self._stunde = stunde
         self._laufende = stunde()
         self._bewertungen: list[str] = []
-        self._problem_seit: float | None = None
+        # Dauer des Problems über gelungene Abrufe und die Zeit der letzten Bewertung darin.
+        self._problem_s = 0.0
+        self._problem_zuletzt: float | None = None
         self._gemeldet: str | None = None
         self._beendet = False
         self._zuhoerer: set[Callable[[], None]] = set()
@@ -104,7 +106,7 @@ class VerbindungLauf:
             stunden = []
         return cls(hass, entry_id, host, label, store, stunden)
 
-    def nach_abruf(self, messreihe: Messreihe, noch_offen: int) -> None:
+    def nach_abruf(self, messreihe: Messreihe, noch_offen: int, erfolgreich: bool = True) -> None:
         """Nach jedem Abruf: Stunde prüfen, Fenster bilden, Zustand fortschreiben, melden."""
         if self._beendet:
             return
@@ -116,7 +118,7 @@ class VerbindungLauf:
         ergebnis = vb.regel(self.fenster, self.bezug_ms, self.abrufe_mit_rest)
         self.stand = vb.fortschreiben(self.stand, ergebnis)
         self._bewertungen.append(self.stand.zustand)
-        self._melden(jetzt)
+        self._melden(jetzt, erfolgreich)
         for rueckruf in tuple(self._zuhoerer):
             rueckruf()
 
@@ -143,19 +145,23 @@ class VerbindungLauf:
             "stunden": [[s.schluessel, s.median_ms, s.antworten, s.gueltig] for s in self._stunden]
         }
 
-    def _melden(self, jetzt: float) -> None:
-        """Melden nach `DAUER_MELDUNG_S` im Problem; ein Wechsel ersetzt den Eintrag sofort."""
+    def _melden(self, jetzt: float, erfolgreich: bool) -> None:
+        """Melden nach `DAUER_MELDUNG_S` im Problem; ein Wechsel ersetzt den Eintrag sofort.
+
+        Einen gescheiterten Abruf meldet der Koordinator; er legt hier nichts an und zählt nicht mit.
+        """
         zustand = self.stand.zustand
         if zustand not in vb.MELDEN:
-            self._problem_seit = None
+            self._problem_s, self._problem_zuletzt = 0.0, None
             if self._gemeldet:
                 self._zuruecknehmen()
             return
-        if self._problem_seit is None:
-            self._problem_seit = jetzt
-        if self._gemeldet == zustand:
+        if erfolgreich and self._problem_zuletzt is not None:
+            self._problem_s += jetzt - self._problem_zuletzt
+        self._problem_zuletzt = jetzt
+        if not erfolgreich or self._gemeldet == zustand:
             return
-        if self._gemeldet is None and jetzt - self._problem_seit < DAUER_MELDUNG_S:
+        if self._gemeldet is None and self._problem_s < DAUER_MELDUNG_S:
             return
         ir.async_create_issue(
             self.hass,

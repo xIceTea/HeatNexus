@@ -170,6 +170,43 @@ async def test_ein_kaputter_speicher_startet_leer(hass, hass_storage, caplog, da
     assert "nicht lesbar" in caplog.text
 
 
+async def test_koordinator_meldet_ob_der_abruf_gelang(hass):
+    uhr = Uhr()
+    coordinator, _ = ablauf_koordinator(hass, uhr)
+    lauf = coordinator.verbindung
+    lauf.nach_abruf = MagicMock(wraps=lauf.nach_abruf)
+    await coordinator.async_refresh()
+    assert lauf.nach_abruf.call_args.args[2] is True
+
+    async def scheitert(budget=None):
+        uhr.t += 30.0
+        for _ in range(7):
+            coordinator.client.messreihe.fehler()
+        raise RuntimeError("keine Antwort")
+
+    coordinator.client.fetch_all.side_effect = scheitert
+    await coordinator.async_refresh()
+    # Der erste Fehlschlag liefert die alten Werte; gelungen ist der Abruf trotzdem nicht.
+    assert coordinator.last_update_success
+    assert lauf.nach_abruf.call_args.args[2] is False
+    assert lauf.fenster.fehler == 7
+
+
+async def test_ein_gescheiterter_erster_abruf_zaehlt_seine_fehlantworten(hass):
+    uhr = Uhr()
+    coordinator, _ = ablauf_koordinator(hass, uhr)
+
+    async def scheitert(budget=None):
+        for _ in range(7):
+            coordinator.client.messreihe.fehler()
+        raise RuntimeError("keine Antwort")
+
+    coordinator.client.fetch_all.side_effect = scheitert
+    await coordinator.async_refresh()
+    assert not coordinator.last_update_success
+    assert coordinator.verbindung.fenster.fehler == 7
+
+
 async def test_koordinator_bewertet_nach_jedem_abruf(hass):
     eintrag = MagicMock()
     eintrag.entry_id = "abc123"
@@ -263,7 +300,7 @@ async def test_abbruch_nach_dem_entladen_meldet_nichts(hass):
     gestoert_bis_gemeldet(hass, lauf, client.messreihe, uhr)
     await lauf.async_entladen()
     abruf(client.messreihe, uhr, anzahl=10, fehler=10)
-    coordinator._verbindung_bewerten()
+    coordinator._verbindung_bewerten(True)
     assert eintrag(hass) is None
 
 
@@ -325,6 +362,44 @@ async def test_reparaturtext_ohne_bezug_hat_keine_luecke(hass, sprache, schluess
     text = json.loads(datei.read_text(encoding="utf-8"))["issues"][schluessel]
     gefuellt = (text["title"] + text["description"]).format(**lauf._platzhalter())
     assert "–" not in gefuellt
+
+
+def ausfall(lauf, reihe, uhr, abrufe):
+    """Abrufe, die als Ganzes scheitern: nur Fehlantworten."""
+    for _ in range(abrufe):
+        abruf(reihe, uhr, anzahl=0, fehler=20)
+        lauf.nach_abruf(reihe, 0, erfolgreich=False)
+
+
+async def test_ein_ausfall_meldet_keine_gestoerte_verbindung(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    ausfall(lauf, reihe, uhr, int(DAUER_MELDUNG_S / 30) + 10)
+    assert lauf.stand.zustand == vb.GESTOERT
+    assert eintrag(hass) is None
+    # Nach der Rückkehr zählen nur die gelungenen Abrufe zur halben Stunde.
+    for _ in range(int(DAUER_MELDUNG_S / 30) - 1):
+        abruf(reihe, uhr, anzahl=10, fehler=10)
+        lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is None
+    abruf(reihe, uhr, anzahl=10, fehler=10)
+    lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is not None
+
+
+async def test_ein_ausfall_laesst_einen_bestehenden_eintrag_unveraendert(hass, monkeypatch):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    schritte = int(DAUER_MELDUNG_S / 30) + 1
+    nach_plan(monkeypatch, [vb.UEBERLASTET] * schritte + [vb.GESTOERT] * 10)
+    for _ in range(schritte):
+        abruf(reihe, uhr)
+        lauf.nach_abruf(reihe, 0)
+    ausfall(lauf, reihe, uhr, 10)
+    assert lauf.stand.zustand == vb.GESTOERT
+    assert eintrag(hass).translation_key == "verbindung_ueberlastet"
 
 
 async def test_die_fehlerquote_erscheint_als_ganze_zahl(hass):

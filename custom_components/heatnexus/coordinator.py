@@ -160,18 +160,22 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Werte der Anlage holen; danach die Verbindung bewerten, auch nach einem Fehlschlag."""
+        erfolgreich = False
         try:
-            return await self._abrufen()
+            daten = await self._abrufen()
+            # Ein einzelner Fehlschlag liefert die alten Werte; gelungen ist nur ein Abruf ohne ihn.
+            erfolgreich = self._fehlschlaege == 0
+            return daten
         finally:
-            self._verbindung_bewerten()
+            self._verbindung_bewerten(erfolgreich)
 
-    def _verbindung_bewerten(self) -> None:
+    def _verbindung_bewerten(self, erfolgreich: bool) -> None:
         """Ein Fehler hier darf das Ergebnis des Abrufs nicht verdecken."""
         messreihe = getattr(self.client, "messreihe", None)
         if self.verbindung is None or not isinstance(messreihe, Messreihe):
             return
         try:
-            self.verbindung.nach_abruf(messreihe, self.client.noch_offen)
+            self.verbindung.nach_abruf(messreihe, self.client.noch_offen, erfolgreich)
         except Exception:
             _LOGGER.exception("Bewertung der Verbindung zu %s gescheitert", self.host)
 
