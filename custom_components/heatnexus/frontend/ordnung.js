@@ -159,6 +159,11 @@ export const VERBINDUNGSANZEIGEN = [
   { schluessel: "immer", titel: "Immer", hinweis: "Auch bei stabiler Verbindung, mit Antwortzeit" },
 ];
 
+export const VERBINDUNG_MS = [
+  { schluessel: "an", titel: "Ein", hinweis: "Die Antwortzeit steht hinter dem Zustand" },
+  { schluessel: "aus", titel: "Aus", hinweis: "Nur der Zustand" },
+];
+
 export const PUFFERWERTE = [
   { schluessel: "zwei", titel: "Oben und unten", hinweis: "Zwei Temperaturen, dazwischen der Ladezustand" },
   { schluessel: "drei", titel: "Oben, mitte, unten", hinweis: "Drei Temperaturen, wo der Puffer einen mittleren Fühler meldet" },
@@ -249,6 +254,7 @@ export const DARSTELLUNG = {
   werte_lage: WERTELAGEN,
   puffer_werte: PUFFERWERTE,
   verbindung: VERBINDUNGSANZEIGEN,
+  verbindung_ms: VERBINDUNG_MS,
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.

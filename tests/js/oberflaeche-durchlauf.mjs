@@ -2045,6 +2045,8 @@ bilanz.meldungBeimSpeichern = meldungen;
     sammelt: plakette("sammelt"),
     gestoert: plakette("gestoert"),
   };
+  flaeche._vorschau = { ...(vorschauVorher || {}), verbindung: "immer", verbindung_ms: "aus" };
+  bilanz.verbindungOhneZeit = plakette("stabil");
   flaeche._vorschau = vorschauVorher;
   delete zustaende["sensor.vb_verbindung"];
   flaeche._gebaut = false;

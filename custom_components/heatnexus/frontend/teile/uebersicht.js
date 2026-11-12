@@ -198,7 +198,8 @@ export const UebersichtMixin = (Basis) =>
       knoten.classList.toggle("info", art.stufe === "info");
       knoten.classList.toggle("fehler", art.stufe === "fehler");
       const ms = zustand.attributes?.median_ms;
-      const zusatz = immer && ms != null ? ` · ${ms} ms` : "";
+      const mitZeit = typeof this._stilwahl !== "function" || this._stilwahl("verbindung_ms") !== "aus";
+      const zusatz = mitZeit && ms != null ? ` · ${ms} ms` : "";
       knoten.lastChild.textContent = `${this._t("Verbindung")}: ${this._t(art.text)}${zusatz}`;
       knoten.firstChild.setAttribute("icon", art.symbol);
     });

@@ -18,7 +18,7 @@ import {
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung"]);
+const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms"]);
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
@@ -263,7 +263,7 @@ export const DarstellungMixin = (Basis) =>
       zeilen.push([
         this._t("Verbindung"),
         this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
-        wahl(this._t("Verbindung"), "verbindung", "verbindung"),
+        ...this._verbindungWahl(wahl),
       ]);
       if (this._anlagen().length > 1) {
         zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
@@ -404,6 +404,18 @@ export const DarstellungMixin = (Basis) =>
         [this._t("Lage"), "werte_lage"],
         [this._t("Größe"), "werte_groesse"],
         [this._t("Puffer"), "puffer_werte"],
+      ].map(([name, schluessel]) => {
+        const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
+        this._unterwahlStellen(block, true);
+        return block;
+      });
+    }
+
+    /** Wann die Plakette der Verbindung steht und ob die Antwortzeit dahinter steht. */
+    _verbindungWahl(wahl) {
+      return [
+        [this._t("Plakette"), "verbindung"],
+        [this._t("Antwortzeit"), "verbindung_ms"],
       ].map(([name, schluessel]) => {
         const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
         this._unterwahlStellen(block, true);

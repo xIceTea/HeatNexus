@@ -115,6 +115,8 @@ WERTELAGEN = ("automatisch", "bild", "unter")
 PUFFERWERTE = ("zwei", "drei")
 # Muss zu `VERBINDUNGSANZEIGEN` in `frontend/ordnung.js` passen.
 VERBINDUNGSANZEIGEN = ("probleme", "immer")
+# Muss zu `VERBINDUNG_MS` in `frontend/ordnung.js` passen.
+VERBINDUNG_MS = ("an", "aus")
 # Farben der Beschriftung im Schaubild, frei gewählt. Muss zu `BESCHRIFTUNG` in
 # `frontend/ordnung.js` passen; die Deckkraft steht in Prozent.
 FARBE = vol.Match(r"^#[0-9a-fA-F]{6}$")
@@ -140,6 +142,7 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
         vol.Optional("werte_lage"): vol.In(WERTELAGEN),
         vol.Optional("puffer_werte"): vol.In(PUFFERWERTE),
         vol.Optional("verbindung"): vol.In(VERBINDUNGSANZEIGEN),
+        vol.Optional("verbindung_ms"): vol.In(VERBINDUNG_MS),
         vol.Optional("beschriftung_grund"): FARBE,
         vol.Optional("beschriftung_deckkraft"): DECKKRAFT,
         vol.Optional("beschriftung_schrift"): FARBE,

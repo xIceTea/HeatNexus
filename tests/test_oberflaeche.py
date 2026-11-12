@@ -514,7 +514,7 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3, 2, 2]
+    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3, 2, 2, 2]
     assert darstellung["anfangs"][1:] == [
         ["standard"],
         ["zeichen"],
@@ -524,6 +524,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["mittel"],
         ["zwei"],
         ["immer"],
+        ["an"],
     ]
     assert darstellung["nachKlick"][1:] == [
         ["farbig"],
@@ -534,6 +535,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["mittel"],
         ["zwei"],
         ["immer"],
+        ["an"],
     ]
     assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
@@ -1697,9 +1699,9 @@ def test_die_verbindung_zeigt_bei_gutem_zustand_keine_plakette(durchlauf, fall):
 @pytest.mark.parametrize(
     ("fall", "text", "stufe"),
     [
-        ("traege", "Verbindung: Träge", ["info"]),
-        ("ueberlastet", "Verbindung: Überlastet", ["fehler"]),
-        ("gestoert", "Verbindung: Gestört", ["fehler"]),
+        ("traege", "Verbindung: Träge · 430 ms", ["info"]),
+        ("ueberlastet", "Verbindung: Überlastet · 430 ms", ["fehler"]),
+        ("gestoert", "Verbindung: Gestört · 430 ms", ["fehler"]),
     ],
 )
 def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text, stufe):
@@ -1726,3 +1728,9 @@ def test_auf_wunsch_steht_die_verbindung_immer_da(durchlauf, fall, text, stufe):
 
 def test_die_verbindung_steht_standardmaessig_immer_da(durchlauf):
     assert durchlauf["verbindungStandard"] == "immer"
+
+
+def test_die_antwortzeit_laesst_sich_ausblenden(durchlauf):
+    plakette = durchlauf["verbindungOhneZeit"]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == "Verbindung: Stabil"
