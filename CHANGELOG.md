@@ -21,6 +21,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
+- Das Fenster „Darstellung“ ordnet die Einstellungen in drei Gruppen.
 - Die Kaskade erscheint nicht mehr als eigener Kasten im Schaubild.
 
 ### Behoben
