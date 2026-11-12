@@ -91,6 +91,7 @@ class VerbindungLauf:
         self.bezug_ms = vb.bezug(stunden)
         self.abrufe_mit_rest = 0
         self.noch_offen = 0
+        self._letzter_median: float | None = None
         # Ein Eintrag aus einem früheren Lauf gehört zu keinem Zustand mehr.
         ir.async_delete_issue(hass, DOMAIN, issue_key(entry_id, host))
 
@@ -112,9 +113,13 @@ class VerbindungLauf:
             return
         jetzt = messreihe.jetzt()
         self._stunde_pruefen(messreihe)
-        self.noch_offen = noch_offen
-        self.abrufe_mit_rest = self.abrufe_mit_rest + 1 if noch_offen else 0
+        # Ein gescheiterter Abruf sagt nichts über liegengebliebene Werte; die Folge bleibt stehen.
+        if erfolgreich:
+            self.noch_offen = noch_offen
+            self.abrufe_mit_rest = self.abrufe_mit_rest + 1 if noch_offen else 0
         self.fenster = vb.fenster(messreihe.eintraege(), jetzt)
+        if self.fenster.median_ms is not None:
+            self._letzter_median = self.fenster.median_ms
         ergebnis = vb.regel(self.fenster, self.bezug_ms, self.abrufe_mit_rest)
         self.stand = vb.fortschreiben(self.stand, ergebnis)
         self._bewertungen.append(self.stand.zustand)
@@ -177,6 +182,8 @@ class VerbindungLauf:
 
     def _platzhalter(self) -> dict[str, str]:
         median_ms = self.fenster.median_ms
+        if median_ms is None:
+            median_ms = self._letzter_median
         return {
             "anlage": self._label or self._host,
             "median": "–" if median_ms is None else str(round(median_ms)),

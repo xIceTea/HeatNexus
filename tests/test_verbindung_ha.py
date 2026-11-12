@@ -591,3 +591,29 @@ def test_diagnose_ohne_lauf_ist_leer():
     coordinator = MagicMock()
     coordinator.verbindung = None
     assert _verbindung(coordinator) == {}
+
+
+async def test_ein_gescheiterter_abruf_unterbricht_die_ueberlastung_nicht(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    for _ in range(4):
+        abruf(reihe, uhr)
+        lauf.nach_abruf(reihe, 3)
+    abruf(reihe, uhr, anzahl=0, fehler=5)
+    lauf.nach_abruf(reihe, 0, erfolgreich=False)
+    abruf(reihe, uhr)
+    lauf.nach_abruf(reihe, 3)
+    assert lauf.abrufe_mit_rest == 5
+
+
+async def test_der_text_nennt_die_letzte_bekannte_antwortzeit(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    abruf(reihe, uhr, dauer_s=0.1)
+    lauf.nach_abruf(reihe, 0)
+    abruf(reihe, uhr, anzahl=10, schritt=1000.0)
+    lauf.nach_abruf(reihe, 0)
+    assert lauf.fenster.median_ms is None
+    assert lauf._platzhalter()["median"] == "100"
