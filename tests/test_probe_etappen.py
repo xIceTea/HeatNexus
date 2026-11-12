@@ -23,16 +23,20 @@ def test_jeder_schritt_haelt_seine_dauer_fest(probe_modul, monkeypatch):
     uhr = iter([10.0, 70.0, 100.0, 103.5])
     monkeypatch.setattr(probe_modul, "time", SimpleNamespace(monotonic=lambda: next(uhr)))
     dauern: dict[str, float] = {}
+    abbrueche: dict[str, str] = {}
     token = probe_modul.ETAPPEN.set(dauern)
+    token_abbruch = probe_modul.ABBRUECHE.set(abbrueche)
     try:
         with probe_modul.etappe("Endpunktsuche"):
             pass
-        with probe_modul.etappe("Stapelabruf"), pytest.raises(ValueError):
-            raise ValueError("abgebrochen")
+        with probe_modul.etappe("Zeitprogramme"):
+            raise KeyError("fct_type")
     finally:
         probe_modul.ETAPPEN.reset(token)
+        probe_modul.ABBRUECHE.reset(token_abbruch)
 
-    assert dauern == {"Endpunktsuche": 60.0, "Stapelabruf": 3.5}
+    assert dauern == {"Endpunktsuche": 60.0, "Zeitprogramme": 3.5}
+    assert abbrueche == {"Zeitprogramme": "KeyError: 'fct_type'"}
 
 
 def test_ohne_sammlung_misst_ein_schritt_nichts(probe_modul):
@@ -46,7 +50,8 @@ def test_der_bericht_nennt_die_dauer_je_schritt(probe_modul, tmp_path):
     stats = {
         "requests": 10,
         "seconds": 120.0,
-        "etappen": {"Datenpunkte lesen": 100.4, "Endpunktsuche": 19.6},
+        "etappen": {"Datenpunkte lesen": 100.4, "Zeitprogramme": 19.6},
+        "abbrueche": {"Zeitprogramme": "KeyError: 'fct_type'"},
     }
     pfad = tmp_path / "bericht.md"
 
@@ -54,4 +59,4 @@ def test_der_bericht_nennt_die_dauer_je_schritt(probe_modul, tmp_path):
 
     text = pfad.read_text(encoding="utf-8")
     assert "  - Datenpunkte lesen: 100 s" in text
-    assert "  - Endpunktsuche: 20 s" in text
+    assert "  - Zeitprogramme: 20 s, abgebrochen: KeyError: 'fct_type'" in text

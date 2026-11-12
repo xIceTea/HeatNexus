@@ -1726,7 +1726,12 @@ def write_report(path: Path, menus: dict, objects: dict, stats: dict) -> None:
         f"- HTTP-Requests: {stats['requests']}",
         f"- Dauer: {stats['seconds']:.1f} s",
     ]
-    lines += [f"  - {name}: {s:.0f} s" for name, s in (stats.get("etappen") or {}).items()]
+    abbrueche = stats.get("abbrueche") or {}
+    lines += [
+        f"  - {name}: {s:.0f} s"
+        + (f", abgebrochen: {abbrueche[name]}" if name in abbrueche else "")
+        for name, s in (stats.get("etappen") or {}).items()
+    ]
     erwartet = sum(sum(v or 0 for v in f["menus"].values()) for f in menus["functions"])
     gelesen = sum(len(f["datapoints"]) for f in menus["functions"])
     if erwartet and gelesen < erwartet:
@@ -2085,6 +2090,10 @@ def lebenszeichen():
 ETAPPEN: contextvars.ContextVar[dict[str, float] | None] = contextvars.ContextVar(
     "etappen", default=None
 )
+# Ebenso gesetzt: der Grund je abgebrochenem Schritt, damit er im Bericht steht.
+ABBRUECHE: contextvars.ContextVar[dict[str, str] | None] = contextvars.ContextVar(
+    "abbrueche", default=None
+)
 
 
 @contextlib.contextmanager
@@ -2107,6 +2116,8 @@ def etappe(name: str, schuetzen: bool = True):
                 ausgabe_jetzt.status = None
             raise
         print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
+        if (abbrueche := ABBRUECHE.get()) is not None:
+            abbrueche[name] = f"{type(fehler).__name__}: {fehler}"[:200]
         if zeigen:
             ausgabe_jetzt.status[1] = _t("abgebrochen: {}", type(fehler).__name__)
             ausgabe_jetzt.zeichne("✗")
@@ -2124,11 +2135,13 @@ def etappe(name: str, schuetzen: bool = True):
 def run_host(*args, **kwargs) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen, mit Lebenszeichen."""
     token = ETAPPEN.set({})
+    token_abbruch = ABBRUECHE.set({})
     try:
         with lebenszeichen():
             return _host_lauf(*args, **kwargs)
     finally:
         ETAPPEN.reset(token)
+        ABBRUECHE.reset(token_abbruch)
 
 
 def _host_lauf(
@@ -2319,7 +2332,12 @@ def _host_lauf(
                 path,
                 menus,
                 objects or {},
-                {"requests": probe.requests, "seconds": seconds, "etappen": ETAPPEN.get() or {}},
+                {
+                    "requests": probe.requests,
+                    "seconds": seconds,
+                    "etappen": ETAPPEN.get() or {},
+                    "abbrueche": ABBRUECHE.get() or {},
+                },
             )
             written.append(path)
 
