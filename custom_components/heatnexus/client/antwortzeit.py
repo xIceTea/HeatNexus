@@ -1,4 +1,4 @@
-"""Antwortzeiten der Abrufe: die letzte Stunde als Ring und die Dauern der laufenden Stunde."""
+"""Antwortzeiten der Abrufe: das Bewertungsfenster als Ring und die Dauern der laufenden Stunde."""
 
 from __future__ import annotations
 
@@ -7,7 +7,10 @@ from collections.abc import Callable
 from contextvars import ContextVar
 import time
 
-HALTEN_S = 3600
+from ..verbindung import FENSTER_S
+
+# Der Ring hält nur das Bewertungsfenster; die Stundenmediane kommen aus `stunde_abholen`.
+HALTEN_S = FENSTER_S
 
 # Gesetzt vom Koordinator während des Abrufs; Teilaufgaben erben ihn, Nachfassen und Schreiben nicht.
 IM_ABRUF: ContextVar[bool] = ContextVar("heatnexus_im_abruf", default=False)

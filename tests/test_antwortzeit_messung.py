@@ -1,4 +1,4 @@
-"""Messreihe: nur Anfragen im Abruf, Ring von 60 Minuten, Dauern der laufenden Stunde."""
+"""Messreihe: nur Anfragen im Abruf, Ring über das Bewertungsfenster, Dauern der laufenden Stunde."""
 
 from __future__ import annotations
 
@@ -35,17 +35,19 @@ def test_im_abruf_zaehlen_antwort_und_fehler(az):
     assert reihe.stunde_abholen() == []
 
 
-def test_ring_haelt_eine_stunde(az):
+def test_ring_haelt_nur_das_bewertungsfenster(az):
+    fenster_s = load_standalone("verbindung").FENSTER_S
     zeit = [0.0]
     reihe = az.Messreihe(uhr=lambda: zeit[0])
     token = az.IM_ABRUF.set(True)
     try:
         reihe.antwort(0.1)
-        zeit[0] = az.HALTEN_S + 1.0
+        zeit[0] = fenster_s + 1.0
         reihe.antwort(0.1)
     finally:
         az.IM_ABRUF.reset(token)
-    assert [z for z, _ in reihe.eintraege()] == [az.HALTEN_S + 1.0]
+    assert [z for z, _ in reihe.eintraege()] == [fenster_s + 1.0]
+    assert reihe.stunde_abholen() == [100.0, 100.0]
 
 
 if not ha_fehlt():
