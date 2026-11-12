@@ -449,6 +449,11 @@ class AbrufMixin:
         self._letzte_meldungen = out
         return out, devs
 
+    @property
+    def noch_offen(self) -> int:
+        """Adressen, die der letzte Abruf nicht mehr geschafft hat."""
+        return len(self._rest)
+
     def statistik(self) -> dict:
         """Kennzahlen des Abrufverhaltens – für die Diagnose.
 

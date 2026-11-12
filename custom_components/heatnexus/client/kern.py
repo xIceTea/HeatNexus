@@ -25,6 +25,7 @@ from ..const import (
 )
 from .ableitungen import AbleitungenMixin
 from .abruf import AbrufMixin
+from .antwortzeit import Messreihe
 from .erkennung import ErkennungMixin
 from .kennungen import KennungenMixin
 from .menues import MenuesMixin
@@ -222,6 +223,7 @@ class WindhagerHttpClient(
         self.auth_errors = 0
         self.poll_count = 0
         self.poll_seconds = 0.0
+        self.messreihe = Messreihe()
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
         self._poll_anfragen = 0
         # HTTP-Status der letzten Antwort auf `fetch`.

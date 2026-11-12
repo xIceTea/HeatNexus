@@ -119,14 +119,18 @@ class TransportMixin:
         async with semaphore or self._semaphore:
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
+            status: int | None = None
             try:
                 async with self._session.request("GET", url) as ret:
                     raw = await ret.read()
+                    status = ret.status
             except Exception:
                 self.request_errors += 1
                 raise
             finally:
-                self.request_seconds += time.monotonic() - begonnen
+                dauer = time.monotonic() - begonnen
+                self.request_seconds += dauer
+                self._messen(dauer, status)
         # Ein `401`, der bis hierher durchkommt, ist die Auskunft der Anlage,
         # dass das Passwort nicht stimmt – die Aufforderung selbst hat aiohttp
         # schon beantwortet. Gezählt wird beides, damit ein einzelner
@@ -139,6 +143,13 @@ class TransportMixin:
             return json.loads(self._decode(raw)), ret.status
         except ValueError:
             return None, ret.status
+
+    def _messen(self, dauer: float, status: int | None) -> None:
+        """Antwortzeit oder Fehlantwort für die Bewertung; Anmeldefehler zählen nicht."""
+        if status is None or status >= 500:
+            self.messreihe.fehler()
+        elif status not in (401, 403):
+            self.messreihe.antwort(dauer)
 
     async def _ressource(self, pfad: str) -> str | None:
         """Eine Ressourcendatei der Anlage als Text lesen (`/res/<pfad>`).
