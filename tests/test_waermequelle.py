@@ -30,9 +30,17 @@ SOLAR = {
 
 
 @pytest.fixture(autouse=True)
-def eigene_integration(enable_custom_integrations):
+async def eigene_integration(hass, enable_custom_integrations):
     """Ohne diese Freigabe findet Home Assistant den Ablauf der Quelle nicht."""
-    return None
+    yield
+    # Subeinträge planen ein verzögertes Speichern; ein offener Timer bricht den Abbau.
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=10))
+    await hass.async_block_till_done()
 
 
 @pytest.fixture(scope="module")
