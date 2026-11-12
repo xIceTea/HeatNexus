@@ -450,6 +450,8 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
     kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
+    ueberschriften: fenster.querySelectorAll(".darstellung-gruppe").map((k) => String(k.textContent)),
+    zeilen: fenster.querySelectorAll(".darstellung-name").map((k) => String(k.textContent)),
     anfangs,
     nachKlick,
     kopfNachKlick,

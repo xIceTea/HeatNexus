@@ -8,6 +8,14 @@ export const DARSTELLUNG = `
     padding: 16px 0; border-top: 1px solid var(--hn-linie);
   }
   .dialog-text + .darstellung-zeile { margin-top: 14px; }
+  /* Überschrift je Gruppe; die erste Zeile darunter braucht keine eigene Linie. */
+  .darstellung-gruppe {
+    margin: 26px 0 0; padding: 0 0 8px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.8px; text-transform: uppercase; color: var(--hn-akzent);
+    border-bottom: 3px double var(--hn-linie);
+  }
+  .dialog-text + .darstellung-gruppe { margin-top: 16px; }
+  .darstellung-gruppe + .darstellung-zeile { border-top: none; }
   .darstellung-name {
     margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0;
     text-transform: none; opacity: 1; color: var(--hn-text);

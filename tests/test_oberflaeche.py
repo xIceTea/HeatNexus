@@ -1734,3 +1734,17 @@ def test_die_antwortzeit_laesst_sich_ausblenden(durchlauf):
     plakette = durchlauf["verbindungOhneZeit"]
     assert plakette["anzeige"] == ""
     assert plakette["text"] == "Verbindung: Stabil"
+
+
+def test_das_fenster_darstellung_ordnet_die_wahlen_in_gruppen(durchlauf):
+    darstellung = durchlauf["darstellung"]
+    assert darstellung["ueberschriften"] == ["Aussehen", "Schaubild", "Übersicht"]
+    assert darstellung["zeilen"][:7] == [
+        "Farbsatz",
+        "Kopfzeile",
+        "Seitenleiste",
+        "Anordnung",
+        "Werte",
+        "Beschriftung",
+        "Verbindung",
+    ]

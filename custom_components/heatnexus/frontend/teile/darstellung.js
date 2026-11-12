@@ -236,14 +236,16 @@ export const DarstellungMixin = (Basis) =>
       nachWahl.push(groesseStellen);
       groesseStellen();
 
-      const zeilen = [
+      const aussehen = [
         [this._t("Farbsatz"), this._t("Gilt für Oberfläche und Schaubild."), wahl(this._t("Farbsatz"), "farben", "farbsatz")],
         [this._t("Kopfzeile"), this._t("Legt Zeichen und Namen oben links fest."), wahl(this._t("Kopfzeile"), "kopf", "kopf")],
         [this._t("Seitenleiste"), this._t("Legt fest, wie sich die Seitenleiste öffnet."), wahl(this._t("Seitenleiste"), "menue", "menue")],
+      ];
+      const schaubild = [
         [
-          this._t("Schaubild"),
+          this._t("Anordnung"),
           this._t("Legt fest, wie die Anlagenteile bei wenig Platz stehen."),
-          wahl(this._t("Schaubild"), "strang", "strang"),
+          wahl(this._t("Anordnung"), "strang", "strang"),
           groesse,
         ],
         [
@@ -260,15 +262,22 @@ export const DarstellungMixin = (Basis) =>
           }),
         ],
       ];
-      zeilen.push([
+      const uebersicht = [];
+      uebersicht.push([
         this._t("Verbindung"),
         this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
         ...this._verbindungWahl(wahl),
       ]);
       if (this._anlagen().length > 1) {
-        zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
+        uebersicht.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
       }
-      zeilen.forEach(([name, text, ...inhalt]) => dialog.appendChild(this._darstellungZeile(name, text, inhalt)));
+      for (const [titel, zeilen] of [["Aussehen", aussehen], ["Schaubild", schaubild], ["Übersicht", uebersicht]]) {
+        const kopf = document.createElement("h3");
+        kopf.className = "darstellung-gruppe";
+        kopf.textContent = this._t(titel);
+        dialog.appendChild(kopf);
+        zeilen.forEach(([name, text, ...inhalt]) => dialog.appendChild(this._darstellungZeile(name, text, inhalt)));
+      }
       dialog.appendChild(leiste);
 
       schleier.appendChild(dialog);
