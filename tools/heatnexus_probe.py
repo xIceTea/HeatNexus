@@ -26,16 +26,20 @@ import datetime as dt
 import getpass
 import importlib.util
 import json
+import locale
 import os
 from pathlib import Path
 import re
 import socket
+import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 from xml.etree import ElementTree
+import zipfile
 
 # Zugang ab Werk. Die Steuerung kennt zwei Benutzer, `USER` und `Service`; der
 # Name wird geprüft, der Umfang hängt aber nicht daran – über die Schnittstelle
@@ -338,27 +342,6 @@ PAGE_STRATEGIES = [
 ]
 
 
-@contextlib.contextmanager
-def schritt(name: str):
-    """Ein Prüfschritt, der den Lauf nicht mitnimmt, wenn er scheitert.
-
-    Ein Abzug kostet an der Anlage Minuten. Bricht ein später Schritt ab,
-    stünde ohne das hier alles Vorherige umsonst da – gemessen an einer
-    fremden BioWIN, wo der letzte Schritt an einer Menü-Ebene ohne
-    Datenpunktadresse ausstieg und der ganze Lauf ohne Zusammenfassung endete.
-    Bei mehreren Anlagen in einem Aufruf riss derselbe Fehler auch die
-    folgenden Anlagen mit.
-
-    Geschützt ist alles, was auf der Datenbeschaffung aufsetzt. Struktur und
-    Menü-Ebenen selbst laufen ungeschützt: Scheitern sie, gibt es nichts zu
-    retten.
-    """
-    try:
-        yield
-    except Exception as fehler:  # der Lauf wiegt mehr als der einzelne Schritt
-        print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
-
-
 def _eintrag_schluessel(item, praefix: str = "") -> str | None:
     """Was einen Eintrag einer Menü-Ebene unterscheidbar macht.
 
@@ -440,9 +423,9 @@ def fetch_menu_all(
 def struktur_hinweis(status: int, data) -> str:
     """Erklären, warum die Struktur nicht lesbar war."""
     if status in (401, 403):
-        return "Passwort prüfen – dasselbe wie in der Integration"
+        return _t("Passwort prüfen – dasselbe wie in der Integration")
     if status == 0:
-        return f"keine Verbindung: {(data or {}).get('error', 'unbekannt')}"
+        return _t("keine Verbindung: {}", (data or {}).get("error", "unbekannt"))
     hinweis = f"HTTP {status}"
     # Die Struktur lehnt eine Steuerung nur mit 401/403 ab. Jede andere
     # 4xx-Antwort stammt von einem anderen Gerät unter derselben Adresse.
@@ -1339,89 +1322,88 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
         "functions": [],
     }
 
-    for node in structure:
+    paare = [(n, f) for n in structure for f in _funktionen_eines_knotens(n)]
+    for nr, (node, fct) in enumerate(paare, start=1):
+        fortschritt(_t("Funktion {} von {}", nr, len(paare)))
         node_id = node.get("nodeId")
-        for fct in _funktionen_eines_knotens(node):
-            # `fctType -1` ist die Funktion `NV's`: der LON-Adressraum des
-            # Knotens. Bis heute wurde sie hier übersprungen – und damit auch
-            # in der Integration, die denselben Filter hat. Zwei fremde
-            # Projekte lesen daraus rund 200 zusätzliche Werte je Anlage
-            # (Betriebsstunden, Verbrauch, Zündungen), und Knoten 90 – die
-            # Bedieneinheit – besteht ausschließlich daraus.
-            #
-            # Gelesen wird sie genauso wie jede andere Funktion: `lookup
-            # /1/<node>/<fctId>` liefert die Menü-Ebenen mit Anzahl. Die Sonde
-            # nimmt sie jetzt mit, damit überhaupt einmal Daten vorliegen,
-            # bevor irgendjemand etwas darauf baut.
-            if fct.get("lock"):
-                continue
-            prefix = f"/1/{node_id}/{fct['fctId']}"
-            root, status = probe.lookup(prefix)
-            entry = {
-                "prefix": prefix,
-                "node_id": node_id,
-                "fct_id": fct.get("fctId"),
-                "fct_type": fct.get("fctType"),
-                "name": fct.get("name"),
-                "device_id": (node.get("device") or {}).get("id"),
-                "program_id": node.get("programId"),
-                "root_status": status,
-                "ungemeldet": bool(fct.get("_ungemeldet")),
-                "menus": {},
-                "menu_errors": {},
-                "datapoints": {},
-            }
+        # `fctType -1` ist die Funktion `NV's`: der LON-Adressraum des
+        # Knotens. Bis heute wurde sie hier übersprungen – und damit auch
+        # in der Integration, die denselben Filter hat. Zwei fremde
+        # Projekte lesen daraus rund 200 zusätzliche Werte je Anlage
+        # (Betriebsstunden, Verbrauch, Zündungen), und Knoten 90 – die
+        # Bedieneinheit – besteht ausschließlich daraus.
+        #
+        # Gelesen wird sie genauso wie jede andere Funktion: `lookup
+        # /1/<node>/<fctId>` liefert die Menü-Ebenen mit Anzahl. Die Sonde
+        # nimmt sie jetzt mit, damit überhaupt einmal Daten vorliegen,
+        # bevor irgendjemand etwas darauf baut.
+        if fct.get("lock"):
+            continue
+        prefix = f"/1/{node_id}/{fct['fctId']}"
+        root, status = probe.lookup(prefix)
+        entry = {
+            "prefix": prefix,
+            "node_id": node_id,
+            "fct_id": fct.get("fctId"),
+            "fct_type": fct.get("fctType"),
+            "name": fct.get("name"),
+            "device_id": (node.get("device") or {}).get("id"),
+            "program_id": node.get("programId"),
+            "root_status": status,
+            "ungemeldet": bool(fct.get("_ungemeldet")),
+            "menus": {},
+            "menu_errors": {},
+            "datapoints": {},
+        }
 
-            if status == 200 and isinstance(root, list) and root and "id" in root[0]:
-                entry["menus"] = {str(m.get("id")): m.get("count") for m in root}
-                entry["unvollstaendig"] = {}
+        if status == 200 and isinstance(root, list) and root and "id" in root[0]:
+            entry["menus"] = {str(m.get("id")): m.get("count") for m in root}
+            entry["unvollstaendig"] = {}
 
-                def read_menu(menu_id, _prefix=prefix, _entry=entry):
-                    url = f"{probe.base}/api/1.0/lookup{_prefix}/{menu_id}"
-                    expected = _entry["menus"].get(menu_id) or 0
-                    items, strategy, mstatus = fetch_menu_all(
-                        probe, url, expected, probe.page_strategy
-                    )
-                    if strategy is not None and probe.page_strategy is None:
-                        probe.page_strategy = strategy
-                    return menu_id, items, mstatus
+            def read_menu(menu_id, _prefix=prefix, _entry=entry):
+                url = f"{probe.base}/api/1.0/lookup{_prefix}/{menu_id}"
+                expected = _entry["menus"].get(menu_id) or 0
+                items, strategy, mstatus = fetch_menu_all(probe, url, expected, probe.page_strategy)
+                if strategy is not None and probe.page_strategy is None:
+                    probe.page_strategy = strategy
+                return menu_id, items, mstatus
 
-                for menu_id, items, mstatus in probe.map(read_menu, list(entry["menus"])):
-                    if mstatus == 200 and isinstance(items, list):
-                        for item in items:
-                            # LON-Netzwerkvariablen tragen **kein** `OID`-Feld,
-                            # sondern `nvIndex` und `nvName`. Ohne diesen Zweig
-                            # fielen sie stillschweigend heraus: Der erste Lauf
-                            # meldete je NV-Funktion „1 Menü, 30 Einträge" und
-                            # danach null Datenpunkte.
-                            #
-                            # Ihre Adresse ist der Menü-Eintrag selbst; als
-                            # Schlüssel dient deshalb der Pfad mit dem Index.
-                            oid = _eintrag_schluessel(item, f"{entry['prefix']}/{menu_id}")
-                            if oid:
-                                item["_menu"] = menu_id
-                                entry["datapoints"][oid] = item
-                        expected = entry["menus"].get(menu_id) or 0
-                        if len(items) < expected:
-                            entry["unvollstaendig"][menu_id] = [len(items), expected]
-                    else:
-                        entry["menu_errors"][menu_id] = mstatus
-            else:
-                entry["fallback"] = "Funktions-Root liefert keine Menüliste"
+            for menu_id, items, mstatus in probe.map(read_menu, list(entry["menus"])):
+                if mstatus == 200 and isinstance(items, list):
+                    for item in items:
+                        # LON-Netzwerkvariablen tragen **kein** `OID`-Feld,
+                        # sondern `nvIndex` und `nvName`. Ohne diesen Zweig
+                        # fielen sie stillschweigend heraus: Der erste Lauf
+                        # meldete je NV-Funktion „1 Menü, 30 Einträge" und
+                        # danach null Datenpunkte.
+                        #
+                        # Ihre Adresse ist der Menü-Eintrag selbst; als
+                        # Schlüssel dient deshalb der Pfad mit dem Index.
+                        oid = _eintrag_schluessel(item, f"{entry['prefix']}/{menu_id}")
+                        if oid:
+                            item["_menu"] = menu_id
+                            entry["datapoints"][oid] = item
+                    expected = entry["menus"].get(menu_id) or 0
+                    if len(items) < expected:
+                        entry["unvollstaendig"][menu_id] = [len(items), expected]
+                else:
+                    entry["menu_errors"][menu_id] = mstatus
+        else:
+            entry["fallback"] = "Funktions-Root liefert keine Menüliste"
 
-            result["functions"].append(entry)
-            soll = sum(v or 0 for v in entry["menus"].values())
-            ist = len(entry["datapoints"])
-            hinweis = ""
-            if entry["menus"] and ist < soll:
-                hinweis = f"  ({soll - ist} fehlen)"
-            if entry["menu_errors"]:
-                hinweis += f"  [{len(entry['menu_errors'])} Menüs ohne Antwort]"
-            print(
-                f"    {prefix:<12} fctType {entry['fct_type']!s:>3}  "
-                f"{str(entry['name'])[:22]:<22} Menüs {len(entry['menus']):>3}  "
-                f"Datenpunkte {ist:>4}{hinweis}"
-            )
+        result["functions"].append(entry)
+        soll = sum(v or 0 for v in entry["menus"].values())
+        ist = len(entry["datapoints"])
+        hinweis = ""
+        if entry["menus"] and ist < soll:
+            hinweis = f"  ({soll - ist} fehlen)"
+        if entry["menu_errors"]:
+            hinweis += f"  [{len(entry['menu_errors'])} Menüs ohne Antwort]"
+        print(
+            f"    {prefix:<12} fctType {entry['fct_type']!s:>3}  "
+            f"{str(entry['name'])[:22]:<22} Menüs {len(entry['menus']):>3}  "
+            f"Datenpunkte {ist:>4}{hinweis}"
+        )
 
     strategy = probe.page_strategy
     if strategy and strategy != "keine":
@@ -1837,17 +1819,17 @@ def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list
 def schwaerzen_befehl(ordner: Path) -> int:
     """Befehl `schwaerzen`: einen vorhandenen Abzug schwärzen und das Ergebnis nennen."""
     if not ordner.is_dir():
-        print(f"  Den Ordner gibt es nicht: {ordner}")
+        sage(f"  ✗ {_t('Den Ordner gibt es nicht: {}', ordner)}")
         return 1
     if not any(ordner.glob("*_menus.json")):
-        print(f"  In {ordner} liegt kein Abzug der Sonde.")
+        sage(f"  ✗ {_t('In {} liegt kein Abzug der Sonde.', ordner)}")
         return 1
     geaendert = schwaerzen_ordner(ordner)
     if geaendert:
-        print(f"  {len(geaendert)} Dateien geschwärzt.")
-        print("  Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.")
+        sage(f"  ✓ {_t('{} Dateien geschwärzt.', len(geaendert))}")
+        sage(f"    {_t('Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.')}")
     else:
-        print("  Der Abzug ist bereits geschwärzt.")
+        sage(f"  ✓ {_t('Der Abzug ist bereits geschwärzt.')}")
     return 0
 
 
@@ -1872,41 +1854,207 @@ def schwaerzen_ordner(ordner: Path) -> list[Path]:
     return geaendert
 
 
-# ------------------------------------------------------------- Lebenszeichen
-# Einzelne Schritte laufen minutenlang ohne Ausgabe; dann meldet sich die Sonde.
+# ----------------------------------------------------------------- Sprache
+# Was ein Nutzer im geführten Modus sieht, gibt es auf Deutsch und Englisch.
+# Technische Zeilen bleiben deutsch; sie stehen im Protokoll und im Expertenmodus.
+EN = {
+    "Anlagen-Sonde": "controller probe",
+    "Zuletzt verwendet: {}": "Last used: {}",
+    "Diese Anlagen verwenden? [J/n] oder neue IP-Adressen eingeben: ": (
+        "Use these controllers? [Y/n] or enter new IP addresses: "
+    ),
+    "IP-Adressen der Anlagen (mehrere durch Komma oder Leerzeichen trennen)": (
+        "IP addresses of the controllers (separate several with commas or spaces)"
+    ),
+    "IP-Adresse(n): ": "IP address(es): ",
+    "Erreichbarkeit": "Reachability",
+    "erreichbar": "reachable",
+    "keine Antwort": "no response",
+    "Gleiches Passwort für alle Anlagen? [J/n] ": "Same password for all controllers? [Y/n] ",
+    "Passwort der Anlage (Eingabe bleibt verdeckt): ": (
+        "Controller password (input stays hidden): "
+    ),
+    "Passwort für {}: ": "Password for {}: ",
+    "Empfehlung: HeatNexus in Home Assistant für die Dauer des Laufs deaktivieren.": (
+        "Recommended: disable HeatNexus in Home Assistant while the probe runs."
+    ),
+    "Die Steuerung beantwortet nur eine Anfrage nach der anderen. Mit beiden": (
+        "The controller answers one request at a time. With both running,"
+    ),
+    "gleichzeitig dauert der Lauf länger, und einzelne Abfragen können ausfallen.": (
+        "the run takes longer and single requests may fail."
+    ),
+    "Der Lauf dauert je nach Anlage 15 bis 40 Minuten, manchmal länger.": (
+        "Depending on the system, the run takes 15 to 40 minutes, sometimes longer."
+    ),
+    "Anlage {}": "Controller {}",
+    "Struktur lesen": "Reading structure",
+    "{} Regler": "{} controllers",
+    "Datenpunkte lesen": "Reading datapoints",
+    "Funktion {} von {}": "function {} of {}",
+    "{} Datenpunkte": "{} datapoints",
+    "Zeitprogramme": "Time programs",
+    "Einzelabruf": "Single reads",
+    "LON-Netzwerkvariablen": "LON network variables",
+    "LON gegen OID": "LON vs. OID",
+    "Endpunktsuche": "Endpoint search",
+    "Vollabzug": "Full dump",
+    "Stapelabruf": "Batch read",
+    "Störspeichersuche": "Fault memory search",
+    "Statische Navigation": "Static navigation",
+    "Namensdateien": "Name files",
+    "Nachlade-Varianten": "Paging variants",
+    "Gegenprobe": "Cross-check",
+    "Bericht": "Report",
+    "abgebrochen: {}": "aborted: {}",
+    "Passwort prüfen – dasselbe wie in der Integration": (
+        "Check the password – the same as in the integration"
+    ),
+    "keine Verbindung: {}": "no connection: {}",
+    "Port 80 antwortet nicht": "port 80 does not respond",
+    "Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.": (
+        "Serial number, MAC address and node IDs are redacted."
+    ),
+    "Fertig.": "Done.",
+    "Die Datei liegt bereit:": "The file is ready:",
+    "Hänge sie an dein Issue auf GitHub an.": "Attach it to your issue on GitHub.",
+    "Keine Anlage ließ sich auslesen.": "No controller could be read.",
+    "Abgebrochen.": "Aborted.",
+    "Unerwarteter Fehler: {}": "Unexpected error: {}",
+    "Die Einzelheiten stehen in {}.": "Details are in {}.",
+    "Keine gültige Auswahl.": "No valid choice.",
+    "Den Ordner gibt es nicht: {}": "The folder does not exist: {}",
+    "In {} liegt kein Abzug der Sonde.": "{} contains no probe dump.",
+    "{} Dateien geschwärzt.": "{} files redacted.",
+    "Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.": (
+        "Serial number, MAC address and node IDs are replaced."
+    ),
+    "Der Abzug ist bereits geschwärzt.": "The dump is already redacted.",
+    "läuft noch, seit {} min": "still running, for {} min",
+    "Fassung {}": "Version {}",
+    "fehlgeschlagen": "failed",
+}
+
+
+def _sprache_erkennen() -> str:
+    """Sprache aus `HEATNEXUS_SPRACHE`, sonst aus der Systemsprache; Deutsch nur bei Deutsch."""
+    gesetzt = os.environ.get("HEATNEXUS_SPRACHE", "").lower()
+    if gesetzt in ("de", "en"):
+        return gesetzt
+    name = (locale.getlocale()[0] or os.environ.get("LANG") or "").lower()
+    return "de" if name.startswith(("de", "german")) else "en"
+
+
+SPRACHE = _sprache_erkennen()
+
+
+def _t(text: str, *werte) -> str:
+    """Nutzertext in der gewählten Sprache, Platzhalter `{}` gefüllt."""
+    vorlage = EN.get(text, text) if SPRACHE == "en" else text
+    return vorlage.format(*werte) if werte else vorlage
+
+
+# ------------------------------------------------------------------ Ausgabe
+# Geführter Modus: Der Nutzer sieht Schritte mit laufender Zeit; jede technische
+# Zeile geht nur ins Protokoll. Expertenmodus und Kommandozeile zeigen alles.
 LEBENSZEICHEN_S = 60
 LEBENSZEICHEN_TAKT_S = 5
+STATUS_TAKT_S = 1
 
 
 class _Ausgabe:
-    """Leitet an die echte Ausgabe weiter und merkt sich die letzte Schreibzeit."""
+    """Leitet an die echte Ausgabe weiter, schreibt mit ins Protokoll, kann still sein."""
 
-    def __init__(self, ziel) -> None:
+    def __init__(self, ziel, log=None, still: bool = False) -> None:
         self.ziel = ziel
+        self.log = log
+        self.still = still
         self.zuletzt = time.monotonic()
+        self.sperre = threading.RLock()
+        self.status: list | None = None  # [Name, Zusatz, Start] der laufenden Zeile
 
     def write(self, text: str) -> int:
-        self.zuletzt = time.monotonic()
-        return self.ziel.write(text)
+        with self.sperre:
+            if self.log:
+                self.log.write(text)
+            if self.still:
+                return len(text)
+            self.zuletzt = time.monotonic()
+            return self.ziel.write(text)
+
+    def sage(self, text: str) -> None:
+        """Eine Zeile für den Nutzer, auch im stillen Modus."""
+        with self.sperre:
+            if self.log:
+                self.log.write(text + "\n")
+            if self.status:
+                self.ziel.write("\r\x1b[K")
+            self.ziel.write(text + "\n")
+            self.ziel.flush()
+            self.zuletzt = time.monotonic()
+            self.zeichne()
+
+    def zeichne(self, ende: str = "") -> None:
+        """Die Statuszeile neu schreiben; `ende` schließt sie ab."""
+        with self.sperre:
+            if not self.status:
+                return
+            name, zusatz, start = self.status
+            dauer = int(time.monotonic() - start)
+            teile = [name, *([zusatz] if zusatz else []), f"{dauer // 60}:{dauer % 60:02d}"]
+            zeichen = ende or "▸"
+            self.ziel.write(f"\r    {zeichen} {' · '.join(teile)}\x1b[K" + ("\n" if ende else ""))
+            self.ziel.flush()
+            if ende and self.log:
+                self.log.write(f"    {zeichen} {' · '.join(teile)}\n")
+            self.zuletzt = time.monotonic()
 
     def __getattr__(self, name: str):
         return getattr(self.ziel, name)
 
 
+def _aktuelle_ausgabe() -> _Ausgabe | None:
+    return sys.stdout if isinstance(sys.stdout, _Ausgabe) else None
+
+
+def sage(text: str = "") -> None:
+    """Nutzerzeile: im geführten Modus sichtbar, sonst ein gewöhnliches print."""
+    ausgabe = _aktuelle_ausgabe()
+    if ausgabe:
+        ausgabe.sage(text)
+    else:
+        print(text)
+
+
+def fortschritt(zusatz: str) -> None:
+    """Zusatz der laufenden Statuszeile setzen, etwa „Funktion 7 von 23“."""
+    ausgabe = _aktuelle_ausgabe()
+    if ausgabe and ausgabe.still and ausgabe.status:
+        ausgabe.status[1] = zusatz
+        ausgabe.zeichne()
+
+
 @contextlib.contextmanager
-def lebenszeichen():
-    """Nach `LEBENSZEICHEN_S` ohne Ausgabe eine Zeile „läuft noch“ schreiben."""
-    ausgabe = _Ausgabe(sys.stdout)
+def ausgabe(log_pfad: Path | None = None, still: bool = False):
+    """Ausgabe für einen Lauf einrichten: Protokolldatei, still oder ausführlich, Wächter."""
+    if _aktuelle_ausgabe():
+        yield
+        return
+    log = log_pfad.open("a", encoding="utf-8") if log_pfad else None
+    neue = _Ausgabe(sys.stdout, log, still)
     ende = threading.Event()
     start = time.monotonic()
 
     def wachen() -> None:
-        while not ende.wait(LEBENSZEICHEN_TAKT_S):
-            if time.monotonic() - ausgabe.zuletzt >= LEBENSZEICHEN_S:
+        takt = STATUS_TAKT_S if still else LEBENSZEICHEN_TAKT_S
+        while not ende.wait(takt):
+            if neue.still:
+                neue.zeichne()
+            elif time.monotonic() - neue.zuletzt >= LEBENSZEICHEN_S:
                 minuten = int((time.monotonic() - start) // 60)
-                print(f"      … läuft noch, seit {minuten} min", flush=True)
+                print(f"      … {_t('läuft noch, seit {} min', minuten)}", flush=True)
 
-    sys.stdout = ausgabe
+    sys.stdout = neue
     waechter = threading.Thread(target=wachen, daemon=True)
     waechter.start()
     try:
@@ -1914,7 +2062,43 @@ def lebenszeichen():
     finally:
         ende.set()
         waechter.join()
-        sys.stdout = ausgabe.ziel
+        sys.stdout = neue.ziel
+        if log:
+            log.close()
+
+
+def lebenszeichen():
+    """Ohne Protokoll und ausführlich: nur das Lebenszeichen nach langer Stille."""
+    return ausgabe()
+
+
+@contextlib.contextmanager
+def etappe(name: str, schuetzen: bool = True):
+    """Ein sichtbarer Schritt mit laufender Zeit; geschützt, damit der Lauf weitergeht."""
+    titel = _t(name)
+    ausgabe_jetzt = _aktuelle_ausgabe()
+    zeigen = bool(ausgabe_jetzt and ausgabe_jetzt.still)
+    if zeigen:
+        ausgabe_jetzt.status = [titel, "", time.monotonic()]
+        ausgabe_jetzt.zeichne()
+    try:
+        yield
+    except Exception as fehler:  # der Lauf wiegt mehr als der einzelne Schritt
+        if not schuetzen:
+            if zeigen:
+                ausgabe_jetzt.zeichne("✗")
+                ausgabe_jetzt.status = None
+            raise
+        print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
+        if zeigen:
+            ausgabe_jetzt.status[1] = _t("abgebrochen: {}", type(fehler).__name__)
+            ausgabe_jetzt.zeichne("✗")
+    else:
+        if zeigen:
+            ausgabe_jetzt.zeichne("✓")
+    finally:
+        if zeigen:
+            ausgabe_jetzt.status = None
 
 
 # -------------------------------------------------------------------- Ablauf
@@ -1933,11 +2117,9 @@ def _host_lauf(
     username: str = USERNAME,
 ) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen."""
-    print(f"\n=== {host}")
-    print("    Hinweis: HeatNexus in Home Assistant vorher deaktivieren, sonst bricht die")
-    print("    Steuerung unter der doppelten Last Abfragen ab.")
+    sage(f"\n  {_t('Anlage {}', host)}")
     if not reachable(host):
-        print("    nicht erreichbar (Port 80 antwortet nicht)")
+        sage(f"    ✗ {_t('Port 80 antwortet nicht')}")
         return {"host": host, "ok": False}
 
     if not _ensure_dir(out_dir):
@@ -1949,7 +2131,7 @@ def _host_lauf(
 
     structure, status = probe.lookup("/1")
     if status != 200 or not isinstance(structure, list):
-        print(f"    Struktur nicht lesbar ({struktur_hinweis(status, structure)})")
+        sage(f"    ✗ {_t('Struktur lesen')} · {struktur_hinweis(status, structure)}")
         return {"host": host, "ok": False}
 
     nodes = len(structure)
@@ -1957,6 +2139,8 @@ def _host_lauf(
     fcts = sum(1 for f in offen if f.get("fctType", -1) >= 0)
     nvs = sum(1 for f in offen if f.get("fctType", -1) < 0)
     print(f"    {nodes} Knoten, {fcts} nutzbare Funktionen, {nvs} LON-Adressräume")
+    if _aktuelle_ausgabe() and _aktuelle_ausgabe().still:
+        sage(f"    ✓ {_t('Struktur lesen')} · {_t('{} Regler', nodes)}")
     for node in structure:
         msg = node.get("FE01msg")
         print(f"      Knoten {node.get('nodeId'):>3}  {str(node.get('name'))[:18]:<18} {msg or ''}")
@@ -1971,7 +2155,10 @@ def _host_lauf(
     menus = objects = None
     if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich", "einzeln"}:
         print("    Menü-Ebenen werden gelesen …")
-        menus = fetch_menus(probe, structure)
+        with etappe("Datenpunkte lesen", schuetzen=False):
+            menus = fetch_menus(probe, structure)
+            gelesen = sum(len(f["datapoints"]) for f in menus["functions"])
+            fortschritt(_t("{} Datenpunkte", gelesen))
         for fct in menus["functions"]:
             if not fct.get("ungemeldet"):
                 continue
@@ -1986,7 +2173,7 @@ def _host_lauf(
         written.append(path)
 
     if menus and actions & {"objects", "report"}:
-        with schritt("Zeitprogramme"):
+        with etappe("Zeitprogramme"):
             print("    Zeitprogramme werden gelesen …")
             objects = fetch_objects(probe, menus)
             if objects:
@@ -1996,7 +2183,7 @@ def _host_lauf(
 
     nv = None
     if menus and "einzeln" in actions:
-        with schritt("Einzelabruf"):
+        with etappe("Einzelabruf"):
             ziele = einzelziele(menus)
             print(f"    {len(ziele)} Adressen außerhalb der Menüs werden einzeln gelesen …")
             einzeln = hole_einzelwerte(probe, ziele)
@@ -2005,7 +2192,7 @@ def _host_lauf(
             written.append(path)
 
     if menus and actions & {"nv", "vergleich"}:
-        with schritt("LON-Netzwerkvariablen"):
+        with etappe("LON-Netzwerkvariablen"):
             print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
             nv = suche_nv_werte(probe, menus)
             path = out_dir / f"{stem}_nv.json"
@@ -2013,7 +2200,7 @@ def _host_lauf(
             written.append(path)
 
     if menus and nv and "vergleich" in actions:
-        with schritt("LON gegen OID"):
+        with etappe("LON gegen OID"):
             print("    LON gegen OID …")
             ergebnis = vergleich_lon_oid(menus, nv)
             print(
@@ -2029,7 +2216,7 @@ def _host_lauf(
             written.append(path)
 
     if "endpunkte" in actions:
-        with schritt("Endpunktsuche"):
+        with etappe("Endpunktsuche"):
             print("    Endpunkte der Steuerung werden aufgezählt …")
             punkte = suche_endpunkte(probe)
             path = out_dir / f"{stem}_endpunkte.json"
@@ -2037,7 +2224,7 @@ def _host_lauf(
             written.append(path)
 
     if "vollabzug" in actions:
-        with schritt("Vollabzug"):
+        with etappe("Vollabzug"):
             print("    Vollabzug /api/1.0/datapoints wird gelesen …")
             abzug = hole_vollabzug(probe)
             path = abzugsname(out_dir, stem, abzug)
@@ -2045,7 +2232,7 @@ def _host_lauf(
             written.append(path)
 
     if "stapel" in actions:
-        with schritt("Stapelabruf"):
+        with etappe("Stapelabruf"):
             print("    Stapelabruf gegen Einzelabrufe …")
             # Adressen dieser Anlage statt einer gepflegten Liste: Der
             # Zwischenspeicher nennt nur, was es hier wirklich gibt.
@@ -2064,7 +2251,7 @@ def _host_lauf(
                 written.append(path)
 
     if "stoerspeicher" in actions:
-        with schritt("Störspeichersuche"):
+        with etappe("Störspeichersuche"):
             print("    Störspeicher wird über den SOAP-Dienst gesucht …")
             speicher = suche_stoerspeicher(probe, structure)
             path = out_dir / f"{stem}_stoerspeicher.json"
@@ -2072,7 +2259,7 @@ def _host_lauf(
             written.append(path)
 
     if "statisch" in actions:
-        with schritt("Statische Navigation"):
+        with etappe("Statische Navigation"):
             print("    Statische Navigationseinträge werden gesucht …")
             statisch = suche_statisch(probe, structure)
             path = out_dir / f"{stem}_statisch.json"
@@ -2080,12 +2267,12 @@ def _host_lauf(
             written.append(path)
 
     if "texte" in actions:
-        with schritt("Namensdateien"):
+        with etappe("Namensdateien"):
             print("    Namensdateien werden gesucht …")
             written.extend(run_texte(probe, out_dir, stem))
 
     if menus and "diag" in actions:
-        with schritt("Nachlade-Varianten"):
+        with etappe("Nachlade-Varianten"):
             print("    Nachlade-Varianten werden getestet …")
             findings = run_diagnose(probe, menus)
             if findings:
@@ -2098,12 +2285,12 @@ def _host_lauf(
     seconds = time.monotonic() - started
 
     if menus and "compare" in actions:
-        with schritt("Gegenprobe"):
+        with etappe("Gegenprobe"):
             for row in compare(menus):
                 print(vergleichszeile(row))
 
     if menus and "report" in actions:
-        with schritt("Bericht"):
+        with etappe("Bericht"):
             path = out_dir / f"{stem}_bericht.md"
             write_report(
                 path, menus, objects or {}, {"requests": probe.requests, "seconds": seconds}
@@ -2113,7 +2300,7 @@ def _host_lauf(
     schwaerzen(written, structure, menus)
     total = sum(len(f["datapoints"]) for f in menus["functions"]) if menus else 0
     print(f"    fertig: {total} Datenpunkte, {probe.requests} Requests, {seconds:.1f} s")
-    print("    Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.")
+    sage(f"    {_t('Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.')}")
     for path in written:
         print(f"      -> {path}")
 
@@ -2189,80 +2376,117 @@ ACTIONS = {
 }
 
 
-def interactive(out_default: str = "probe") -> int:
-    """Geführter Modus mit Auswahlmenü."""
-    # `probe.cmd` zeigt einen eigenen Kopf und setzt dafür diese Variable.
-    if not os.environ.get("HEATNEXUS_KOPF_GEZEIGT"):
-        print("=" * 64)
-        print(" HeatNexus – Anlagen-Sonde")
-        print("=" * 64)
+def _fassung() -> str:
+    """Fassung von HeatNexus, aus der die Sonde stammt."""
+    manifest = Path(__file__).resolve().parent.parent / "custom_components/heatnexus/manifest.json"
+    daten = _json_oder_none(manifest)
+    return str(daten.get("version", "?")) if isinstance(daten, dict) else "?"
 
-    out_dir = zielordner(out_default)
+
+def _anlagen_erfragen(out_dir: Path) -> list[str]:
+    """IP-Adressen abfragen; die zuletzt verwendeten werden angeboten."""
     hosts_file = out_dir / HOSTS_FILE
     stored = []
     if hosts_file.exists():
-        stored = [
-            h.strip() for h in hosts_file.read_text(encoding="utf-8").splitlines() if h.strip()
-        ]
-
+        stored = [h.strip() for h in hosts_file.read_text(encoding="utf-8").splitlines()]
+        stored = [h for h in stored if h]
+    hosts: list[str] = []
     if stored:
-        print(f"\nZuletzt verwendet: {', '.join(stored)}")
-        answer = input("Diese Anlagen verwenden? [J/n] oder neue IPs eingeben: ").strip()
-        if answer.lower() in ("", "j", "ja", "y"):
-            hosts = stored
-        else:
-            hosts = _split_hosts(answer)
+        sage(f"\n  {_t('Zuletzt verwendet: {}', ', '.join(stored))}")
+        answer = input("  " + _t("Diese Anlagen verwenden? [J/n] oder neue IP-Adressen eingeben: "))
+        answer = answer.strip()
+        hosts = stored if answer.lower() in ("", "j", "ja", "y", "yes") else _split_hosts(answer)
     else:
-        print("\nIP-Adressen der Anlagen (mehrere durch Komma oder Leerzeichen trennen)")
-        hosts = _split_hosts(input("IP(s): "))
-
+        sage(f"\n  {_t('IP-Adressen der Anlagen (mehrere durch Komma oder Leerzeichen trennen)')}")
     while not hosts:
-        hosts = _split_hosts(input("IP(s): "))
-
-    print("\nErreichbarkeit:")
+        hosts = _split_hosts(input("  " + _t("IP-Adresse(n): ")))
+    sage(f"\n  {_t('Erreichbarkeit')}")
     for host in hosts:
-        print(f"  {host:<16} {'erreichbar' if reachable(host) else 'KEINE ANTWORT'}")
+        if reachable(host):
+            sage(f"    ✓ {host:<16} {_t('erreichbar')}")
+        else:
+            sage(f"    ✗ {host:<16} {_t('keine Antwort')}")
+    return hosts
 
+
+def _passwoerter_erfragen(hosts: list[str]) -> dict[str, str]:
+    """Ein Passwort für alle oder je Anlage, verdeckt eingegeben."""
     same = True
     if len(hosts) > 1:
-        same = input("\nGleiches Passwort für alle Anlagen? [J/n] ").strip().lower() not in (
-            "n",
-            "nein",
-        )
-
-    passwords: dict[str, str] = {}
-    env_pw = os.environ.get("HEATNEXUS_PW")
+        antwort = input("\n  " + _t("Gleiches Passwort für alle Anlagen? [J/n] ")).strip().lower()
+        same = antwort not in ("n", "nein", "no")
     if same:
-        pw = env_pw or getpass.getpass("Service-Passwort (Eingabe bleibt verdeckt): ")
-        passwords = dict.fromkeys(hosts, pw)
-    else:
-        for host in hosts:
-            passwords[host] = getpass.getpass(f"Passwort für {host}: ")
+        pw = os.environ.get("HEATNEXUS_PW") or getpass.getpass(
+            "\n  " + _t("Passwort der Anlage (Eingabe bleibt verdeckt): ")
+        )
+        return dict.fromkeys(hosts, pw)
+    return {h: getpass.getpass("  " + _t("Passwort für {}: ", h)) for h in hosts}
 
+
+def _aktionen_erfragen() -> set[str]:
+    """Expertenmodus: einzelne Aktionen wählen."""
     print("\nWas soll gemacht werden?")
     for key, (_, label) in ACTIONS.items():
         print(f"  {key}) {label}")
     print("  a) alles")
     choice = input("Auswahl (z. B. 2,4,5 oder a) [a]: ").strip().lower() or "a"
     if choice == "a":
-        actions = {name for name, _ in ACTIONS.values()}
-    else:
-        actions = {ACTIONS[c][0] for c in (x.strip() for x in choice.split(",")) if c in ACTIONS}
-    if not actions:
-        print("Keine gültige Auswahl.")
+        return {name for name, _ in ACTIONS.values()}
+    return {ACTIONS[c][0] for c in (x.strip() for x in choice.split(",")) if c in ACTIONS}
+
+
+def _empfehlung_zeigen() -> None:
+    sage()
+    sage(f"  {_t('Empfehlung: HeatNexus in Home Assistant für die Dauer des Laufs deaktivieren.')}")
+    sage(f"  {_t('Die Steuerung beantwortet nur eine Anfrage nach der anderen. Mit beiden')}")
+    sage(f"  {_t('gleichzeitig dauert der Lauf länger, und einzelne Abfragen können ausfallen.')}")
+    sage(f"  {_t('Der Lauf dauert je nach Anlage 15 bis 40 Minuten, manchmal länger.')}")
+
+
+def _abzug_packen(out_dir: Path, dateien: list[Path]) -> Path:
+    """Die Dateien dieses Laufs als ZIP neben den Zielordner legen."""
+    ziel = out_dir.absolute().parent / f"heatnexus-abzug-{dt.datetime.now():%Y-%m-%d-%H%M}.zip"
+    with zipfile.ZipFile(ziel, "w", zipfile.ZIP_DEFLATED) as zip_datei:
+        for datei in dateien:
+            if datei.is_file():
+                zip_datei.write(datei, f"{out_dir.name}/{datei.name}")
+    return ziel
+
+
+def _im_explorer_zeigen(datei: Path) -> None:
+    """Unter Windows den Explorer mit markierter Datei öffnen; sonst nichts."""
+    if os.name != "nt":
+        return
+    with contextlib.suppress(OSError):
+        subprocess.Popen(["explorer", "/select,", str(datei)])
+
+
+def _abschluss(results: list[dict], out_dir: Path, log: Path) -> int:
+    """Geführter Modus: Ergebnis je Anlage, ZIP packen und zeigen."""
+    sage()
+    gut = [r for r in results if r.get("ok")]
+    for res in results:
+        if res.get("ok"):
+            dauer = int(res["seconds"])
+            sage(
+                f"  ✓ {res['host']:<16} {_t('{} Datenpunkte', res['datapoints'])} · "
+                f"{dauer // 60}:{dauer % 60:02d}"
+            )
+        else:
+            sage(f"  ✗ {res['host']:<16} {_t('fehlgeschlagen')}")
+    if not gut:
+        sage(f"\n  {_t('Keine Anlage ließ sich auslesen.')}")
         return 1
+    dateien = [Path(f) for r in gut for f in r.get("files", [])] + [log]
+    zip_datei = _abzug_packen(out_dir, dateien)
+    sage(f"\n  ✓ {_t('Fertig.')} {_t('Die Datei liegt bereit:')}")
+    sage(f"    {zip_datei}")
+    sage(f"  {_t('Hänge sie an dein Issue auf GitHub an.')}")
+    _im_explorer_zeigen(zip_datei)
+    return 0
 
-    while True:
-        target = input(f"Zielordner [{out_default}]: ").strip() or out_default
-        out_dir = Path(target)
-        if _ensure_dir(out_dir):
-            break
 
-    hosts_file = out_dir / HOSTS_FILE
-    hosts_file.write_text("\n".join(hosts) + "\n", encoding="utf-8")
-
-    results = [run_host(h, passwords[h], actions, out_dir, DEFAULT_WORKERS) for h in hosts]
-
+def _zusammenfassung_ausfuehrlich(results: list[dict], out_dir: Path) -> None:
     print("\n" + "=" * 64)
     print(" Zusammenfassung")
     print("=" * 64)
@@ -2270,12 +2494,48 @@ def interactive(out_default: str = "probe") -> int:
         if res.get("ok"):
             print(
                 f"  {res['host']:<16} {res['datapoints']:>4} Datenpunkte  "
-                f"{res['requests']:>4} Requests  {res['seconds']:.1f} s"
+                f"{res['requests']:>4} Anfragen  {res['seconds']:.1f} s"
             )
         else:
             print(f"  {res['host']:<16} fehlgeschlagen")
     print(f"\nDateien liegen in: {out_dir.resolve()}")
-    return 0
+
+
+def interactive(out_default: str = "probe", experte: bool = False) -> int:
+    """Geführter Modus; im Expertenmodus mit Auswahl der Aktionen und des Zielordners."""
+    # `probe.cmd` zeigt einen eigenen Kopf und setzt dafür diese Variable.
+    if not os.environ.get("HEATNEXUS_KOPF_GEZEIGT"):
+        print("=" * 64)
+        print(" HeatNexus – Anlagen-Sonde")
+        print("=" * 64)
+    sage(f"  {_t('Fassung {}', _fassung())}")
+
+    out_dir = zielordner(out_default)
+    hosts = _anlagen_erfragen(out_dir)
+    passwords = _passwoerter_erfragen(hosts)
+    actions = {name for name, _ in ACTIONS.values()}
+    if experte:
+        actions = _aktionen_erfragen()
+        if not actions:
+            print(_t("Keine gültige Auswahl."))
+            return 1
+        while True:
+            out_dir = Path(input(f"Zielordner [{out_default}]: ").strip() or out_default)
+            if _ensure_dir(out_dir):
+                break
+    elif not _ensure_dir(out_dir):
+        return 1
+    _empfehlung_zeigen()
+
+    (out_dir / HOSTS_FILE).write_text("\n".join(hosts) + "\n", encoding="utf-8")
+    log = out_dir / "sonde.log"
+    log.unlink(missing_ok=True)
+    with ausgabe(log, still=not experte):
+        results = [run_host(h, passwords[h], actions, out_dir, DEFAULT_WORKERS) for h in hosts]
+    if experte:
+        _zusammenfassung_ausfuehrlich(results, out_dir)
+        return 0
+    return _abschluss(results, out_dir, log)
 
 
 def _split_hosts(text: str) -> list[str]:
@@ -2351,6 +2611,14 @@ def main() -> int:
         help="Zielordner, relativ zum Repository (Standard: probe)",
     )
     parser.add_argument(
+        "--experte",
+        action="store_true",
+        help="geführter Modus mit Auswahl der Aktionen und ausführlicher Ausgabe",
+    )
+    parser.add_argument("--sprache", choices=("de", "en"), help="Sprache der Ausgabe")
+    parser.add_argument("--de", dest="sprache", action="store_const", const="de", help="Deutsch")
+    parser.add_argument("--en", dest="sprache", action="store_const", const="en", help="English")
+    parser.add_argument(
         "--workers",
         type=int,
         default=DEFAULT_WORKERS,
@@ -2358,8 +2626,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    global SPRACHE
+    SPRACHE = args.sprache or SPRACHE
     if args.command == "interactive":
-        return interactive(args.out)
+        return interactive(args.out, args.experte)
     if args.command == "schwaerzen":
         return schwaerzen_befehl(Path(args.hosts[0]) if args.hosts else zielordner(args.out))
 
@@ -2418,11 +2688,29 @@ def main() -> int:
         if args.command in ("compare", "report"):
             actions |= {"menus"}
 
+    _empfehlung_zeigen()
     results = [
         run_host(h, password, actions, zielordner(args.out), args.workers, args.user) for h in hosts
     ]
     return 0 if all(r.get("ok") for r in results) else 1
 
 
+def _start() -> int:
+    """`main` mit verständlicher Meldung bei Strg+C und bei unerwarteten Fehlern."""
+    try:
+        return main()
+    except (KeyboardInterrupt, EOFError):
+        sage()
+        sage(f"  {_t('Abgebrochen.')}")
+        return 130
+    except Exception as fehler:  # Nutzer sehen einen Satz, das Protokoll den Rest
+        pfad = Path(__file__).resolve().parent.parent / "sonde-fehler.log"
+        with contextlib.suppress(OSError):
+            pfad.write_text(traceback.format_exc(), encoding="utf-8")
+        sage(f"  ✗ {_t('Unerwarteter Fehler: {}', fehler)}")
+        sage(f"  {_t('Die Einzelheiten stehen in {}.', pfad)}")
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(_start())

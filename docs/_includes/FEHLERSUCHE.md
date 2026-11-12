@@ -133,12 +133,15 @@ python tools/heatnexus_probe.py all 192.0.2.10
 ```
 
 Ohne Argument startet es geführt; unter Windows genügt ein Doppelklick auf
-`tools/probe.cmd`. Die Ergebnisse landen als JSON, CSV und Bericht im Ordner
-`probe/`.
+`tools/probe.cmd`. Die Sonde fragt IP-Adresse und Passwort, liest die Anlage aus
+und legt am Ende eine ZIP-Datei an, die sich direkt an ein Issue hängen lässt.
+Seriennummer, MAC-Adresse und Kennungen der Regler sind darin geschwärzt. Einen
+älteren Abzug schwärzt sie nachträglich, wenn man den Ordner `probe` auf
+`probe.cmd` zieht. Die Ausgabe folgt der Systemsprache, Deutsch oder Englisch.
 
 Die Sonde braucht dieselbe IP-Adresse und dasselbe Service-Passwort wie die
-Integration, nicht das Passwort von Windhager Connect. Meldet sie „Struktur
-nicht lesbar“, nennt sie den Grund:
+Integration, nicht das Passwort von Windhager Connect. Scheitert das Lesen der
+Struktur, nennt sie den Grund:
 
 | Meldung | Bedeutung |
 |---|---|
