@@ -63,6 +63,36 @@ def test_gleiche_kennung_bekommt_gleichen_platzhalter(probe_modul, tmp_path):
     assert [k["neuronId"] for k in knoten] == ["SN1-1", "SN1-2"]
 
 
+def test_geraeteauskunft_und_netz_werden_geschwaerzt(probe_modul, tmp_path):
+    """`info/deviceinfo` und `config/network` nennen Seriennummer, Prüfnummer und MAC-Adresse."""
+    endpunkte = {
+        "vorhanden": [
+            {
+                "pfad": "/api/1.0/info/deviceinfo",
+                "inhalt": {"serialnumber": "00100900000099999", "checknumber": "a1b2c3"},
+            },
+            {
+                "pfad": "/api/1.0/config/network",
+                "inhalt": {"MAC": "00:23:43:0a:bc:de", "IP": "192.0.2.10"},
+            },
+        ]
+    }
+    datei = tmp_path / "anlage_endpunkte.json"
+    datei.write_text(json.dumps(endpunkte), encoding="utf-8")
+    bericht = tmp_path / "anlage_bericht.md"
+    bericht.write_text("Seriennummer 00100900000099999, MAC 0023430ABCDE\n", encoding="utf-8")
+
+    probe_modul.schwaerzen([datei, bericht], [], None)
+
+    for pfad in (datei, bericht):
+        text = pfad.read_text(encoding="utf-8").lower()
+        for kennung in ("00100900000099999", "a1b2c3", "0a:bc:de", "0abcde"):
+            assert kennung not in text, (pfad.name, kennung)
+    inhalt = json.loads(datei.read_text(encoding="utf-8"))["vorhanden"]
+    assert inhalt[0]["inhalt"] == {"serialnumber": "<seriennummer>", "checknumber": "<pruefnummer>"}
+    assert inhalt[1]["inhalt"]["IP"] == "192.0.2.10"
+
+
 def test_kurze_werte_bleiben_stehen(probe_modul, tmp_path):
     menus = {"functions": [{"datapoints": {"/1/15/0/39/115/0": {"value": "0"}}}]}
     datei = tmp_path / "anlage_datenpunkte.csv"

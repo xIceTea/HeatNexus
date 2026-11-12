@@ -1796,6 +1796,23 @@ KENNUNGEN = {"39/112": "<mac>", "39/115": "<seriennummer>"}
 KENNUNG_MIN_LAENGE = 6
 
 
+# Felder der Geräteauskunft (`info/deviceinfo`, `config/network`) mit denselben Kennungen.
+AUSKUNFT = {"serialnumber": "<seriennummer>", "checknumber": "<pruefnummer>", "mac": "<mac>"}
+_AUSKUNFT_FELD = re.compile(rb'"(serialnumber|checknumber|mac)"\s*:\s*"([^"<]+)"', re.IGNORECASE)
+
+
+def auskunft_kennungen(dateien: list[Path]) -> dict[str, str]:
+    """Kennungen aus den Antworten der Geräteauskunft, die im Abzug stehen."""
+    ersatz: dict[str, str] = {}
+    for datei in dateien:
+        for feld, wert in _AUSKUNFT_FELD.findall(datei.read_bytes()):
+            text = wert.decode("utf-8", "replace").strip()
+            if len(text) >= KENNUNG_MIN_LAENGE:
+                ersatz[text] = AUSKUNFT[feld.decode().lower()]
+                ersatz[text.replace(":", "").replace("-", "")] = AUSKUNFT[feld.decode().lower()]
+    return ersatz
+
+
 def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
     """Kennung -> Platzhalter, in Groß- und Kleinschreibung, MAC auch ohne Trenner."""
     ersatz: dict[str, str] = {}
@@ -1815,6 +1832,8 @@ def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
 def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list[Path]:
     """Seriennummer, MAC-Adresse und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
     ersatz = kennungen_ersatz(structure, menus)
+    auskunft = auskunft_kennungen(dateien)
+    ersatz.update({form: p for k, p in auskunft.items() for form in (k, k.upper(), k.lower())})
     if not ersatz:
         return []
     # Auf Bytes, weil Namensdateien der Steuerung nicht in UTF-8 vorliegen müssen.
