@@ -120,17 +120,23 @@ class TransportMixin:
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
             status: int | None = None
+            abgebrochen = False
             try:
                 async with self._session.request("GET", url) as ret:
                     raw = await ret.read()
                     status = ret.status
+            except asyncio.CancelledError:
+                # Ein Abbruch ist keine Antwort der Steuerung.
+                abgebrochen = True
+                raise
             except Exception:
                 self.request_errors += 1
                 raise
             finally:
                 dauer = time.monotonic() - begonnen
                 self.request_seconds += dauer
-                self._messen(dauer, status)
+                if not abgebrochen:
+                    self._messen(dauer, status)
         # Ein `401`, der bis hierher durchkommt, ist die Auskunft der Anlage,
         # dass das Passwort nicht stimmt – die Aufforderung selbst hat aiohttp
         # schon beantwortet. Gezählt wird beides, damit ein einzelner

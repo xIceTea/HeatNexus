@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -49,6 +50,7 @@ def test_ring_haelt_eine_stunde(az):
 
 if not ha_fehlt():
     from custom_components.heatnexus.client import WindhagerHttpClient
+    from custom_components.heatnexus.client.antwortzeit import IM_ABRUF, Messreihe
 
 
 @requires_ha()
@@ -76,3 +78,35 @@ def test_transport_ordnet_status_zu(status, erwartet):
     else:
         client.messreihe.antwort.assert_not_called()
         client.messreihe.fehler.assert_not_called()
+
+
+def _client_mit_anfrage(fehler: BaseException):
+    client = WindhagerHttpClient.__new__(WindhagerHttpClient)
+    client._ensure_session = AsyncMock()
+    client._semaphore = asyncio.Semaphore(1)
+    client.request_count = client.request_errors = 0
+    client.queue_seconds = client.request_seconds = 0.0
+    client.messreihe = Messreihe()
+    anfrage = MagicMock()
+    anfrage.__aenter__ = AsyncMock(side_effect=fehler)
+    anfrage.__aexit__ = AsyncMock(return_value=False)
+    client._session = MagicMock()
+    client._session.request = MagicMock(return_value=anfrage)
+    return client
+
+
+@requires_ha()
+@pytest.mark.parametrize(
+    ("fehler", "erwartet"),
+    [(asyncio.CancelledError(), ()), (TimeoutError(), ((1.0, None),))],
+)
+async def test_abbruch_zaehlt_nicht_als_fehlantwort(fehler, erwartet):
+    client = _client_mit_anfrage(fehler)
+    client.messreihe._uhr = lambda: 1.0
+    token = IM_ABRUF.set(True)
+    try:
+        with pytest.raises(type(fehler)):
+            await client._get("http://192.0.2.1/api/1.0/lr/1/60")
+    finally:
+        IM_ABRUF.reset(token)
+    assert client.messreihe.eintraege() == erwartet
