@@ -16,6 +16,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Sensoren Verbindung und Antwortzeit zeigen, wie gut jede Steuerung antwortet.
 - Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
 - Eine Plakette im Panel zeigt eine träge, überlastete oder gestörte Steuerung.
+- Unter „Darstellung“ lässt sich die Plakette der Verbindung dauerhaft einblenden.
 
 ### Geändert
 
