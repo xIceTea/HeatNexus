@@ -2008,6 +2008,38 @@ bilanz.meldungBeimSpeichern = meldungen;
 }
 
 // ---------------------------------------------------------------------------
+// Verbindung: eine dritte Plakette, nur solange die Steuerung schlecht antwortet.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const plakette = (zustand, kennung = "sensor.vb_verbindung") => {
+    if (zustand === undefined) delete zustaende["sensor.vb_verbindung"];
+    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: {} };
+    const vorher = flaeche._bindungen.length;
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], verbindung: kennung });
+    flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+    const knoten = karte.querySelector(".verbindung");
+    return {
+      anzeige: knoten.style.display,
+      text: text(knoten),
+      symbol: knoten.firstChild.getAttribute("icon"),
+      stufe: ["info", "fehler"].filter((name) => knoten.classList.contains(name)),
+    };
+  };
+  bilanz.verbindungPlakette = {
+    stabil: plakette("stabil"),
+    sammelt: plakette("sammelt"),
+    traege: plakette("traege"),
+    ueberlastet: plakette("ueberlastet"),
+    gestoert: plakette("gestoert"),
+    ohneSensor: plakette(undefined, null),
+  };
+  delete zustaende["sensor.vb_verbindung"];
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
 // Automatik im Schaubild: Pille hinter dem Titel, Begründung darunter, Marke am
 // Heizkörper; eine offene Empfehlung bringt ihre Tasten mit.
 // ---------------------------------------------------------------------------

@@ -1685,3 +1685,23 @@ def test_verlauf_laedt_die_kartenhelfer_ohne_vorher_geoeffnetes_dashboard():
     )
     assert lauf.returncode == 0, lauf.stderr or lauf.stdout
     assert len(json.loads(lauf.stdout)["faelle"]) == 2
+
+
+@pytest.mark.parametrize("fall", ["stabil", "sammelt", "ohneSensor"])
+def test_die_verbindung_zeigt_bei_gutem_zustand_keine_plakette(durchlauf, fall):
+    assert durchlauf["verbindungPlakette"][fall]["anzeige"] == "none"
+
+
+@pytest.mark.parametrize(
+    ("fall", "text", "stufe"),
+    [
+        ("traege", "Steuerung antwortet träge", ["info"]),
+        ("ueberlastet", "Steuerung überlastet", ["fehler"]),
+        ("gestoert", "Steuerung antwortet gestört", ["fehler"]),
+    ],
+)
+def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text, stufe):
+    plakette = durchlauf["verbindungPlakette"][fall]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == text
+    assert plakette["stufe"] == stufe

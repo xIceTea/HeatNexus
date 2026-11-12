@@ -46,6 +46,13 @@ const STUFEN = {
   },
 };
 
+// Plakette der Verbindung; „stabil“ und „sammelt“ zeigen keine.
+const VERBINDUNG = {
+  traege: { text: "Steuerung antwortet träge", symbol: "mdi:speedometer-slow", stufe: "info" },
+  ueberlastet: { text: "Steuerung überlastet", symbol: "mdi:timer-sand", stufe: "fehler" },
+  gestoert: { text: "Steuerung antwortet gestört", symbol: "mdi:lan-disconnect", stufe: "fehler" },
+};
+
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
   // -------------------------------------------------------------------
@@ -134,7 +141,7 @@ export const UebersichtMixin = (Basis) =>
     // Beide öffnen den Sensor „Anlagenzustand“ mit seinem Verlauf.
     this._klickbar(abzeichen, anlage.anlagenzustand);
     this._klickbar(sonder, anlage.anlagenzustand);
-    karte.append(abzeichen, sonder);
+    karte.append(abzeichen, sonder, this._verbindungAbzeichen(anlage));
     this._bindungen.push(() => {
       const stufe = this._stoerungsstufe(anlage);
       const zustand = kesselzustand(anlage.kesselzustand, (kennung) => this._zustand(kennung));
@@ -169,6 +176,25 @@ export const UebersichtMixin = (Basis) =>
     });
     karte.appendChild(liste);
     return karte;
+  }
+
+  /** Plakette, solange die Steuerung träge, überlastet oder gestört antwortet; öffnet den Sensor. */
+  _verbindungAbzeichen(anlage) {
+    const knoten = this._abzeichenKnoten("mdi:lan-connect");
+    knoten.classList.add("verbindung");
+    knoten.style.display = "none";
+    if (!anlage.verbindung) return knoten;
+    this._klickbar(knoten, anlage.verbindung);
+    this._bindungen.push(() => {
+      const art = VERBINDUNG[this._zustand(anlage.verbindung)?.state];
+      knoten.style.display = art ? "" : "none";
+      if (!art) return;
+      knoten.classList.toggle("info", art.stufe === "info");
+      knoten.classList.toggle("fehler", art.stufe === "fehler");
+      knoten.lastChild.textContent = this._t(art.text);
+      knoten.firstChild.setAttribute("icon", art.symbol);
+    });
+    return knoten;
   }
 
 

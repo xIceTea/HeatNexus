@@ -90,4 +90,5 @@ export const KARTEN = `
   .abzeichen.fehler { background: rgba(255, 193, 7, 0.15); color: #ffd54f; }
   .abzeichen.info { background: rgba(66, 165, 245, 0.15); color: #64b5f6; }
   .abzeichen.sonderbetrieb { background: rgba(66, 165, 245, 0.15); color: #64b5f6; margin-top: 6px; }
+  .abzeichen.verbindung { margin-top: 6px; }
 `;

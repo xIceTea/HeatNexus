@@ -156,6 +156,7 @@ def anlage_daten(
         "kesselzustand": kesselzustand(anlage),
         "stoerspeicher": steuerungsentitaet(anlage, "stoerspeicher"),
         "anlagenzustand": steuerungsentitaet(anlage, "anlagenzustand"),
+        "verbindung": steuerungsentitaet(anlage, "verbindung"),
         "schnellzugriff": uebersicht.schnellzugriff(anlage, alle),
         # Nur Messwerte: Ein Einsteller trägt oft denselben Namen wie der
         # Wert, den er begrenzt, und gehört nicht als Linie in den Verlauf.
