@@ -582,8 +582,11 @@
           "bezug_vorlaeufig": {
             "name": "Referentie voorlopig"
           },
+          "abruf_ms": {
+            "name": "Responstijd laatste opvraging (ms)"
+          },
           "median_ms": {
-            "name": "Responstijd (ms)"
+            "name": "Responstijd 15 minuten (ms)"
           },
           "fehlerquote": {
             "name": "Foutpercentage (%)"

@@ -23,6 +23,7 @@ class Messreihe:
         self._uhr = uhr
         self._ring: deque[tuple[float, float | None]] = deque()
         self._stunde: list[float] = []
+        self._abruf: list[float] = []
 
     def antwort(self, dauer_s: float) -> None:
         self._eintragen(dauer_s * 1000)
@@ -37,6 +38,7 @@ class Messreihe:
         self._ring.append((jetzt, dauer_ms))
         if dauer_ms is not None:
             self._stunde.append(dauer_ms)
+            self._abruf.append(dauer_ms)
         while self._ring and self._ring[0][0] < jetzt - HALTEN_S:
             self._ring.popleft()
 
@@ -49,4 +51,9 @@ class Messreihe:
     def stunde_abholen(self) -> list[float]:
         """Die Dauern seit dem letzten Abholen; danach beginnt die Liste neu."""
         dauern, self._stunde = self._stunde, []
+        return dauern
+
+    def abruf_abholen(self) -> list[float]:
+        """Die Dauern seit dem letzten Abruf; danach beginnt die Liste neu."""
+        dauern, self._abruf = self._abruf, []
         return dauern

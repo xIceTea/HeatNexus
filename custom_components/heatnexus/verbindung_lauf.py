@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 import logging
+from statistics import median
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -101,6 +102,8 @@ class VerbindungLauf:
         self.abrufe_mit_rest = 0
         self.noch_offen = 0
         self._letzter_median: float | None = None
+        # Median des letzten Abrufs für die Anzeige; die Bewertung nimmt das ruhigere Fenster.
+        self.abruf_ms: float | None = None
         # Bis der Bezug aus den Stunden steht, gilt der Median der ersten ruhigen Viertelstunde.
         self._start: float | None = None
         self._vorlaeufig = vorlaeufig
@@ -127,6 +130,8 @@ class VerbindungLauf:
             return
         jetzt = messreihe.jetzt()
         self._stunde_pruefen(messreihe)
+        dauern = messreihe.abruf_abholen()
+        self.abruf_ms = median(dauern) if dauern else None
         # Ein gescheiterter Abruf sagt nichts über liegengebliebene Werte; die Folge bleibt stehen.
         if erfolgreich:
             self.noch_offen = noch_offen
@@ -227,6 +232,7 @@ class VerbindungLauf:
         return {
             "bezug_ms": None if bezug is None else round(bezug),
             "bezug_vorlaeufig": self.bezug_ms is None and bezug is not None,
+            "abruf_ms": None if self.abruf_ms is None else round(self.abruf_ms),
             "median_ms": None if self.fenster.median_ms is None else round(self.fenster.median_ms),
             "fehlerquote": round(self.fenster.fehlerquote * 100, 1),
             "antworten": self.fenster.antworten,

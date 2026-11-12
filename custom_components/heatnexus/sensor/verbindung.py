@@ -74,7 +74,7 @@ class VerbindungSensor(_VerbindungBasis):
 
 
 class AntwortzeitSensor(_VerbindungBasis):
-    """Median der Antwortzeit in der letzten Viertelstunde."""
+    """Median der Antwortzeit im letzten Abruf."""
 
     _attr_translation_key = "antwortzeit"
     _attr_device_class = SensorDeviceClass.DURATION
@@ -88,7 +88,7 @@ class AntwortzeitSensor(_VerbindungBasis):
     def _auswerten(self) -> None:
         if (lauf := self.coordinator.verbindung) is None:
             return
-        wert = lauf.fenster.median_ms
+        wert = lauf.abruf_ms
         self._attr_native_value = None if wert is None else round(wert)
 
 

@@ -582,8 +582,11 @@
           "bezug_vorlaeufig": {
             "name": "Reference provisional"
           },
+          "abruf_ms": {
+            "name": "Response time last poll (ms)"
+          },
           "median_ms": {
-            "name": "Response time (ms)"
+            "name": "Response time 15 minutes (ms)"
           },
           "fehlerquote": {
             "name": "Error rate (%)"

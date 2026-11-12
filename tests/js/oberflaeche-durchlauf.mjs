@@ -2016,7 +2016,7 @@ bilanz.meldungBeimSpeichern = meldungen;
   const zustaende = flaeche._hass.states;
   const plakette = (zustand, kennung = "sensor.vb_verbindung") => {
     if (zustand === undefined) delete zustaende["sensor.vb_verbindung"];
-    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: { median_ms: 430 } };
+    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: { abruf_ms: 430, median_ms: 999 } };
     const vorher = flaeche._bindungen.length;
     const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], verbindung: kennung });
     flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());

@@ -582,8 +582,11 @@
           "bezug_vorlaeufig": {
             "name": "Bezug vorläufig"
           },
+          "abruf_ms": {
+            "name": "Antwortzeit letzter Abruf (ms)"
+          },
           "median_ms": {
-            "name": "Antwortzeit (ms)"
+            "name": "Antwortzeit 15 Minuten (ms)"
           },
           "fehlerquote": {
             "name": "Fehlerquote (%)"

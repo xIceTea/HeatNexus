@@ -469,6 +469,35 @@ async def test_sensoren_am_geraet_steuerung(hass):
     assert zustand.entity_category == EntityCategory.DIAGNOSTIC
 
 
+async def test_antwortzeit_zeigt_den_letzten_abruf_die_bewertung_das_fenster(hass):
+    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
+
+    coordinator = sensor_koordinator(lauf_bauen(hass, ruhige_stunden()))
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    abruf(reihe, uhr, dauer_s=0.1)
+    coordinator.verbindung.nach_abruf(reihe, 0)
+    abruf(reihe, uhr, dauer_s=0.3)
+    coordinator.verbindung.nach_abruf(reihe, 0)
+
+    attribute = VerbindungSensor(coordinator).extra_state_attributes
+    assert AntwortzeitSensor(coordinator).native_value == 300
+    assert attribute["abruf_ms"] == 300
+    assert attribute["median_ms"] == 200
+
+
+async def test_ein_abruf_ohne_antwort_hat_keine_antwortzeit(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    abruf(reihe, uhr)
+    lauf.nach_abruf(reihe, 0)
+    abruf(reihe, uhr, anzahl=0, fehler=5)
+    lauf.nach_abruf(reihe, 0, erfolgreich=False)
+    assert lauf.abruf_ms is None
+    assert lauf.attribute()["abruf_ms"] is None
+
+
 async def test_antwortzeit_ohne_genug_antworten_ist_leer(hass):
     from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor
 

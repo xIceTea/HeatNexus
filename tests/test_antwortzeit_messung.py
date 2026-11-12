@@ -35,6 +35,21 @@ def test_im_abruf_zaehlen_antwort_und_fehler(az):
     assert reihe.stunde_abholen() == []
 
 
+def test_abruf_abholen_liefert_nur_die_antworten_seit_dem_letzten_abholen(az):
+    reihe = az.Messreihe(uhr=lambda: 10.0)
+    token = az.IM_ABRUF.set(True)
+    try:
+        reihe.antwort(0.3)
+        reihe.fehler()
+        assert reihe.abruf_abholen() == [300.0]
+        reihe.antwort(0.4)
+    finally:
+        az.IM_ABRUF.reset(token)
+    assert reihe.abruf_abholen() == [400.0]
+    assert reihe.abruf_abholen() == []
+    assert reihe.stunde_abholen() == [300.0, 400.0]
+
+
 def test_ring_haelt_nur_das_bewertungsfenster(az):
     fenster_s = load_standalone("verbindung").FENSTER_S
     zeit = [0.0]
