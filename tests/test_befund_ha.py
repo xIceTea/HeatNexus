@@ -359,14 +359,16 @@ async def test_abgas_sensoren_entstehen(hass, anlage):
 
 async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
     """Vorrat setzen, Lieferung mit Rest eintragen; die Reichweite folgt aus dem Verbrauch."""
-    from datetime import date, timedelta
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.befund import brennstoff_entitaeten as be
 
     verwaltung, eintrag = anlage
     sammler = next(iter(verwaltung.sammler.values()))
     purowin_abgas(sammler)
-    heute = date.today()
+    heute = dt_util.now().date()
     sammler.archiv.tage_k[KESSEL] = {
         (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
     }
@@ -426,14 +428,16 @@ async def test_heizwert_lehnt_eine_brennstofflieferung_ab(hass, anlage):
 
 async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):
     """Ein gezählter Stand wirkt wie eine Befüllung ohne Menge: Der Rest lernt die Korrektur."""
-    from datetime import date, timedelta
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.befund import brennstoff_entitaeten as be
 
     verwaltung, eintrag = anlage
     sammler = next(iter(verwaltung.sammler.values()))
     purowin_abgas(sammler)
-    heute = date.today()
+    heute = dt_util.now().date()
     sammler.archiv.tage_k[KESSEL] = {
         (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
     }
