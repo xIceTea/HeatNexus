@@ -381,3 +381,11 @@ def test_die_sensoren_der_verbindung_gelten_nicht_als_verwaist():
     for kennung in ("steuerung-SN1-verbindung", "steuerung-SN1-antwortzeit"):
         assert domaenen[kennung] == "sensor"
         assert bekannt[kennung] is True
+
+
+def test_diagnose_ohne_lauf_ist_leer():
+    from custom_components.heatnexus.diagnostics import _verbindung
+
+    coordinator = MagicMock()
+    coordinator.verbindung = None
+    assert _verbindung(coordinator) == {}

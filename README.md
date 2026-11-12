@@ -28,6 +28,7 @@ zeigt die Anlage als Schaubild.
 - **Pflege, Abgas, Brennstoff und Wärmepumpe**: Die Auswertung zeigt Pflegetermine, meldet wärmeres Abgas seit der Reinigung und sagt, bis wann der Brennstoff reicht. An der Wärmepumpe vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
 - **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
 - **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
+- **Verbindung und Antwortzeit je Steuerung** als diagnostische Sensoren; ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
 - **Reparaturen** in Home Assistant nennen eine nicht erreichbare Steuerung und Anlagenteile, die keine Werte liefern.
 - **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.
 - **Deutsch, Englisch und Niederländisch** in Oberfläche, Datenpunkten und Störungstexten.

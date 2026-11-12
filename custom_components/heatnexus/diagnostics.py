@@ -259,6 +259,12 @@ def _abrufzustand(coordinator) -> dict[str, Any]:
     }
 
 
+def _verbindung(coordinator: Any) -> dict[str, Any]:
+    """Zustand, Bezug und Stundenmediane der Verbindung; leer ohne Lauf."""
+    lauf = getattr(coordinator, "verbindung", None)
+    return lauf.diagnose() if lauf is not None else {}
+
+
 def _anlage(coordinator) -> dict[str, Any]:
     """Kennzahlen und Daten einer einzelnen Anlage."""
     client = coordinator.client
@@ -324,6 +330,7 @@ def _anlage(coordinator) -> dict[str, Any]:
         # Ohne diese Zahlen ist jede Aussage über das Abrufverhalten geschätzt.
         "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
         "abruf": _abrufzustand(coordinator),
+        "verbindung": _verbindung(coordinator),
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
         # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllen die

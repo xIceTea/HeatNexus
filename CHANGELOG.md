@@ -13,6 +13,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Unter „Darstellung“ lässt sich am Puffer auch die mittlere Temperatur einblenden ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Farbe des Puffers folgt auch dem mittleren Fühler.
 - Der Tooltip am Puffer nennt die mittlere Temperatur und den Beladegrad.
+- Die Sensoren Verbindung und Antwortzeit zeigen, wie gut jede Steuerung antwortet.
+- Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
 
 ### Geändert
 
