@@ -157,6 +157,28 @@ async def test_gespeicherte_stunden_ergeben_den_bezug(hass, hass_storage):
     assert lauf.attribute()["gueltige_stunden"] == 24
 
 
+async def test_stunden_ueberstehen_entladen_und_neues_laden(hass, hass_storage):
+    from datetime import datetime, timedelta
+
+    from homeassistant.helpers.storage import Store
+
+    beginn = datetime(2026, 11, 1)
+    stunden = [
+        vb.Stunde((beginn + timedelta(hours=i)).strftime("%Y-%m-%dT%H"), 100.0 + i, 120, i % 5 != 0)
+        for i in range(30)
+    ] + [vb.Stunde("2026-11-02T06", None, 0, False)]
+    store = Store(hass, STORE_VERSION, store_key("abc123", HOST))
+    lauf = VerbindungLauf(hass, "abc123", HOST, "Heizhaus", store, stunden)
+    await lauf.async_entladen()
+    assert store_key("abc123", HOST) in hass_storage
+
+    neu = await VerbindungLauf.laden(hass, "abc123", HOST, "Heizhaus")
+    assert neu.diagnose()["stunden"] == lauf.diagnose()["stunden"]
+    assert lauf.bezug_ms is not None
+    assert neu.bezug_ms == lauf.bezug_ms
+    assert neu.attribute()["gueltige_stunden"] == 24
+
+
 @pytest.mark.parametrize("daten", [{"stunden": 5}, [["2026-11-01T00", 200.0, 120, True]]])
 async def test_ein_kaputter_speicher_startet_leer(hass, hass_storage, caplog, daten):
     hass_storage[store_key("abc123", HOST)] = {
