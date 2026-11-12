@@ -58,6 +58,14 @@ def _stunden_lesen(daten: dict[str, Any], jetzt: str) -> list[vb.Stunde]:
     return [s for s in stunden if s is not None][-vb.BEZUG_STUNDEN :]
 
 
+def _vorlaeufig_lesen(daten: dict[str, Any]) -> float | None:
+    """Der gespeicherte vorläufige Bezug; alles außer einer positiven Zahl gilt als keiner."""
+    wert = daten.get("vorlaeufig")
+    if isinstance(wert, bool) or not isinstance(wert, int | float) or wert <= 0:
+        return None
+    return float(wert)
+
+
 class VerbindungLauf:
     """Hält Fenster, Zustand und Bezug einer Steuerung und meldet anhaltende Probleme."""
 
@@ -70,6 +78,7 @@ class VerbindungLauf:
         store: Store,
         stunden: list[vb.Stunde],
         stunde: Callable[[], str] = stunde_jetzt,
+        vorlaeufig: float | None = None,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
@@ -94,7 +103,7 @@ class VerbindungLauf:
         self._letzter_median: float | None = None
         # Bis der Bezug aus den Stunden steht, gilt der Median der ersten ruhigen Viertelstunde.
         self._start: float | None = None
-        self._vorlaeufig: float | None = None
+        self._vorlaeufig = vorlaeufig
         # Ein Eintrag aus einem früheren Lauf gehört zu keinem Zustand mehr.
         ir.async_delete_issue(hass, DOMAIN, issue_key(entry_id, host))
 
@@ -104,11 +113,13 @@ class VerbindungLauf:
     ) -> VerbindungLauf:
         store: Store = Store(hass, STORE_VERSION, store_key(entry_id, host))
         try:
-            stunden = _stunden_lesen(await store.async_load() or {}, stunde_jetzt())
+            daten = await store.async_load() or {}
+            stunden = _stunden_lesen(daten, stunde_jetzt())
+            vorlaeufig = _vorlaeufig_lesen(daten)
         except Exception as err:
             _LOGGER.warning("Gespeicherte Antwortzeiten von %s nicht lesbar: %s", host, err)
-            stunden = []
-        return cls(hass, entry_id, host, label, store, stunden)
+            stunden, vorlaeufig = [], None
+        return cls(hass, entry_id, host, label, store, stunden, vorlaeufig=vorlaeufig)
 
     def nach_abruf(self, messreihe: Messreihe, noch_offen: int, erfolgreich: bool = True) -> None:
         """Nach jedem Abruf: Stunde prüfen, Fenster bilden, Zustand fortschreiben, melden."""
@@ -138,6 +149,8 @@ class VerbindungLauf:
             self._vorlaeufig = vb.vorlaeufiger_bezug(
                 self.fenster, jetzt - self._start, self.abrufe_mit_rest
             )
+            if self._vorlaeufig is not None:
+                self._store.async_delay_save(self._daten, SPEICHERN_NACH_S)
 
     @property
     def wirksamer_bezug(self) -> float | None:
@@ -164,7 +177,8 @@ class VerbindungLauf:
 
     def _daten(self) -> dict[str, Any]:
         return {
-            "stunden": [[s.schluessel, s.median_ms, s.antworten, s.gueltig] for s in self._stunden]
+            "stunden": [[s.schluessel, s.median_ms, s.antworten, s.gueltig] for s in self._stunden],
+            "vorlaeufig": self._vorlaeufig,
         }
 
     def _melden(self, jetzt: float, erfolgreich: bool) -> None:

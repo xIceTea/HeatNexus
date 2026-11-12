@@ -646,3 +646,36 @@ async def test_ein_gespeicherter_bezug_gilt_sofort_und_nicht_vorlaeufig(hass):
     lauf.nach_abruf(reihe, 0)
     assert lauf.stand.zustand == vb.STABIL
     assert lauf.attribute()["bezug_vorlaeufig"] is False
+
+
+async def test_der_vorlaeufige_bezug_uebersteht_einen_neustart(hass, hass_storage):
+    from homeassistant.helpers.storage import Store
+
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    store = Store(hass, STORE_VERSION, store_key("abc123", HOST))
+    lauf = VerbindungLauf(hass, "abc123", HOST, "Heizhaus", store, [])
+    for _ in range(int(vb.FENSTER_S / 30) + 1):
+        abruf(reihe, uhr, dauer_s=0.1)
+        lauf.nach_abruf(reihe, 0)
+    assert lauf.attribute()["bezug_vorlaeufig"] is True
+    await lauf.async_entladen()
+
+    neu = await VerbindungLauf.laden(hass, "abc123", HOST, "Heizhaus")
+    uhr2 = Uhr()
+    reihe2 = Messreihe(uhr=uhr2)
+    abruf(reihe2, uhr2, dauer_s=0.1)
+    neu.nach_abruf(reihe2, 0)
+    assert neu.stand.zustand == vb.STABIL
+    assert neu.attribute()["bezug_ms"] == 100
+
+
+@pytest.mark.parametrize("wert", [True, "x", -5, 0, None])
+async def test_ein_unbrauchbarer_vorlaeufiger_bezug_zaehlt_nicht(hass, hass_storage, wert):
+    hass_storage[store_key("abc123", HOST)] = {
+        "version": STORE_VERSION,
+        "key": store_key("abc123", HOST),
+        "data": {"stunden": [], "vorlaeufig": wert},
+    }
+    lauf = await VerbindungLauf.laden(hass, "abc123", HOST, "Heizhaus")
+    assert lauf.wirksamer_bezug is None
