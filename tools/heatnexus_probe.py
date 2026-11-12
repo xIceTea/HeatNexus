@@ -1816,18 +1816,60 @@ def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
     return {form: p for k, p in ersatz.items() for form in (k, k.upper(), k.lower())}
 
 
-def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> None:
-    """Seriennummer, MAC-Adresse und Knotenkennungen in den geschriebenen Dateien ersetzen."""
+def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list[Path]:
+    """Seriennummer, MAC-Adresse und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
     ersatz = kennungen_ersatz(structure, menus)
     if not ersatz:
-        return
+        return []
     # Auf Bytes, weil Namensdateien der Steuerung nicht in UTF-8 vorliegen müssen.
     paare = [(k.encode(), ersatz[k].encode()) for k in sorted(ersatz, key=len, reverse=True)]
+    geaendert = []
     for datei in dateien:
-        inhalt = datei.read_bytes()
+        vorher = inhalt = datei.read_bytes()
         for bekannt, platzhalter in paare:
             inhalt = inhalt.replace(bekannt, platzhalter)
-        datei.write_bytes(inhalt)
+        if inhalt != vorher:
+            datei.write_bytes(inhalt)
+            geaendert.append(datei)
+    return geaendert
+
+
+def schwaerzen_befehl(ordner: Path) -> int:
+    """Befehl `schwaerzen`: einen vorhandenen Abzug schwärzen und das Ergebnis nennen."""
+    if not ordner.is_dir():
+        print(f"  Den Ordner gibt es nicht: {ordner}")
+        return 1
+    if not any(ordner.glob("*_menus.json")):
+        print(f"  In {ordner} liegt kein Abzug der Sonde.")
+        return 1
+    geaendert = schwaerzen_ordner(ordner)
+    if geaendert:
+        print(f"  {len(geaendert)} Dateien geschwärzt.")
+        print("  Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.")
+    else:
+        print("  Der Abzug ist bereits geschwärzt.")
+    return 0
+
+
+def _json_oder_none(pfad: Path):
+    try:
+        return json.loads(pfad.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def schwaerzen_ordner(ordner: Path) -> list[Path]:
+    """Einen fertigen Abzug nachträglich schwärzen, je Anlage anhand ihrer Menü-Datei."""
+    geaendert = []
+    for menus_datei in sorted(ordner.glob("*_menus.json")):
+        stamm = menus_datei.name[: -len("_menus.json")]
+        menus = _json_oder_none(menus_datei) or {}
+        structure = _json_oder_none(ordner / f"{stamm}_structure.json")
+        if not isinstance(structure, list):
+            structure = menus.get("structure") or []
+        dateien = [d for d in ordner.glob(f"{stamm}_*") if d.is_file()]
+        geaendert += schwaerzen(dateien, structure, menus)
+    return geaendert
 
 
 # ------------------------------------------------------------- Lebenszeichen
@@ -2286,6 +2328,7 @@ def main() -> int:
             "vergleich",
             "stapel",
             "einzeln",
+            "schwaerzen",
         ],
         help="Aktion (Standard: geführter Modus)",
     )
@@ -2317,6 +2360,8 @@ def main() -> int:
 
     if args.command == "interactive":
         return interactive(args.out)
+    if args.command == "schwaerzen":
+        return schwaerzen_befehl(Path(args.hosts[0]) if args.hosts else zielordner(args.out))
 
     hosts = args.hosts
     if args.command in ("oid", "objekt") and hosts and not args.oid:

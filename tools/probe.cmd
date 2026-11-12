@@ -44,6 +44,17 @@ if not defined PY goto ohne_python
 echo   %OK%✓%N% Python gefunden
 echo.
 set "HEATNEXUS_KOPF_GEZEIGT=1"
+
+rem Ein Ordner, der auf probe.cmd gezogen wurde, wird geschwärzt.
+if not "%~1"=="" if exist "%~1\" goto ordner_gezogen
+
+echo   %W%1%N%  Anlage auslesen
+echo   %W%2%N%  Vorhandenen Abzug schwärzen
+echo.
+set "WAHL="
+set /p "WAHL=  Auswahl [1]: "
+if "%WAHL%"=="2" goto ordner_fragen
+echo.
 %PY% tools\heatnexus_probe.py interactive %*
 set "RC=%ERRORLEVEL%"
 
@@ -53,6 +64,27 @@ if "%RC%"=="0" (
 ) else (
   echo   %ACHTUNG%Der Lauf wurde mit Fehlercode %RC% beendet.%N%
 )
+echo.
+pause
+exit /b %RC%
+
+:ordner_fragen
+echo.
+echo   Ziehe den Ordner %W%probe%N% in dieses Fenster und drücke Enter.
+echo   Ohne Eingabe gilt der Ordner probe neben tools.
+set "ORDNER="
+set /p "ORDNER=  Ordner: "
+if not defined ORDNER set "ORDNER=probe"
+set "ORDNER=%ORDNER:"=%"
+goto schwaerzen
+
+:ordner_gezogen
+set "ORDNER=%~1"
+
+:schwaerzen
+echo.
+%PY% tools\heatnexus_probe.py schwaerzen "%ORDNER%"
+set "RC=%ERRORLEVEL%"
 echo.
 pause
 exit /b %RC%
