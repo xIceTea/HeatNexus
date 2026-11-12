@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from .conftest import ha_fehlt, requires_ha
+from .conftest import COMPONENT_DIR, ha_fehlt, requires_ha
 
 pytestmark = requires_ha()
 
@@ -297,6 +298,20 @@ async def test_wechselnde_probleme_melden_nach_dreissig_minuten(hass, monkeypatc
     abruf(reihe, uhr)
     lauf.nach_abruf(reihe, 0)
     assert eintrag(hass) is not None
+
+
+@pytest.mark.parametrize("sprache", ["de", "en", "nl"])
+@pytest.mark.parametrize("schluessel", ["verbindung_ueberlastet", "verbindung_gestoert"])
+async def test_reparaturtext_ohne_bezug_hat_keine_luecke(hass, sprache, schluessel):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    abruf(reihe, uhr)
+    lauf.nach_abruf(reihe, 0)
+    datei = COMPONENT_DIR / "translations" / f"{sprache}.json"
+    text = json.loads(datei.read_text(encoding="utf-8"))["issues"][schluessel]
+    gefuellt = (text["title"] + text["description"]).format(**lauf._platzhalter())
+    assert "–" not in gefuellt
 
 
 async def test_die_fehlerquote_erscheint_als_ganze_zahl(hass):

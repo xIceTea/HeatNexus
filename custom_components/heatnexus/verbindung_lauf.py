@@ -170,13 +170,10 @@ class VerbindungLauf:
         self._gemeldet = zustand
 
     def _platzhalter(self) -> dict[str, str]:
-        def ms(wert: float | None) -> str:
-            return "–" if wert is None else str(round(wert))
-
+        median_ms = self.fenster.median_ms
         return {
             "anlage": self._label or self._host,
-            "median": ms(self.fenster.median_ms),
-            "bezug": ms(self.bezug_ms),
+            "median": "–" if median_ms is None else str(round(median_ms)),
             "fehlerquote": str(round(self.fenster.fehlerquote * 100)),
         }
 

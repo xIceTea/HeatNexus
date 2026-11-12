@@ -675,7 +675,7 @@
   "issues": {
     "verbindung_ueberlastet": {
       "title": "{anlage}: regelaar overbelast",
-      "description": "De regelaar van **{anlage}** haalt niet meer alle waarden binnen het pollinginterval. De responstijd was recent {median} ms; normaal is dat {bezug} ms.\n\nVerleng het pollinginterval in de opties van HeatNexus. Controleer ook of een tweede programma dezelfde regelaar opvraagt. Deze melding verdwijnt vanzelf zodra de regelaar weer alle waarden haalt."
+      "description": "De regelaar van **{anlage}** haalt niet meer alle waarden binnen het pollinginterval. De responstijd was recent {median} ms.\n\nVerleng het pollinginterval in de opties van HeatNexus. Controleer ook of een tweede programma dezelfde regelaar opvraagt. Deze melding verdwijnt vanzelf zodra de regelaar weer alle waarden haalt."
     },
     "verbindung_gestoert": {
       "title": "{anlage}: regelaar reageert verstoord",
