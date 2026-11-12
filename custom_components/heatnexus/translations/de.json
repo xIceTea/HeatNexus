@@ -577,13 +577,13 @@
         },
         "state_attributes": {
           "bezug_ms": {
-            "name": "Übliche Antwortzeit"
+            "name": "Übliche Antwortzeit (ms)"
           },
           "median_ms": {
-            "name": "Antwortzeit"
+            "name": "Antwortzeit (ms)"
           },
           "fehlerquote": {
-            "name": "Fehlerquote"
+            "name": "Fehlerquote (%)"
           },
           "antworten": {
             "name": "Antworten in 15 Minuten"

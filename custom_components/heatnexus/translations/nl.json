@@ -577,13 +577,13 @@
         },
         "state_attributes": {
           "bezug_ms": {
-            "name": "Gebruikelijke responstijd"
+            "name": "Gebruikelijke responstijd (ms)"
           },
           "median_ms": {
-            "name": "Responstijd"
+            "name": "Responstijd (ms)"
           },
           "fehlerquote": {
-            "name": "Foutpercentage"
+            "name": "Foutpercentage (%)"
           },
           "antworten": {
             "name": "Antwoorden in 15 minuten"
