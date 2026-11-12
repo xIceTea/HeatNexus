@@ -98,11 +98,11 @@ class VerbindungLauf:
     ) -> VerbindungLauf:
         store: Store = Store(hass, STORE_VERSION, store_key(entry_id, host))
         try:
-            daten = await store.async_load() or {}
+            stunden = _stunden_lesen(await store.async_load() or {}, stunde_jetzt())
         except Exception as err:
             _LOGGER.warning("Gespeicherte Antwortzeiten von %s nicht lesbar: %s", host, err)
-            daten = {}
-        return cls(hass, entry_id, host, label, store, _stunden_lesen(daten, stunde_jetzt()))
+            stunden = []
+        return cls(hass, entry_id, host, label, store, stunden)
 
     def nach_abruf(self, messreihe: Messreihe, noch_offen: int) -> None:
         """Nach jedem Abruf: Stunde prüfen, Fenster bilden, Zustand fortschreiben, melden."""

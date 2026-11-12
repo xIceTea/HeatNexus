@@ -157,6 +157,19 @@ async def test_gespeicherte_stunden_ergeben_den_bezug(hass, hass_storage):
     assert lauf.attribute()["gueltige_stunden"] == 24
 
 
+@pytest.mark.parametrize("daten", [{"stunden": 5}, [["2026-11-01T00", 200.0, 120, True]]])
+async def test_ein_kaputter_speicher_startet_leer(hass, hass_storage, caplog, daten):
+    hass_storage[store_key("abc123", HOST)] = {
+        "version": STORE_VERSION,
+        "key": store_key("abc123", HOST),
+        "data": daten,
+    }
+    lauf = await VerbindungLauf.laden(hass, "abc123", HOST, "Heizhaus")
+    assert lauf.bezug_ms is None
+    assert lauf.diagnose()["stunden"] == []
+    assert "nicht lesbar" in caplog.text
+
+
 async def test_koordinator_bewertet_nach_jedem_abruf(hass):
     eintrag = MagicMock()
     eintrag.entry_id = "abc123"
