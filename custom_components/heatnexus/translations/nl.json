@@ -637,6 +637,14 @@
     }
   },
   "issues": {
+    "verbindung_ueberlastet": {
+      "title": "{anlage}: regelaar overbelast",
+      "description": "De regelaar van **{anlage}** haalt niet meer alle waarden binnen het pollinginterval. Responstijd recent {median} ms, normaal {bezug} ms.\n\nVerleng het pollinginterval in de opties van HeatNexus. Controleer ook of een tweede programma dezelfde regelaar opvraagt. Deze melding verdwijnt vanzelf zodra de regelaar weer alle waarden haalt."
+    },
+    "verbindung_gestoert": {
+      "title": "{anlage}: regelaar reageert verstoord",
+      "description": "{fehlerquote} % van de verzoeken aan de regelaar van **{anlage}** mislukt.\n\nControleer de netwerkverbinding met de regelaar. Helpt dat niet, herstart dan de regelaar. Deze melding verdwijnt vanzelf zodra de verzoeken weer lukken."
+    },
     "nicht_erreichbar": {
       "title": "{anlage} is niet bereikbaar",
       "description": "Van **{anlage}** komen geen waarden meer.\n\nGemeld: {grund}\n\nControleer of de regelaar is ingeschakeld en via het netwerk bereikbaar is. Deze melding verdwijnt vanzelf zodra de installatie weer antwoordt."

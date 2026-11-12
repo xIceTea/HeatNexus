@@ -6,11 +6,13 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .client.antwortzeit import IM_ABRUF, Messreihe
 from .const import (
     ABRUF_RESERVE,
     ABRUF_TIMEOUT,
@@ -25,6 +27,9 @@ from .const import (
 from .exceptions import mit_text
 from .texte import woerterbuch
 from .zirkulation import steht_still
+
+if TYPE_CHECKING:
+    from .verbindung_lauf import VerbindungLauf
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +70,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self._ausfall_gemeldet = False
         # Startet den Vollabzug, wenn sich der Aufbau der Anlage ändert; gesetzt beim Einbinden.
         self.bei_strukturaenderung: Callable[[], None] | None = None
+        # Bewertet die Antwortzeiten nach jedem Abruf; gesetzt beim Einbinden.
+        self.verbindung: VerbindungLauf | None = None
 
     def _langsamer_fragen(self) -> None:
         """Nach einem Fehlschlag den Abstand verdoppeln.
@@ -152,6 +159,27 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self.bei_strukturaenderung()
 
     async def _async_update_data(self):
+        """Werte der Anlage holen; danach die Verbindung bewerten, auch nach einem Fehlschlag."""
+        try:
+            return await self._abrufen()
+        finally:
+            self._verbindung_bewerten()
+
+    def _verbindung_bewerten(self) -> None:
+        messreihe = getattr(self.client, "messreihe", None)
+        if self.verbindung is None or not isinstance(messreihe, Messreihe):
+            return
+        self.verbindung.nach_abruf(messreihe, self.client.noch_offen)
+
+    async def _gemessen_abrufen(self, budget: float):
+        """Der Abruf selbst; nur seine Anfragen zählen für die Antwortzeit."""
+        token = IM_ABRUF.set(True)
+        try:
+            return await self.client.fetch_all(budget=budget)
+        finally:
+            IM_ABRUF.reset(token)
+
+    async def _abrufen(self):
         """Werte der Anlage holen."""
         # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
         # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
@@ -164,7 +192,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # rechtzeitig auf. Die Zeitüberschreitung bleibt der Notnagel für
             # eine Anlage, die gar nicht mehr antwortet.
             async with asyncio.timeout(fenster):
-                data = await self.client.fetch_all(budget=fenster - ABRUF_RESERVE)
+                data = await self._gemessen_abrufen(fenster - ABRUF_RESERVE)
                 self._strukturaenderung_weitergeben()
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()

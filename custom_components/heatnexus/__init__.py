@@ -84,6 +84,9 @@ from .stilllegung import (
     umfang_verkleinert,
 )
 from .texte import sprachwahl_umstellen, vorladen, woerterbuch_des_eintrags
+from .verbindung_lauf import STORE_VERSION as VERBINDUNG_STORE_VERSION
+from .verbindung_lauf import VerbindungLauf
+from .verbindung_lauf import store_key as verbindung_store_key
 from .verweise import verweise_verfolgen
 
 _LOGGER = logging.getLogger(__name__)
@@ -380,6 +383,7 @@ async def _anlage_verbinden(
     coordinator = WindhagerDataUpdateCoordinator(
         hass, client, entry, host, label, scope["update_interval"]
     )
+    coordinator.verbindung = await VerbindungLauf.laden(hass, entry.entry_id, host, label)
     await _vorabstand_setzen(entry, client, coordinator, host)
     await coordinator.async_config_entry_first_refresh()
     return _Anlage(
@@ -686,6 +690,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # meldet „Connector is closed".
         await _aufgaben_beenden(daten.get("hintergrund", []))
         for coordinator in daten.get("coordinators", {}).values():
+            if coordinator.verbindung is not None:
+                coordinator.verbindung.entladen()
             await coordinator.client.close()
         # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
         # Zeitgeber der Einlese-Meldung und die Geräteliste des Dashboards;
@@ -720,6 +726,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     for system in systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, store_key(entry, system[CONF_HOST])
+        ).async_remove()
+        await Store(
+            hass, VERBINDUNG_STORE_VERSION, verbindung_store_key(entry.entry_id, system[CONF_HOST])
         ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)

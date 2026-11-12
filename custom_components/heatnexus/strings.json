@@ -637,6 +637,14 @@
     }
   },
   "issues": {
+    "verbindung_ueberlastet": {
+      "title": "{anlage}: controller overloaded",
+      "description": "The controller of **{anlage}** no longer manages all values within the polling interval. Response time recently {median} ms, usually {bezug} ms.\n\nIncrease the polling interval in the HeatNexus options. Also check whether a second program polls the same controller. This notice disappears once the controller manages all values again."
+    },
+    "verbindung_gestoert": {
+      "title": "{anlage}: controller responses disrupted",
+      "description": "{fehlerquote} % of the requests to the controller of **{anlage}** fail.\n\nCheck the network connection to the controller. If that does not help, restart the controller. This notice disappears once requests succeed again."
+    },
     "nicht_erreichbar": {
       "title": "{anlage} cannot be reached",
       "description": "No more values arrive from **{anlage}**.\n\nReported: {grund}\n\nPlease check that the controller is powered on and reachable on the network. This message disappears by itself once the system responds again."

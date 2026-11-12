@@ -637,6 +637,14 @@
     }
   },
   "issues": {
+    "verbindung_ueberlastet": {
+      "title": "{anlage}: Steuerung überlastet",
+      "description": "Die Steuerung von **{anlage}** schafft nicht mehr alle Werte im Abfrageintervall. Antwortzeit zuletzt {median} ms, üblich {bezug} ms.\n\nVerlängere das Abfrageintervall in den Optionen von HeatNexus. Prüfe auch, ob ein zweites Programm dieselbe Steuerung abfragt. Der Hinweis verschwindet von selbst, sobald die Steuerung wieder alle Werte schafft."
+    },
+    "verbindung_gestoert": {
+      "title": "{anlage}: Steuerung antwortet gestört",
+      "description": "{fehlerquote} % der Anfragen an die Steuerung von **{anlage}** scheitern.\n\nPrüfe die Netzwerkverbindung zur Steuerung. Hilft das nicht, starte die Steuerung neu. Der Hinweis verschwindet von selbst, sobald die Anfragen wieder gelingen."
+    },
     "nicht_erreichbar": {
       "title": "{anlage} ist nicht erreichbar",
       "description": "Von der Anlage **{anlage}** kommen keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
