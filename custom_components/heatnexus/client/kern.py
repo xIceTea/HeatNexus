@@ -226,6 +226,8 @@ class WindhagerHttpClient(
         self.messreihe = Messreihe()
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
         self._poll_anfragen = 0
+        # Was der letzte Durchlauf in seiner Zeit nicht mehr gelesen hat; Fehlschläge zählen nicht.
+        self._ungelesen = 0
         # HTTP-Status der letzten Antwort auf `fetch`.
         self._letzter_status = 0
         # Der letzte Fehler einer einzelnen Lesung und ob ein Teilausfall schon

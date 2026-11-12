@@ -451,8 +451,8 @@ class AbrufMixin:
 
     @property
     def noch_offen(self) -> int:
-        """Adressen, die der letzte Abruf nicht mehr geschafft hat."""
-        return len(self._rest)
+        """Fällige Adressen, die der letzte Abruf in seiner Zeit nicht mehr gelesen hat."""
+        return self._ungelesen
 
     def statistik(self) -> dict:
         """Kennzahlen des Abrufverhaltens – für die Diagnose.
@@ -540,6 +540,7 @@ class AbrufMixin:
         # ältesten, und ohne Vorrang käme er bei knapper Zeit nie an die Reihe.
         reihenfolge = sorted(faellig, key=lambda oid: (oid not in self._rest, oid))
         self._rest |= faellig - self._abgemeldet
+        self._ungelesen = len(reihenfolge)
         misslungen: set[str] = set()
         anzahl = 0
         while anzahl < len(reihenfolge):
@@ -558,6 +559,7 @@ class AbrufMixin:
             self._sekunden_je_wert = (time.monotonic() - begonnen) / len(block)
             misslungen |= self._gelesenes_uebernehmen(ergebnisse)
             anzahl += len(block)
+            self._ungelesen = len(reihenfolge) - anzahl
         self._poll_anfragen = anzahl
         _LOGGER.debug("Poll: %d OIDs einzeln", anzahl)
         return misslungen, anzahl
@@ -727,6 +729,7 @@ class AbrufMixin:
             await self.async_init()
 
         poll_begonnen = time.monotonic()
+        self._ungelesen = 0
         ende = poll_begonnen + budget if budget else None
         # Der Zähler rückt zu Beginn weiter; ein abgebrochener Durchlauf stünde
         # sonst ohne Ende wieder an. Nur der erste zählt erst, wenn er fertig ist.
