@@ -199,6 +199,30 @@ const befund = {};
   befund.nachDialog = ergebnis;
 }
 
+// --- Nach der Rückkehr der App neu zeichnen ---------------------------------
+{
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  zeit.zeitLaufenLassen();
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  const ergebnis = {};
+  document.visibilityState = "hidden";
+  document.ausloesen("visibilitychange");
+  ergebnis.beimVerstecken = umriss();
+  document.visibilityState = "visible";
+  document.ausloesen("visibilitychange");
+  ergebnis.beimZeigen = umriss();
+  zeit.bilderLaufenLassen();
+  ergebnis.zweiBilderSpaeter = umriss();
+  zeit.fenster.ausloesen("pageshow");
+  ergebnis.nachPageshow = umriss();
+  zeit.bilderLaufenLassen();
+  const vorher = document.hoererZahl("visibilitychange");
+  flaeche.disconnectedCallback();
+  ergebnis.hoererNachAbbau = vorher - document.hoererZahl("visibilitychange");
+  befund.nachRueckkehr = ergebnis;
+}
+
 // --- Namen aus der Anlage werden nicht übersetzt -----------------------------
 {
   const { flaeche } = bauen({ texte: { Wohnhaus: "Residence", Hilfe: "Help" } });

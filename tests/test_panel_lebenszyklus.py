@@ -116,3 +116,12 @@ def test_menutaste_steht_bei_jeder_seitenleiste_da(befund):
 
 def test_anlagennamen_bleiben_wie_sie_sind(befund):
     assert befund["anlagenNamen"][1:] == ["Heizhaus", "Wohnhaus"]
+
+
+def test_nach_der_rueckkehr_der_app_wird_die_flaeche_neu_gezeichnet(befund):
+    ergebnis = befund["nachRueckkehr"]
+    assert ergebnis["beimVerstecken"] == ""
+    assert ergebnis["beimZeigen"] == "translateZ(0)"
+    assert ergebnis["zweiBilderSpaeter"] == ""
+    assert ergebnis["nachPageshow"] == "translateZ(0)"
+    assert ergebnis["hoererNachAbbau"] == 1
