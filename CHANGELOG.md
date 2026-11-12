@@ -15,6 +15,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Tooltip am Puffer nennt die mittlere Temperatur und den Beladegrad.
 - Die Sensoren Verbindung und Antwortzeit zeigen, wie gut jede Steuerung antwortet.
 - Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
+- Eine Plakette im Panel zeigt eine träge, überlastete oder gestörte Steuerung.
 
 ### Geändert
 
@@ -22,6 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Die Kopfleiste des Panels erscheint nach der Rückkehr in die App sofort.
 - Das Puffermodul im Kesselregler erscheint im Schaubild als Puffer mit Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 
 ## [1.16.0-beta.1] - 2026-11-08
