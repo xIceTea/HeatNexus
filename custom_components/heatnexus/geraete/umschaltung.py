@@ -12,11 +12,13 @@ RANG = 18
 SYMBOL = "mdi:valve"
 SCHAUBILD = "puffer"
 
-EXTRA_OIDS: tuple[str, ...] = ("59/24",)
+# `22/50` und `1/7` stehen im Menü des Moduls, aber in keiner Herstellerebene.
+EXTRA_OIDS: tuple[str, ...] = ("59/24", "22/50", "1/7")
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {"59/24": "Umschaltventil"}
+# „Pufferladepumpe“ trägt schon der Zustand aus `2/2`.
+NAMEN: dict[str, str] = {"59/24": "Umschaltventil", "22/50": "Pufferladepumpe Drehzahl"}
 
 NUR_BUS: tuple[str, ...] = ()
 

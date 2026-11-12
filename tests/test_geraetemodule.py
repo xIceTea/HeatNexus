@@ -96,6 +96,13 @@ def test_jede_zusatzadresse_der_waermepumpe_hat_einen_namen(geraete):
         assert all(gnmn in namen for gnmn in geraete.EXTRA_OIDS[fct_type]), fct_type
 
 
+def test_das_puffermodul_zeigt_drehzahl_der_ladepumpe_und_kesselsollwert(geraete):
+    """Beide stehen im Menü des Moduls, die Herstellerebenen führen sie nicht."""
+    assert {"22/50", "1/7"} <= set(geraete.EXTRA_OIDS[15])
+    # Der Zustand aus `2/2` heißt schon „Pufferladepumpe“.
+    assert geraete.NAMEN[15]["22/50"] == "Pufferladepumpe Drehzahl"
+
+
 def test_zaehler_unter_den_zusatzadressen_sind_anzeigen(geraete):
     """Die Steuerung meldet Zählerstände ohne Schreibschutz; ohne Eintrag entstünde ein Eingabefeld."""
     import json
