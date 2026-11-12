@@ -690,8 +690,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # meldet „Connector is closed".
         await _aufgaben_beenden(daten.get("hintergrund", []))
         for coordinator in daten.get("coordinators", {}).values():
-            if coordinator.verbindung is not None:
-                coordinator.verbindung.entladen()
+            # Erst lösen: Ein noch laufender Abruf bewertet beim Abbruch sonst erneut.
+            lauf, coordinator.verbindung = coordinator.verbindung, None
+            if lauf is not None:
+                await lauf.async_entladen()
             await coordinator.client.close()
         # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
         # Zeitgeber der Einlese-Meldung und die Geräteliste des Dashboards;

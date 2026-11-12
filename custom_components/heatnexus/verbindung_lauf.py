@@ -37,17 +37,25 @@ def stunde_jetzt() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H")
 
 
+def _stunde_lesen(roh: Any, jetzt: str) -> vb.Stunde | None:
+    """Eine gespeicherte Stunde; `None` für alles, was nicht dazu passt."""
+    try:
+        schluessel, median_ms, antworten, gueltig = roh
+        antworten = int(antworten)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(schluessel, str) or schluessel > jetzt:
+        return None
+    if median_ms is not None and (
+        isinstance(median_ms, bool) or not isinstance(median_ms, int | float)
+    ):
+        return None
+    return vb.Stunde(schluessel, median_ms, antworten, bool(gueltig))
+
+
 def _stunden_lesen(daten: dict[str, Any], jetzt: str) -> list[vb.Stunde]:
-    stunden = []
-    for roh in daten.get("stunden") or []:
-        try:
-            schluessel, median_ms, antworten, gueltig = roh
-        except (TypeError, ValueError):
-            continue
-        if not isinstance(schluessel, str) or schluessel > jetzt:
-            continue
-        stunden.append(vb.Stunde(schluessel, median_ms, int(antworten), bool(gueltig)))
-    return stunden[-vb.BEZUG_STUNDEN :]
+    stunden = [_stunde_lesen(roh, jetzt) for roh in daten.get("stunden") or []]
+    return [s for s in stunden if s is not None][-vb.BEZUG_STUNDEN :]
 
 
 class VerbindungLauf:
@@ -72,13 +80,16 @@ class VerbindungLauf:
         self._stunde = stunde
         self._laufende = stunde()
         self._bewertungen: list[str] = []
-        self._seit: float | None = None
+        self._problem_seit: float | None = None
         self._gemeldet: str | None = None
+        self._beendet = False
         self.stand = vb.Stand()
         self.fenster = vb.Fenster(None, 0, 0)
         self.bezug_ms = vb.bezug(stunden)
         self.abrufe_mit_rest = 0
         self.noch_offen = 0
+        # Ein Eintrag aus einem früheren Lauf gehört zu keinem Zustand mehr.
+        ir.async_delete_issue(hass, DOMAIN, issue_key(entry_id, host))
 
     @classmethod
     async def laden(
@@ -94,16 +105,15 @@ class VerbindungLauf:
 
     def nach_abruf(self, messreihe: Messreihe, noch_offen: int) -> None:
         """Nach jedem Abruf: Stunde prüfen, Fenster bilden, Zustand fortschreiben, melden."""
+        if self._beendet:
+            return
         jetzt = messreihe.jetzt()
         self._stunde_pruefen(messreihe)
         self.noch_offen = noch_offen
         self.abrufe_mit_rest = self.abrufe_mit_rest + 1 if noch_offen else 0
         self.fenster = vb.fenster(messreihe.eintraege(), jetzt)
-        alt = self.stand.zustand
         ergebnis = vb.regel(self.fenster, self.bezug_ms, self.abrufe_mit_rest)
         self.stand = vb.fortschreiben(self.stand, ergebnis)
-        if self._seit is None or self.stand.zustand != alt:
-            self._seit = jetzt
         self._bewertungen.append(self.stand.zustand)
         self._melden(jetzt)
 
@@ -126,12 +136,18 @@ class VerbindungLauf:
         }
 
     def _melden(self, jetzt: float) -> None:
+        """Melden nach `DAUER_MELDUNG_S` im Problem; ein Wechsel ersetzt den Eintrag sofort."""
         zustand = self.stand.zustand
         if zustand not in vb.MELDEN:
+            self._problem_seit = None
             if self._gemeldet:
-                self.entladen()
+                self._zuruecknehmen()
             return
-        if self._gemeldet == zustand or jetzt - (self._seit or jetzt) < DAUER_MELDUNG_S:
+        if self._problem_seit is None:
+            self._problem_seit = jetzt
+        if self._gemeldet == zustand:
+            return
+        if self._gemeldet is None and jetzt - self._problem_seit < DAUER_MELDUNG_S:
             return
         ir.async_create_issue(
             self.hass,
@@ -153,7 +169,7 @@ class VerbindungLauf:
             "anlage": self._label or self._host,
             "median": ms(self.fenster.median_ms),
             "bezug": ms(self.bezug_ms),
-            "fehlerquote": f"{self.fenster.fehlerquote * 100:.1f}",
+            "fehlerquote": str(round(self.fenster.fehlerquote * 100)),
         }
 
     def attribute(self) -> dict[str, Any]:
@@ -171,7 +187,12 @@ class VerbindungLauf:
     def diagnose(self) -> dict[str, Any]:
         return {"zustand": self.stand.zustand, **self.attribute(), **self._daten()}
 
-    def entladen(self) -> None:
-        """Reparatureintrag zurücknehmen."""
+    def _zuruecknehmen(self) -> None:
         ir.async_delete_issue(self.hass, DOMAIN, issue_key(self._entry_id, self._host))
         self._gemeldet = None
+
+    async def async_entladen(self) -> None:
+        """Bewertung beenden, Eintrag zurücknehmen und die Stunden sofort speichern."""
+        self._beendet = True
+        self._zuruecknehmen()
+        await self._store.async_save(self._daten())

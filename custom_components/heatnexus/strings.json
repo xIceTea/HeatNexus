@@ -639,7 +639,7 @@
   "issues": {
     "verbindung_ueberlastet": {
       "title": "{anlage}: controller overloaded",
-      "description": "The controller of **{anlage}** no longer manages all values within the polling interval. Response time recently {median} ms, usually {bezug} ms.\n\nIncrease the polling interval in the HeatNexus options. Also check whether a second program polls the same controller. This notice disappears once the controller manages all values again."
+      "description": "The controller of **{anlage}** no longer manages all values within the polling interval. The response time was recently {median} ms; the usual value is {bezug} ms.\n\nIncrease the polling interval in the HeatNexus options. Also check whether a second program polls the same controller. This notice disappears once the controller manages all values again."
     },
     "verbindung_gestoert": {
       "title": "{anlage}: controller responses disrupted",

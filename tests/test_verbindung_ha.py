@@ -44,6 +44,7 @@ def ruhige_stunden(anzahl=24, ms=100.0):
 
 def lauf_bauen(hass, stunden=(), stunde=lambda: "2026-11-12T06"):
     store = MagicMock()
+    store.async_save = AsyncMock()
     return VerbindungLauf(hass, "abc123", HOST, "Heizhaus", store, list(stunden), stunde=stunde)
 
 
@@ -119,7 +120,8 @@ async def test_der_eintrag_verschwindet_bei_erholung_und_beim_entladen(hass):
         lauf.nach_abruf(reihe, 0)
     assert lauf.stand.zustand == vb.STABIL
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_key("abc123", HOST)) is None
-    lauf.entladen()
+    await lauf.async_entladen()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_key("abc123", HOST)) is None
 
 
 async def test_stunde_wird_abgeschlossen_und_gespeichert(hass):
@@ -145,6 +147,8 @@ async def test_gespeicherte_stunden_ergeben_den_bezug(hass, hass_storage):
         "data": {
             "stunden": [[f"2026-11-01T{i:02d}", 200.0, 120, True] for i in range(24)]
             + [["2099-01-01T00", 1.0, 120, True], ["kaputt"]]
+            + [["2026-11-01T00", "viel", 120, True], ["2026-11-01T00", 1.0, "x", True]]
+            + [["2026-11-01T00", 1.0, None, True], ["2026-11-01T00", True, 120, True]]
         },
     }
     lauf = await VerbindungLauf.laden(hass, "abc123", HOST, "Heizhaus")
@@ -201,3 +205,103 @@ async def test_nur_der_abruf_selbst_zaehlt_fuer_die_antwortzeit(hass):
     coordinator.bei_strukturaenderung = lambda: gesehen.setdefault("danach", IM_ABRUF.get())
     await coordinator._async_update_data()
     assert gesehen == {"abruf": True, "danach": False}
+
+
+def eintrag(hass):
+    return ir.async_get(hass).async_get_issue(DOMAIN, issue_key("abc123", HOST))
+
+
+def nach_plan(monkeypatch, plan):
+    """Die Regel liefert der Reihe nach die Zustände aus `plan`."""
+    folge = iter(plan)
+    monkeypatch.setattr(vb, "regel", lambda *_: next(folge))
+
+
+def gestoert_bis_gemeldet(hass, lauf, reihe, uhr):
+    for _ in range(int(DAUER_MELDUNG_S / 30) + 1):
+        abruf(reihe, uhr, anzahl=10, fehler=10)
+        lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is not None
+
+
+async def test_entladen_nimmt_den_eintrag_zurueck_und_beendet_die_bewertung(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    gestoert_bis_gemeldet(hass, lauf, reihe, uhr)
+    await lauf.async_entladen()
+    assert eintrag(hass) is None
+    lauf._store.async_save.assert_awaited_once()
+    gestoert_nach_entladen = int(DAUER_MELDUNG_S / 30) + 5
+    for _ in range(gestoert_nach_entladen):
+        abruf(reihe, uhr, anzahl=10, fehler=10)
+        lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is None
+
+
+async def test_abbruch_nach_dem_entladen_meldet_nichts(hass):
+    uhr = Uhr()
+    client = MagicMock()
+    client.noch_offen = 0
+    client.messreihe = Messreihe(uhr=uhr)
+    coordinator = WindhagerDataUpdateCoordinator(hass, client, MagicMock(), HOST, "Heizhaus", 30)
+    lauf = coordinator.verbindung = lauf_bauen(hass, ruhige_stunden())
+    gestoert_bis_gemeldet(hass, lauf, client.messreihe, uhr)
+    await lauf.async_entladen()
+    abruf(client.messreihe, uhr, anzahl=10, fehler=10)
+    coordinator._verbindung_bewerten()
+    assert eintrag(hass) is None
+
+
+async def test_ein_neuer_lauf_raeumt_einen_alten_eintrag_ab(hass):
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_key("abc123", HOST),
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="verbindung_gestoert",
+    )
+    lauf_bauen(hass)
+    assert eintrag(hass) is None
+
+
+async def test_ein_wechsel_ersetzt_den_eintrag_sofort(hass, monkeypatch):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    schritte = int(DAUER_MELDUNG_S / 30) + 1
+    nach_plan(monkeypatch, [vb.UEBERLASTET] * schritte + [vb.GESTOERT] * vb.BESTAETIGUNG)
+    for _ in range(schritte):
+        abruf(reihe, uhr)
+        lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass).translation_key == "verbindung_ueberlastet"
+    for _ in range(vb.BESTAETIGUNG):
+        abruf(reihe, uhr)
+        lauf.nach_abruf(reihe, 0)
+    assert lauf.stand.zustand == vb.GESTOERT
+    assert eintrag(hass).translation_key == "verbindung_gestoert"
+
+
+async def test_wechselnde_probleme_melden_nach_dreissig_minuten(hass, monkeypatch):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass)
+    block = [vb.UEBERLASTET] * 6 + [vb.GESTOERT] * 6
+    nach_plan(monkeypatch, block * 10)
+    schritte = int(DAUER_MELDUNG_S / 30)
+    for _ in range(schritte):
+        abruf(reihe, uhr)
+        lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is None
+    abruf(reihe, uhr)
+    lauf.nach_abruf(reihe, 0)
+    assert eintrag(hass) is not None
+
+
+async def test_die_fehlerquote_erscheint_als_ganze_zahl(hass):
+    uhr = Uhr()
+    reihe = Messreihe(uhr=uhr)
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    gestoert_bis_gemeldet(hass, lauf, reihe, uhr)
+    assert eintrag(hass).translation_placeholders["fehlerquote"] == "50"

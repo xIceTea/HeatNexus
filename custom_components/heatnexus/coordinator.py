@@ -166,10 +166,14 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self._verbindung_bewerten()
 
     def _verbindung_bewerten(self) -> None:
+        """Ein Fehler hier darf das Ergebnis des Abrufs nicht verdecken."""
         messreihe = getattr(self.client, "messreihe", None)
         if self.verbindung is None or not isinstance(messreihe, Messreihe):
             return
-        self.verbindung.nach_abruf(messreihe, self.client.noch_offen)
+        try:
+            self.verbindung.nach_abruf(messreihe, self.client.noch_offen)
+        except Exception:
+            _LOGGER.exception("Bewertung der Verbindung zu %s gescheitert", self.host)
 
     async def _gemessen_abrufen(self, budget: float):
         """Der Abruf selbst; nur seine Anfragen zählen für die Antwortzeit."""

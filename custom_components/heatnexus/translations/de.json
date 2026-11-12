@@ -639,7 +639,7 @@
   "issues": {
     "verbindung_ueberlastet": {
       "title": "{anlage}: Steuerung überlastet",
-      "description": "Die Steuerung von **{anlage}** schafft nicht mehr alle Werte im Abfrageintervall. Antwortzeit zuletzt {median} ms, üblich {bezug} ms.\n\nVerlängere das Abfrageintervall in den Optionen von HeatNexus. Prüfe auch, ob ein zweites Programm dieselbe Steuerung abfragt. Der Hinweis verschwindet von selbst, sobald die Steuerung wieder alle Werte schafft."
+      "description": "Die Steuerung von **{anlage}** schafft nicht mehr alle Werte im Abfrageintervall. Die Antwortzeit lag zuletzt bei {median} ms, üblich sind {bezug} ms.\n\nVerlängere das Abfrageintervall in den Optionen von HeatNexus. Prüfe auch, ob ein zweites Programm dieselbe Steuerung abfragt. Der Hinweis verschwindet von selbst, sobald die Steuerung wieder alle Werte schafft."
     },
     "verbindung_gestoert": {
       "title": "{anlage}: Steuerung antwortet gestört",
