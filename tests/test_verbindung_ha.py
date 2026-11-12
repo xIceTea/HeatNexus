@@ -519,11 +519,15 @@ def ablauf_koordinator(hass, uhr):
 async def sensoren_einbinden(hass, coordinator):
     """Beide Sensoren über eine Plattform in Home Assistant; zurück kommen Plattform und IDs."""
     from homeassistant.helpers import entity_registry as er
-    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+    from pytest_homeassistant_custom_component.common import MockConfigEntry, MockEntityPlatform
 
     from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
 
     plattform = MockEntityPlatform(hass, domain="sensor", platform_name=DOMAIN)
+    # Ein Gerät gehört in Home Assistant immer zu einem Config-Eintrag.
+    eintrag = MockConfigEntry(domain=DOMAIN)
+    eintrag.add_to_hass(hass)
+    plattform.config_entry = eintrag
     await plattform.async_add_entities(
         [VerbindungSensor(coordinator), AntwortzeitSensor(coordinator)]
     )
