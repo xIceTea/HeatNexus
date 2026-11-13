@@ -1058,6 +1058,8 @@
   "Löschen": "Verwijderen",
   "Meldung gelöscht": "Melding verwijderd",
   "Meldung löschen": "Melding verwijderen",
+  "Erledigte löschen": "Afgehandelde verwijderen",
+  "Alle erledigten Einträge verschwinden aus der Meldungsliste des Bediengeräts. Anliegende Störungen bleiben stehen.": "Alle afgehandelde meldingen verdwijnen uit de meldingenlijst van het bedieningspaneel. Actieve storingen blijven staan.",
   "Zurücksetzen": "Resetten",
   "Ein Hinweis ohne Handlungsbedarf.": "Een melding zonder actie.",
   "Ein Fehler sollte zeitnah geprüft werden.": "Een fout moet binnenkort worden gecontroleerd.",

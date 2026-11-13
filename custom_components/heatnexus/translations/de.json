@@ -948,7 +948,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldungsliste leeren",
-      "description": "Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant."
+      "description": "Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant. Am Sensor „Meldungen“ der Steuerung löscht er alle erledigten Einträge."
     },
     "set_vorgabe": {
       "name": "Befristete Vorgabe setzen",

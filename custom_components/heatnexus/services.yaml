@@ -54,7 +54,8 @@ meldungen_loeschen:
     Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine
     Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren
     Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home
-    Assistant.
+    Assistant. Am Sensor „Meldungen“ der Steuerung löscht er alle erledigten
+    Einträge.
   target:
     entity:
       integration: heatnexus

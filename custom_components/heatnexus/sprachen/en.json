@@ -1053,6 +1053,8 @@
   "Löschen": "Delete",
   "Meldung gelöscht": "Message deleted",
   "Meldung löschen": "Delete message",
+  "Erledigte löschen": "Delete resolved",
+  "Alle erledigten Einträge verschwinden aus der Meldungsliste des Bediengeräts. Anliegende Störungen bleiben stehen.": "All resolved entries disappear from the message list of the control panel. Present faults remain.",
   "Zurücksetzen": "Reset",
   "Ein Hinweis ohne Handlungsbedarf.": "A notice with no action required.",
   "Ein Fehler sollte zeitnah geprüft werden.": "An error should be checked soon.",

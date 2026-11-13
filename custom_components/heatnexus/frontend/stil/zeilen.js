@@ -99,6 +99,13 @@ export const ZEILEN = `
     display: flex; align-items: center; justify-content: center; border-radius: 6px;
   }
   .stoerspeicher-taste { color: var(--hn-farbe); }
+  .stoerspeicher-kopf { align-items: center; gap: 8px; }
+  .stoerspeicher-leeren {
+    margin-left: auto; background: none; border: 1px solid var(--hn-linie); border-radius: 6px;
+    color: var(--hn-gedaempft); font: inherit; font-weight: 500; padding: 2px 8px; cursor: pointer;
+  }
+  .stoerspeicher-leeren:hover { background: rgba(255, 255, 255, 0.08); color: var(--hn-text, inherit); }
+  .stoerspeicher-leeren[hidden] { display: none; }
   .stoerspeicher-taste:hover, .stoerspeicher-muell:hover { background: rgba(255, 255, 255, 0.08); }
   .stoerspeicher-text { font-size: 14px; overflow-wrap: anywhere; }
   .stoerspeicher-herkunft { font-size: 12px; color: var(--hn-gedaempft); }

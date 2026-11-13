@@ -32,6 +32,13 @@ export const StoerspeicherMixin = (Basis) =>
       karte.insertBefore(kacheln, vor ? vor.nextSibling : null);
       const kopf = document.createElement("div");
       kopf.className = "stoerspeicher-kopf";
+      const titel = document.createElement("span");
+      const leeren = document.createElement("button");
+      leeren.type = "button";
+      leeren.className = "stoerspeicher-leeren";
+      leeren.textContent = this._t("Erledigte löschen");
+      leeren.addEventListener("click", () => this._stoerspeicherLeeren(entity));
+      kopf.append(titel, leeren);
       const liste = document.createElement("div");
       liste.className = "stoerspeicher";
       karte.append(kopf, liste);
@@ -44,11 +51,12 @@ export const StoerspeicherMixin = (Basis) =>
         const anliegend = eintraege.filter((eintrag) => eintrag.aktiv);
         const verlauf = eintraege.filter((eintrag) => !eintrag.aktiv);
         kacheln.replaceChildren(...anliegend.map((eintrag) => this._stoerspeicherKachel(eintrag, entity)));
-        kopf.textContent = this._t(anliegend.length ? "Verlauf" : "Meldungsliste");
+        titel.textContent = this._t(anliegend.length ? "Verlauf" : "Meldungsliste");
+        leeren.hidden = !verlauf.some((eintrag) => eintrag.loeschbar);
         liste.replaceChildren(...verlauf.map((eintrag) => this._stoerspeicherZeile(eintrag, entity)));
         const leer = !eintraege.length;
         if (leer) liste.appendChild(this._hinweisKnoten(this._t("Keine Meldungen vorhanden")));
-        kopf.style.display = verlauf.length || leer ? "block" : "none";
+        kopf.style.display = verlauf.length || leer ? "flex" : "none";
       });
     }
 
@@ -216,6 +224,17 @@ export const StoerspeicherMixin = (Basis) =>
       schleier.appendChild(dialog);
       zu = this._dialogOeffnen(schleier, { fokus: schliessen });
       schliessen.addEventListener("click", zu);
+    }
+
+    /** Alle erledigten Einträge auf einmal; anliegende bleiben, die Steuerung lehnt sie ab. */
+    async _stoerspeicherLeeren(entity) {
+      const frage = "Alle erledigten Einträge verschwinden aus der Meldungsliste des Bediengeräts. Anliegende Störungen bleiben stehen.";
+      if (!(await this._bestaetigen(this._t("Erledigte löschen"), this._t(frage)))) return;
+      try {
+        await this._hass.callService("heatnexus", "meldungen_loeschen", { entity_id: entity });
+      } catch (fehler) {
+        this._melden((fehler && fehler.message) || String(fehler));
+      }
     }
 
     /** Rückfrage, dann der Dienst; ein Fehler erscheint in der Leiste von Home Assistant. */

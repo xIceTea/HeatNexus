@@ -1389,6 +1389,15 @@ def test_der_stoerspeicher_steht_in_der_stoerungskarte(durchlauf):
     assert durchlauf["stoerspeicher"]["muell"] == 1
 
 
+def test_eine_taste_loescht_alle_erledigten_eintraege(durchlauf):
+    """Die Taste steht über dem Verlauf und ruft den Dienst am Sensor Störspeicher."""
+    assert durchlauf["stoerspeicher"]["leeren"] == ["Erledigte löschen"]
+    assert durchlauf["stoerspeicher"]["leerenAufruf"] == {
+        "dienst": "heatnexus.meldungen_loeschen",
+        "angaben": {"entity_id": "sensor.stoerspeicher"},
+    }
+
+
 def test_ein_anliegender_eintrag_wird_kachel_in_der_farbe_seiner_art(durchlauf):
     assert durchlauf["stoerspeicher"]["kacheln"] == ["stoerspeicher-kachel fehler"]
     assert durchlauf["stoerspeicher"]["kachelTasten"] == ["Zurücksetzen"]

@@ -330,6 +330,21 @@ def test_anliegende_stoerung_laesst_sich_nicht_loeschen(speicher):
         asyncio.run(_sensor(koordinator).async_loeschen(154))
 
 
+def test_leeren_loescht_jeden_erledigten_eintrag_und_liest_einmal_nach(speicher):
+    koordinator = _koordinator(
+        speicher, _jetzt(), _roh(id=153, active=False), _roh(id=152, active=False)
+    )
+    asyncio.run(_sensor(koordinator).leeren())
+    assert koordinator.client.aktionen == [("loeschen", 153), ("loeschen", 152)]
+    assert koordinator.nachgefasst == [["meldungsliste"]]
+
+
+def test_leeren_ohne_erledigte_eintraege_schreibt_nichts(speicher):
+    koordinator = _koordinator(speicher, _jetzt())
+    asyncio.run(_sensor(koordinator).leeren())
+    assert koordinator.client.aktionen == []
+
+
 def test_unbekannter_eintrag_wird_gemeldet(speicher):
     from custom_components.heatnexus.exceptions import WindhagerValueError
 

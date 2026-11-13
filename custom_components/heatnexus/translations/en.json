@@ -948,7 +948,7 @@
     },
     "meldungen_loeschen": {
       "name": "Clear message list",
-      "description": "Clears the message list of a device. If the control panel keeps a message list, the action deletes the entries of this device there whose fault is no longer present. Otherwise it only clears the list in Home Assistant."
+      "description": "Clears the message list of a device. If the control panel keeps a message list, the action deletes the entries of this device there whose fault is no longer present. Otherwise it only clears the list in Home Assistant. On the controller's “Messages” sensor it deletes all resolved entries."
     },
     "set_vorgabe": {
       "name": "Set temporary setpoint",

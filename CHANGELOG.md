@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
+
 ## [1.16.0-beta.2] - 2026-11-13
 
 ### Highlight: Verbindung zur Steuerung im Blick

@@ -948,7 +948,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldingenlijst wissen",
-      "description": "Leegt de meldingenlijst van een apparaat. Als het bedieningspaneel een meldingenlijst heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant."
+      "description": "Leegt de meldingenlijst van een apparaat. Als het bedieningspaneel een meldingenlijst heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant. Op de sensor „Meldingen” van de besturing verwijdert ze alle afgehandelde items."
     },
     "set_vorgabe": {
       "name": "Tijdelijke instelwaarde zetten",

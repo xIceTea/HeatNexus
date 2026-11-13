@@ -1880,6 +1880,10 @@ const echtesBestaetigen = flaeche._bestaetigen;
 flaeche._bestaetigen = async () => true;
 const vorQuittung = dienstAufrufe.length;
 await flaeche._stoerspeicherAktion("quittieren", ANLIEGEND, "sensor.stoerspeicher");
+const leerenTasten = [...flaeche.shadowRoot.querySelectorAll(".stoerspeicher-leeren")];
+const vorLeeren = dienstAufrufe.length;
+await flaeche._stoerspeicherLeeren("sensor.stoerspeicher");
+const leerenAufruf = dienstAufrufe[vorLeeren];
 flaeche._bestaetigen = echtesBestaetigen;
 bilanz.stoerspeicher = {
   zeilen: speicherZeilen.length,
@@ -1912,6 +1916,8 @@ bilanz.stoerspeicher = {
     };
   })(),
   muell: flaeche.shadowRoot.querySelectorAll(".stoerspeicher-muell").length,
+  leeren: leerenTasten.map((t) => String(t.textContent || "").trim()),
+  leerenAufruf,
   tasten,
   aufruf: dienstAufrufe[vorQuittung],
 };
