@@ -905,6 +905,7 @@
   "Oben": "Top",
   "Mitte": "Middle",
   "Unten": "Bottom",
+  "Beladegrad": "Charge status",
   "Ladepumpe": "Charge pump",
   "Pumpe": "Pump",
   "Soll": "Setpoint",

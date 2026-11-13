@@ -231,6 +231,19 @@ def test_puffer_mit_fuehlern_und_ladepumpe(uebersicht):
     assert puffer["neben"] == [{"name": "Ladepumpe", "entity": "sensor.puffer_pumpe"}]
 
 
+def test_der_puffer_nennt_seinen_beladegrad_vor_der_ladepumpe(uebersicht):
+    puffer = _puffer()
+    puffer["entitaeten"].append(
+        _e("sensor.puffer_bg", "Puffer-Beladegrad", schluessel="buffer_charge_level")
+    )
+    karten = _abschnitt(uebersicht.uebersicht([_anlage(puffer)], True, []), "Kesselhaus")
+    [karte] = [k for k in karten if k["type"] == "custom:heatnexus-puffer"]
+    assert karte["neben"] == [
+        {"name": "Beladegrad", "entity": "sensor.puffer_bg", "stellen": 0},
+        {"name": "Ladepumpe", "entity": "sensor.puffer_pumpe"},
+    ]
+
+
 def test_heizkreis_mit_programmauswahl_und_kennwerten(uebersicht):
     karten = _abschnitt(uebersicht.uebersicht(_zwei_anlagen(), True, []), "Kesselhaus")
     kachel, werte = karten[5], karten[6]["werte"]
