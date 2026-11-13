@@ -25,6 +25,7 @@ import contextvars
 import csv
 import datetime as dt
 import getpass
+import http.client
 import importlib.util
 import json
 import locale
@@ -192,7 +193,7 @@ class Probe:
         """Rumpf einer Fehlerantwort; bleibt er aus, steht der Grund daneben."""
         try:
             return cls._decode(err.read()), None
-        except (TimeoutError, OSError) as fehler:
+        except (TimeoutError, OSError, http.client.HTTPException) as fehler:
             return "", f"{type(fehler).__name__}: {fehler}"
 
     def get(self, url: str):
@@ -232,7 +233,13 @@ class Probe:
                     return json.loads(body), err.code
                 except ValueError:
                     return {"raw": body}, err.code
-            except (urllib.error.URLError, TimeoutError, ValueError, OSError) as err:
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                ValueError,
+                OSError,
+                http.client.HTTPException,
+            ) as err:
                 last = ({"error": str(err)}, 0)
                 if attempt < RETRIES:
                     time.sleep(RETRY_PAUSE)
@@ -263,7 +270,13 @@ class Probe:
                 return self._decode(resp.read()), resp.status
         except urllib.error.HTTPError as err:
             return None, err.code
-        except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            ValueError,
+            OSError,
+            http.client.HTTPException,
+        ):
             with self._lock:
                 self.errors += 1
             return None, 0
@@ -291,11 +304,16 @@ class Probe:
                 except urllib.error.HTTPError as zweiter:
                     text, lesefehler = self._rumpf(zweiter)
                     return lesefehler or text, zweiter.code
-                except (urllib.error.URLError, TimeoutError, OSError) as zweiter:
+                except (
+                    urllib.error.URLError,
+                    TimeoutError,
+                    OSError,
+                    http.client.HTTPException,
+                ) as zweiter:
                     return str(zweiter), 0
             text, lesefehler = self._rumpf(err)
             return lesefehler or text, err.code
-        except (urllib.error.URLError, TimeoutError, OSError) as err:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as err:
             return str(err), 0
 
     def map(self, func, items):
@@ -1865,24 +1883,45 @@ def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
     return {form: p for k, p in ersatz.items() for form in (k, k.upper(), k.lower())}
 
 
-def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list[Path]:
-    """Seriennummer, MAC-Adresse und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
+# Kürzere Kennungen nur als ganzes Wort, sonst träfe eine Prüfnummer längere Zahlen im Abzug.
+KENNUNG_WORT_BIS = 10
+
+
+def _ersatzpaare(
+    dateien: list[Path], structure: list, menus: dict | None
+) -> list[tuple[bytes, bytes]]:
+    """Kennung und Platzhalter als Bytes, die längsten zuerst."""
     ersatz = kennungen_ersatz(structure, menus)
     auskunft = auskunft_kennungen(dateien)
     ersatz.update({form: p for k, p in auskunft.items() for form in (k, k.upper(), k.lower())})
-    if not ersatz:
-        return []
     # Auf Bytes, weil Namensdateien der Steuerung nicht in UTF-8 vorliegen müssen.
-    paare = [(k.encode(), ersatz[k].encode()) for k in sorted(ersatz, key=len, reverse=True)]
+    return [(k.encode(), ersatz[k].encode()) for k in sorted(ersatz, key=len, reverse=True)]
+
+
+def _ersetzen(dateien: list[Path], paare: list[tuple[bytes, bytes]]) -> list[Path]:
+    """Jede Kennung in den Dateien durch ihren Platzhalter ersetzen; liefert die geänderten."""
+    muster = [
+        (re.compile(rb"(?<![0-9A-Za-z])" + re.escape(k) + rb"(?![0-9A-Za-z])"), p)
+        for k, p in paare
+        if len(k) < KENNUNG_WORT_BIS
+    ]
     geaendert = []
     for datei in dateien:
         vorher = inhalt = datei.read_bytes()
         for bekannt, platzhalter in paare:
-            inhalt = inhalt.replace(bekannt, platzhalter)
+            if len(bekannt) >= KENNUNG_WORT_BIS:
+                inhalt = inhalt.replace(bekannt, platzhalter)
+        for regel, platzhalter in muster:
+            inhalt = regel.sub(platzhalter, inhalt)
         if inhalt != vorher:
             datei.write_bytes(inhalt)
             geaendert.append(datei)
     return geaendert
+
+
+def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list[Path]:
+    """Seriennummer, MAC-Adresse und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
+    return _ersetzen(dateien, _ersatzpaare(dateien, structure, menus))
 
 
 def schwaerzen_befehl(ordner: Path) -> int:
@@ -1911,7 +1950,7 @@ def _json_oder_none(pfad: Path):
 
 def schwaerzen_ordner(ordner: Path) -> list[Path]:
     """Einen fertigen Abzug nachträglich schwärzen, je Anlage anhand ihrer Menü-Datei."""
-    geaendert = []
+    geaendert, alle = [], []
     for menus_datei in sorted(ordner.glob("*_menus.json")):
         stamm = menus_datei.name[: -len("_menus.json")]
         menus = _json_oder_none(menus_datei) or {}
@@ -1919,7 +1958,11 @@ def schwaerzen_ordner(ordner: Path) -> list[Path]:
         if not isinstance(structure, list):
             structure = menus.get("structure") or []
         dateien = [d for d in ordner.glob(f"{stamm}_*") if d.is_file()]
-        geaendert += schwaerzen(dateien, structure, menus)
+        paare = _ersatzpaare(dateien, structure, menus)
+        geaendert += _ersetzen(dateien, paare)
+        alle += paare
+    if (log := ordner / "sonde.log").is_file():
+        geaendert += _ersetzen([log], alle)
     return geaendert
 
 
@@ -2237,11 +2280,6 @@ def _host_lauf(
 
     written = []
 
-    if "structure" in actions:
-        path = out_dir / f"{stem}_structure.json"
-        path.write_text(json.dumps(structure, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
-
     menus = objects = None
     if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich", "einzeln"}:
         print("    Menü-Ebenen werden gelesen …")
@@ -2395,7 +2433,13 @@ def _host_lauf(
             )
             written.append(path)
 
-    schwaerzen(written, structure, menus)
+    if "structure" in actions:
+        # Erst hier: Bricht das Lesen der Menüs ab, bleibt keine ungeschwärzte Struktur liegen.
+        path = out_dir / f"{stem}_structure.json"
+        path.write_text(json.dumps(structure, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.insert(0, path)
+    ersatz = _ersatzpaare(written, structure, menus)
+    _ersetzen(written, ersatz)
     total = sum(len(f["datapoints"]) for f in menus["functions"]) if menus else 0
     print(f"    fertig: {total} Datenpunkte, {probe.requests} Requests, {seconds:.1f} s")
     sage(f"    {_t('Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.')}")
@@ -2409,6 +2453,7 @@ def _host_lauf(
         "requests": probe.requests,
         "seconds": seconds,
         "files": [str(p) for p in written],
+        "ersatz": ersatz,
     }
 
 
@@ -2438,7 +2483,7 @@ def run_texte(probe: Probe, out_dir: Path, stem: str) -> list:
                 status = resp.status
         except urllib.error.HTTPError as err:
             status, inhalt = err.code, b""
-        except (urllib.error.URLError, TimeoutError, OSError) as err:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as err:
             print(f"      {pfad:<32} Fehler: {err}")
             continue
         marker = " <== gefunden" if status == 200 and len(inhalt) > 200 else ""
@@ -2575,6 +2620,8 @@ def _abschluss(results: list[dict], out_dir: Path, log: Path) -> int:
     if not gut:
         sage(f"\n  {_t('Keine Anlage ließ sich auslesen.')}")
         return 1
+    # Das Protokoll nennt Antworten der Anlage; es bekommt den Ersatz aller Anlagen.
+    _ersetzen([log], [paar for r in gut for paar in r.get("ersatz", [])])
     dateien = [Path(f) for r in gut for f in r.get("files", [])] + [log]
     zip_datei = _abzug_packen(out_dir, dateien)
     sage(f"\n  ✓ {_t('Fertig.')} {_t('Die Datei liegt bereit:')}")

@@ -96,3 +96,27 @@ def test_ein_scheiterndes_objekt_beendet_den_schritt_nicht(probe_modul, monkeypa
     assert objekte["/1/15/0/2/90/0"]["status"] == 200
     assert objekte["/1/80/32/2/90/0"]["status"] == 0
     assert "timed out" in objekte["/1/80/32/2/90/0"]["data"]["error"]
+
+
+class AbgeschnittenerRumpf(HaengenderRumpf):
+    """Die Steuerung kündigt mehr an, als sie schickt."""
+
+    def read(self, *_):
+        import http.client
+
+        raise http.client.IncompleteRead(b"{", 99)
+
+
+def test_ein_abgeschnittener_rumpf_beendet_den_lauf_nicht(probe_modul, monkeypatch):
+    class AbgeschnittenOpener(Opener):
+        def open(self, url, timeout=None):
+            raise urllib.error.HTTPError(str(url), self.status, "", {}, AbgeschnittenerRumpf())
+
+    monkeypatch.setattr(probe_modul.time, "sleep", lambda _s: None)
+    probe = probe_modul.Probe("192.0.2.10", "geheim")
+    probe._local.opener = AbgeschnittenOpener(500)
+
+    data, antwort = probe.get(URL)
+
+    assert antwort == 500
+    assert "IncompleteRead" in data["error"]

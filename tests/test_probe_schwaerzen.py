@@ -101,3 +101,42 @@ def test_kurze_werte_bleiben_stehen(probe_modul, tmp_path):
     probe_modul.schwaerzen([datei], [], menus)
 
     assert datei.read_text(encoding="utf-8") == "oid;wert\n/1/15/0/3/50/0;0\n"
+
+
+def test_eine_kurze_kennung_trifft_keine_laengere_zahl(probe_modul, tmp_path):
+    endpunkte = tmp_path / "anlage_endpunkte.json"
+    endpunkte.write_text(json.dumps({"inhalt": {"checknumber": "123456"}}), encoding="utf-8")
+    werte = tmp_path / "anlage_datenpunkte.csv"
+    werte.write_text("oid;wert\n/1/60/0/20/112/0;1234567\n/1/60/0/9/1/0;123456\n", encoding="utf-8")
+
+    probe_modul.schwaerzen([endpunkte, werte], [], None)
+
+    assert werte.read_text(encoding="utf-8") == (
+        "oid;wert\n/1/60/0/20/112/0;1234567\n/1/60/0/9/1/0;<pruefnummer>\n"
+    )
+
+
+def test_das_protokoll_wird_vor_dem_packen_geschwaerzt(probe_modul, tmp_path, monkeypatch):
+    import zipfile
+
+    monkeypatch.setattr(probe_modul, "_im_explorer_zeigen", lambda _datei: None)
+    ziel = tmp_path / "probe"
+    ziel.mkdir()
+    menus = ziel / "anlage_menus.json"
+    menus.write_text(json.dumps(MENUS), encoding="utf-8")
+    log = ziel / "sonde.log"
+    log.write_text("Knoten 0702bb00a1b2, Seriennummer W123456789\n", encoding="utf-8")
+    ergebnis = {
+        "host": "192.0.2.10",
+        "ok": True,
+        "datapoints": 3,
+        "seconds": 1.0,
+        "files": [str(menus)],
+        "ersatz": probe_modul._ersatzpaare([], STRUKTUR, MENUS),
+    }
+
+    assert probe_modul._abschluss([ergebnis], ziel, log) == 0
+
+    with zipfile.ZipFile(next(tmp_path.glob("heatnexus-abzug-*.zip"))) as abzug:
+        text = abzug.read("probe/sonde.log").decode("utf-8").lower()
+    assert "0702bb00a1b2" not in text and "w123456789" not in text
