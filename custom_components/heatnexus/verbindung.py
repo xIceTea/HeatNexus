@@ -29,7 +29,8 @@ GESTOERT = "gestoert"
 SAMMELT = "sammelt"
 ZUSTAENDE = (STABIL, TRAEGE, UEBERLASTET, GESTOERT, SAMMELT)
 MELDEN = frozenset({UEBERLASTET, GESTOERT})
-GUT = frozenset({STABIL, SAMMELT})
+# „Träge“ zählt mit: Eine dauerhafte Verlangsamung wird so nach einigen Tagen zum neuen Bezug.
+GUT = frozenset({STABIL, TRAEGE, SAMMELT})
 
 
 @dataclass(frozen=True)

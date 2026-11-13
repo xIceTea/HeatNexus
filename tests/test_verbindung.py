@@ -98,8 +98,27 @@ def test_stunde_gueltig_mit_genug_antworten_und_ruhigem_zustand(vb):
     assert gut.gueltig and gut.median_ms == 100.0 and gut.antworten == 60
     zu_wenig = vb.stunde_abschliessen("2026-11-12T07", [100.0] * 59, ["stabil"])
     assert not zu_wenig.gueltig
-    unruhig = vb.stunde_abschliessen("2026-11-12T08", [100.0] * 60, ["traege", "traege", "stabil"])
+    unruhig = vb.stunde_abschliessen(
+        "2026-11-12T08", [100.0] * 60, ["ueberlastet", "gestoert", "stabil"]
+    )
     assert not unruhig.gueltig
+
+
+def test_eine_traege_stunde_zaehlt_zum_bezug(vb):
+    traege = vb.stunde_abschliessen("2026-11-12T09", [700.0] * 60, ["traege"] * 3)
+    assert traege.gueltig
+
+
+def test_eine_dauerhafte_verlangsamung_wird_zum_neuen_bezug(vb):
+    stunden = [vb.Stunde(f"a{i}", 300.0, 120, True) for i in range(168)]
+    stand = vb.fortschreiben(vb.Stand(), vb.STABIL)
+    for i in range(168):
+        fenster = vb.fenster([(1000.0, 700.0)] * 30, jetzt=1000.0)
+        stand = vb.fortschreiben(stand, vb.regel(fenster, vb.bezug(stunden), 0))
+        neu = vb.stunde_abschliessen(f"b{i}", [700.0] * 120, [stand.zustand] * 3)
+        stunden = vb.stunden_kuerzen(stunden, neu)
+    assert vb.bezug(stunden) == 700.0
+    assert stand.zustand == vb.STABIL
 
 
 def test_leere_stunde_hat_keinen_median(vb):
