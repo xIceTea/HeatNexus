@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime
 import logging
+import math
 from statistics import median
 from typing import Any
 
@@ -48,7 +49,9 @@ def _stunde_lesen(roh: Any, jetzt: str) -> vb.Stunde | None:
     if not isinstance(schluessel, str) or schluessel > jetzt:
         return None
     if median_ms is not None and (
-        isinstance(median_ms, bool) or not isinstance(median_ms, int | float)
+        isinstance(median_ms, bool)
+        or not isinstance(median_ms, int | float)
+        or not math.isfinite(median_ms)
     ):
         return None
     return vb.Stunde(schluessel, median_ms, antworten, bool(gueltig))
@@ -62,7 +65,9 @@ def _stunden_lesen(daten: dict[str, Any], jetzt: str) -> list[vb.Stunde]:
 def _vorlaeufig_lesen(daten: dict[str, Any]) -> float | None:
     """Der gespeicherte vorläufige Bezug; alles außer einer positiven Zahl gilt als keiner."""
     wert = daten.get("vorlaeufig")
-    if isinstance(wert, bool) or not isinstance(wert, int | float) or wert <= 0:
+    if isinstance(wert, bool) or not isinstance(wert, int | float) or not math.isfinite(wert):
+        return None
+    if wert <= 0:
         return None
     return float(wert)
 
