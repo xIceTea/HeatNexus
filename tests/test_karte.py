@@ -553,3 +553,9 @@ def test_die_karte_beschriftet_jede_anlage_mit_ihrem_woerterbuch(karte):
     )
     assert "Domestic hot water" in _texte_im_bild(bild["svg"])
     assert "Warmwasser" not in _texte_im_bild(bild["svg"])
+
+
+def test_die_karte_folgt_der_darstellung_der_seitenleiste(durchlauf):
+    assert durchlauf["darstellung"]["puffer"] == "drei"
+    assert durchlauf["darstellung"]["lage"] == "unter"
+    assert durchlauf["darstellung"]["ohne"] == "zwei"

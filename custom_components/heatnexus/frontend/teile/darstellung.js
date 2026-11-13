@@ -7,13 +7,12 @@ import {
   BESCHRIFTUNG,
   BESCHRIFTUNG_FARBEN,
   DARSTELLUNG,
-  DARSTELLUNG_STANDARD,
   ERZEUGER_MAX,
   KOPFSTILE,
   PALETTEN,
-  beschriftungGueltig,
   beschriftungLesbar,
   darstellungSpeicher,
+  darstellungWahl,
 } from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
 
@@ -32,19 +31,7 @@ export const DarstellungMixin = (Basis) =>
 
     /** Die gespeicherte Wahl, ohne die Vorschau des offenen Fensters. */
     _stilGespeichert(schluessel) {
-      const wert = this._einstellungen()[schluessel] || this._gemerkt(darstellungSpeicher(schluessel));
-      if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
-      const stile = DARSTELLUNG[schluessel];
-      if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
-      return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
-    }
-
-    _gemerkt(speicher) {
-      try {
-        return window.localStorage.getItem(speicher) || "";
-      } catch (err) {
-        return "";
-      }
+      return darstellungWahl(this._einstellungen(), schluessel);
     }
 
     /** Die Darstellung im Browser ablegen; ein gesperrter Speicher darf nichts umwerfen. */

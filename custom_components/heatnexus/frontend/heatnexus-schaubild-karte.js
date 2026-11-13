@@ -12,7 +12,7 @@ import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
 import { STIL } from "./stil.js";
-import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, schriftmass } from "./ordnung.js";
+import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, darstellungWahl, schriftmass } from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
@@ -28,6 +28,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this._anlagen = [];
     this._bindungen = [];
     this._gebaut = false;
+    this._darstellung = {};
   }
 
   // Eigener Editor statt eines festen Schemas: Nur er kann die Anlagen zur
@@ -90,6 +91,11 @@ class HeatNexusSchaubildKarte extends Grundlage {
       return;
     }
     this._aktualisieren();
+  }
+
+  /** Die Wahlen aus „Darstellung“ in der Seitenleiste; Farbsatz und Schrift stellt der Editor. */
+  _stilwahl(schluessel) {
+    return darstellungWahl(this._darstellung, schluessel);
   }
 
   /** Der im Editor gewählte Satz gilt; das Panel fragt hier seine Anordnung. */
@@ -175,7 +181,12 @@ class HeatNexusSchaubildKarte extends Grundlage {
       if (this._config.teile_aus) anfrage.teile_aus = this._config.teile_aus;
       if (this._config.zeichnungen) anfrage.zeichnungen = this._config.zeichnungen;
       if (this._config.mischer === false) anfrage.mischer = false;
+      const darstellung = this._hass
+        .callWS({ type: "heatnexus/anordnung" })
+        .then((anordnung) => (anordnung && anordnung.einstellungen) || {})
+        .catch(() => ({}));
       this._anlagen = await this._hass.callWS(anfrage);
+      this._darstellung = await darstellung;
       if (!this._texte) {
         this._texte = await this._hass.callWS({ type: "heatnexus/texte" }).catch(() => ({}));
       }

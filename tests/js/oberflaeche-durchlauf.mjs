@@ -335,7 +335,7 @@ bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--
 // damit vom ersten Aufbau an richtig, ohne auf die Einstellungen zu warten.
 flaeche._darstellungSetzen({ farbsatz: "petrol" });
 const zweite = new (customElements.get("heatnexus-panel"))();
-bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: zweite._farbsatz() };
+bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), beimAufbau: zweite._farbsatz() };
 
 // Die Kopfzeile folgt der Wahl in „Darstellung“ und wird ebenso gemerkt.
 {

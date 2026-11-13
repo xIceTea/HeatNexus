@@ -28,7 +28,7 @@ export const SchaubildWerteMixin = (Basis) =>
       return lage === "unter" || (lage === "automatisch" && MODUL * massstab < UNTER_AB);
     }
 
-    /** Ob der Puffer drei Temperaturen zeigt; ohne Darstellung (Karte) bleibt es bei zwei. */
+    /** Ob der Puffer drei Temperaturen zeigt; ohne Darstellung bleibt es bei zwei. */
     _pufferDrei() {
       return typeof this._stilwahl === "function" && this._stilwahl("puffer_werte") === "drei";
     }

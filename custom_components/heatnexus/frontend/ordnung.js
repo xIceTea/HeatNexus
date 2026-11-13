@@ -269,6 +269,24 @@ export function darstellungSpeicher(schluessel) {
   return `heatnexus.${schluessel}`;
 }
 
+/** Die im Browser gemerkte Wahl; ein gesperrter Speicher ergibt nichts. */
+export function gemerkteWahl(schluessel) {
+  try {
+    return window.localStorage.getItem(darstellungSpeicher(schluessel)) || "";
+  } catch (err) {
+    return "";
+  }
+}
+
+/** Eine Wahl der Darstellung aus den Einstellungen am Server, sonst aus dem Browser, sonst der Standard. */
+export function darstellungWahl(einstellungen, schluessel) {
+  const wert = (einstellungen || {})[schluessel] || gemerkteWahl(schluessel);
+  if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
+  const stile = DARSTELLUNG[schluessel];
+  if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
+  return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
+}
+
 // Wie groß die Marken im Schaubild stehen. Der Faktor wirkt auf die Schrift,
 // nicht auf die Zeichnung – die bleibt im Maßstab der Karte.
 export const SCHRIFTMASSE = [
