@@ -187,6 +187,14 @@ class Probe:
         # latin-1 bildet jedes Byte ab und schlägt daher nie fehl.
         return raw.decode("latin-1")
 
+    @classmethod
+    def _rumpf(cls, err: urllib.error.HTTPError) -> tuple[str, str | None]:
+        """Rumpf einer Fehlerantwort; bleibt er aus, steht der Grund daneben."""
+        try:
+            return cls._decode(err.read()), None
+        except (TimeoutError, OSError) as fehler:
+            return "", f"{type(fehler).__name__}: {fehler}"
+
     def get(self, url: str):
         """GET mit Zählung und Wiederholung; gibt (json_oder_None, status) zurück."""
         last = ({"error": "unbekannt"}, 0)
@@ -197,7 +205,7 @@ class Probe:
                 with self.opener.open(url, timeout=TIMEOUT) as resp:
                     return json.loads(self._decode(resp.read())), resp.status
             except urllib.error.HTTPError as err:
-                body = self._decode(err.read())
+                body, lesefehler = self._rumpf(err)
                 # 401 nach erfolgreicher Anmeldung heißt: Der Digest-Nonce ist
                 # verbraucht. `HTTPDigestAuthHandler` versucht es genau einmal
                 # neu und gibt dann auf – und weil er seinen Zähler erst bei
@@ -218,6 +226,8 @@ class Probe:
                 if _voruebergehend(err.code, body) and attempt < GATEWAY_RETRIES:
                     time.sleep(RETRY_PAUSE * (attempt + 1))
                     continue
+                if lesefehler:
+                    return {"error": lesefehler}, err.code
                 try:
                     return json.loads(body), err.code
                 except ValueError:
@@ -279,10 +289,12 @@ class Probe:
                     with self.opener.open(anfrage, timeout=TIMEOUT) as resp:
                         return self._decode(resp.read()), resp.status
                 except urllib.error.HTTPError as zweiter:
-                    return self._decode(zweiter.read()), zweiter.code
+                    text, lesefehler = self._rumpf(zweiter)
+                    return lesefehler or text, zweiter.code
                 except (urllib.error.URLError, TimeoutError, OSError) as zweiter:
                     return str(zweiter), 0
-            return self._decode(err.read()), err.code
+            text, lesefehler = self._rumpf(err)
+            return lesefehler or text, err.code
         except (urllib.error.URLError, TimeoutError, OSError) as err:
             return str(err), 0
 
@@ -1491,6 +1503,20 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
 STATISCHE_OBJEKTE = ("2/90/0", "4/80/0")
 
 
+def _lies_objekt(probe: Probe, oid: str) -> tuple:
+    """Beide Endpunkte fragen und beide Antworten festhalten.
+
+    Welcher der beiden eine Position führt, unterscheidet sich je Steuerung.
+    """
+    data, status = probe.obj(oid)
+    data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
+    antworten = {"object": status, "lookup": status2}
+    wie = "object"
+    if status != 200 and status2 == 200:
+        data, status, wie = data2, status2, "lookup"
+    return oid, data, status, wie, antworten
+
+
 def fetch_objects(probe: Probe, menus: dict) -> dict:
     """Strukturierte Objekte (Zeitprogramme, Störspeicher) lesen."""
     targets = [
@@ -1521,15 +1547,12 @@ def fetch_objects(probe: Probe, menus: dict) -> dict:
         return {}
 
     def read(oid):
-        # Beide Endpunkte, und beide Antworten festhalten: Welcher der beiden
-        # eine Position führt, unterscheidet sich je Steuerung.
-        data, status = probe.obj(oid)
-        data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
-        antworten = {"object": status, "lookup": status2}
-        wie = "object"
-        if status != 200 and status2 == 200:
-            data, status, wie = data2, status2, "lookup"
-        return oid, data, status, wie, antworten
+        # Ein einzelnes Ziel darf den Schritt nicht beenden: `probe.map` gäbe
+        # sonst keines der übrigen Ergebnisse zurück.
+        try:
+            return _lies_objekt(probe, oid)
+        except Exception as fehler:
+            return oid, {"error": f"{type(fehler).__name__}: {fehler}"}, 0, "object", {}
 
     objects = {}
     ok = 0
