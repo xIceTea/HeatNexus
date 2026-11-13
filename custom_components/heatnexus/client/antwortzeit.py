@@ -10,7 +10,6 @@ import time
 from ..verbindung import FENSTER_S
 
 # Der Ring hält nur das Bewertungsfenster; die Stundenmediane kommen aus `stunde_abholen`.
-HALTEN_S = FENSTER_S
 
 # Gesetzt vom Koordinator während des Abrufs; Teilaufgaben erben ihn, Nachfassen und Schreiben nicht.
 IM_ABRUF: ContextVar[bool] = ContextVar("heatnexus_im_abruf", default=False)
@@ -39,7 +38,7 @@ class Messreihe:
         if dauer_ms is not None:
             self._stunde.append(dauer_ms)
             self._abruf.append(dauer_ms)
-        while self._ring and self._ring[0][0] < jetzt - HALTEN_S:
+        while self._ring and self._ring[0][0] < jetzt - FENSTER_S:
             self._ring.popleft()
 
     def eintraege(self) -> tuple[tuple[float, float | None], ...]:

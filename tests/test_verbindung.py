@@ -67,7 +67,6 @@ def test_traege_braucht_faktor_und_abstand(vb):
 def test_erster_zustand_gilt_sofort(vb):
     stand = vb.fortschreiben(vb.Stand(), vb.STABIL)
     assert stand.zustand == vb.STABIL
-    assert not stand.erster
 
 
 def test_wechsel_erst_nach_drei_bewertungen(vb):

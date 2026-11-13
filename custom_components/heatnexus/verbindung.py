@@ -56,7 +56,6 @@ class Stand:
     zustand: str = SAMMELT
     kandidat: str | None = None
     folge: int = 0
-    erster: bool = True
 
 
 @dataclass(frozen=True)
@@ -109,12 +108,12 @@ def fortschreiben(stand: Stand, ergebnis: str | None) -> Stand:
     if ergebnis is None:
         return stand
     # „Sammelt“ ist kein Urteil; das erste echte Urteil gilt sofort.
-    if stand.erster or stand.zustand == SAMMELT or ergebnis == stand.zustand:
-        return Stand(ergebnis, erster=False)
+    if stand.zustand == SAMMELT or ergebnis == stand.zustand:
+        return Stand(ergebnis)
     folge = stand.folge + 1 if ergebnis == stand.kandidat else 1
     if folge >= BESTAETIGUNG:
-        return Stand(ergebnis, erster=False)
-    return Stand(stand.zustand, ergebnis, folge, erster=False)
+        return Stand(ergebnis)
+    return Stand(stand.zustand, ergebnis, folge)
 
 
 def stunde_abschliessen(schluessel: str, dauern: list[float], bewertungen: list[str]) -> Stunde:
@@ -138,5 +137,5 @@ def vorlaeufiger_bezug(f: Fenster, seit_start_s: float, abrufe_mit_rest: int) ->
 
 def bezug(stunden: list[Stunde]) -> float | None:
     """Median der gültigen Stundenmediane; unter `MIN_STUNDEN_BEZUG` keiner."""
-    werte = [s.median_ms for s in stunden[-BEZUG_STUNDEN:] if s.gueltig and s.median_ms is not None]
+    werte = [s.median_ms for s in stunden if s.gueltig and s.median_ms is not None]
     return median(werte) if len(werte) >= MIN_STUNDEN_BEZUG else None
