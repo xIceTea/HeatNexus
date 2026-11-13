@@ -6,18 +6,40 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.16.0-beta.2] - 2026-11-13
+
+### Highlight: Verbindung zur Steuerung im Blick
+
+Zwei Sensoren und eine Plakette im Panel zeigen, wie schnell jede Steuerung antwortet. Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung. Die Sonde fragt nur noch Adresse und Passwort und schwärzt den Abzug selbst.
 
 ### Neu
 
-- Unter „Darstellung“ lässt sich am Puffer auch die mittlere Temperatur einblenden ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Die Farbe des Puffers folgt auch dem mittleren Fühler.
-- Der Tooltip am Puffer nennt die mittlere Temperatur und den Beladegrad.
+**Verbindung**
 - Die Sensoren Verbindung und Antwortzeit zeigen, wie gut jede Steuerung antwortet.
+- Die Antwortzeit erscheint als Mittel über 15 Minuten und für den letzten Abruf.
 - Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
 - Eine Plakette im Panel zeigt den Zustand der Verbindung und die Antwortzeit.
 - Unter „Darstellung“ lässt sich die Plakette auf Probleme beschränken.
 - Die Antwortzeit auf der Plakette lässt sich abschalten.
+
+**Puffer**
+- Unter „Darstellung“ lässt sich am Puffer auch die mittlere Temperatur einblenden ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Farbe des Puffers folgt auch dem mittleren Fühler.
+- Der Tooltip am Puffer nennt die mittlere Temperatur und den Beladegrad.
+- Das Puffermodul zeigt Betriebsart, Kesselsoll und Drehzahl der Pufferladepumpe.
+
+**Kessel**
+- Automatik- und Zusatzkessel zeigen die Istdrehzahl des Saugzuggebläses.
+
+**Sonde**
+- Die Sonde fragt nur IP-Adresse und Passwort und liest dann alles aus.
+- Die Sonde schwärzt Kennungen im Abzug und legt ein fertiges ZIP an.
+- Ein vorhandener Abzug lässt sich nachträglich schwärzen.
+- Die Sonde folgt der Sprache des Systems, Deutsch oder Englisch.
+- Eine Statuszeile zeigt während des Laufs den Fortschritt.
+- Fehlt Python, bietet die Sonde die Installation über winget an.
+- Die Sonde liest auch Adressen außerhalb der Menüs.
+- Der Sondenbericht nennt abgebrochene Schritte.
 
 ### Geändert
 
@@ -28,6 +50,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Die Kopfleiste des Panels erscheint nach der Rückkehr in die App sofort.
 - Das Puffermodul im Kesselregler erscheint im Schaubild als Puffer mit Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Diagramme im Verlauf erscheinen auch beim ersten Öffnen des Panels.
+- Beim Neuladen der Integration erscheint keine Warnung über nicht lesbare Werte.
+- Das Entladen der Integration meldet keinen Ausfall der Anlage.
+- Die Sonde bricht bei einer unvollständigen Antwort der Steuerung nicht mehr ab.
+- Die Sonde wiederholt nur vorübergehende Fehler.
 
 ## [1.16.0-beta.1] - 2026-11-08
 
