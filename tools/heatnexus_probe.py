@@ -1230,6 +1230,8 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     praefixe: list[str] = []
     for node in structure:
         node_id = node.get("nodeId")
+        if node_id in MASTER_KNOTEN:
+            continue
         praefixe.append(f"/1/{node_id}/0")
         for fct in node.get("functions", []):
             kandidat = f"/1/{node_id}/{fct.get('fctId')}"
@@ -1502,6 +1504,16 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
 # Liste holt `statische_navigation` von der Anlage; das hier ist der Rückfall.
 STATISCHE_OBJEKTE = ("2/90/0", "4/80/0")
 
+# Kesselknoten + 30 und die Plätze ohne Kessel: Dort sitzt das Netzwerk- oder Bediengerät
+# selbst. Es führt nur Netzwerkvariablen; eine Objektanfrage hängt bis zur Zeitgrenze.
+MASTER_KNOTEN = frozenset({85, 90, 95, 96, 97, 100})
+
+
+def _ist_master(oid: str) -> bool:
+    """Ob eine Adresse auf der Master-Position liegt."""
+    teile = oid.strip("/").split("/")
+    return len(teile) > 1 and teile[1].isdigit() and int(teile[1]) in MASTER_KNOTEN
+
 
 def _lies_objekt(probe: Probe, oid: str) -> tuple:
     """Beide Endpunkte fragen und beide Antworten festhalten.
@@ -1542,6 +1554,7 @@ def fetch_objects(probe: Probe, menus: dict) -> dict:
             for gnmn in sorted(DEVICE_DB.get_objekte(fct.get("fct_type"))):
                 if (oid := f"{fct['prefix']}/{gnmn}/0") not in targets:
                     targets.append(oid)
+    targets = [oid for oid in targets if not _ist_master(oid)]
     if not targets:
         print("    keine strukturierten Objekte gefunden")
         return {}

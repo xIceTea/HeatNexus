@@ -9,7 +9,7 @@ import urllib.error
 import pytest
 
 WERKZEUG = Path(__file__).parent.parent / "tools" / "heatnexus_probe.py"
-URL = "http://192.0.2.10/api/1.0/object?OID=/1/90/0/2/90/0"
+URL = "http://192.0.2.10/api/1.0/object?OID=/1/80/0/2/90/0"
 
 
 @pytest.fixture(scope="module")
@@ -70,7 +70,7 @@ class Anlage:
     workers = 1
 
     def obj(self, oid):
-        if "/1/90/" in oid:
+        if "/1/80/" in oid:
             raise TimeoutError("timed out")
         return {"value": "1"}, 200
 
@@ -87,12 +87,12 @@ def test_ein_scheiterndes_objekt_beendet_den_schritt_nicht(probe_modul, monkeypa
     menus = {
         "functions": [
             {"prefix": "/1/15/0", "datapoints": {}},
-            {"prefix": "/1/90/32", "datapoints": {}},
+            {"prefix": "/1/80/32", "datapoints": {}},
         ]
     }
 
     objekte = probe_modul.fetch_objects(Anlage(), menus)
 
     assert objekte["/1/15/0/2/90/0"]["status"] == 200
-    assert objekte["/1/90/32/2/90/0"]["status"] == 0
-    assert "timed out" in objekte["/1/90/32/2/90/0"]["data"]["error"]
+    assert objekte["/1/80/32/2/90/0"]["status"] == 0
+    assert "timed out" in objekte["/1/80/32/2/90/0"]["data"]["error"]
