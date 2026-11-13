@@ -41,6 +41,11 @@ class _VerbindungBasis(CoordinatorEntity, SensorEntity):
         self._auswerten()
 
     def _auswerten(self) -> None:
+        # Nach dem Entladen fehlt der Lauf; der letzte Wert bleibt stehen.
+        if (lauf := self.coordinator.verbindung) is not None:
+            self._aus_lauf(lauf)
+
+    def _aus_lauf(self, lauf: Any) -> None:
         raise NotImplementedError
 
     async def async_added_to_hass(self) -> None:
@@ -61,14 +66,15 @@ class VerbindungSensor(_VerbindungBasis):
     _attr_translation_key = "verbindung"
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(ZUSTAENDE)
+    # Kennzahlen, die sich bei jedem Abruf ändern; die Oberfläche liest sie aus dem Zustand.
+    _unrecorded_attributes = frozenset(
+        {"abruf_ms", "median_ms", "fehlerquote", "antworten", "noch_offen", "abrufe_mit_rest"}
+    )
 
     def __init__(self, coordinator: Any) -> None:
         super().__init__(coordinator, "verbindung")
 
-    def _auswerten(self) -> None:
-        # Nach dem Entladen fehlt der Lauf; der letzte Wert bleibt stehen.
-        if (lauf := self.coordinator.verbindung) is None:
-            return
+    def _aus_lauf(self, lauf: Any) -> None:
         self._attr_native_value = lauf.stand.zustand
         self._attr_extra_state_attributes = lauf.attribute()
 
@@ -85,9 +91,7 @@ class AntwortzeitSensor(_VerbindungBasis):
     def __init__(self, coordinator: Any) -> None:
         super().__init__(coordinator, "antwortzeit")
 
-    def _auswerten(self) -> None:
-        if (lauf := self.coordinator.verbindung) is None:
-            return
+    def _aus_lauf(self, lauf: Any) -> None:
         wert = lauf.abruf_ms
         self._attr_native_value = None if wert is None else round(wert)
 
