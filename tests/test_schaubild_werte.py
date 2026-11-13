@@ -113,3 +113,14 @@ def test_ohne_beladegrad_bleibt_der_tooltip_bei_den_fuehlern(werte):
     assert werte["puffer_ohne_beladegrad"]["titel"] == (
         "Puffer – oben 60.5 °C, mitte 50.7 °C, unten 46.6 °C"
     )
+
+
+def test_eine_flaeche_ueber_dem_bild_traegt_den_tooltip(werte):
+    ziel = werte["puffer_zwei"]["ziel"]
+    assert ziel["titel"] == werte["puffer_zwei"]["titel"]
+    assert ziel["nachBild"] is True
+
+
+def test_ein_klick_auf_den_puffer_oeffnet_den_beladegrad(werte):
+    assert werte["puffer_zwei"]["ziel"]["klickbar"] is True
+    assert werte["puffer_zwei"]["ziel"]["geoeffnet"] == "sensor.bg"

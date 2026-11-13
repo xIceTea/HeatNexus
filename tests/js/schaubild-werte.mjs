@@ -148,6 +148,24 @@ ergebnis.schrift = ["klein", "mittel", "gross", undefined].map((groesse) =>
   panel(groesse ? { werte_groesse: groesse } : {})._schriftmass()
 );
 
+// Die Fläche über dem Bild: Tooltip, Klick und Platz direkt hinter der Zeichnung.
+const zielAngaben = (element, ziel) => {
+  if (!ziel) return null;
+  let geoeffnet = null;
+  const huelle = ziel.parentElement;
+  element.addEventListener("hass-more-info", (ereignis) => {
+    geoeffnet = ereignis.detail.entityId;
+  });
+  ziel.ausloesen("click");
+  const geschwister = huelle.children;
+  return {
+    titel: ziel.title,
+    klickbar: ziel.classList.contains("klickbar"),
+    nachBild: geschwister[geschwister.indexOf(ziel) - 1]?.tagName?.toLowerCase() === "img",
+    geoeffnet,
+  };
+};
+
 // Ein Puffer mit mittlerem Fühler und Beladegrad: zwei oder drei Zahlen nach der Darstellung.
 const puffer = (einstellungen, beladegrad = "38") => {
   const element = panel(einstellungen);
@@ -181,6 +199,7 @@ const puffer = (einstellungen, beladegrad = "38") => {
     marken: marken(karte),
     wort: karte.querySelector(".speicher").style.top,
     titel: karte.querySelector(".schichtung").title,
+    ziel: zielAngaben(element, karte.querySelector(".schichtung-ziel")),
   };
 };
 ergebnis.puffer_zwei = puffer({ werte_lage: "bild" });
