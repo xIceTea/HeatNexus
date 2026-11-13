@@ -8,6 +8,7 @@ Zeichensatzkette in `_decode`.
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import logging
 import time
@@ -163,6 +164,14 @@ class TransportMixin:
         elif status not in (401, 403):
             self.messreihe.antwort(dauer)
 
+    @asynccontextmanager
+    async def _anfrage(self, methode: str, url, **kwargs):
+        """Eine Anfrage in der Warteschlange; nach `close()` endet sie als `CannotConnect`."""
+        async with self._semaphore:
+            await self._ensure_session()
+            async with self._session.request(methode, url, **kwargs) as antwort:
+                yield antwort
+
     async def _ressource(self, pfad: str) -> str | None:
         """Eine Ressourcendatei der Anlage als Text lesen (`/res/<pfad>`).
 
@@ -170,12 +179,10 @@ class TransportMixin:
         sind eine Zugabe, kein Teil der Datenschnittstelle.
         """
         try:
-            async with self._semaphore:
-                await self._ensure_session()
-                async with self._session.request("GET", f"http://{self.host}/res/{pfad}") as ret:
-                    if ret.status != 200:
-                        return None
-                    return self._decode(await ret.read())
+            async with self._anfrage("GET", f"http://{self.host}/res/{pfad}") as ret:
+                if ret.status != 200:
+                    return None
+                return self._decode(await ret.read())
         except Exception as fehler:
             _LOGGER.debug("Ressource %s nicht lesbar: %s", pfad, fehler)
             return None
@@ -279,11 +286,9 @@ class TransportMixin:
         """
         for versuch in range(SCHREIB_WIEDERHOLUNGEN + 1):
             try:
-                async with self._semaphore:
-                    await self._ensure_session()
-                    async with self._session.request("PUT", url, data=rumpf) as ret:
-                        status = ret.status
-                        body = self._decode(await ret.read()) if status >= 400 else ""
+                async with self._anfrage("PUT", url, data=rumpf) as ret:
+                    status = ret.status
+                    body = self._decode(await ret.read()) if status >= 400 else ""
             except (aiohttp.ClientError, TimeoutError) as fehler:
                 raise mit_text(
                     WindhagerWriteError, "schreiben_nicht_erreichbar", oid=oid, anlage=self.host
@@ -324,14 +329,12 @@ class TransportMixin:
         {"value": [{"weekdays": [...], "switchPoints": [{"time","value"}...]}]}.
         """
         try:
-            async with self._semaphore:
-                await self._ensure_session()
-                async with self._session.request("GET", self._object_url(full_oid)) as ret:
-                    status = ret.status
-                    try:
-                        data = await ret.json()
-                    except Exception:
-                        data = None
+            async with self._anfrage("GET", self._object_url(full_oid)) as ret:
+                status = ret.status
+                try:
+                    data = await ret.json()
+                except Exception:
+                    data = None
             return data, status
         except Exception as e:
             _LOGGER.debug("Objekt %s nicht lesbar: %s", full_oid, e)
