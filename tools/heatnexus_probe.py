@@ -2155,7 +2155,7 @@ ABBRUECHE: contextvars.ContextVar[dict[str, str] | None] = contextvars.ContextVa
 def etappe(name: str, schuetzen: bool = True):
     """Ein sichtbarer Schritt mit laufender Zeit; geschützt, damit der Lauf weitergeht."""
     dauern = ETAPPEN.get()
-    begonnen = time.monotonic() if dauern is not None else 0.0
+    begonnen = time.monotonic()
     titel = _t(name)
     ausgabe_jetzt = _aktuelle_ausgabe()
     zeigen = bool(ausgabe_jetzt and ausgabe_jetzt.still)
@@ -2168,7 +2168,6 @@ def etappe(name: str, schuetzen: bool = True):
         if not schuetzen:
             if zeigen:
                 ausgabe_jetzt.zeichne("✗")
-                ausgabe_jetzt.status = None
             raise
         print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
         if (abbrueche := ABBRUECHE.get()) is not None:
@@ -2230,7 +2229,7 @@ def _host_lauf(
     fcts = sum(1 for f in offen if f.get("fctType", -1) >= 0)
     nvs = sum(1 for f in offen if f.get("fctType", -1) < 0)
     print(f"    {nodes} Knoten, {fcts} nutzbare Funktionen, {nvs} LON-Adressräume")
-    if _aktuelle_ausgabe() and _aktuelle_ausgabe().still:
+    if (laufende := _aktuelle_ausgabe()) and laufende.still:
         sage(f"    ✓ {_t('Struktur lesen')} · {_t('{} Regler', nodes)}")
     for node in structure:
         msg = node.get("FE01msg")
