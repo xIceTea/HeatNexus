@@ -191,14 +191,14 @@ export const UebersichtMixin = (Basis) =>
     this._klickbar(knoten, anlage.verbindung);
     this._bindungen.push(() => {
       const zustand = this._zustand(anlage.verbindung);
-      const immer = typeof this._stilwahl === "function" && this._stilwahl("verbindung") === "immer";
+      const immer = this._stilwahl("verbindung") === "immer";
       const art = VERBINDUNG[zustand?.state] || (immer ? VERBINDUNG_IMMER[zustand?.state] : null);
       knoten.style.display = art ? "" : "none";
       if (!art) return;
       knoten.classList.toggle("info", art.stufe === "info");
       knoten.classList.toggle("fehler", art.stufe === "fehler");
       const ms = zustand.attributes?.abruf_ms;
-      const mitZeit = typeof this._stilwahl !== "function" || this._stilwahl("verbindung_ms") !== "aus";
+      const mitZeit = this._stilwahl("verbindung_ms") !== "aus";
       const zusatz = mitZeit && ms != null ? ` · ${ms} ms` : "";
       knoten.lastChild.textContent = `${this._t("Verbindung")}: ${this._t(art.text)}${zusatz}`;
       knoten.firstChild.setAttribute("icon", art.symbol);

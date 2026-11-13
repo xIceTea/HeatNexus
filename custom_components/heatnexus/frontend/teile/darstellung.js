@@ -262,12 +262,13 @@ export const DarstellungMixin = (Basis) =>
           }),
         ],
       ];
-      const uebersicht = [];
-      uebersicht.push([
-        this._t("Verbindung"),
-        this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
-        ...this._verbindungWahl(wahl),
-      ]);
+      const uebersicht = [
+        [
+          this._t("Verbindung"),
+          this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
+          ...this._verbindungWahl(wahl),
+        ],
+      ];
       if (this._anlagen().length > 1) {
         uebersicht.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
       }
@@ -409,23 +410,24 @@ export const DarstellungMixin = (Basis) =>
 
     /** Lage und Größe der Werte und die Zahl der Pufferwerte, je mit eigenem Namen. */
     _werteWahl(wahl) {
-      return [
+      return this._unterwahlen(wahl, [
         [this._t("Lage"), "werte_lage"],
         [this._t("Größe"), "werte_groesse"],
         [this._t("Puffer"), "puffer_werte"],
-      ].map(([name, schluessel]) => {
-        const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
-        this._unterwahlStellen(block, true);
-        return block;
-      });
+      ]);
     }
 
     /** Wann die Plakette der Verbindung steht und ob die Antwortzeit dahinter steht. */
     _verbindungWahl(wahl) {
-      return [
+      return this._unterwahlen(wahl, [
         [this._t("Plakette"), "verbindung"],
         [this._t("Antwortzeit"), "verbindung_ms"],
-      ].map(([name, schluessel]) => {
+      ]);
+    }
+
+    /** Je Paar aus Name und Schlüssel ein Block mit eigener Wahl. */
+    _unterwahlen(wahl, paare) {
+      return paare.map(([name, schluessel]) => {
         const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
         this._unterwahlStellen(block, true);
         return block;

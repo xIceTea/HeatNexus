@@ -153,7 +153,6 @@ export const WERTELAGEN = [
   { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
 ];
 
-// Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
 export const VERBINDUNGSANZEIGEN = [
   { schluessel: "probleme", titel: "Bei Problemen", hinweis: "Nur wenn die Steuerung träge, überlastet oder gestört antwortet" },
   { schluessel: "immer", titel: "Immer", hinweis: "Auch bei stabiler Verbindung, mit Antwortzeit" },
@@ -164,6 +163,7 @@ export const VERBINDUNG_MS = [
   { schluessel: "aus", titel: "Aus", hinweis: "Nur der Zustand" },
 ];
 
+// Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
 export const PUFFERWERTE = [
   { schluessel: "zwei", titel: "Oben und unten", hinweis: "Zwei Temperaturen, dazwischen der Ladezustand" },
   { schluessel: "drei", titel: "Oben, mitte, unten", hinweis: "Drei Temperaturen, wo der Puffer einen mittleren Fühler meldet" },
