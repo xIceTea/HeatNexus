@@ -60,6 +60,14 @@ def test_werte_stehen_mit_einheit_und_farbe(bilanz):
     assert "68,0 °C" in bilanz["pufferText"] and bilanz["saeuleVerlauf"] is True
 
 
+def test_der_puffer_zeigt_schaltwerte_als_wort_nicht_als_on(bilanz):
+    """Harald (#58) sah „Ladepumpe on“ auf einer deutschen Oberfläche."""
+    assert "Pumpe" in bilanz["pufferText"] and "läuft" in bilanz["pufferText"]
+    # Ohne Angabe im Dashboard übersetzt Home Assistant den Zustand selbst.
+    assert "Läuft" in bilanz["pufferText"]
+    assert " on" not in bilanz["pufferText"] and "on " not in bilanz["pufferText"]
+
+
 def test_ein_klick_oeffnet_den_verlauf(bilanz):
     assert bilanz["klickOeffnet"] == "sensor.vorlauf"
     assert bilanz["anzeige"] == "45,2 °C"

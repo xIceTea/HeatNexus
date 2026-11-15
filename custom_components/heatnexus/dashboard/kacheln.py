@@ -157,7 +157,15 @@ def _puffer(teil: dict[str, Any], werte: dict[str, dict[str, Any]]) -> list[dict
     if beladegrad := werte.get("buffer_charge_level"):
         neben.append({"name": "Beladegrad", "entity": beladegrad["entity_id"], "stellen": 0})
     if pumpe := werte.get("buffer_charge_pump") or werte.get("buffer_charging"):
-        neben.append({"name": "Ladepumpe", "entity": pumpe["entity_id"]})
+        neben.append(
+            {
+                "name": "Ladepumpe",
+                "entity": pumpe["entity_id"],
+                **SCHALTER,
+                "an": "läuft",
+                "aus": "aus",
+            }
+        )
     karte["neben"] = neben
     return [{**karte, "grid_options": VOLLE_BREITE}]
 

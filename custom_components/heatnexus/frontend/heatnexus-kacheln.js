@@ -67,6 +67,10 @@ export function anzeige(hass, entity, stellen) {
   const s = zustand(hass, entity);
   if (!s) return LEER;
   const zahl = Number(s.state);
+  // Ein/Aus übersetzt Home Assistant selbst; roh stünde dort „on“.
+  if (Number.isNaN(zahl) && String(entity).startsWith("binary_sensor.") && typeof hass.formatEntityState === "function") {
+    return hass.formatEntityState(s);
+  }
   if (Number.isNaN(zahl)) return s.state;
   const einheit = s.attributes && s.attributes.unit_of_measurement;
   const d = stellen ?? (Math.abs(zahl) >= 100 ? 0 : 1);
@@ -342,11 +346,18 @@ class HeatNexusPuffer extends Grundkarte {
     const werte = this._el("div", "werte");
     const zeilen = [
       [c.name_oben, c.oben], [c.name_mitte, c.mitte], [c.name_unten, c.unten],
-      ...(c.neben || []).map((n) => [n.name, n.entity, n.stellen]),
+      ...(c.neben || []).map((n) => [n.name, n.entity, n.stellen, n]),
     ].filter(([, e]) => e);
-    for (const [name, entity, stellen] of zeilen) {
+    for (const [name, entity, stellen, eintrag] of zeilen) {
       const zelle = this._klickbar(this._el("div"), entity);
-      zelle.append(this._el("div", "klein", name || ""), this._el("div", "wert", anzeige(this._hass, entity, stellen)));
+      const wert = this._el("div", "wert");
+      if (eintrag && eintrag.art === "schalter") {
+        wert.textContent = schaltwert(this._hass, eintrag);
+        if (istAn(this._hass, entity)) wert.style.color = "var(--success-color, #3ecf8e)";
+      } else {
+        wert.textContent = anzeige(this._hass, entity, stellen);
+      }
+      zelle.append(this._el("div", "klein", name || ""), wert);
       werte.append(zelle);
     }
     rechts.append(werte);

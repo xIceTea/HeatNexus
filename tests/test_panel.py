@@ -1065,8 +1065,18 @@ def test_das_puffermodul_zeigt_den_puffer_statt_der_kesseltemperatur(panel):
                 "Puffer",
                 15,
                 [
-                    entitaet("sensor.kessel", "Kesseltemperatur", adresse="0/7", schluessel="boiler_temperature"),
-                    entitaet("sensor.oben", "Puffertemperatur oben", adresse="0/15", schluessel="buffer_top"),
+                    entitaet(
+                        "sensor.kessel",
+                        "Kesseltemperatur",
+                        adresse="0/7",
+                        schluessel="boiler_temperature",
+                    ),
+                    entitaet(
+                        "sensor.oben",
+                        "Puffertemperatur oben",
+                        adresse="0/15",
+                        schluessel="buffer_top",
+                    ),
                 ],
             )
         )

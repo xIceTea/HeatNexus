@@ -228,7 +228,15 @@ def test_puffer_mit_fuehlern_und_ladepumpe(uebersicht):
         None,
         "sensor.puffer_unten",
     )
-    assert puffer["neben"] == [{"name": "Ladepumpe", "entity": "sensor.puffer_pumpe"}]
+    assert puffer["neben"] == [
+        {
+            "name": "Ladepumpe",
+            "entity": "sensor.puffer_pumpe",
+            "art": "schalter",
+            "an": "läuft",
+            "aus": "aus",
+        }
+    ]
 
 
 def test_der_puffer_nennt_seinen_beladegrad_vor_der_ladepumpe(uebersicht):
@@ -240,7 +248,13 @@ def test_der_puffer_nennt_seinen_beladegrad_vor_der_ladepumpe(uebersicht):
     [karte] = [k for k in karten if k["type"] == "custom:heatnexus-puffer"]
     assert karte["neben"] == [
         {"name": "Beladegrad", "entity": "sensor.puffer_bg", "stellen": 0},
-        {"name": "Ladepumpe", "entity": "sensor.puffer_pumpe"},
+        {
+            "name": "Ladepumpe",
+            "entity": "sensor.puffer_pumpe",
+            "art": "schalter",
+            "an": "läuft",
+            "aus": "aus",
+        },
     ]
 
 
