@@ -582,9 +582,16 @@ async def _einrichtung_zuruecknehmen(
             _LOGGER.debug("Plattformen ließen sich nicht entladen: %s", fehler)
     await _aufgaben_beenden(daten.get("hintergrund", []))
     for anlage in anlagen:
-        await anlage.coordinator.async_shutdown()
-        await anlage.client.close()
+        await _anlage_schliessen(anlage.coordinator)
     entry.runtime_data = None
+
+
+async def _anlage_schliessen(coordinator: WindhagerDataUpdateCoordinator) -> None:
+    """Den Abruf einstellen und abwarten, die Bewertung sichern, dann die Verbindung schließen."""
+    await coordinator.async_shutdown()
+    if coordinator.verbindung is not None:
+        await coordinator.verbindung.async_entladen()
+    await coordinator.client.close()
 
 
 async def _aufgaben_beenden(aufgaben: list[asyncio.Task]) -> None:
@@ -690,11 +697,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # meldet „Connector is closed".
         await _aufgaben_beenden(daten.get("hintergrund", []))
         for coordinator in daten.get("coordinators", {}).values():
-            # Erst lösen: Ein noch laufender Abruf bewertet beim Abbruch sonst erneut.
-            lauf, coordinator.verbindung = coordinator.verbindung, None
-            if lauf is not None:
-                await lauf.async_entladen()
-            await coordinator.client.close()
+            await _anlage_schliessen(coordinator)
         # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
         # Zeitgeber der Einlese-Meldung und die Geräteliste des Dashboards;
         # bleiben sie stehen, meldet HeatNexus eine Anlage als bereit, die es

@@ -81,11 +81,6 @@ class TransportMixin:
                 ),
             )
 
-    @property
-    def geschlossen(self) -> bool:
-        """Nach `close()`: Der Client fragt die Anlage nicht mehr."""
-        return self._geschlossen
-
     async def close(self):
         """Close the client session."""
         self._geschlossen = True

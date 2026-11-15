@@ -72,6 +72,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self.bei_strukturaenderung: Callable[[], None] | None = None
         # Bewertet die Antwortzeiten nach jedem Abruf; gesetzt beim Einbinden.
         self.verbindung: VerbindungLauf | None = None
+        # Gehalten, solange ein Abruf läuft; `async_shutdown` wartet ihn damit ab.
+        self._abruf_laeuft = asyncio.Lock()
 
     def _langsamer_fragen(self) -> None:
         """Nach einem Fehlschlag den Abstand verdoppeln.
@@ -160,14 +162,21 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Werte der Anlage holen; danach die Verbindung bewerten, auch nach einem Fehlschlag."""
-        erfolgreich = False
-        try:
-            daten = await self._abrufen()
-            # Ein einzelner Fehlschlag liefert die alten Werte; gelungen ist nur ein Abruf ohne ihn.
-            erfolgreich = self._fehlschlaege == 0
-            return daten
-        finally:
-            self._verbindung_bewerten(erfolgreich)
+        async with self._abruf_laeuft:
+            erfolgreich = False
+            try:
+                daten = await self._abrufen()
+                # Ein einzelner Fehlschlag liefert alte Werte; gelungen ist nur ein Abruf ohne ihn.
+                erfolgreich = self._fehlschlaege == 0
+                return daten
+            finally:
+                self._verbindung_bewerten(erfolgreich)
+
+    async def async_shutdown(self) -> None:
+        """Keine neuen Abrufe mehr starten und einen laufenden zu Ende gehen lassen."""
+        await super().async_shutdown()
+        async with self._abruf_laeuft:
+            pass
 
     def _verbindung_bewerten(self, erfolgreich: bool) -> None:
         """Ein Fehler hier darf das Ergebnis des Abrufs nicht verdecken."""
@@ -208,8 +217,6 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self._zirkulation_pruefen(data)
                 return data
         except TimeoutError as err:
-            if self._nach_schliessen(err):
-                return self.data
             self._langsamer_fragen()
             self._ausfall_protokollieren(
                 "Zeitüberschreitung beim Abruf von %s (Versuch %d)",
@@ -230,8 +237,6 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
-            if self._nach_schliessen(err):
-                return self.data
             self._langsamer_fragen()
             self._ausfall_protokollieren("Fehler beim Abruf von %s: %s", self.host, err)
             if self._fehlschlaege >= 3:
@@ -247,13 +252,6 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                     UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
                 ) from err
             return self.data
-
-    def _nach_schliessen(self, err: BaseException) -> bool:
-        """Nach dem Entladen ist ein gescheiterter Abruf kein Ausfall der Anlage."""
-        if getattr(self.client, "geschlossen", False) is not True:
-            return False
-        _LOGGER.debug("Abruf von %s nach dem Schließen beendet: %s", self.host, err)
-        return True
 
     async def werte_nachlesen(self, oids: list[str]) -> dict | None:
         """Einzelne Adressen sofort lesen und in den Bestand legen; None bei Fehlschlag.

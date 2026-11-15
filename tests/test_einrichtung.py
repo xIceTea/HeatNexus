@@ -133,6 +133,9 @@ class AttrappenClient:
     def steuerung_kennung(self) -> str:
         return "0000ABCD1234"
 
+    def strukturaenderung_abholen(self) -> bool:
+        return False
+
     def register_poll_oid(self, oid: str) -> None:
         self.gepollt.add(oid)
 
@@ -536,6 +539,50 @@ async def test_beim_entladen_bleiben_keine_laufzeitdaten_stehen(hass, eintrag):
     await hass.async_block_till_done()
 
     assert modul.laufzeitdaten(eintrag) is None
+
+
+async def test_das_entladen_wartet_den_laufenden_abruf_ab(hass, eintrag, caplog):
+    """Die Verbindung schließt erst, wenn der laufende Abruf beendet ist."""
+    import logging
+
+    import custom_components.heatnexus as modul
+
+    ablauf: list[str] = []
+    laeuft, freigabe = asyncio.Event(), asyncio.Event()
+
+    class Haengt(AttrappenClient):
+        anhalten = False
+
+        async def fetch_all(self, budget: float | None = None) -> dict[str, Any]:
+            if self.anhalten:
+                ablauf.append("abruf")
+                laeuft.set()
+                await freigabe.wait()
+                ablauf.append("abruf fertig")
+            return await super().fetch_all(budget)
+
+        async def close(self) -> None:
+            ablauf.append("schließen")
+            await super().close()
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", Haengt):
+        assert await hass.config_entries.async_setup(eintrag.entry_id) is True
+        await hass.async_block_till_done()
+    (koordinator,) = modul.laufzeitdaten(eintrag)["coordinators"].values()
+    koordinator.client.anhalten = True
+    abruf = asyncio.create_task(koordinator.async_refresh())
+    await laeuft.wait()
+    caplog.clear()
+
+    entladen = asyncio.create_task(hass.config_entries.async_unload(eintrag.entry_id))
+    await asyncio.wait({entladen}, timeout=0.2)
+    freigabe.set()
+    assert await entladen is True
+    await abruf
+
+    assert ablauf == ["abruf", "abruf fertig", "schließen"]
+    warnungen = [z for z in caplog.records if z.levelno >= logging.WARNING]
+    assert not [z for z in warnungen if z.name.startswith("custom_components.heatnexus")]
 
 
 # ---------------------------------------------------------------------------
