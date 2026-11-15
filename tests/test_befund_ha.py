@@ -408,8 +408,10 @@ def test_lieferung_speichert_nur_eigene_werte():
     assert not {"art", "weise", "heizwert", "wirkungsgrad"} & set(lager)
 
 
-async def test_heizwert_lehnt_eine_brennstofflieferung_ab(hass, anlage):
-    from homeassistant.exceptions import ServiceValidationError
+@pytest.fixture
+async def brennstoffzahlen(hass, anlage):
+    """Vorrat und Heizwert auf einer Zahlenplattform von HeatNexus, der Dienst angemeldet."""
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
 
     from custom_components.heatnexus.befund import brennstoff_entitaeten as be
 
@@ -418,12 +420,50 @@ async def test_heizwert_lehnt_eine_brennstofflieferung_ab(hass, anlage):
     purowin_abgas(sammler)
     zahlen = []
     be.anmelden_number(hass, eintrag, zahlen.extend)
+    plattform = MockEntityPlatform(hass, domain="number", platform_name="heatnexus")
+    await plattform.async_add_entities(zahlen)
+    be.dienst_anmelden(plattform)
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
     heizwert = next(z for z in zahlen if z.unique_id.endswith("heizwert"))
-    heizwert.hass = hass
-    with pytest.raises(ServiceValidationError) as fehler:
-        await heizwert.async_geliefert(menge=5.0)
-    assert fehler.value.translation_key == "kein_brennstoffvorrat"
+    return sammler, vorrat, heizwert
+
+
+async def _liefern(hass, ziel: str, **daten) -> None:
+    await hass.services.async_call(
+        "heatnexus", "brennstoff_geliefert", daten, target={"entity_id": ziel}, blocking=True
+    )
+
+
+async def test_nur_der_vorrat_traegt_das_merkmal_lieferung(hass, brennstoffzahlen):
+    from custom_components.heatnexus.befund.brennstoff_entitaeten import VorratMerkmal
+
+    _, vorrat, heizwert = brennstoffzahlen
+    assert vorrat.supported_features & VorratMerkmal.LIEFERUNG
+    assert not (heizwert.supported_features or 0) & VorratMerkmal.LIEFERUNG
+    assert hass.states.get(vorrat.entity_id).attributes["supported_features"] == 1
+
+
+async def test_dienst_traegt_die_lieferung_in_den_vorrat_ein(hass, brennstoffzahlen):
+    sammler, vorrat, _ = brennstoffzahlen
+    await _liefern(hass, vorrat.entity_id, menge=20.0, rest=5.0)
+    assert sammler.archiv.lager(KESSEL)["bestand"] == 25.0
+
+
+async def test_dienst_lehnt_eine_andere_zahl_ab(hass, brennstoffzahlen):
+    """Eine ausdrücklich genannte Zahl ohne Merkmal bricht ab, ohne etwas einzutragen."""
+    from homeassistant.exceptions import ServiceNotSupported
+
+    sammler, _, heizwert = brennstoffzahlen
+    with pytest.raises(ServiceNotSupported):
+        await _liefern(hass, heizwert.entity_id, menge=5.0)
     assert sammler.archiv.lager(KESSEL) == {}
+
+
+async def test_dienst_an_alle_trifft_nur_den_vorrat(hass, brennstoffzahlen):
+    """Ein breites Ziel überspringt Zahlen ohne Merkmal, statt abzubrechen."""
+    sammler, _, _ = brennstoffzahlen
+    await _liefern(hass, "all", menge=10.0, rest=0.0)
+    assert sammler.archiv.lager(KESSEL)["bestand"] == 10.0
 
 
 async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):

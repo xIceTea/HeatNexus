@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from enum import IntFlag
 from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
@@ -10,11 +11,10 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback, EntityPlatform
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
-from ..exceptions import mit_text
 from . import brennstoff
 from .abgasziele import AbgasZiel
 from .brennstofflauf import einstellung, liefern, vorgabe, ziele_von
@@ -22,13 +22,24 @@ from .entitaeten import ZielEntitaet, je_ziel_anmelden
 from .laufzeit import Sammler, unique_id
 
 
-class OhneLieferung:
-    """Der Dienst `brennstoff_geliefert` erreicht jede HeatNexus-Zahl; nur der Vorrat nimmt ihn an."""
+class VorratMerkmal(IntFlag):
+    """Merkmal des Vorrats; Home Assistant ruft `brennstoff_geliefert` nur an Zahlen mit LIEFERUNG."""
 
-    entity_id: str
+    LIEFERUNG = 1
 
-    async def async_geliefert(self, menge: float, rest: float | None = None) -> None:
-        raise mit_text(ServiceValidationError, "kein_brennstoffvorrat", entitaet=self.entity_id)
+
+@callback
+def dienst_anmelden(plattform: EntityPlatform) -> None:
+    """`brennstoff_geliefert` an der Zahlenplattform; `rest` ist der Vorrat vor der Lieferung."""
+    plattform.async_register_entity_service(
+        "brennstoff_geliefert",
+        {
+            vol.Required("menge"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+            vol.Optional("rest"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        },
+        "async_geliefert",
+        required_features=[VorratMerkmal.LIEFERUNG],
+    )
 
 
 class _Lager(ZielEntitaet):
@@ -89,6 +100,7 @@ class BrennstoffVorrat(_Lager, NumberEntity):
     _attr_native_min_value = 0.0
     _attr_native_max_value = 100000.0
     _attr_native_step = 0.01
+    _attr_supported_features = VorratMerkmal.LIEFERUNG
 
     def __init__(self, anlage_id: str, ziel: AbgasZiel) -> None:
         super().__init__(anlage_id, ziel)
@@ -115,7 +127,7 @@ class BrennstoffVorrat(_Lager, NumberEntity):
         s.aktualisieren()
 
 
-class BrennstoffEinstellung(OhneLieferung, _Lager, NumberEntity):
+class BrennstoffEinstellung(_Lager, NumberEntity):
     """Heizwert je Lagereinheit oder, am LogWIN, Füllmenge je Anheizvorgang."""
 
     _attr_mode = NumberMode.BOX

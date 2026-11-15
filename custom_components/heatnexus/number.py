@@ -6,9 +6,8 @@ from homeassistant.components.number import NumberDeviceClass, NumberEntity, Num
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-import voluptuous as vol
 
-from .befund.brennstoff_entitaeten import OhneLieferung, anmelden_number
+from .befund.brennstoff_entitaeten import anmelden_number, dienst_anmelden
 from .entity import WindhagerEntity, async_setup_entities
 from .helpers import nachkommastellen
 
@@ -26,18 +25,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up Windhager numbers from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"number": WindhagerNumber})
     anmelden_number(hass, entry, async_add_entities)
-    # Eine Lieferung hängt am Vorrat des Kessels; `rest` ist der Vorrat vor der Lieferung.
-    entity_platform.async_get_current_platform().async_register_entity_service(
-        "brennstoff_geliefert",
-        {
-            vol.Required("menge"): vol.All(vol.Coerce(float), vol.Range(min=0)),
-            vol.Optional("rest"): vol.All(vol.Coerce(float), vol.Range(min=0)),
-        },
-        "async_geliefert",
-    )
+    dienst_anmelden(entity_platform.async_get_current_platform())
 
 
-class WindhagerNumber(OhneLieferung, WindhagerEntity, NumberEntity):
+class WindhagerNumber(WindhagerEntity, NumberEntity):
     """Writable number with enforced min/max/step from the Betreiberebene."""
 
     _require_value_for_available = False

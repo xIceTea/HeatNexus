@@ -200,6 +200,8 @@ brennstoff_geliefert:
   description: >-
     Trägt eine Lieferung oder eigene Befüllung in den Vorrat des Kessels ein.
     Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch.
+  # `supported_features` nimmt hier nur Merkmale aus Home Assistant selbst an.
+  # Den Vorrat wählt `required_features` (VorratMerkmal) beim Aufruf aus.
   target:
     entity:
       integration: heatnexus
