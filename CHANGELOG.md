@@ -6,19 +6,30 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.16.0-beta.3] - 2026-11-15
 
 ### Neu
 
-- Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
-- Der Systemstatus zeigt den Beladegrad des Puffers, wo die Anlage ihn meldet.
-- Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
+**Puffer**
+- Der Systemstatus zeigt den Beladegrad des Puffers, wo die Anlage ihn meldet ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Puffer-Kachel im Dashboard zeigt den Beladegrad ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Entität „Pufferladung“ zeigt am Puffermodul mit Kesselumschaltung, ob der Puffer lädt.
+
+**Meldungen**
+- Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
+
+**Diagnose**
+- Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
+
+### Geändert
+
+- Umschaltventile erscheinen am Puffermodul nur noch mit Automatikkessel.
 
 ### Behoben
 
-- Das Schaubild zeigt am Puffermodul mit Kesselumschaltung Ladung und laufende Ladepumpe.
-- Umschaltventile erscheinen am Puffermodul nur noch mit Automatikkessel.
+- Das Schaubild zeigt am Puffermodul mit Kesselumschaltung Ladung und laufende Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Schaubild-Karte im Dashboard folgt der Einstellung unter „Darstellung“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Am Puffer erscheint der Tooltip wieder, und ein Klick öffnet die Details ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 
 ## [1.16.0-beta.2] - 2026-11-13
 
