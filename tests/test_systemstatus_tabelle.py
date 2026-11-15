@@ -73,11 +73,12 @@ def test_jeder_erzeuger_im_schaubild_fuehrt_statuszeilen():
 def test_der_lauf_steht_vor_den_gemeinsamen_zeilen_und_den_werten():
     geraete = load_standalone("geraete")
     titel = [z.titel for z in geraete.statuszeilen.EINZELN if z.panel]
-    assert titel[:6] == [
+    assert titel[:7] == [
         "Betriebszustand",
         "Laufzeit",
         "Laufzeit heute",
         "Außentemperatur",
+        "Beladegrad",
         "SG Ready",
         "Kesselleistung",
     ]
@@ -299,3 +300,23 @@ def test_die_zeile_lagerraum_zeigt_den_befuellgrad_nicht_die_fehlerschwelle():
     ]
     treffer = schema.treffer(entitaeten, (re.compile(lager.muster, re.IGNORECASE),))
     assert [e["entity_id"] for e in treffer] == ["sensor.lagerraum"]
+
+
+@requires_ha()
+def test_der_beladegrad_steht_einmal_im_systemstatus():
+    """Kessel und Puffermodul eines LogWIN melden ihn beide; der Systemstatus zeigt ihn einmal."""
+    from custom_components.heatnexus.panel.daten import systemstatus
+
+    anlage = _anlage(
+        (
+            10,
+            [
+                _e("sensor.kessel_phase", "Betriebsphase"),
+                _e("sensor.kessel_beladegrad", "Puffer-Beladegrad"),
+            ],
+        ),
+        (15, [_e("sensor.puffer_beladegrad", "Puffer-Beladegrad")]),
+        (14, [_e("sensor.aussen", "Außentemperatur")]),
+    )
+    status, _ = systemstatus(anlage)
+    assert [z["titel"] for z in status] == ["Betriebszustand", "Außentemperatur", "Beladegrad"]
