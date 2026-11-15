@@ -37,7 +37,16 @@ _LOGGER = logging.getLogger(__name__)
 class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
     """Fragt eine Anlage zyklisch ab."""
 
-    def __init__(self, hass, client, entry, host, label, update_interval=UPDATE_INTERVAL):
+    def __init__(
+        self,
+        hass,
+        client,
+        entry,
+        host,
+        label,
+        verbindung: VerbindungLauf,
+        update_interval=UPDATE_INTERVAL,
+    ):
         """Coordinator für genau eine Anlage."""
         super().__init__(
             hass,
@@ -70,8 +79,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self._ausfall_gemeldet = False
         # Startet den Vollabzug, wenn sich der Aufbau der Anlage ändert; gesetzt beim Einbinden.
         self.bei_strukturaenderung: Callable[[], None] | None = None
-        # Bewertet die Antwortzeiten nach jedem Abruf; gesetzt beim Einbinden.
-        self.verbindung: VerbindungLauf | None = None
+        # Bewertet die Antwortzeiten nach jedem Abruf.
+        self.verbindung = verbindung
         # Gehalten, solange ein Abruf läuft; `async_shutdown` wartet ihn damit ab.
         self._abruf_laeuft = asyncio.Lock()
 
@@ -181,7 +190,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
     def _verbindung_bewerten(self, erfolgreich: bool) -> None:
         """Ein Fehler hier darf das Ergebnis des Abrufs nicht verdecken."""
         messreihe = getattr(self.client, "messreihe", None)
-        if self.verbindung is None or not isinstance(messreihe, Messreihe):
+        if not isinstance(messreihe, Messreihe):
             return
         try:
             self.verbindung.nach_abruf(messreihe, self.client.noch_offen, erfolgreich)

@@ -246,8 +246,9 @@ async def test_koordinator_bewertet_nach_jedem_abruf(hass):
         return {"oids": {}, "devices": []}
 
     client.fetch_all = AsyncMock(side_effect=fetch_all)
-    coordinator = WindhagerDataUpdateCoordinator(hass, client, eintrag, HOST, "Heizhaus", 30)
-    coordinator.verbindung = lauf_bauen(hass)
+    coordinator = WindhagerDataUpdateCoordinator(
+        hass, client, eintrag, HOST, "Heizhaus", lauf_bauen(hass), 30
+    )
     await coordinator._async_update_data()
     assert coordinator.verbindung.fenster.antworten == 25
     assert IM_ABRUF.get() is False
@@ -274,7 +275,9 @@ async def test_nur_der_abruf_selbst_zaehlt_fuer_die_antwortzeit(hass):
         return {"oids": {}, "devices": []}
 
     client.fetch_all = AsyncMock(side_effect=fetch_all)
-    coordinator = WindhagerDataUpdateCoordinator(hass, client, eintrag, HOST, "Heizhaus", 30)
+    coordinator = WindhagerDataUpdateCoordinator(
+        hass, client, eintrag, HOST, "Heizhaus", lauf_bauen(hass), 30
+    )
     coordinator.bei_strukturaenderung = lambda: gesehen.setdefault("danach", IM_ABRUF.get())
     await coordinator._async_update_data()
     assert gesehen == {"abruf": True, "danach": False}
@@ -317,8 +320,10 @@ async def test_abbruch_nach_dem_entladen_meldet_nichts(hass):
     client = MagicMock()
     client.noch_offen = 0
     client.messreihe = Messreihe(uhr=uhr)
-    coordinator = WindhagerDataUpdateCoordinator(hass, client, MagicMock(), HOST, "Heizhaus", 30)
-    lauf = coordinator.verbindung = lauf_bauen(hass, ruhige_stunden())
+    lauf = lauf_bauen(hass, ruhige_stunden())
+    coordinator = WindhagerDataUpdateCoordinator(
+        hass, client, MagicMock(), HOST, "Heizhaus", lauf, 30
+    )
     gestoert_bis_gemeldet(hass, lauf, client.messreihe, uhr)
     await lauf.async_entladen()
     abruf(client.messreihe, uhr, anzahl=10, fehler=10)
@@ -505,23 +510,6 @@ async def test_antwortzeit_ohne_genug_antworten_ist_leer(hass):
     assert AntwortzeitSensor(coordinator).native_value is None
 
 
-async def test_nach_dem_entladen_behalten_die_sensoren_ihren_wert(hass):
-    from custom_components.heatnexus.sensor.verbindung import AntwortzeitSensor, VerbindungSensor
-
-    coordinator = sensor_koordinator(lauf_bauen(hass, ruhige_stunden()))
-    uhr = Uhr()
-    reihe = Messreihe(uhr=uhr)
-    abruf(reihe, uhr, dauer_s=0.12)
-    coordinator.verbindung.nach_abruf(reihe, 0)
-    zustand, zeit = VerbindungSensor(coordinator), AntwortzeitSensor(coordinator)
-
-    coordinator.verbindung = None
-    zustand._auswerten()
-    zeit._auswerten()
-    assert zustand.native_value == vb.STABIL
-    assert zeit.native_value == 120
-
-
 def ablauf_koordinator(hass, uhr):
     """Ein echter Koordinator; jeder Abruf liefert dieselben Daten und 25 Antworten."""
     client = MagicMock()
@@ -540,8 +528,9 @@ def ablauf_koordinator(hass, uhr):
     client.fetch_all = AsyncMock(side_effect=fetch_all)
     eintrag = MagicMock()
     eintrag.entry_id = "abc123"
-    coordinator = WindhagerDataUpdateCoordinator(hass, client, eintrag, HOST, "Heizhaus", 30)
-    coordinator.verbindung = lauf_bauen(hass)
+    coordinator = WindhagerDataUpdateCoordinator(
+        hass, client, eintrag, HOST, "Heizhaus", lauf_bauen(hass), 30
+    )
     return coordinator, fetch_all
 
 
@@ -612,14 +601,6 @@ def test_die_sensoren_der_verbindung_gelten_nicht_als_verwaist():
     for kennung in ("steuerung-SN1-verbindung", "steuerung-SN1-antwortzeit"):
         assert domaenen[kennung] == "sensor"
         assert bekannt[kennung] is True
-
-
-def test_diagnose_ohne_lauf_ist_leer():
-    from custom_components.heatnexus.diagnostics import _verbindung
-
-    coordinator = MagicMock()
-    coordinator.verbindung = None
-    assert _verbindung(coordinator) == {}
 
 
 async def test_ein_gescheiterter_abruf_unterbricht_die_ueberlastung_nicht(hass):

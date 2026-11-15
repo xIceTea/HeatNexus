@@ -27,7 +27,7 @@ def coordinator(hass, monkeypatch):
     client = MagicMock()
     client.auth_errors = 0
     client.fetch_oids = AsyncMock(return_value={OID: "1"})
-    k = WindhagerDataUpdateCoordinator(hass, client, eintrag, "192.0.2.1", "Heizhaus")
+    k = WindhagerDataUpdateCoordinator(hass, client, eintrag, "192.0.2.1", "Heizhaus", MagicMock())
     k.data = {"oids": {OID: "0"}, "devices": []}
     monkeypatch.setattr(coordinator_modul.asyncio, "sleep", AsyncMock())
     return k

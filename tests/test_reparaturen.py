@@ -40,7 +40,7 @@ def coordinator(hass):
     client.auth_errors = 0
     client.fetch_all = AsyncMock(return_value={"oids": {}, "devices": []})
     return WindhagerDataUpdateCoordinator(
-        hass, client, eintrag, "192.0.2.1", "Heizhaus", update_interval=30
+        hass, client, eintrag, "192.0.2.1", "Heizhaus", MagicMock(), update_interval=30
     )
 
 

@@ -73,6 +73,7 @@ def _coordinator():
         update_interval=None,
         _fehlschlaege=0,
         client=_client(),
+        verbindung=SimpleNamespace(diagnose=dict),
         data={
             "devices": [
                 {

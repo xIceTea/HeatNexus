@@ -41,9 +41,7 @@ class _VerbindungBasis(CoordinatorEntity, SensorEntity):
         self._auswerten()
 
     def _auswerten(self) -> None:
-        # Nach dem Entladen fehlt der Lauf; der letzte Wert bleibt stehen.
-        if (lauf := self.coordinator.verbindung) is not None:
-            self._aus_lauf(lauf)
+        self._aus_lauf(self.coordinator.verbindung)
 
     def _aus_lauf(self, lauf: Any) -> None:
         raise NotImplementedError
@@ -51,8 +49,7 @@ class _VerbindungBasis(CoordinatorEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         # Der Koordinator weckt nur bei geänderten Daten; die Bewertung ändert sich auch ohne sie.
         await super().async_added_to_hass()
-        if (lauf := self.coordinator.verbindung) is not None:
-            self.async_on_remove(lauf.abonnieren(self._bewertet))
+        self.async_on_remove(self.coordinator.verbindung.abonnieren(self._bewertet))
 
     @callback
     def _bewertet(self) -> None:
@@ -101,6 +98,5 @@ def anmelden(hass: HomeAssistant, entry: Any, async_add_entities: Any) -> None:
     async_add_entities(
         sensor(coordinator)
         for coordinator in entry.runtime_data["coordinators"].values()
-        if coordinator.verbindung is not None
         for sensor in (VerbindungSensor, AntwortzeitSensor)
     )

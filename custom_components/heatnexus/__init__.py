@@ -380,10 +380,10 @@ async def _anlage_verbinden(
     if restored and not client.geraeteinfo:
         await _geraeteinfo_nachholen(client, mem_cache, cache_key)
 
+    verbindung = await VerbindungLauf.laden(hass, entry.entry_id, host, label)
     coordinator = WindhagerDataUpdateCoordinator(
-        hass, client, entry, host, label, scope["update_interval"]
+        hass, client, entry, host, label, verbindung, scope["update_interval"]
     )
-    coordinator.verbindung = await VerbindungLauf.laden(hass, entry.entry_id, host, label)
     await _vorabstand_setzen(entry, client, coordinator, host)
     await coordinator.async_config_entry_first_refresh()
     return _Anlage(
@@ -589,8 +589,7 @@ async def _einrichtung_zuruecknehmen(
 async def _anlage_schliessen(coordinator: WindhagerDataUpdateCoordinator) -> None:
     """Den Abruf einstellen und abwarten, die Bewertung sichern, dann die Verbindung schließen."""
     await coordinator.async_shutdown()
-    if coordinator.verbindung is not None:
-        await coordinator.verbindung.async_entladen()
+    await coordinator.verbindung.async_entladen()
     await coordinator.client.close()
 
 
