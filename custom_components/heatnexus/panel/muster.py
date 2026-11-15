@@ -41,6 +41,9 @@ KENNWERT_JE_FCT: dict[int, tuple[Zeile, ...]] = {
         # der Baureihe. Ohne Beleg kein Schlüssel.
         (r"^temperatur ist$", "Temperatur", "mdi:thermometer", ()),
     ),
+    # Das Puffermodul mit Kesselumschaltung führt auch die Kesseltemperatur;
+    # sie gehört in die Zeile des Kessels, nicht in die des Puffers.
+    15: ((r"puffer oben", "Puffer oben", "mdi:storage-tank", ("buffer_top",)),),
     # Das Pumpen-/Relaismodul zeigt seine **Anforderung**, nicht seinen Fühler.
     # Dessen Kesseltemperatur (0/7) misst bei einer Fernwärmeübergabe den
     # Speicher auf der anderen Seite – in der Übersicht sagt sie nichts. Der

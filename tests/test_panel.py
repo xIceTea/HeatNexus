@@ -1057,6 +1057,24 @@ def test_ein_unbekanntes_anlagenteil_bekommt_seinen_leitwert(panel):
     assert [k["entity"] for k in kennwerte] == ["sensor.leitwert"]
 
 
+def test_das_puffermodul_zeigt_den_puffer_statt_der_kesseltemperatur(panel):
+    """Das Modul fct 15 führt auch die Kesseltemperatur; die steht schon beim Kessel."""
+    daten = panel.anlage_daten(
+        anlage(
+            teil(
+                "Puffer",
+                15,
+                [
+                    entitaet("sensor.kessel", "Kesseltemperatur", adresse="0/7", schluessel="boiler_temperature"),
+                    entitaet("sensor.oben", "Puffertemperatur oben", adresse="0/15", schluessel="buffer_top"),
+                ],
+            )
+        )
+    )
+    zeile = next(k for k in daten["kennwerte"] if k["titel"] == "Puffer")
+    assert (zeile["entity"], zeile["untertitel"]) == ("sensor.oben", "Puffer oben")
+
+
 def test_das_namensmuster_geht_der_uebersichtsebene_vor(panel):
     """Es ist an einer echten Anlage entstanden, die Ebene nur abgeleitet."""
     daten = panel.anlage_daten(

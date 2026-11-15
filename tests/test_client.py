@@ -798,3 +798,45 @@ def test_ohne_pufferspeicher_entfaellt_die_pufferladung(client_module):
 
     assert {d["name"] for d in client.devices} == {"pufferladepumpe", "umschaltventil_1"}
     assert "/1/17/0/2/9/0" not in client.oids
+
+
+def _logwin_mit_spiegel(client_module, mit_modul: bool):
+    """LogWIN (fct 10) mit gespiegeltem Puffer, auf Wunsch neben dem Puffermodul (fct 15)."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    eintraege = [(65, 10, "0/7"), (65, 10, "0/15"), (65, 10, "23/87")]
+    if mit_modul:
+        eintraege += [(17, 15, "0/15"), (17, 15, "23/87")]
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/{knoten}/0/{adresse}/0", fct_type=fct, name=f"{fct} {adresse}", type="sensor"
+        )
+        for knoten, fct, adresse in eintraege
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    return client
+
+
+def test_am_logwin_entfallen_die_vom_puffermodul_gespiegelten_werte(client_module):
+    client = _logwin_mit_spiegel(client_module, mit_modul=True)
+    client._spiegel_verwerfen()
+
+    assert {d["name"] for d in client.devices} == {"10 0/7", "15 0/15", "15 23/87"}
+    assert client.oids == {"/1/65/0/0/7/0", "/1/17/0/0/15/0", "/1/17/0/23/87/0"}
+
+
+def test_ohne_puffermodul_behaelt_das_logwin_seinen_puffer(client_module):
+    client = _logwin_mit_spiegel(client_module, mit_modul=False)
+    client._spiegel_verwerfen()
+
+    assert len(client.devices) == 3
+
+
+def test_das_puffermodul_fuehrt_seine_betriebsart_als_eigene_entitaet():
+    """Neben der abgeleiteten Pufferladung: Der Verlauf soll 14, 15 und 16 unterscheiden."""
+    from custom_components.heatnexus.geraete import umschaltung
+
+    eintraege = [e for e in umschaltung.ENTITAETEN if e["oid"] == "/2/9/0"]
+    art = next(e for e in eintraege if e["platform"] == "enum_sensor")
+    assert art["enum"] == "2/9"
+    # Ohne Zusatz behält die Entität die Kennung, die sie vor der Tabelle hatte.
+    assert "key_suffix" not in art

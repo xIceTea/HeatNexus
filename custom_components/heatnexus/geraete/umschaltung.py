@@ -54,7 +54,20 @@ ENTITAETEN: list[dict] = [
         "key_suffix": "pufferladung",
         "device_class": "running",
     },
+    # Die Betriebsart selbst, damit Verlauf und Diagnose zeigen, ob das Modul
+    # vom Automatik- oder vom FB-Kessel lädt oder entlädt. Ohne Zusatz, damit
+    # die Kennung der Entität aus den Herstellerebenen erhalten bleibt.
+    {
+        "oid": "/2/9/0",
+        "name": "Betriebsart",
+        "platform": "enum_sensor",
+        "enum": "2/9",
+    },
 ]
+
+# Der Kessel spiegelt Puffertemperaturen und Beladegrad des Moduls. Das Modul
+# führt sie selbst; am Kessel stünden sie ein zweites Mal.
+SPIEGEL: dict[int, tuple[str, ...]] = {10: ("0/15", "0/16", "0/17", "23/87")}
 
 # `20/2` Pufferspeicher und `20/0` Automatikkessel legen fest, was das Modul führt:
 # ohne Puffer keine Ladung, ohne Automatikkessel keine Umschaltventile.

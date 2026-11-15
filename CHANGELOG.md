@@ -6,6 +6,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unreleased]
+
+### Neu
+
+- Das Puffermodul mit Kesselumschaltung zeigt seine Betriebsart (Automatikkessel, FB-Kessel, Pufferspeicher) als eigene Entität ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+
+### Geändert
+
+- Puffertemperaturen und Beladegrad erscheinen nur noch am Puffermodul, nicht ein zweites Mal am Kessel ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Im Systemstatus zeigt das Puffermodul „Puffer oben“ statt der Kesseltemperatur ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+
 ## [1.16.0-beta.3] - 2026-11-15
 
 ### Neu

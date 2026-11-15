@@ -309,6 +309,7 @@ class MetadatenMixin:
         """Die Schritte nach dem Abgleich: Markierungen, Filter, abgeleitete Werte."""
         self._neustart_markieren()
         self._rollen_filter(meta)
+        self._spiegel_verwerfen()
         # Erst die Doppelten heraus, dann der Fühlertest: Er kostet eine Anfrage
         # je Netzwerkvariable, und was ein Datenpunkt schon führt, wird nicht
         # erst gemessen und dann verworfen.
@@ -484,6 +485,28 @@ class MetadatenMixin:
         self.devices = behalten
         # Eine Adresse bleibt im Abruf, solange eine andere Entität auf ihr sitzt.
         self.oids -= set(entfallen) - {d.get("oid") for d in behalten}
+
+    def _spiegel_verwerfen(self) -> None:
+        """Gespiegelte Werte verwerfen, wenn das Modul, das sie führt, an der Anlage hängt."""
+        vorhanden = {d.get("fct_type") for d in self.devices}
+        weg = {
+            (an, adresse)
+            for modul, spiegel in geraete.SPIEGEL.items()
+            if modul in vorhanden
+            for an, adressen in spiegel.items()
+            for adresse in adressen
+        }
+        if not weg:
+            return
+        behalten = [
+            d for d in self.devices if (d.get("fct_type"), gnmn_aus_oid(d.get("oid"))) not in weg
+        ]
+        if len(behalten) == len(self.devices):
+            return
+        entfallen = {d.get("oid") for d in self.devices} - {d.get("oid") for d in behalten}
+        _LOGGER.debug("%d gespiegelte Werte verworfen", len(self.devices) - len(behalten))
+        self.devices = behalten
+        self.oids -= entfallen
 
     def _nach_praefix(self) -> dict[str, dict[str, dict]]:
         """Deskriptoren nach Funktionspräfix und Kennung sortiert.

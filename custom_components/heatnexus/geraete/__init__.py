@@ -59,6 +59,7 @@ KANNFELDER = (
     "FUELLGRAD",
     "BEDINGUNGEN",
     "TABELLEN",
+    "SPIEGEL",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -139,6 +140,11 @@ TABELLEN: dict[str, dict[int, str]] = {
     adresse: tabelle
     for m in MODULE
     for adresse, tabelle in (getattr(m, "TABELLEN", None) or {}).items()
+}
+
+# Adressen, die ein anderer Funktionstyp nur spiegelt: Modul -> {gespiegelt an: Adressen}.
+SPIEGEL: dict[int, dict[int, tuple[str, ...]]] = {
+    m.FCT_TYPE: m.SPIEGEL for m in MODULE if getattr(m, "SPIEGEL", None)
 }
 
 # Begriffe, die eine Baureihe nur über den LON-Bus hergibt.
