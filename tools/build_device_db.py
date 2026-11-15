@@ -487,6 +487,18 @@ def ergaenze_stoerungen(tabelle: dict[str, dict[str, str]], sprache: str) -> Non
             tabelle[code] = dict(je_sprache[sprache])
 
 
+# Codes, denen die Texttabelle des Touch-Bediengeräts (PW_ErrorTexte) denselben
+# Wortlaut gibt wie einem bekannten Code. Sie übernehmen dessen Eintrag.
+GLEICHE_STOERUNGEN = {"AL107": "AL17"}
+
+
+def ergaenze_gleiche(tabelle: dict[str, dict[str, str]]) -> None:
+    """Fehlende Codes aus GLEICHE_STOERUNGEN mit dem Eintrag ihres Gegenstücks füllen."""
+    for code, vorbild in GLEICHE_STOERUNGEN.items():
+        if code not in tabelle and vorbild in tabelle:
+            tabelle[code] = dict(tabelle[vorbild])
+
+
 def ergaenze_behebung(tabelle: dict[str, dict[str, str]], abhilfe: dict) -> int:
     """Abhilfetexte aus den Bedienungsanleitungen als `behebung` übernehmen.
 
@@ -532,6 +544,7 @@ def main() -> int:
     ergaenze_stoerungen(stoerungen["de"], "de")
     abhilfe = json.loads(args.abhilfe.read_text(encoding="utf-8")) if args.abhilfe else {}
     behebungen = ergaenze_behebung(stoerungen["de"], abhilfe)
+    ergaenze_gleiche(stoerungen["de"])
     sprachen = {}
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
@@ -539,6 +552,7 @@ def main() -> int:
         sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
         ergaenze_stoerungen(stoerungen[sprache], sprache)
+        ergaenze_gleiche(stoerungen[sprache])
     eigene = json.loads(EIGENE_NAMEN.read_text(encoding="utf-8"))
     eigen_ergaenzt, veraltet = ergaenze_eigene_namen(namen, sprachen, eigene)
 

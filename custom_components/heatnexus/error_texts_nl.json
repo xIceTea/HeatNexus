@@ -27,6 +27,10 @@
   "info": "Sensor en aansluiting controleren",
   "text": "Buffersensor TPO defect"
  },
+ "AL107": {
+  "info": "Schoepenrad rookgas reinigen",
+  "text": "Rookgasventilator blokkeert"
+ },
  "AL11": {
   "info": "Handleiding raadplegen",
   "text": "As schuif blokkeert"

@@ -148,3 +148,9 @@ def test_jede_behebung_ist_bereinigter_text(error_texts):
     for code, text in behebungen.items():
         assert text.strip() == text and text, code
         assert "Fig." not in text and "Pkt." not in text and "WARNUNG" not in text, code
+
+
+@pytest.mark.parametrize("sprache", ["de", "en", "nl"])
+def test_code_107_traegt_den_text_von_code_17(error_texts, sprache):
+    assert error_texts.klartext(107, sprache) == error_texts.klartext(17, sprache)
+    assert error_texts.klartext(107, sprache)
