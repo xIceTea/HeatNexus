@@ -231,6 +231,10 @@ def karte_verzeichnis(version: str) -> str:
 # Kopieren ein, die Karte meldet sich unter demselben Namen an.
 KARTE_ELEMENT = "heatnexus-schaubild"
 
+# Stand des Vertrags zwischen Hülle und Umsetzung der Karten, wie in `frontend/kartenhuelle.js`.
+# Erhöhen, wenn eine Umsetzung mit einer älteren Hülle nicht läuft: Diese zeigt dann den Hinweis.
+KARTE_VERTRAG = 1
+
 
 def karte_js_pfad(version: str) -> str:
     """Adresse des Kartenmoduls, Fassung im Pfad.

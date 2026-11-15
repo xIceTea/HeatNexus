@@ -8,6 +8,7 @@
 
 // Die Karten der Übersicht reisen mit: Eine Ressource reicht für das ganze Dashboard.
 import "./heatnexus-kacheln.js";
+import { anmelden } from "./kartenhuelle.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
@@ -16,7 +17,6 @@ import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, darstellungWahl, schriftm
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
-const EDITOR = "heatnexus-schaubild-editor";
 
 const Grundlage = SchaubildMixin(BausteineMixin(WerteMixin(HTMLElement)));
 
@@ -34,9 +34,9 @@ class HeatNexusSchaubildKarte extends Grundlage {
   // Eigener Editor statt eines festen Schemas: Nur er kann die Anlagen zur
   // Auswahl stellen – ein Schema wird ohne `hass` gebaut und kennt sie nicht.
   static async getConfigElement() {
-    await import("./heatnexus-schaubild-editor.js");
-    await customElements.whenDefined(EDITOR);
-    return document.createElement(EDITOR);
+    const { ELEMENT: editor } = await import("./heatnexus-schaubild-editor.js");
+    await customElements.whenDefined(editor);
+    return document.createElement(editor);
   }
 
   static getStubConfig() {
@@ -349,9 +349,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 }
 
-if (!customElements.get(ELEMENT)) {
-  customElements.define(ELEMENT, HeatNexusSchaubildKarte);
-}
+anmelden(ELEMENT, HeatNexusSchaubildKarte);
 
 window.customCards = window.customCards || [];
 if (!window.customCards.some((k) => k.type === ELEMENT)) {
@@ -364,4 +362,4 @@ if (!window.customCards.some((k) => k.type === ELEMENT)) {
   });
 }
 
-export { HeatNexusSchaubildKarte, ELEMENT, EDITOR, ALLE };
+export { HeatNexusSchaubildKarte, ELEMENT, ALLE };

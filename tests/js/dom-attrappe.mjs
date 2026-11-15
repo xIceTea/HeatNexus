@@ -378,6 +378,7 @@ export function browserAttrappe() {
   const fenster = new Knoten("#window");
   globalThis.addEventListener = (...werte) => fenster.addEventListener(...werte);
   globalThis.removeEventListener = (...werte) => fenster.removeEventListener(...werte);
+  globalThis.dispatchEvent = (ereignis) => fenster.dispatchEvent(ereignis);
   // Der Browserspeicher, in dem der zuletzt gewählte Farbsatz liegt.
   const speicher = new Map();
   globalThis.localStorage = {

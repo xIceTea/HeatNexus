@@ -6,9 +6,11 @@
  * ein Schema wird ohne `hass` gebaut und kennt sie nicht.
  */
 
+import { elementname } from "./kartenhuelle.js";
 import { FARBSAETZE, SCHRIFTMASSE } from "./ordnung.js";
 
-const ELEMENT = "heatnexus-schaubild-editor";
+// Der Name trägt die Fassung: Eine nachgeladene Karte öffnet ihren eigenen Editor.
+const ELEMENT = elementname("heatnexus-schaubild-editor");
 const ALLE = "alle";
 
 const BESCHRIFTUNG = {

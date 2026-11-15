@@ -8,10 +8,6 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unreleased]
 
-### Neu
-
-- Das Puffermodul mit Kesselumschaltung zeigt seine Betriebsart (Automatikkessel, FB-Kessel, Pufferspeicher) als eigene Entität ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-
 ### Geändert
 
 - Puffertemperaturen und Beladegrad erscheinen nur noch am Puffermodul, nicht ein zweites Mal am Kessel ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
@@ -19,6 +15,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Dashboard-Karten übernehmen eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Die Entität „Betriebsart“ am Puffermodul mit Kesselumschaltung erscheint wieder ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Puffer-Kachel zeigt die Ladepumpe als „läuft“ oder „aus“ statt „on“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 
 ## [1.16.0-beta.3] - 2026-11-15

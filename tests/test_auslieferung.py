@@ -93,6 +93,35 @@ async def test_das_kartenmodul_steht_vor_jeder_anlage_bereit(hass, enable_custom
     assert any(a.endswith("/heatnexus-schaubild-karte.js") for a in adressen)
 
 
+@requires_frontend()
+async def test_der_server_nennt_fassung_und_kartenmodul(
+    hass, hass_ws_client, enable_custom_integrations
+):
+    """Eine offene Seite erfährt, welche Fassung läuft und wo deren Kartenmodul liegt."""
+    from homeassistant.components import frontend
+    from homeassistant.setup import async_setup_component
+
+    from custom_components.heatnexus.const import KARTE_VERTRAG
+
+    assert await async_setup_component(hass, "heatnexus", {})
+    await hass.async_block_till_done()
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id({"type": "heatnexus/fassung"})
+    antwort = await client.receive_json()
+
+    assert antwort["success"], antwort
+    ergebnis = antwort["result"]
+    assert ergebnis["fassung"]
+    assert ergebnis["karte"] == (
+        f"/heatnexus-karte-{ergebnis['fassung']}/heatnexus-schaubild-karte.js"
+    )
+    assert ergebnis["karte"] in hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
+    assert ergebnis["vertrag"] == KARTE_VERTRAG
+    assert ergebnis["hinweis"] == "HeatNexus wurde aktualisiert."
+    assert ergebnis["neu_laden"] == "Neu laden"
+
+
 async def _ressourcen(hass):
     from homeassistant.setup import async_setup_component
 

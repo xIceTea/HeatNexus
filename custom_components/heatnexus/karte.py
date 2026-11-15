@@ -20,7 +20,7 @@ from .auslieferung import (
     karte_als_ressource,
     karte_anmelden,
 )
-from .const import DOMAIN
+from .const import DOMAIN, KARTE_VERTRAG, karte_js_pfad, panel_fassung
 from .dashboard.anlagen import anlage_in_sprache, anlagen_lesen, woerterbuch_der_anlage
 from .schema import schaubild_daten
 from .texte import woerterbuch
@@ -90,6 +90,28 @@ def _ws_texte(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     connection.send_result(msg["id"], woerterbuch(hass).fuer_frontend)
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/fassung"})
+@callback
+def _ws_fassung(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Die laufende Fassung und die Adresse ihres Kartenmoduls.
+
+    Eine Seite, die über ein Update hinweg offen bleibt, lädt damit die neue
+    Fassung der Karten nach. Die Texte gelten dem Hinweis, falls das scheitert.
+    """
+    version = hass.data.get(f"{DOMAIN}_karte_fassung", "")
+    uebersetzt = woerterbuch(hass)
+    connection.send_result(
+        msg["id"],
+        {
+            "fassung": panel_fassung(version),
+            "karte": karte_js_pfad(version),
+            "vertrag": KARTE_VERTRAG,
+            "hinweis": uebersetzt("HeatNexus wurde aktualisiert."),
+            "neu_laden": uebersetzt("Neu laden"),
+        },
+    )
+
+
 async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:
     """Karte bereitstellen.
 
@@ -97,10 +119,12 @@ async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:
     """
     try:
         version = await async_fassung(hass, version)
+        hass.data[f"{DOMAIN}_karte_fassung"] = version
         await async_dateien_ausliefern(hass, version)
         if not hass.data.get(f"{DOMAIN}_karte_ws"):
             websocket_api.async_register_command(hass, _ws_schaubild)
             websocket_api.async_register_command(hass, _ws_texte)
+            websocket_api.async_register_command(hass, _ws_fassung)
             hass.data[f"{DOMAIN}_karte_ws"] = True
         karte_anmelden(hass, version)
         await karte_als_ressource(hass, version)

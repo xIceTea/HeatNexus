@@ -7,6 +7,8 @@
  * Sprache der Anlage. Die Karten zeigen Zahlen selbst formatiert.
  */
 
+import { anmelden } from "./kartenhuelle.js";
+
 const LEER = "–";
 const AN = "on";
 const AUS = "off";
@@ -375,7 +377,7 @@ const KARTEN = [
 
 window.customCards = window.customCards || [];
 for (const [name, klasse, titel, beschreibung] of KARTEN) {
-  if (!customElements.get(name)) customElements.define(name, klasse);
+  anmelden(name, klasse);
   if (!window.customCards.some((k) => k.type === name)) {
     window.customCards.push({ type: name, name: titel, description: beschreibung, preview: true });
   }

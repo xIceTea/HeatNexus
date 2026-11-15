@@ -76,6 +76,8 @@
   "Darstellung": "Weergave",
   "Das Estrichprogramm fährt über mehrere Tage ein festes Temperaturprofil. Wirklich starten?": "Het droogprogramma voor de smeervloer volgt dagenlang een vast temperatuurprofiel. Echt starten?",
   "Das Schaubild konnte nicht geladen werden.": "Het schema kon niet worden geladen.",
+  "HeatNexus wurde aktualisiert.": "HeatNexus is bijgewerkt.",
+  "Neu laden": "Opnieuw laden",
   "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir. Neue Werte erscheinen dort nicht von selbst, und die Karten hängen an den heutigen Entitäts-IDs. Links und Zurück-Pfeile führen in das mitgelieferte Dashboard unter /heatnexus/. Liegt die Kopie unter einer eigenen Adresse, ersetze /heatnexus/ im Text durch diese Adresse.": "Het meegeleverde dashboard bouwt zich bij elke keer openen opnieuw op uit de installatie en kan daarom niet worden bewerkt. Deze tekst is de stand van vandaag – geplakt in een nieuw dashboard is hij van jou. Nieuwe waarden verschijnen daar niet vanzelf, en de kaarten hangen af van de huidige entiteits-ID's. Links en terugpijlen leiden naar het meegeleverde dashboard onder /heatnexus/. Staat de kopie onder een eigen adres, vervang dan /heatnexus/ in de tekst door dat adres.",
   "Dashboard-Vorlage": "Dashboardsjabloon",
   "Dashboards stehen noch nicht bereit": "Dashboards zijn nog niet beschikbaar",
