@@ -42,4 +42,24 @@ ENTITAETEN: list[dict] = [
     _aktor(2, "Umschaltventil 1", "umschaltventil_1"),
     _aktor(3, "Umschaltventil 2", "umschaltventil_2"),
     _aktor(6, "Puffertransferpumpe", "puffertransferpumpe"),
+    # Die Betriebsart steht auf „Automatikkessel“ oder „FB-Kessel“, solange die
+    # Pufferladepumpe läuft; bei „Pufferspeicher“ wird der Puffer entladen. Pumpenbit
+    # und Drehzahl schalten zusätzlich ein, falls die Betriebsart nachhinkt.
+    {
+        "oid": "/2/9/0",
+        "name": "Pufferladung",
+        "platform": "binary_sensor",
+        "an_bei": (14, 15),
+        "oder": ({"adresse": "2/2", "bit": 1}, {"adresse": "22/50"}),
+        "key_suffix": "pufferladung",
+        "device_class": "running",
+    },
 ]
+
+# `20/2` Pufferspeicher und `20/0` Automatikkessel legen fest, was das Modul führt:
+# ohne Puffer keine Ladung, ohne Automatikkessel keine Umschaltventile.
+BEDINGUNGEN: dict[str, list[dict]] = {
+    "2/9:pufferladung": [{"oid": "20/2", "values": ["1"]}],
+    "2/2:umschaltventil_1": [{"oid": "20/0", "values": ["1"]}],
+    "2/2:umschaltventil_2": [{"oid": "20/0", "values": ["1"]}],
+}

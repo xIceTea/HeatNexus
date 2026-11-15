@@ -468,17 +468,22 @@ class MetadatenMixin:
 
         if not any(weg_je_praefix.values()):
             return
-        behalten = []
+        behalten, entfallen = [], []
         for d in self.devices:
             praefix = self._praefix_aus_oid(d.get("oid"))
-            if self._kennung_aus_oid(d.get("oid")) in weg_je_praefix.get(praefix, ()):
+            kennung = self._kennung_aus_oid(d.get("oid"))
+            weg = weg_je_praefix.get(praefix, ())
+            # Eine Bedingung auf `gn/mn:zusatz` trifft nur die eine Entität auf der Adresse.
+            if kennung in weg or f"{kennung}:{d.get('zusatz')}" in weg:
                 _LOGGER.debug(
                     "%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid")
                 )
-                self.oids.discard(d.get("oid"))
+                entfallen.append(d.get("oid"))
                 continue
             behalten.append(d)
         self.devices = behalten
+        # Eine Adresse bleibt im Abruf, solange eine andere Entität auf ihr sitzt.
+        self.oids -= set(entfallen) - {d.get("oid") for d in behalten}
 
     def _nach_praefix(self) -> dict[str, dict[str, dict]]:
         """Deskriptoren nach Funktionspräfix und Kennung sortiert.

@@ -56,6 +56,13 @@ DESKRIPTOR_VORGABE: dict = {
     "freigabe": None,
     # Ein Bit des Werts statt des ganzen Werts (Bitmaske wie `2/2`).
     "bit": None,
+    # Werte, bei denen ein Ein/Aus-Wert „an“ heißt, wo er auf einer Aufzählung sitzt.
+    "an_bei": None,
+    # Weitere Adressen derselben Funktion, die den Ein/Aus-Wert ebenfalls einschalten:
+    # [{"adresse": "gn/mn", "bit": n}], ohne `bit` zählt jeder Wert über null.
+    "oder": None,
+    # Kennungszusatz aus `key_suffix`; trennt Entitäten auf derselben Adresse.
+    "zusatz": None,
     # Schaltwerte eines Schalters auf einer Betriebswahl. Ohne Angabe gelten
     # 1 und 0.
     "ein_wert": None,
@@ -358,6 +365,9 @@ class ErkennungMixin:
             press_value=definition.get("press_value"),
             freigabe=definition.get("freigabe"),
             bit=definition.get("bit"),
+            an_bei=definition.get("an_bei"),
+            oder=definition.get("oder"),
+            zusatz=definition.get("key_suffix"),
             ein_wert=definition.get("ein_wert"),
             aus_wert=definition.get("aus_wert"),
             zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,

@@ -146,7 +146,8 @@ OHNE_MESSWERT_GEZEICHNET = frozenset({"pumpenmodul", "hybridmanager"})
 # Der Schlüssel trägt auch ohne deutschen Namen, das Muster fängt den Rest.
 PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
     "kessel": (r"kesselpumpe|\bpumpe\b", ("boiler_pump",)),
-    "puffer": (r"pufferladepumpe", ("buffer_charge_pump",)),
+    # Am Puffermodul fct 15 zeigt die Betriebsart die Ladung verlässlicher als die Pumpenbits.
+    "puffer": (r"pufferladepumpe", ("buffer_charging", "buffer_charge_pump")),
     "heizkreis": (r"heizkreispumpe", ("circuit_pump",)),
     "wasser": (r"\bww-ladepumpe", ("dhw_charge_pump",)),
     # Das ZSP-Modul meldet keinen Pumpenzustand, sondern seine Drehzahl.

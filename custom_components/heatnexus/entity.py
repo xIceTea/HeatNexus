@@ -447,6 +447,11 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     _require_value_for_available = True
 
     @property
+    def _praefix_der_funktion(self) -> str | None:
+        """Der Funktionspräfix `/1/<Knoten>/<Funktion>` dieser Entität."""
+        return _funktionspraefix(self._descriptor)
+
+    @property
     def _freigabe_praefix(self) -> str | None:
         """Funktionspräfix, wenn die Bedienung an Freigaben hängt; sonst `None`."""
         if not self._descriptor.get("freigabe"):

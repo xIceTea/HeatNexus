@@ -69,3 +69,30 @@ def test_eigene_tabellen_haben_texte(geraete):
 
 def test_mischer_des_infinity_heizkreises_bleibt_anzeige(geraete):
     assert {"58/83", "58/84"} <= geraete.NUR_ANZEIGE[1]
+
+
+def test_die_pufferladung_folgt_der_betriebsart_des_moduls(geraete):
+    """Am Puffermodul fct 15 heißt „Automatikkessel“ oder „FB-Kessel“: Die Ladepumpe läuft."""
+    [ladung] = [e for e in geraete.ENTITAETEN[15] if e.get("key_suffix") == "pufferladung"]
+    assert ladung["oid"] == "/2/9/0"
+    assert ladung["platform"] == "binary_sensor"
+    assert set(ladung["an_bei"]) == {14, 15}
+
+
+def test_das_schaubild_nimmt_am_puffer_die_ladung_vor_den_pumpenbits():
+    from .conftest import load_standalone
+
+    werte = load_standalone("schema.werte")
+    entitaeten = [
+        {"entity_id": "binary_sensor.pumpe", "name": "Pufferladepumpe", "bereich": "binary_sensor"},
+        {"entity_id": "sensor.drehzahl", "name": "Pufferladepumpe Drehzahl", "bereich": "sensor"},
+        {
+            "entity_id": "binary_sensor.ladung",
+            "name": "Pufferladung",
+            "bereich": "binary_sensor",
+            "schluessel": "buffer_charging",
+        },
+    ]
+    for e in entitaeten:
+        e["hat_wert"] = True
+    assert werte._pumpe(entitaeten, "puffer") == "binary_sensor.ladung"

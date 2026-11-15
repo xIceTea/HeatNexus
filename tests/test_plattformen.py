@@ -433,6 +433,67 @@ def test_ein_bit_der_aktorenmaske_zeigt_seinen_aktor(wert, an):
     assert entity.is_on is an
 
 
+@pytest.mark.parametrize(("wert", "an"), [("14", True), ("15", True), ("16", False), ("0", False)])
+def test_ein_ein_aus_wert_auf_einer_aufzaehlung_folgt_seinen_werten(wert, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor, {"/1/60/0/9/75/0": wert}, type="binary_sensor", an_bei=[14, 15]
+    )
+    assert entity.is_on is an
+
+
+@pytest.mark.parametrize(
+    ("werte", "an"),
+    [
+        ({"/1/60/0/2/9/0": "16"}, False),
+        ({"/1/60/0/2/9/0": "16", "/1/60/0/2/2/0": "2"}, True),
+        ({"/1/60/0/2/9/0": "16", "/1/60/0/22/50/0": "40"}, True),
+        ({"/1/60/0/2/9/0": "15", "/1/60/0/22/50/0": "0"}, True),
+        ({"/1/60/0/2/2/0": "0"}, False),
+        ({}, None),
+    ],
+)
+def test_weitere_quellen_schalten_den_ein_aus_wert_zusaetzlich_ein(werte, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor,
+        werte,
+        type="binary_sensor",
+        oid="/1/60/0/2/9/0",
+        an_bei=[14, 15],
+        oder=[{"adresse": "2/2", "bit": 1}, {"adresse": "22/50"}],
+    )
+    assert entity.is_on is an
+
+
+def _pufferladung(werte):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    return _entitaet(
+        WindhagerBinarySensor,
+        werte,
+        type="binary_sensor",
+        oid="/1/60/0/2/9/0",
+        an_bei=[14, 15],
+        oder=[{"adresse": "2/2", "bit": 1}, {"adresse": "22/50"}],
+    )
+
+
+def test_ohne_eigenen_wert_bleibt_die_entitaet_mit_weiteren_quellen_verfuegbar():
+    entity, koordinator = _pufferladung({"/1/60/0/22/50/0": "40"})
+    koordinator.last_update_success = True
+    assert entity.available is True
+    assert entity.is_on is True
+
+
+def test_nur_adressen_der_anlage_werden_zum_abruf_angemeldet():
+    entity, koordinator = _pufferladung({})
+    koordinator.client.oids = {"/1/60/0/2/9/0", "/1/60/0/2/2/0"}
+    assert entity._oder_im_abruf == ["/1/60/0/2/2/0"]
+
+
 def test_button_ohne_angabe_schreibt_eins():
     from custom_components.heatnexus.button import WindhagerButton
 

@@ -756,3 +756,45 @@ def test_dieselbe_adresse_bleibt_an_anderer_funktion_unberuehrt(client_module):
 def test_die_flache_tabelle_gilt_weiterhin(client_module):
     """Ohne Eintrag je Funktionstyp bleibt es beim gepflegten Namen."""
     assert client_module.name_override(25, "5/0") == "WW-Hysterese Ein"
+
+
+def _umschaltmodul(client_module, automatikkessel, pufferspeicher):
+    """Puffermodul fct 15 mit drei Entitäten auf `2/2` bzw. `2/9`."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/17/0/{adresse}/0",
+            fct_type=15,
+            name=zusatz,
+            type="binary_sensor",
+            zusatz=zusatz,
+        )
+        for adresse, zusatz in (
+            ("2/2", "pufferladepumpe"),
+            ("2/2", "umschaltventil_1"),
+            ("2/9", "pufferladung"),
+        )
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    meta = {
+        "/1/17/0/20/0/0": {"value": str(automatikkessel)},
+        "/1/17/0/20/2/0": {"value": str(pufferspeicher)},
+    }
+    return client, meta
+
+
+def test_ohne_automatikkessel_entfallen_nur_die_umschaltventile(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=0, pufferspeicher=1)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"pufferladepumpe", "pufferladung"}
+    # Die Pumpe sitzt auf derselben Adresse und braucht sie weiter.
+    assert "/1/17/0/2/2/0" in client.oids
+
+
+def test_ohne_pufferspeicher_entfaellt_die_pufferladung(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=1, pufferspeicher=0)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"pufferladepumpe", "umschaltventil_1"}
+    assert "/1/17/0/2/9/0" not in client.oids

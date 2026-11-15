@@ -190,6 +190,7 @@ GESCHWISTER: dict[tuple[str, str | None], str] = {
     ("9/75", "kaminkehrer_aus"): "chimney_sweep_stop",
     ("9/75", "befuellen"): "storage_fill",
     ("9/75", "befuellen_aus"): "storage_fill_stop",
+    ("2/9", "pufferladung"): "buffer_charging",
 }
 
 

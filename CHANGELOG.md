@@ -13,6 +13,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
 - Der Systemstatus zeigt den Beladegrad des Puffers, wo die Anlage ihn meldet.
 - Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
+- Die Entität „Pufferladung“ zeigt am Puffermodul mit Kesselumschaltung, ob der Puffer lädt.
+
+### Behoben
+
+- Das Schaubild zeigt am Puffermodul mit Kesselumschaltung Ladung und laufende Ladepumpe.
+- Umschaltventile erscheinen am Puffermodul nur noch mit Automatikkessel.
 
 ## [1.16.0-beta.2] - 2026-11-13
 
