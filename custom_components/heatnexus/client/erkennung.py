@@ -372,6 +372,7 @@ class ErkennungMixin:
             aus_wert=definition.get("aus_wert"),
             zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,
             zustand_aus=definition.get("zustand_aus"),
+            enabled_default=definition.get("enabled_default", True),
             device_id=self._geraetekennung(prefix),
             alt_device_id=self._alte_kennung(prefix),
             device_name=fct["name"],

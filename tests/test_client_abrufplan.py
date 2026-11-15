@@ -571,6 +571,21 @@ def test_der_kesselschalter_liest_seinen_zustand_aus_der_betriebsart(client):
     assert set(beschreibung["zustand_aus"]) == {0, 1}
 
 
+def test_die_pufferladepumpe_des_puffermoduls_ist_ab_werk_deaktiviert(client):
+    """Das Bit blieb an einer Anlage während der Ladung aus; die Ventile bleiben aktiv."""
+    from custom_components.heatnexus.geraete import umschaltung
+
+    client.oids = set()
+    client.devices = []
+    fct = {"name": "Puffermodul", "fctType": 15}
+    for eintrag in umschaltung.ENTITAETEN[:2]:
+        client._add_entity(eintrag, "/1/17/0", "/1/17", fct)
+    pumpe, ventil = client.devices
+    assert pumpe["id"].endswith("-pufferladepumpe")
+    assert pumpe["enabled_default"] is False
+    assert ventil["enabled_default"] is True
+
+
 def test_ein_knotenweiter_datenpunkt_haengt_am_knoten_nicht_an_der_funktion(client):
     """Sonst bekäme jede Funktion desselben Knotens ihre eigene Meldung."""
     client.oids = set()

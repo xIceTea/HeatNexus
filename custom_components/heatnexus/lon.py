@@ -111,8 +111,8 @@ LON_NAMEN: dict[str, dict] = {
     "PTF_nvoPump": {"name": "Transferpumpe"},
     "WVF_nvoTPO": {"name": "Puffer oben (Verteiler)", "kanonisch": "buffer_top"},
     "WVF_nvoTPU": {"name": "Puffer unten (Verteiler)", "kanonisch": "buffer_bottom"},
-    # Der Ladezustand des Puffers in Prozent – im OID-Raum gibt es ihn nicht.
-    "BUF_nvoLoadLvl": {"name": "Pufferladung", "state_class": "measurement"},
+    # Der Ladezustand des Puffers in Prozent, wie ihn der Bus meldet.
+    "BUF_nvoLoadLvl": {"name": "Beladegrad (Bus)", "state_class": "measurement"},
     "BUF_nvoPumpXfer": {"name": "Umladepumpe"},
     # Rücklaufhochhaltung.
     "RLH_nviTemp": {"name": "Rücklaufanhebung Temperatur"},

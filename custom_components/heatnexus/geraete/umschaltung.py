@@ -19,7 +19,12 @@ KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 # „Pufferladepumpe“ trägt schon der Zustand aus `2/2`.
-NAMEN: dict[str, str] = {"59/24": "Umschaltventil", "22/50": "Pufferladepumpe Drehzahl"}
+# `1/7` ist die Anforderung der Verbraucher an den Kessel, nicht dessen Sollwert.
+NAMEN: dict[str, str] = {
+    "59/24": "Umschaltventil",
+    "22/50": "Pufferladepumpe Drehzahl",
+    "1/7": "Anforderung an den Kessel",
+}
 
 NUR_BUS: tuple[str, ...] = ()
 
@@ -37,10 +42,12 @@ def _aktor(bit: int, name: str, endung: str) -> dict:
 
 
 # Die Herstellerdatei zeigt an diesem Modul diese Bits von `2/2` einzeln an.
+# Bit 1 blieb an einer Anlage während der Ladung aus; deshalb ab Werk deaktiviert.
+# Bit 2 und 3 sind die zwei Laufrichtungen desselben Umschaltventils.
 ENTITAETEN: list[dict] = [
-    _aktor(1, "Pufferladepumpe", "pufferladepumpe"),
-    _aktor(2, "Umschaltventil 1", "umschaltventil_1"),
-    _aktor(3, "Umschaltventil 2", "umschaltventil_2"),
+    {**_aktor(1, "Pufferladepumpe", "pufferladepumpe"), "enabled_default": False},
+    _aktor(2, "Umschaltventil Richtung 1", "umschaltventil_1"),
+    _aktor(3, "Umschaltventil Richtung 2", "umschaltventil_2"),
     _aktor(6, "Puffertransferpumpe", "puffertransferpumpe"),
     # Die Betriebsart steht auf „Automatikkessel“ oder „FB-Kessel“, solange die
     # Pufferladepumpe läuft; bei „Pufferspeicher“ wird der Puffer entladen. Pumpenbit
