@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
+- Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
 
 ## [1.16.0-beta.2] - 2026-11-13
 

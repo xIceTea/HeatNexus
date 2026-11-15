@@ -8,6 +8,7 @@ Datei; alles andere am Export ist Beiwerk.
 
 from __future__ import annotations
 
+from datetime import timedelta
 import json
 from types import SimpleNamespace
 
@@ -350,3 +351,88 @@ def test_ein_zeitprogramm_wird_nicht_als_fehlend_gelesen(diagnostics):
     anlage = diagnostics._anlage(koordinator)
 
     assert anlage["beschreibungen"][0]["im_abruf"] is None
+
+
+async def test_ohne_aufzeichnung_steht_kein_verlauf_im_export(export):
+    assert (await export)["verlauf"] == {"aufgezeichnet": False}
+
+
+PUMPE = f"{SERIENNUMMER}-0-2-2-0-pufferladepumpe"
+
+
+def _mit_aufzeichnung(hass, monkeypatch, abfrage):
+    """Recorder ersetzen: `abfrage` liefert die Zustände, die Abfrage läuft im Executor."""
+    from homeassistant.components import recorder
+    from homeassistant.components.recorder import history
+
+    monkeypatch.setattr(history, "get_significant_states", abfrage)
+    instanz = SimpleNamespace(async_add_executor_job=hass.async_add_executor_job)
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: instanz)
+    hass.config.components.add("recorder")
+
+
+def _eintrag_mit_pumpe(hass):
+    """Eine Anlage mit Pufferladepumpe: Beschreibung, registrierte Entität und Eintrag."""
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    konfig = MockConfigEntry(domain="heatnexus", entry_id="eintrag1", data={}, options={})
+    konfig.add_to_hass(hass)
+    registrierung = er.async_get(hass)
+    pumpe = registrierung.async_get_or_create(
+        "binary_sensor", "heatnexus", PUMPE, config_entry=konfig
+    )
+    # Gleiche Kennung in einem anderen Bereich: gehört nicht zum Datenpunkt.
+    registrierung.async_get_or_create("sensor", "heatnexus", PUMPE, config_entry=konfig)
+    koordinator = _coordinator()
+    koordinator.data["devices"].append(
+        {"id": PUMPE, "type": "binary_sensor", "name": "Pufferladepumpe", "oid": "/1/60/0/2/2/0"}
+    )
+    eintrag = SimpleNamespace(
+        entry_id="eintrag1",
+        version=1,
+        subentries={},
+        options={},
+        runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: koordinator}},
+    )
+    return eintrag, pumpe.entity_id
+
+
+async def test_der_verlauf_nennt_jeden_wechsel_einer_pumpe(diagnostics, hass, monkeypatch):
+    """Die Kennung trägt die Seriennummer; auch im Verlauf steht nur der Platzhalter."""
+    from homeassistant.core import State
+    from homeassistant.util import dt as dt_util
+
+    eintrag, entity_id = _eintrag_mit_pumpe(hass)
+    jetzt = dt_util.utcnow()
+    zustaende = [
+        State(entity_id, "off", last_changed=jetzt - timedelta(hours=2)),
+        State(entity_id, "on", last_changed=jetzt - timedelta(hours=1)),
+    ]
+    gefragt = []
+
+    def abfrage(_hass, _von, _bis, kennungen, **_):
+        gefragt.extend(kennungen)
+        return {entity_id: zustaende}
+
+    _mit_aufzeichnung(hass, monkeypatch, abfrage)
+    verlauf = (await diagnostics.async_get_config_entry_diagnostics(hass, eintrag))["verlauf"]
+
+    assert gefragt == [entity_id]
+    ((kennung, eintrag_verlauf),) = verlauf["entitaeten"].items()
+    assert SERIENNUMMER not in kennung
+    assert eintrag_verlauf["name"] == "Pufferladepumpe"
+    assert [wert for _, wert in eintrag_verlauf["werte"]] == ["off", "on"]
+
+
+async def test_ein_fehler_der_aufzeichnung_laesst_den_export_stehen(diagnostics, hass, monkeypatch):
+    eintrag, _ = _eintrag_mit_pumpe(hass)
+
+    def abfrage(*_args, **_kwargs):
+        raise RuntimeError("Datenbank gesperrt")
+
+    _mit_aufzeichnung(hass, monkeypatch, abfrage)
+    daten = await diagnostics.async_get_config_entry_diagnostics(hass, eintrag)
+
+    assert daten["verlauf"] == {"aufgezeichnet": True, "fehler": "RuntimeError"}
+    assert daten["anlagen"]["anlage_1"]["werte"]
