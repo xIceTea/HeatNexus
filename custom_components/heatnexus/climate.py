@@ -210,9 +210,8 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """
         if self._modus_davor is None:
             return
-        # Unbekannt heißt nicht abgelaufen: `raw_custom_temp_remaining_time`
-        # macht aus einem fehlenden Wert eine 0.
-        rest = self.get_oid_value("/2/10/0")
+        # Unbekannt heißt nicht abgelaufen.
+        rest = self.raw_custom_temp_remaining_time()
         if rest is None:
             return
         if rest > 0:
@@ -365,10 +364,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         value = self.get_oid_value("/3/50/0")
         return int(value) if value is not None else None
 
-    def raw_custom_temp_remaining_time(self) -> int:
+    def raw_custom_temp_remaining_time(self) -> int | None:
         """Get remaining time of a manual temperature override (2/10)."""
         value = self.get_oid_value("/2/10/0")
-        return int(value) if value is not None else 0
+        return int(value) if value is not None else None
 
     # Betriebswahl-Werte, in denen der HEIZKREIS nicht heizt und das
     # Thermostat als "Aus" gelten soll:
@@ -402,7 +401,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """Zusatzinfos: Override-Restzeit (Timer) als Feedback nach dem Setzen."""
         remaining = self.raw_custom_temp_remaining_time()  # 2/10 in Minuten
         attrs = {
-            "override_aktiv": remaining > 0,
+            "override_aktiv": remaining > 0 if remaining is not None else None,
             "override_restzeit_min": remaining,
         }
         mode = self.raw_selected_mode()
@@ -459,7 +458,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Sofort anzeigen (z.B. WW-Betrieb -> Heizprogramm 1 bleibt stehen, und
         # bei Heizmodi springt hvac_mode sofort auf HEIZEN).
         stand = self._stand()
-        laeuft = self.raw_custom_temp_remaining_time() > 0
+        laeuft = (self.raw_custom_temp_remaining_time() or 0) > 0
         self._ruecksprung_verwerfen()
         self._set_optimistic_mode(int(preset_mode))
         # Eine laufende Vorgabe endet mit der neuen Wahl.

@@ -19,6 +19,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Störung 107 erscheint mit Klartext statt als unbekannter Code.
+- Das Thermostat zeigt eine noch nicht gelesene Restzeit der Vorgabe als unbekannt statt 0.
 - Dashboard-Karten übernehmen eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Entität „Betriebsart“ am Puffermodul mit Kesselumschaltung erscheint wieder ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Puffer-Kachel zeigt die Ladepumpe als „läuft“ oder „aus“ statt „on“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
