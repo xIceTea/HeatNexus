@@ -1375,5 +1375,8 @@
   "immer aus": "altijd uit",
   "immer an": "altijd aan",
   "kein Zeitplan": "geen schema",
-  "Dieses Programm hat keine Schaltzeiten.": "Dit programma heeft geen schakeltijden."
+  "Dieses Programm hat keine Schaltzeiten.": "Dit programma heeft geen schakeltijden.",
+  "ab": "vanaf",
+  "Gilt für": "Geldt voor",
+  "Schaltzeiten · ab der Uhrzeit gilt der Wert bis zur nächsten": "Schakeltijden · elke waarde geldt vanaf het tijdstip tot het volgende"
 }

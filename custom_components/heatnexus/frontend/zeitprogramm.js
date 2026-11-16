@@ -255,8 +255,10 @@ export function tagesbereich(tage, t = OHNE) {
  */
 export function blockraster(bloecke, t = OHNE) {
   const zeilen = (bloecke || [])
-    .filter((block) => block.tage.length)
-    .map((block) => ({
+    .map((block, stelle) => ({ block, stelle }))
+    .filter(({ block }) => block.tage.length)
+    .map(({ block, stelle }) => ({
+      stelle,
       text: tagesbereich(block.tage, t),
       tage: [...block.tage],
       abschnitte: abschnitte(block.punkte),
@@ -265,7 +267,7 @@ export function blockraster(bloecke, t = OHNE) {
   const belegt = new Set(zeilen.flatMap((zeile) => zeile.tage));
   const offen = TAGE.filter((tag) => !belegt.has(tag));
   if (offen.length) {
-    zeilen.push({ text: tagesbereich(offen, t), tage: offen, abschnitte: [], punkte: [] });
+    zeilen.push({ stelle: -1, text: tagesbereich(offen, t), tage: offen, abschnitte: [], punkte: [] });
   }
   return zeilen;
 }

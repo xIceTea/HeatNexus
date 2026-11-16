@@ -6,6 +6,7 @@
 
 import {
   SKALEN,
+  TAGE,
   TAG_MINUTEN,
   einsetzen,
   farbe,
@@ -138,6 +139,20 @@ export function stufen(stuecke, grenzen) {
   const hoch = Math.max(...werte);
   if (hoch === grund) return stuecke.map(() => "voll");
   return stuecke.map((s) => (s.wert === grund ? null : s.wert === hoch ? "voll" : "halb"));
+}
+
+/**
+ * Einen Block einsetzen, ohne das Programm der Anlage anzufassen: Seine Tage verlassen die übrigen Blöcke,
+ * ein Block ohne Tage fällt weg. `stelle` −1 hängt einen neuen Block an.
+ */
+export function blockEinsetzen(bloecke, stelle, neu) {
+  const eigene = new Set(neu.tage);
+  const block = { tage: TAGE.filter((tag) => eigene.has(tag)), punkte: neu.punkte.map((punkt) => ({ ...punkt })) };
+  const uebrige = (bloecke || []).map((anderer, n) =>
+    n === stelle ? block : { ...anderer, tage: anderer.tage.filter((tag) => !eigene.has(tag)) }
+  );
+  const liste = stelle < 0 ? [...uebrige, block] : uebrige;
+  return liste.filter((eintrag) => eintrag.tage.length);
 }
 
 /** Eine Tagesspur in einer Farbe: Füllung nach Stufe, Stundenstriche, auf Wunsch die Jetzt-Linie. */

@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unreleased]
 
+### Neu
+
+- Ein Tipp auf eine Tageszeile öffnet darunter Schaltzeiten und Wochentage zum Bearbeiten.
+
 ### Geändert
 
 - Im Reiter „Zeitprogramme“ wählt eine Reiterleiste das Programm; ein Punkt markiert das geltende.

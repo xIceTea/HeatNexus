@@ -873,6 +873,34 @@ if (nameZwei) {
 }
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
+// Editor unter der Zeile: antippen, Samstag dazunehmen, speichern.
+{
+  states["select.betriebswahl"].state = "Programm 1";
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  reiterVon("Programm 1").ausloesen("click");
+  const wurzel = flaeche.shadowRoot;
+  const gezeigt = () =>
+    wurzel.querySelectorAll(".zp-programm").find((k) => text(k.querySelector(".zp-programmname")) === "Programm 1");
+  const editor = () => gezeigt().querySelector(".zp-zeileneditor");
+  const vorher = !!editor();
+  gezeigt().querySelectorAll(".zp-zeile").find((z) => z.getAttribute("role") === "button").ausloesen("click");
+  const offen = !!editor();
+  flaeche._aktualisieren();
+  const bleibt = !!editor();
+  editor().querySelectorAll(".zp-tagwahl").find((taste) => taste.dataset.tag === "Sa").ausloesen("click");
+  const vorSpeichern = dienstAufrufe.length;
+  editor().querySelector(".zp-speichern").ausloesen("click");
+  for (let runde = 0; runde < 10; runde++) await Promise.resolve();
+  const geschrieben = dienstAufrufe
+    .slice(vorSpeichern)
+    .find((aufruf) => aufruf.dienst === "heatnexus.set_time_program");
+  bilanz.zeileneditor = { vorher, offen, bleibt, geschrieben: geschrieben ? geschrieben.angaben : null, zu: !editor() };
+  zeit.zeitLaufenLassen();
+  reiterVon("Programm 2").ausloesen("click");
+}
+
 // ---------------------------------------------------------------------------
 // Reiterleiste am Telefon: Sie behält ihre Position; nur ein verdeckter Reiter rückt nach.
 // ---------------------------------------------------------------------------

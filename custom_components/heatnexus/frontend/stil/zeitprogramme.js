@@ -171,6 +171,40 @@ export const ZEITPROGRAMME = `
     grid-column: 2; font-size: 12.5px; color: var(--hn-gedaempft);
     font-variant-numeric: tabular-nums; text-wrap: pretty;
   }
+  .zp-zeile.offen { background: var(--hn-flaeche); border-radius: 8px 8px 0 0; }
+  /* Der Editor hängt unter seiner Zeile und gehört sichtbar zu ihr. */
+  .zp-zeileneditor {
+    display: flex; flex-direction: column; gap: 8px; margin: 0 0 6px; padding: 10px 12px 12px;
+    border-radius: 0 0 10px 10px; background: var(--hn-flaeche);
+  }
+  .zp-ze-kopf { font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); text-wrap: pretty; }
+  .zp-ze-punkte { display: flex; flex-direction: column; gap: 6px; }
+  .zp-ze-punkt { display: grid; grid-template-columns: auto minmax(0, 7em) minmax(0, 6em) auto auto; gap: 6px 8px; align-items: center; }
+  .zp-ze-ab { font-size: 13px; color: var(--hn-gedaempft); }
+  .zp-ze-feld {
+    min-width: 0; padding: 5px 8px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600;
+    color: inherit; background: var(--hn-karte); border: 1px solid var(--hn-linie);
+  }
+  .zp-ze-weg, .zp-ze-mehr {
+    font: inherit; font-size: 13px; color: var(--hn-gedaempft); background: transparent; cursor: pointer;
+    border: 1px solid var(--hn-linie); border-radius: 999px; padding: 3px 10px;
+  }
+  .zp-ze-weg { border: 0; font-size: 15px; }
+  .zp-ze-mehr { align-self: flex-start; }
+  .zp-ze-mehr:disabled { opacity: 0.4; cursor: default; }
+  .zp-ze-tage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .zp-tagwahl {
+    padding: 4px 0; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; color: inherit;
+    background: transparent; border: 1px solid var(--hn-linie);
+  }
+  .zp-tagwahl[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--hn-akzent) 22%, transparent); border-color: var(--hn-akzent); font-weight: 600;
+  }
+  .zp-tagwahl:focus-visible, .zp-ze-feld:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-ze-vorschau .zp-spur { margin-right: 0; background: var(--hn-karte); }
+  .zp-ze-aktionen { display: flex; justify-content: flex-end; gap: 8px; }
+  .zp-zeileneditor .zp-meldung { margin-top: 0; min-height: 0; }
+  .zp-zeileneditor .zp-meldung:empty { display: none; }
   .zp-abschnitt { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); }
   .zp-leer { font-size: 12px; font-style: italic; }
   .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }

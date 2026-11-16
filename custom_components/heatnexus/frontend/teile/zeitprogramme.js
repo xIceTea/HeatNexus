@@ -23,8 +23,10 @@ import {
   tagesabschnitte,
   uebersichtKnoten,
 } from "../zeitprogramm.js";
+import { zeileneditorKnoten } from "../zeileneditor.js";
 import {
   HEUTE_GRUPPEN,
+  blockEinsetzen,
   heuteText,
   klartext,
   legendeKnoten,
@@ -269,7 +271,9 @@ export const ZeitprogrammeMixin = (Basis) =>
       return [programm.entity, stand ? stand.nummer : "-", this._giltInGruppe(gruppe, programm)].join("~");
     });
     const wahl = this._zpWahl ? this._zpWahl.get(this._gruppenSchluessel(gruppe)) : "";
-    return [this._ortszeit().tag, this._wahlText(gruppe), wahl, ...teile].join("|");
+    const offen = this._zpOffen && programme.some((p) => p.entity === this._zpOffen.entity);
+    const editor = offen ? `${this._zpOffen.entity}#${this._zpOffen.stelle}` : "";
+    return [this._ortszeit().tag, this._wahlText(gruppe), wahl, editor, ...teile].join("|");
   }
 
   /** Die Jetzt-Linien eines Knotens auf die aktuelle Minute setzen, ohne ihn neu zu bauen. */
@@ -515,10 +519,14 @@ export const ZeitprogrammeMixin = (Basis) =>
     kopf.className = "zp-zeile zp-zeilenkopf";
     kopf.append(document.createElement("span"), skalaKnoten());
     liste.appendChild(kopf);
-    const oeffnen = () => this._zeitprogrammBearbeiten(programm, rueckmeldung);
     blockraster(bloecke, t).forEach((reihe) => {
       const heute = reihe.tage.includes(zeit.tag) ? zeit.minute : null;
-      liste.appendChild(this._tageszeile(reihe, grenzen, { jetzt: heute, sprache }, oeffnen));
+      const offen = this._zeileOffen(programm, reihe);
+      const zeile = this._tageszeile(reihe, grenzen, { jetzt: heute, sprache }, () => this._zeileUmschalten(programm, reihe));
+      zeile.setAttribute("aria-expanded", String(offen));
+      if (offen) zeile.classList.add("offen");
+      liste.appendChild(zeile);
+      if (offen) liste.appendChild(this._zeileneditor(programm, bloecke, grenzen, rueckmeldung));
     });
     return liste;
   }
@@ -763,27 +771,72 @@ export const ZeitprogrammeMixin = (Basis) =>
       // Der Neuaufbau ersetzt die Karte; die Rückmeldung gehört an die neue.
       if (neueBezeichnung) await this._datenHolen();
       if (gleich(neu, bloecke)) return;
-      const anzeige =
-        [...this.shadowRoot.querySelectorAll(".rueckmeldung")].find(
-          (knoten) => knoten.dataset.programm === programm.entity
-        ) || rueckmeldung;
-      await this._uebertragen(
-        anzeige,
-        () =>
-          this._hass.callService("heatnexus", "set_time_program", {
-            entity_id: programm.entity,
-            blocks: nachDienst(neu),
-          }),
-        // Übernommen ist es erst, wenn die Anlage dasselbe zurückmeldet.
-        () => {
-          const jetzt = this._zustand(programm.entity);
-          const gemeldet = bloeckeLesen(jetzt && jetzt.attributes && jetzt.attributes.blocks);
-          return gleich(gemeldet, neu);
-        },
-        programm.entity
-      );
-      this._nachfassen({ entity: programm.entity });
+      await this._programmSchreiben(programm, neu, rueckmeldung);
     });
+  }
 
+  /** Das ganze Programm schreiben; übernommen ist es erst, wenn die Anlage dasselbe zurückmeldet. */
+  async _programmSchreiben(programm, neu, rueckmeldung) {
+    const anzeige =
+      [...this.shadowRoot.querySelectorAll(".rueckmeldung")].find(
+        (knoten) => knoten.dataset.programm === programm.entity
+      ) || rueckmeldung;
+    await this._uebertragen(
+      anzeige,
+      () =>
+        this._hass.callService("heatnexus", "set_time_program", {
+          entity_id: programm.entity,
+          blocks: nachDienst(neu),
+        }),
+      () => {
+        const jetzt = this._zustand(programm.entity);
+        const gemeldet = bloeckeLesen(jetzt && jetzt.attributes && jetzt.attributes.blocks);
+        return gleich(gemeldet, neu);
+      },
+      programm.entity
+    );
+    this._nachfassen({ entity: programm.entity });
+  }
+
+  // -------------------------------------------------------------------
+  // Editor unter der Zeile
+  // -------------------------------------------------------------------
+  _zeileOffen(programm, reihe) {
+    const offen = this._zpOffen;
+    return !!offen && offen.entity === programm.entity && offen.stelle === reihe.stelle;
+  }
+
+  /** Eine Zeile öffnet ihren Editor; dieselbe Zeile schließt ihn, eine andere übernimmt. */
+  _zeileUmschalten(programm, reihe) {
+    this._zpOffen = this._zeileOffen(programm, reihe)
+      ? null
+      : {
+          entity: programm.entity,
+          stelle: reihe.stelle,
+          modell: { tage: [...reihe.tage], punkte: reihe.punkte.map((punkt) => ({ ...punkt })) },
+        };
+    this._aktualisieren();
+  }
+
+  _zeileneditor(programm, bloecke, grenzen, rueckmeldung) {
+    const t = this._t.bind(this);
+    const { stelle, modell } = this._zpOffen;
+    const schliessen = () => {
+      this._zpOffen = null;
+      this._aktualisieren();
+    };
+    return zeileneditorKnoten(modell, {
+      grenzen,
+      t,
+      abbrechen: schliessen,
+      speichern: (block) => {
+        const neu = blockEinsetzen(bloecke, stelle, block);
+        const fehler = pruefen(neu, t);
+        if (fehler.length) return fehler;
+        schliessen();
+        if (!gleich(neu, bloecke)) this._programmSchreiben(programm, neu, rueckmeldung);
+        return [];
+      },
+    });
   }
   };

@@ -29,7 +29,7 @@ def ansicht(tmp_path_factory) -> dict:
     skript.write_text(
         f"""
 import {{ abschnitte, skala }} from "{modul}";
-import {{ klartext, stufen }} from "{seite}";
+import {{ blockEinsetzen, klartext, stufen }} from "{seite}";
 
 const p = (paare) => paare.map(([zeit, wert]) => ({{ zeit, wert }}));
 const tag = (paare) => abschnitte(p(paare));
@@ -38,6 +38,15 @@ const schalt = skala([{{ tage: ["Mo"], punkte: p([[360, 1], [450, 0]]) }}]);
 
 const werktag = [[330, 21], [480, 18], [960, 21.5], [1320, 18]];
 const nacht = [[360, 18], [1320, 22]];
+const woche = [
+  {{ tage: ["Mo", "Tu", "We", "Th", "Fr"], punkte: p([[360, 21], [1320, 16]]) }},
+  {{ tage: ["Sa", "Su"], punkte: p([[450, 21]]) }},
+];
+const vorher = JSON.stringify(woche);
+const mitSamstag = blockEinsetzen(woche, 0, {{ tage: ["Mo", "Tu", "We", "Th", "Fr", "Sa"], punkte: p([[360, 21], [1320, 16]]) }});
+const ganzeWoche = blockEinsetzen(woche, 0, {{ tage: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], punkte: p([[360, 21]]) }});
+const neuerBlock = blockEinsetzen([woche[0]], -1, {{ tage: ["Sa", "Su"], punkte: p([[480, 20]]) }});
+const ohneTage = blockEinsetzen(woche, 1, {{ tage: [], punkte: p([[450, 21]]) }});
 const englisch = (text) => ({{ "sonst {{wert}}": "otherwise {{wert}}" }})[text] || text;
 
 console.log(JSON.stringify({{
@@ -51,6 +60,11 @@ console.log(JSON.stringify({{
   stufen_werktag: stufen(tag(werktag), raum(werktag)),
   stufen_zwei_werte: stufen(tag([[360, 21], [1320, 17]]), raum([[360, 21], [1320, 17]])),
   stufen_schalt: stufen(tag([[360, 1], [450, 0]]), schalt),
+  mit_samstag: mitSamstag.map((b) => b.tage),
+  ganze_woche: ganzeWoche.map((b) => b.tage),
+  neuer_block: neuerBlock.map((b) => [b.tage, b.punkte]),
+  ohne_tage: ohneTage.map((b) => b.tage),
+  unveraendert: JSON.stringify(woche) === vorher,
 }}));
 """,
         encoding="utf-8",
@@ -99,3 +113,23 @@ def test_hoechster_wert_voll_zwischenwerte_halb_grundwert_leer(ansicht):
     assert ansicht["stufen_werktag"] == [None, "halb", None, "voll", None]
     assert ansicht["stufen_zwei_werte"] == [None, "voll", None]
     assert ansicht["stufen_schalt"] == [None, "voll", None]
+
+
+def test_ein_tag_wandert_aus_dem_anderen_block(ansicht):
+    assert ansicht["mit_samstag"] == [["Mo", "Tu", "We", "Th", "Fr", "Sa"], ["Su"]]
+
+
+def test_ein_block_ohne_tage_faellt_weg(ansicht):
+    assert ansicht["ganze_woche"] == [["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]]
+    assert ansicht["ohne_tage"] == [["Mo", "Tu", "We", "Th", "Fr"]]
+
+
+def test_tage_ohne_block_bekommen_einen_neuen(ansicht):
+    assert ansicht["neuer_block"] == [
+        [["Mo", "Tu", "We", "Th", "Fr"], [{"zeit": 360, "wert": 21}, {"zeit": 1320, "wert": 16}]],
+        [["Sa", "Su"], [{"zeit": 480, "wert": 20}]],
+    ]
+
+
+def test_das_programm_der_anlage_bleibt_unberuehrt(ansicht):
+    assert ansicht["unveraendert"] is True

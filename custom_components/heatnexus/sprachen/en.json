@@ -1370,5 +1370,8 @@
   "immer aus": "always off",
   "immer an": "always on",
   "kein Zeitplan": "no schedule",
-  "Dieses Programm hat keine Schaltzeiten.": "This program has no switching times."
+  "Dieses Programm hat keine Schaltzeiten.": "This program has no switching times.",
+  "ab": "from",
+  "Gilt für": "Applies to",
+  "Schaltzeiten · ab der Uhrzeit gilt der Wert bis zur nächsten": "Switching times · each value applies from its time until the next one"
 }

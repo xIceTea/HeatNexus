@@ -1763,3 +1763,27 @@ def test_das_fenster_darstellung_ordnet_die_wahlen_in_gruppen(durchlauf):
         "Beschriftung",
         "Verbindung",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Editor unter der Zeile
+# ---------------------------------------------------------------------------
+def test_die_zeile_oeffnet_den_editor_darunter(durchlauf):
+    editor = durchlauf["zeileneditor"]
+    assert (editor["vorher"], editor["offen"], editor["bleibt"]) == (False, True, True)
+
+
+def test_speichern_schreibt_das_ganze_programm_mit_den_neuen_tagen(durchlauf):
+    """Samstag wandert aus dem Wochenendblock; die Anlage bekommt beide Blöcke."""
+    editor = durchlauf["zeileneditor"]
+    assert editor["geschrieben"] == {
+        "entity_id": "sensor.programm_1",
+        "blocks": [
+            {
+                "weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa"],
+                "switch_points": [{"time": "06:00", "value": 21}, {"time": "22:00", "value": 16}],
+            },
+            {"weekdays": ["Su"], "switch_points": [{"time": "07:30", "value": 21}]},
+        ],
+    }
+    assert editor["zu"] is True
