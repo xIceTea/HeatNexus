@@ -6,6 +6,15 @@ wird und was nicht.
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta
+import json
+import logging
+import math
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 
 from .conftest import requires_ha
@@ -18,6 +27,9 @@ ANLAGE = "Anlage A"
 # 08:00 in der Zeitzone der Testumgebung; erst nach der Anmeldung setzen, sonst gilt das Token nicht.
 MORGEN = "2026-09-27 15:00:00+00:00"
 NACHT = "2026-09-27 09:00:00+00:00"
+# Die Absenkung am Sonnentag der Attrappe und ihre Rücknahme.
+ABSENKUNG = [(f"{PREFIX}/3/4/0", "19.5"), (f"{PREFIX}/2/10/0", "400")]
+ENDE = (f"{PREFIX}/2/10/0", "0")
 
 
 class Client:
@@ -87,6 +99,7 @@ class Coordinator:
 async def anlage(hass):
     from homeassistant.config_entries import ConfigEntryState
     from homeassistant.core import SupportsResponse
+    from homeassistant.helpers import entity_registry as er
     from homeassistant.util import dt as dt_util
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -111,8 +124,6 @@ async def anlage(hass):
     )
     eintrag = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)
     eintrag.add_to_hass(hass)
-    from homeassistant.helpers import entity_registry as er
-
     er.async_get(hass).async_get_or_create(
         "climate", DOMAIN, f"{HEIZKREIS}-thermostat", config_entry=eintrag
     )
@@ -125,9 +136,120 @@ async def anlage(hass):
     await verwaltung.eintrag_stoppen(eintrag)
 
 
+@dataclass
+class Szenario:
+    """Eine eingerichtete Automatik mit Zugriff auf Anlage, Panel und Laufzeit."""
+
+    hass: Any
+    verwaltung: Any
+    coordinator: Coordinator
+    client: Any = None
+
+    @property
+    def laufzeit(self):
+        return self.verwaltung.laufzeiten[HEIZKREIS]
+
+    @property
+    def eintrag(self):
+        return self.hass.config_entries.async_entries("heatnexus")[0]
+
+    @property
+    def geschrieben(self) -> list[tuple[str, str]]:
+        return self.coordinator.client.geschrieben
+
+    @property
+    def oids(self) -> dict[str, str]:
+        return self.coordinator.data["oids"]
+
+    @property
+    def protokoll(self):
+        return self.laufzeit.steller.stand.protokoll
+
+    async def senden(self, **nachricht) -> dict:
+        return await _senden(self.client, **nachricht)
+
+    async def einrichten(self, *, direkt: bool = False, **konfig):
+        """Über das Panel, ohne Client oder mit `direkt` über die Verwaltung."""
+        felder = {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"}
+        felder |= konfig
+        if self.client is None or direkt:
+            await self.verwaltung.einrichten(self.eintrag, felder)
+        else:
+            antwort = await self.senden(type="heatnexus/automatik/einrichten", **felder)
+            assert antwort["success"], antwort
+        return self.laufzeit
+
+    async def einstellen(self, **felder) -> dict:
+        return await self.senden(
+            type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, **felder
+        )
+
+    async def modus(self, modus: str) -> None:
+        if self.client is None:
+            await self.verwaltung.einstellen(HEIZKREIS, {"modus": modus})
+            return
+        antwort = await self.einstellen(modus=modus)
+        assert antwort["success"], antwort
+
+    async def kreis(self) -> dict:
+        return await _kreis(self.client)
+
+    async def takte(self, anzahl: int | None = None) -> None:
+        await _takte(self.laufzeit, anzahl)
+
+    async def neu_starten(self, zustand: dict):
+        """Die Laufzeit wie nach einem Neustart aus dem gegebenen Zustand starten."""
+        self.verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+        self.verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+        await self.verwaltung._nachholen(self.eintrag)
+        return self.laufzeit
+
+
+@pytest.fixture
+def szenario(request, hass, hass_ws_client, anlage):
+    """Eine Automatik aus kurzer Beschreibung, etwa `modus="schalten", takte=True`.
+
+    `ws=False` richtet ohne Panel ein, `zeit=None` lässt die Uhr laufen, `einrichten=False`
+    liefert nur Anlage und Panel.
+    """
+    verwaltung, coordinator = anlage
+
+    async def bauen(
+        *,
+        zeit: str | None = MORGEN,
+        ws: bool = True,
+        einrichten: bool = True,
+        modus: str | None = None,
+        takte: bool = False,
+        **konfig,
+    ) -> Szenario:
+        sz = Szenario(hass, verwaltung, coordinator)
+        if ws:
+            sz.client = await hass_ws_client(hass)
+        if zeit is not None:
+            # Erst bei Bedarf: `freezer` hält auch die Uhr an, nach der `asyncio.sleep` wartet.
+            request.getfixturevalue("freezer").move_to(zeit)
+        if einrichten:
+            await sz.einrichten(**konfig)
+        if modus is not None:
+            await sz.modus(modus)
+        if takte:
+            await sz.takte()
+        return sz
+
+    return bauen
+
+
 async def _senden(client, **nachricht) -> dict:
     await client.send_json_auto_id(nachricht)
     return await client.receive_json()
+
+
+async def _kreis(client) -> dict:
+    antwort = await _senden(client, type="heatnexus/automatik")
+    assert antwort["success"], antwort
+    (kreis,) = antwort["result"]["heizkreise"]
+    return kreis
 
 
 async def _einrichten(client) -> dict:
@@ -148,42 +270,56 @@ async def _schalten(client) -> None:
     assert antwort["success"], antwort
 
 
-async def _schalten_ohne_eingriff(client, verwaltung, coordinator) -> None:
-    """Scharf schalten; der Wechsel selbst schreibt nichts."""
-    await _schalten(client)
-    coordinator.client.geschrieben.clear()
-
-
 async def _takte(laufzeit, anzahl: int | None = None) -> None:
     """So viele Fünf-Minuten-Takte, wie ein Beginn braucht."""
     for _ in range(anzahl or laufzeit.werte.beginn_laeufe):
         await laufzeit.auswerten(takt=True)
 
 
-async def _empfehlen(client) -> None:
-    antwort = await _senden(
-        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
+async def _eingerichtet(hass, verwaltung):
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
     )
-    assert antwort["success"], antwort
+    return verwaltung.laufzeiten[HEIZKREIS]
 
 
-async def _empfohlen(hass, hass_ws_client, verwaltung, freezer):
-    """Eine Empfehlung nach den nötigen Takten, noch nichts geschrieben."""
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _empfehlen(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    return laufzeit, client
+def _issue(hass, art: str):
+    """Die Reparaturmeldung `art` des Heizkreises, sonst `None`."""
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    return ir.async_get(hass).async_get_issue(DOMAIN, f"{art}_{HEIZKREIS}")
 
 
-async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
-    hass, hass_ws_client, anlage, freezer
-):
+def _jetzt() -> datetime:
+    from homeassistant.util import dt as dt_util
+
+    return dt_util.now()
+
+
+def _aufzeichnung(hass, monkeypatch, zustaende: dict) -> None:
+    """Der Recorder liefert auf jede Abfrage die gegebenen Zustände."""
+    import homeassistant.components.recorder as recorder
+
+    class Instanz:
+        async def async_add_executor_job(self, _aufgabe):
+            return zustaende
+
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
+    hass.config.components.add("recorder")
+
+
+def _thermostat(hass, entity_id: str, ist: float, ziel: float, aktion: str = "idle") -> None:
+    attribute = {"current_temperature": ist, "temperature": ziel, "hvac_action": aktion}
+    hass.states.async_set(entity_id, "heat", attribute)
+
+
+# --- Empfehlen ----------------------------------------------------------------
+async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(hass, szenario):
     from homeassistant.core import callback
 
-    verwaltung, coordinator = anlage
     ereignisse = []
 
     @callback
@@ -192,7 +328,8 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
 
     hass.bus.async_listen("heatnexus_automatik_empfehlung", merken)
     hass.config.language = "en"
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    sz = await szenario(modus="empfehlen", takte=True)
+    laufzeit = sz.laufzeit
     await hass.async_block_till_done()
 
     assert laufzeit.empfehlung is not None
@@ -200,62 +337,53 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
     assert laufzeit.als_dict()["empfehlung"] == laufzeit.empfehlung
     assert laufzeit.zustand.value == "programm"
     assert laufzeit.begruendung.startswith("Empfehlung: ")
-    assert coordinator.client.geschrieben == []
+    assert sz.geschrieben == []
     assert len(ereignisse) == 1
-    assert ereignisse[0].data["heizkreis"] == HEIZKREIS
-    assert ereignisse[0].data["name"] == f"{ANLAGE} · Heizkreis"
-    assert ereignisse[0].data["zustand"] == "sonnentag"
-    assert ereignisse[0].data["taste"] is None
-    assert ereignisse[0].data["begruendung"] != laufzeit.empfehlung["begruendung"]
+    daten = ereignisse[0].data
+    assert (daten["heizkreis"], daten["zustand"], daten["taste"]) == (HEIZKREIS, "sonnentag", None)
+    assert daten["name"] == f"{ANLAGE} · Heizkreis"
+    assert daten["begruendung"] != laufzeit.empfehlung["begruendung"]
 
-    await _takte(laufzeit)
+    await sz.takte()
     await hass.async_block_till_done()
     assert len(ereignisse) == 1
 
-    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
+    await sz.verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+    assert sz.geschrieben == ABSENKUNG
     assert laufzeit.empfehlung is None
 
 
-async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, freezer):
+async def test_empfehlung_als_sensor_und_taste(hass, szenario):
     from homeassistant.helpers import entity_registry as er
     from homeassistant.setup import async_setup_component
     from pytest_homeassistant_custom_component.common import MockEntityPlatform
 
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.automatik.verwaltung import unique_id
-    from custom_components.heatnexus.const import DOMAIN
 
-    verwaltung, _ = anlage
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    sz = await szenario(modus="empfehlen", takte=True)
+    laufzeit = sz.laufzeit
     assert await async_setup_component(hass, "button", {})
     arten = (
         ("empfehlung", "sensor"),
         ("empfehlung_uebernehmen", "button"),
         ("empfehlung_verwerfen", "button"),
     )
-    eintrag = hass.config_entries.async_entries(DOMAIN)[0]
     for art, domaene in arten:
         plattform = MockEntityPlatform(hass, domain=domaene, platform_name="heatnexus")
         # Ein Gerät hängt nur an einer Entität, deren Plattform einen Config-Eintrag hat.
-        plattform.config_entry = eintrag
-        await plattform.async_add_entities([KLASSEN[art](verwaltung, HEIZKREIS)])
+        plattform.config_entry = sz.eintrag
+        await plattform.async_add_entities([KLASSEN[art](sz.verwaltung, HEIZKREIS)])
     await hass.async_block_till_done()
 
     reg = er.async_get(hass)
-    sensor = reg.async_get_entity_id("sensor", "heatnexus", unique_id(HEIZKREIS, "empfehlung"))
-    taste = reg.async_get_entity_id(
-        "button", "heatnexus", unique_id(HEIZKREIS, "empfehlung_uebernehmen")
+    sensor, taste, verwerfen = (
+        reg.async_get_entity_id(domaene, "heatnexus", unique_id(HEIZKREIS, art))
+        for art, domaene in arten
     )
     assert hass.states.get(sensor).state == "sonnentag"
     assert hass.states.get(sensor).attributes["seit"] == laufzeit.empfehlung["seit"]
     assert hass.states.get(taste).state != "unavailable"
-    verwerfen = reg.async_get_entity_id(
-        "button", "heatnexus", unique_id(HEIZKREIS, "empfehlung_verwerfen")
-    )
     assert hass.states.get(verwerfen).state != "unavailable"
 
     await hass.services.async_call("button", "press", {"entity_id": taste}, blocking=True)
@@ -266,26 +394,16 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
 
 
 @pytest.mark.parametrize("melden", [True, False])
-async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(
-    hass, hass_ws_client, anlage, freezer, melden
-):
+async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(hass, szenario, melden):
     from homeassistant.components.persistent_notification import (
         _async_get_or_create_notifications,
     )
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
+    sz = await szenario()
     if not melden:
-        await _senden(
-            client,
-            type="heatnexus/automatik/einstellen",
-            heizkreis=HEIZKREIS,
-            eigene={"melden": False},
-        )
-    await _empfehlen(client)
-    await _takte(verwaltung.laufzeiten[HEIZKREIS])
+        await sz.einstellen(eigene={"melden": False})
+    await sz.modus("empfehlen")
+    await sz.takte()
     kennung = f"heatnexus_empfehlung_{HEIZKREIS}"
     meldungen = _async_get_or_create_notifications(hass)
     assert (kennung in meldungen) is melden
@@ -293,15 +411,12 @@ async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(
         assert "/heatnexus-anlage" in meldungen[kennung]["message"]
         assert meldungen[kennung]["title"].endswith(f"{ANLAGE} · Heizkreis")
 
-    await verwaltung.empfehlung_verwerfen(HEIZKREIS)
+    await sz.verwaltung.empfehlung_verwerfen(HEIZKREIS)
     assert kennung not in _async_get_or_create_notifications(hass)
 
 
-async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(hass, hass_ws_client, anlage, freezer):
-    from datetime import timedelta
-
-    verwaltung, _ = anlage
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(szenario, freezer):
+    laufzeit = (await szenario(modus="empfehlen", takte=True)).laufzeit
 
     freezer.tick(timedelta(minutes=5))
     await laufzeit.auswerten()
@@ -312,311 +427,408 @@ async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(hass, hass_ws_client, anl
     assert laufzeit.empfehlung is None
 
 
-async def test_wechsel_zum_schalten_verwirft_die_empfehlung(hass, hass_ws_client, anlage, freezer):
-    verwaltung, _ = anlage
-    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+async def test_wechsel_zum_schalten_verwirft_die_empfehlung(szenario):
+    sz = await szenario(modus="empfehlen", takte=True)
 
-    await _schalten(client)
+    await sz.modus("schalten")
 
-    assert laufzeit.empfehlung is None
+    assert sz.laufzeit.empfehlung is None
 
 
 @pytest.mark.parametrize("modus", ["empfehlen", "beobachten"])
-async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
-    hass, hass_ws_client, anlage, freezer, modus
-):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    await _takte(verwaltung.laufzeiten[HEIZKREIS])
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
-    coordinator.client.geschrieben.clear()
+async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(szenario, modus):
+    sz = await szenario(modus="schalten", takte=True)
+    assert sz.geschrieben == ABSENKUNG
+    sz.geschrieben.clear()
     # Bis zum nächsten Abruf zeigt `1/1` noch den geschriebenen Wert.
-    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "19.5"
+    sz.oids[f"{PREFIX}/1/1/0"] = "19.5"
 
-    antwort = await _senden(
-        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus=modus
-    )
+    antwort = await sz.einstellen(modus=modus)
 
     assert antwort["success"], antwort
-    assert coordinator.client.geschrieben == [(f"{PREFIX}/2/10/0", "0")]
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
+    assert sz.geschrieben == [ENDE]
+    await sz.takte()
     if modus == "empfehlen":
-        assert laufzeit.empfehlung["zustand"] == "sonnentag"
-        assert "19,5 °C" in laufzeit.empfehlung["begruendung"]
+        assert sz.laufzeit.empfehlung["zustand"] == "sonnentag"
+        assert "19,5 °C" in sz.laufzeit.empfehlung["begruendung"]
     else:
-        assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
+        assert sz.protokoll[0]["art"] == "haette"
 
 
-async def test_nach_ablauf_gilt_der_raumsoll_vor_dem_eingriff(
-    hass, hass_ws_client, anlage, freezer
-):
-    from datetime import timedelta
-
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    g = laufzeit.gedaechtnis
+async def test_nach_ablauf_gilt_der_raumsoll_vor_dem_eingriff(szenario, freezer):
+    sz = await szenario(modus="schalten", takte=True)
+    g = sz.laufzeit.gedaechtnis
     assert g.absenkung_soll == 19.5
     freezer.move_to(g.absenkung_bis + timedelta(minutes=1))
-    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "19.5"
-    await laufzeit.auswerten()
-    assert laufzeit.lage.soll == 21.0
+    sz.oids[f"{PREFIX}/1/1/0"] = "19.5"
+    await sz.laufzeit.auswerten()
+    assert sz.laufzeit.lage.soll == 21.0
 
 
-async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(
-    hass, hass_ws_client, anlage, freezer
-):
-    from datetime import timedelta
+async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(szenario, freezer):
+    sz = await szenario(modus="empfehlen", takte=True)
+    laufzeit = sz.laufzeit
 
-    verwaltung, coordinator = anlage
-    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
-
-    antwort = await _senden(
-        client, type="heatnexus/automatik/empfehlung_verwerfen", heizkreis=HEIZKREIS
-    )
+    antwort = await sz.senden(type="heatnexus/automatik/empfehlung_verwerfen", heizkreis=HEIZKREIS)
 
     assert antwort["success"], antwort
     assert laufzeit.empfehlung is None
-    assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
-    await _takte(laufzeit)
+    assert sz.protokoll[0]["art"] == "verworfen"
+    await sz.takte()
     assert laufzeit.empfehlung is None
     assert laufzeit.begruendung.startswith("Verworfen: ")
-    assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
+    assert sz.protokoll[0]["art"] == "verworfen"
     assert laufzeit.als_dict()["verworfen"]["zustaende"] == ["sonnentag"]
-    assert coordinator.client.geschrieben == []
+    assert sz.geschrieben == []
 
     freezer.tick(timedelta(days=1))
     await laufzeit._prognose_holen()
-    await _takte(laufzeit)
+    await sz.takte()
     assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
 @pytest.mark.parametrize(("empfohlen", "geschrieben"), [("sonnentag", True), ("nur_ww", False)])
 async def test_bestaetigung_gilt_nur_fuer_die_angezeigte_empfehlung(
-    hass, hass_ws_client, anlage, freezer, empfohlen, geschrieben
+    szenario, empfohlen, geschrieben
 ):
-    from dataclasses import replace
-
-    verwaltung, coordinator = anlage
-    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    sz = await szenario(modus="empfehlen", takte=True)
+    laufzeit = sz.laufzeit
     laufzeit.steller.stand = replace(laufzeit.steller.stand, eingriffe=laufzeit.werte.budget)
     laufzeit.empfehlung = {**laufzeit.empfehlung, "zustand": empfohlen}
 
-    await _senden(client, type="heatnexus/automatik/empfehlung_uebernehmen", heizkreis=HEIZKREIS)
+    await sz.senden(type="heatnexus/automatik/empfehlung_uebernehmen", heizkreis=HEIZKREIS)
 
-    assert coordinator.client.geschrieben == (
-        [(f"{PREFIX}/3/4/0", "19.5"), (f"{PREFIX}/2/10/0", "400")] if geschrieben else []
-    )
+    assert sz.geschrieben == (ABSENKUNG if geschrieben else [])
     assert (laufzeit.empfehlung is None) is geschrieben
     if not geschrieben:
         # Die Regel will anderes als angezeigt; nach den nötigen Takten folgt die neue Empfehlung.
-        await _takte(laufzeit)
+        await sz.takte()
         assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
-async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(hass, szenario):
+    sz = await szenario(modus="empfehlen", takte=True)
+    laufzeit = sz.laufzeit
     lauf = laufzeit._auswerten
 
     async def bestaetigen_waehrend() -> None:
         laufzeit._auswerten = lauf
         await lauf()
-        hass.async_create_task(verwaltung.empfehlung_uebernehmen(HEIZKREIS))
+        hass.async_create_task(sz.verwaltung.empfehlung_uebernehmen(HEIZKREIS))
 
     laufzeit._auswerten = bestaetigen_waehrend
     await laufzeit.auswerten()
     await hass.async_block_till_done()
 
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
+    assert sz.geschrieben == ABSENKUNG
 
 
-async def test_bestaetigung_waehrend_die_regel_wartet_bleibt_offen(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
-    grenze = coordinator.data["oids"].pop(f"{PREFIX}/3/21/0")
-    laufzeit._gestartet = laufzeit.lage.jetzt
+async def test_bestaetigung_waehrend_die_regel_wartet_bleibt_offen(hass, szenario):
+    sz = await szenario(modus="empfehlen", takte=True)
+    grenze = sz.oids.pop(f"{PREFIX}/3/21/0")
+    sz.laufzeit._gestartet = sz.laufzeit.lage.jetzt
 
-    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+    await sz.verwaltung.empfehlung_uebernehmen(HEIZKREIS)
     await hass.async_block_till_done()
-    assert coordinator.client.geschrieben == []
+    assert sz.geschrieben == []
 
-    coordinator.data["oids"][f"{PREFIX}/3/21/0"] = grenze
-    laufzeit._merken()
+    sz.oids[f"{PREFIX}/3/21/0"] = grenze
+    sz.laufzeit._merken()
     await hass.async_block_till_done()
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
+    assert sz.geschrieben == ABSENKUNG
 
 
-async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage, freezer):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
+# --- Einrichten und Lesen -----------------------------------------------------
+async def test_einrichten_startet_im_beobachtungsmodus(szenario):
+    sz = await szenario(einrichten=False)
 
-    antwort = await _einrichten(client)
+    antwort = await _einrichten(sz.client)
 
     assert antwort["success"], antwort
     assert antwort["result"]["modus"] == "beobachten"
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    assert coordinator.client.geschrieben == []
-    assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
+    await sz.takte()
+    assert sz.geschrieben == []
+    assert sz.protokoll[0]["art"] == "haette"
 
 
-async def test_lesen_zeigt_den_heizkreis(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+async def test_lesen_zeigt_den_heizkreis(szenario):
+    sz = await szenario(zeit=None)
 
-    antwort = await _senden(client, type="heatnexus/automatik")
+    antwort = await sz.senden(type="heatnexus/automatik")
 
     assert antwort["success"], antwort
     (kreis,) = antwort["result"]["heizkreise"]
     assert kreis["eingerichtet"] is True
     assert kreis["anlage"] == ANLAGE
-    assert kreis["kennwerte"]["raum"] == 21.4
-    assert kreis["kennwerte"]["eigene_ziele"] is False
-    assert kreis["kennwerte"]["raum_bezug"] == 21.0
+    kennwerte = kreis["kennwerte"]
+    assert (kennwerte["raum"], kennwerte["eigene_ziele"], kennwerte["raum_bezug"]) == (
+        21.4,
+        False,
+        21.0,
+    )
     assert antwort["result"]["darf_aendern"] is True
 
 
-async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(
-    hass, hass_ws_client, anlage, freezer
-):
+async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(hass, szenario):
     """Begründung und Protokoll kommen in der Sprache der Oberfläche, der Store bleibt deutsch."""
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    hass.config.language = "en"
-
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-
     from custom_components.heatnexus.texte import Woerterbuch
 
+    sz = await szenario(takte=True)
+    laufzeit = sz.laufzeit
+    hass.config.language = "en"
+
+    kreis = await sz.kreis()
+
     englisch = Woerterbuch("en").satz
-    deutsch = laufzeit.steller.stand.protokoll[0]["text"]
+    deutsch = sz.protokoll[0]["text"]
     assert kreis["begruendung"] == englisch(laufzeit.begruendung)
     assert kreis["begruendung"] != laufzeit.begruendung
     assert kreis["protokoll"][0]["text"] == englisch(deutsch)
     assert kreis["protokoll"][0]["text"] != deutsch
-    assert laufzeit.steller.stand.protokoll[0]["text"] == deutsch
+    assert sz.protokoll[0]["text"] == deutsch
 
 
-async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, _ = anlage
-    hass.config.language = "de"
-    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-    assert kreis["empfehlung"]["zustand"] == "sonnentag"
-    assert kreis["empfehlung"]["begruendung"] == laufzeit.empfehlung["begruendung"]
-
-    hass.config.language = "en"
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-
+async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(hass, szenario):
     from custom_components.heatnexus.texte import Woerterbuch
 
-    deutsch = laufzeit.empfehlung["begruendung"]
+    hass.config.language = "de"
+    sz = await szenario(modus="empfehlen", takte=True)
+    deutsch = sz.laufzeit.empfehlung["begruendung"]
+    kreis = await sz.kreis()
+    assert kreis["empfehlung"]["zustand"] == "sonnentag"
+    assert kreis["empfehlung"]["begruendung"] == deutsch
+
+    hass.config.language = "en"
+    kreis = await sz.kreis()
+
     assert kreis["empfehlung"]["begruendung"] == Woerterbuch("en").satz(deutsch)
     assert kreis["empfehlung"]["begruendung"] != deutsch
-    assert laufzeit.empfehlung["begruendung"] == deutsch
+    assert sz.laufzeit.empfehlung["begruendung"] == deutsch
 
 
-async def test_schalten_schreibt_nach_drei_takten(hass, hass_ws_client, anlage, freezer):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+async def test_lesen_liefert_stundenraster_und_korrektur(szenario):
+    sz = await szenario(zeit=None)
 
-    await _takte(laufzeit, 2)
-    assert coordinator.client.geschrieben == []
-    await _takte(laufzeit, 1)
+    kreis = await sz.kreis()
 
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
+    assert len(kreis["tag"]["stunden"]) == 24
+    assert {"korrigiert", "wolken", "aktion"} <= set(kreis["tag"]["stunden"][12])
+    korrektur = kreis["korrektur"]
+    assert (korrektur["fenster"], korrektur["noetig"]) == (14, 7)
+    assert korrektur["temperatur"]["versatz"] is None
+    assert korrektur["sonne"]["aktiv"] is False
+
+
+async def test_lesen_liefert_vorschau_und_einzelne_raeume(szenario):
+    kreis = await (await szenario()).kreis()
+
+    assert [tag["titel"] for tag in kreis["vorschau"]] == ["Morgen", "Übermorgen"]
+    assert kreis["vorschau"][0]["begruendung"]
+    assert kreis["kennwerte"]["at"] == 12.0
+    assert kreis["kennwerte"]["raeume"][0]["wert"] == 21.4
+
+
+async def test_vorschau_rechnet_die_sonnenquote_wie_der_betrieb(hass, szenario):
+    einheit = {"unit_of_measurement": "kWh", "device_class": "energy"}
+    hass.states.async_set("sensor.energy_production_today", "20.0", einheit)
+    hass.states.async_set("sensor.energy_production_tomorrow", "5.0", einheit)
+    sz = await szenario(pv="sensor.energy_production_today")
+    heute = _jetzt().date()
+    sz.laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
+
+    kreis = await sz.kreis()
+
+    # Die Vortage zählen umgerechnet auf den Sonnenstand von morgen, daher knapp über 5 ÷ 20.
+    assert kreis["vorschau"][0]["sonnenquote"] == pytest.approx(25.0, abs=1.0)
+
+
+async def test_kennwerte_nennen_die_grenzen_der_steuerung(szenario):
+    kennwerte = (await (await szenario(zeit=None, ausrichtung="eco")).kreis())["kennwerte"]
+
+    assert {k: kennwerte[k] for k in ("grenze_steuerung", "grenze_absenk", "versatz")} == {
+        "grenze_steuerung": 18.0,
+        "grenze_absenk": 5.0,
+        "versatz": -2.0,
+    }
+    assert (kennwerte["heizgrenze"], kennwerte["hysterese"]) == (16.0, 1.0)
+    assert (kennwerte["sonne_schwelle"], kennwerte["stark_quote"]) == (45.0, 80.0)
+
+
+async def test_regellauf_zeigt_den_zaehler(szenario):
+    sz = await szenario(modus="schalten", takte=True)
+
+    kreis = await sz.kreis()
+
+    ergebnisse = [e["ergebnis"] for e in kreis["regellauf"]]
+    assert ergebnisse[:3] == ["schreibt", "zaehlt", "zaehlt"]
+    assert kreis["regellauf"][1]["zaehler"] == 2
+    assert kreis["kern"]["anstehend"] is None
+    assert {b["name"] for b in kreis["kern"]["bewertungen"]} >= {"sonne", "raeume"}
+
+
+async def test_ohne_programm_misst_die_kachel_nicht_gegen_den_frostschutz(szenario):
+    from custom_components.heatnexus.automatik.entitaeten import AutomatikAbweichung
+
+    sz = await szenario()
+    sz.oids[f"{PREFIX}/3/50/0"] = "6"
+    sz.oids[f"{PREFIX}/1/1/0"] = "4.9"
+    await sz.laufzeit.auswerten()
+
+    kreis = await sz.kreis()
+    assert (kreis["kennwerte"]["soll"], kreis["kennwerte"]["abweichung"]) == (None, None)
+    assert AutomatikAbweichung._wert(None, sz.laufzeit) is None
+
+
+async def test_lage_kennt_at_und_vorlauf_der_steuerung(szenario):
+    sz = await szenario(zeit=None)
+    sz.oids[f"{PREFIX}/0/0/0"] = "18.4"
+    sz.oids[f"{PREFIX}/1/2/0"] = "0.0"
+    await sz.laufzeit.auswerten()
+    lage = sz.laufzeit.lage
+    assert (lage.at_steuerung, lage.vl_soll, lage.beobachten) == (18.4, 0.0, True)
+
+
+async def test_gedaempfte_at_beginnt_beim_tagesmittel(szenario):
+    """Nachmittags läge der Messwert weit über dem Mittel des Tages."""
+    stufen = (await szenario(zeit=None)).laufzeit.stufen
+
+    assert stufen is not None
+    assert stufen[1] == pytest.approx(10.0, abs=0.1)  # (14 + 6) / 2 aus der Tagesprognose
+
+
+async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, szenario):
+    hass.states.async_set("sensor.kueche", "20.8", {"device_class": "temperature"})
+    sz = await szenario(zeit=None)
+
+    antwort = await sz.einstellen(
+        raeume=["sensor.wohnzimmer", "sensor.kueche"],
+        raum_art="minimum",
+        heizflaechen="flaeche",
+        profil="traege",
+        eigene={},
+    )
+
+    assert antwort["success"], antwort
+    laufzeit = sz.laufzeit
+    assert laufzeit.konfig["raeume"] == ["sensor.wohnzimmer", "sensor.kueche"]
+    assert laufzeit.konfig["profil"] == "traege"
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raum == 20.8
+
+
+# --- Schalten ---------------------------------------------------------------
+async def test_schalten_schreibt_nach_drei_takten(szenario):
+    sz = await szenario(modus="schalten")
+
+    await sz.takte(2)
+    assert sz.geschrieben == []
+    await sz.takte(1)
+
+    assert sz.geschrieben == ABSENKUNG
+
+
+async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(szenario):
+    sz = await szenario(zeit=NACHT, modus="schalten", takte=True)
+
+    assert sz.geschrieben == []
+    assert sz.laufzeit.zustand.value == "programm"
+
+
+async def test_wechsel_nach_empfehlen_empfiehlt_nach_drei_takten(szenario):
+    sz = await szenario(modus="empfehlen")
+    assert sz.laufzeit.empfehlung is None
+
+    await sz.takte()
+
+    assert sz.laufzeit.empfehlung["zustand"] == "sonnentag"
+
+
+async def test_takt_ohne_aenderung_zaehlt_weiter(szenario):
+    sz = await szenario(modus="schalten")
+    for _ in range(3):
+        await sz.laufzeit._takt(None)
+    assert sz.geschrieben[0] == ABSENKUNG[0]
+
+
+async def test_ein_takt_waehrend_einer_auswertung_geht_nicht_verloren(hass, szenario):
+    sz = await szenario(modus="schalten")
+    laufzeit = sz.laufzeit
+
+    await laufzeit._sperre.acquire()
+    aufgabe = hass.async_create_task(laufzeit._takt(None))
+    laufzeit._sperre.release()
+    await aufgabe
+
+    assert laufzeit.anstehend.zaehler == 1
+
+
+async def test_nach_dem_schreiben_liest_die_automatik_gezielt_nach(szenario):
+    sz = await _eigene_absenkung(szenario)
+
+    adressen = ["/3/50/0", "/2/10/0", "/1/1/0", "/2/9/0"]
+    assert sz.coordinator.nachgefasst == [
+        ([f"{PREFIX}{a}" for a in adressen], {"anzahl": 1, "abstand": 180.0})
     ]
 
 
-async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(NACHT)
-    await _einrichten(client)
-
-    await _schalten(client)
-    await _takte(verwaltung.laufzeiten[HEIZKREIS])
-
-    assert coordinator.client.geschrieben == []
-    assert verwaltung.laufzeiten[HEIZKREIS].zustand.value == "programm"
+async def _eigene_absenkung(szenario) -> Szenario:
+    """Scharf geschaltet, ein Abruf vor dem Schreiben, dann schreibt die Automatik ihre Absenkung."""
+    sz = await szenario(modus="schalten")
+    sz.laufzeit._merken()
+    await sz.takte()
+    assert sz.geschrieben == ABSENKUNG
+    return sz
 
 
-async def test_wechsel_nach_empfehlen_empfiehlt_nach_drei_takten(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _empfehlen(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    assert laufzeit.empfehlung is None
+async def test_lauf_ohne_abruf_nach_dem_schreiben_pausiert_nicht(szenario, freezer):
+    """Abruf alle 300 s: Fünf Minuten nach dem Schreiben zeigt der Bestand noch `2/10 = 0`."""
+    sz = await _eigene_absenkung(szenario)
+    laufzeit = sz.laufzeit
 
-    await _takte(laufzeit)
+    freezer.tick(timedelta(minutes=5))
+    await laufzeit.auswerten(takt=True)
+    assert laufzeit.pausiert_bis is None
 
-    assert laufzeit.empfehlung["zustand"] == "sonnentag"
-
-
-async def test_takt_ohne_aenderung_zaehlt_weiter(hass, hass_ws_client, anlage, freezer):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    for _ in range(3):
-        await laufzeit._takt(None)
-    assert coordinator.client.geschrieben[0] == (f"{PREFIX}/3/4/0", "19.5")
+    # Der nächste Abruf zeigt die Absenkung beendet: Das war jemand von Hand.
+    laufzeit._merken()
+    await laufzeit.auswerten(takt=True)
+    assert laufzeit.pausiert_bis is not None
+    assert sz.protokoll[0]["text"].startswith("Absenkung von Hand beendet.")
 
 
-async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anlage, freezer):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    await _takte(verwaltung.laufzeiten[HEIZKREIS])
+async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(szenario, freezer):
+    from custom_components.heatnexus.automatik import regel
 
-    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
+    sz = await szenario(modus="schalten")
+    sz.geschrieben.clear()
+    freezer.tick(timedelta(minutes=5))
+    laufzeit = sz.laufzeit
+    jetzt = _jetzt()
+    laufzeit.gedaechtnis = regel.Gedaechtnis(
+        absenkung_art=regel.PAUSE,
+        absenkung_von=jetzt - timedelta(hours=1),
+        absenkung_bis=jetzt + timedelta(minutes=340),
+        absenkung_soll=17.0,
+    )
+    sz.oids[f"{PREFIX}/2/10/0"] = "340"
 
-    assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
+    # Seit dem Start kam kein Abruf; der Bestand kann aus dem Lesespeicher stammen.
+    await laufzeit.auswerten()
+    assert laufzeit.pausiert_bis is None
+
+    laufzeit._merken()
+    await laufzeit.auswerten()
+
+    assert laufzeit.pausiert_bis is not None
+
+
+# --- Ausschalten und Rücknahme ----------------------------------------------
+async def test_ausschalten_nimmt_die_absenkung_zurueck(szenario):
+    sz = await szenario(modus="schalten", takte=True)
+
+    await sz.einstellen(aktiv=False)
+
+    assert sz.geschrieben[-1] == ENDE
 
 
 async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anlage, freezer):
@@ -640,44 +852,25 @@ async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anla
     assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
 
 
-async def test_abgelehnte_ruecknahme_meldet_sich(hass, hass_ws_client, anlage, freezer):
-    from homeassistant.helpers import issue_registry as ir
+async def test_abgelehnte_ruecknahme_meldet_sich(hass, szenario):
+    sz = await szenario(modus="schalten", takte=True)
+    sz.coordinator.client.ablehnen = True
 
-    from custom_components.heatnexus.const import DOMAIN
+    await sz.einstellen(aktiv=False)
 
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    coordinator.client.ablehnen = True
-
-    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
-
-    kennung = f"automatik_ruecknahme_{HEIZKREIS}"
-    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is not None
-    assert laufzeit.gedaechtnis.absenkung_art is not None
+    assert _issue(hass, "automatik_ruecknahme") is not None
+    assert sz.laufzeit.gedaechtnis.absenkung_art is not None
 
 
-async def test_wiedereinschalten_behaelt_die_nicht_zurueckgenommene_absenkung(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
-    coordinator.client.ablehnen = True
-    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
-    coordinator.client.ablehnen = False
+async def test_wiedereinschalten_behaelt_die_nicht_zurueckgenommene_absenkung(szenario):
+    sz = await szenario(modus="schalten", takte=True)
+    sz.coordinator.client.ablehnen = True
+    await sz.einstellen(aktiv=False)
+    sz.coordinator.client.ablehnen = False
 
-    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=True)
+    await sz.einstellen(aktiv=True)
 
-    assert laufzeit.gedaechtnis.absenkung_art is not None
+    assert sz.laufzeit.gedaechtnis.absenkung_art is not None
 
 
 async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
@@ -706,105 +899,36 @@ async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
     assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
 
 
-async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(
-    hass, hass_ws_client, anlage, freezer
-):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    from custom_components.heatnexus.automatik import regel
-
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten_ohne_eingriff(client, verwaltung, coordinator)
-    freezer.tick(timedelta(minutes=5))
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    jetzt = dt_util.now()
-    laufzeit.gedaechtnis = regel.Gedaechtnis(
-        absenkung_art=regel.PAUSE,
-        absenkung_von=jetzt - timedelta(hours=1),
-        absenkung_bis=jetzt + timedelta(minutes=340),
-        absenkung_soll=17.0,
-    )
-    coordinator.data["oids"][f"{PREFIX}/2/10/0"] = "340"
-
-    # Seit dem Start kam kein Abruf; der Bestand kann aus dem Lesespeicher stammen.
-    await laufzeit.auswerten()
-    assert laufzeit.pausiert_bis is None
-
-    laufzeit._merken()
-    await laufzeit.auswerten()
-
-    assert laufzeit.pausiert_bis is not None
-
-
-async def _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer):
-    """Scharf geschaltet, ein Abruf vor dem Schreiben, dann schreibt die Automatik ihre Absenkung."""
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    laufzeit._merken()
-    await _takte(laufzeit)
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
-    return laufzeit
-
-
-async def test_lauf_ohne_abruf_nach_dem_schreiben_pausiert_nicht(
-    hass, hass_ws_client, anlage, freezer
-):
-    """Abruf alle 300 s: Fünf Minuten nach dem Schreiben zeigt der Bestand noch `2/10 = 0`."""
-    from datetime import timedelta
-
-    verwaltung, coordinator = anlage
-    laufzeit = await _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer)
-
-    freezer.tick(timedelta(minutes=5))
-    await laufzeit.auswerten(takt=True)
-    assert laufzeit.pausiert_bis is None
-
-    # Der nächste Abruf zeigt die Absenkung beendet: Das war jemand von Hand.
-    laufzeit._merken()
-    await laufzeit.auswerten(takt=True)
-    assert laufzeit.pausiert_bis is not None
-    assert laufzeit.steller.stand.protokoll[0]["text"].startswith("Absenkung von Hand beendet.")
-
-
-async def test_nach_dem_schreiben_liest_die_automatik_gezielt_nach(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    await _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer)
-
-    adressen = ["/3/50/0", "/2/10/0", "/1/1/0", "/2/9/0"]
-    assert coordinator.nachgefasst == [
-        ([f"{PREFIX}{a}" for a in adressen], {"anzahl": 1, "abstand": 180.0})
-    ]
-
-
-async def test_nur_administratoren_richten_ein(
-    hass, hass_ws_client, hass_read_only_access_token, anlage
+# --- Rechte -------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "nachricht",
+    [
+        {
+            "type": "heatnexus/automatik/einrichten",
+            "heizflaechen": "gemischt",
+            "raeume": ["sensor.wohnzimmer"],
+            "wetter": "weather.home",
+        },
+        {"type": "heatnexus/automatik/heizgrenzen", "heizbetrieb": 18.0},
+        {"type": "heatnexus/automatik/hausmodell_neu"},
+    ],
+    ids=["einrichten", "heizgrenzen", "hausmodell_neu"],
+)
+async def test_nur_administratoren_aendern(
+    hass, hass_ws_client, hass_read_only_access_token, anlage, nachricht
 ):
     client = await hass_ws_client(hass, hass_read_only_access_token)
 
-    antwort = await _einrichten(client)
+    antwort = await _senden(client, heizkreis=HEIZKREIS, **nachricht)
 
     assert not antwort["success"]
     assert antwort["error"]["code"] == "unauthorized"
 
 
-async def test_unbekannter_heizkreis_wird_abgewiesen(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
+async def test_unbekannter_heizkreis_wird_abgewiesen(szenario):
+    sz = await szenario(zeit=None, einrichten=False)
 
-    antwort = await _senden(
-        client,
+    antwort = await sz.senden(
         type="heatnexus/automatik/einrichten",
         heizkreis="gibt-es-nicht",
         raeume=["sensor.wohnzimmer"],
@@ -814,27 +938,24 @@ async def test_unbekannter_heizkreis_wird_abgewiesen(hass, hass_ws_client, anlag
     assert not antwort["success"]
 
 
-async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+# --- Entfernen und Untereintrag ------------------------------------------------
+async def test_entfernen_raeumt_ab(szenario):
+    sz = await szenario(zeit=None)
 
-    antwort = await _senden(client, type="heatnexus/automatik/entfernen", heizkreis=HEIZKREIS)
+    antwort = await sz.senden(type="heatnexus/automatik/entfernen", heizkreis=HEIZKREIS)
 
     assert antwort["success"], antwort
-    assert HEIZKREIS not in verwaltung.laufzeiten
-    assert verwaltung.konfig(HEIZKREIS) is None
-    [eintrag] = hass.config_entries.async_entries("heatnexus")
-    assert verwaltung.subeintrag(eintrag) is None
+    assert HEIZKREIS not in sz.verwaltung.laufzeiten
+    assert sz.verwaltung.konfig(HEIZKREIS) is None
+    assert sz.verwaltung.subeintrag(sz.eintrag) is None
 
 
-async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, anlage):
+async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, szenario):
     from homeassistant.helpers import issue_registry as ir
 
     from custom_components.heatnexus.const import DOMAIN
 
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
+    sz = await szenario(zeit=None, ws=False)
     arten = ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start")
     for art in arten:
         ir.async_create_issue(
@@ -846,89 +967,76 @@ async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, anlage):
             translation_key=art,
         )
 
-    await verwaltung.entfernen(HEIZKREIS)
+    await sz.verwaltung.entfernen(HEIZKREIS)
 
-    register = ir.async_get(hass)
-    assert [a for a in arten if register.async_get_issue(DOMAIN, f"{a}_{HEIZKREIS}")] == []
+    assert [a for a in arten if _issue(hass, a)] == []
 
 
-async def test_gleichzeitige_einstellungen_gehen_beide_ein(hass, anlage):
+async def test_gleichzeitige_einstellungen_gehen_beide_ein(szenario):
     """Panel und Auswahl „Modus“ zugleich: Keine der beiden Änderungen geht verloren."""
-    import asyncio
-
-    verwaltung, _ = anlage
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(zeit=None, ws=False)
 
     async def laeuft_noch():
         # Ein laufender Durchgang: `abwarten` gibt die Schleife frei.
         await asyncio.sleep(0.01)
 
-    laufzeit.abwarten = laeuft_noch
+    sz.laufzeit.abwarten = laeuft_noch
     await asyncio.gather(
-        verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
-        verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
+        sz.verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
+        sz.verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
     )
 
-    konfig = verwaltung.konfig(HEIZKREIS)
+    konfig = sz.verwaltung.konfig(HEIZKREIS)
     assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
 
 
-async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, anlage, monkeypatch, caplog):
+async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, szenario, monkeypatch, caplog):
     """Scheitert schon das System-Gerät, steht der Start trotzdem im Log und als Meldung."""
-    from homeassistant.helpers import issue_registry as ir
-
-    from custom_components.heatnexus.const import DOMAIN
-
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
-    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    sz = await szenario(zeit=None, ws=False)
+    sz.verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
 
     def kaputt(_entry):
         raise RuntimeError("Geräteregister gesperrt")
 
-    monkeypatch.setattr(verwaltung, "_system_anlegen", kaputt)
-    await verwaltung._nachholen(hass.config_entries.async_entries(DOMAIN)[0])
+    monkeypatch.setattr(sz.verwaltung, "_system_anlegen", kaputt)
+    await sz.verwaltung._nachholen(sz.eintrag)
 
-    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_start_{HEIZKREIS}")
+    assert _issue(hass, "automatik_start")
     assert "Start gescheitert" in caplog.text
 
 
-async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(hass, anlage):
+async def _scheitert(*_a, **_k):
+    raise RuntimeError("Start gescheitert")
+
+
+async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(szenario):
     """Die Laufzeit rechnet schon mit der neuen Konfiguration; gespeichert wird dieselbe."""
-    verwaltung, _ = anlage
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(zeit=None, ws=False)
+    laufzeit = sz.laufzeit
     echt = laufzeit.starten
-
-    async def scheitert(*_a, **_k):
-        raise RuntimeError("Start gescheitert")
-
-    laufzeit.starten = scheitert
+    laufzeit.starten = _scheitert
     with pytest.raises(RuntimeError):
-        await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
+        await sz.verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
     laufzeit.starten = echt
 
     assert laufzeit.konfig["modus"] == "empfehlen"
-    assert verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
+    assert sz.verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
 
 
-async def test_ein_gescheiterter_neustart_verwirft_das_hausmodell_trotzdem(hass, anlage):
+async def test_ein_gescheiterter_neustart_verwirft_das_hausmodell_trotzdem(szenario):
     """Die neue Konfiguration steht schon; ein zweiter Versuch sähe keinen Unterschied mehr."""
-    verwaltung, _ = anlage
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(zeit=None, ws=False)
+    laufzeit = sz.laufzeit
     echt = laufzeit.starten
     verworfen: list = []
     laufzeit.modell_neu_lernen = lambda: verworfen.append(True)
-
-    async def scheitert(*_a, **_k):
-        raise RuntimeError("Start gescheitert")
-
-    laufzeit.starten = scheitert
+    laufzeit.starten = _scheitert
     with pytest.raises(RuntimeError):
-        await verwaltung.einstellen(HEIZKREIS, {"wetter": "weather.andere"})
+        await sz.verwaltung.einstellen(HEIZKREIS, {"wetter": "weather.andere"})
     laufzeit.starten = echt
 
     assert verworfen == [True]
-    assert verwaltung.konfig(HEIZKREIS)["wetter"] == "weather.andere"
+    assert sz.verwaltung.konfig(HEIZKREIS)["wetter"] == "weather.andere"
 
 
 def _automatik_geraete(hass, eintrag):
@@ -941,51 +1049,42 @@ def _automatik_geraete(hass, eintrag):
     ]
 
 
-async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, anlage, monkeypatch):
+async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, szenario, monkeypatch):
     """Ohne Automatik bleiben weder System-Gerät noch Untereintrag „HeatNexus Automatik“."""
     from custom_components.heatnexus.automatik.laufzeit import Laufzeit
-    from custom_components.heatnexus.const import DOMAIN
 
-    verwaltung, _ = anlage
-
-    async def scheitert(*_a, **_k):
-        raise RuntimeError("Start gescheitert")
-
-    monkeypatch.setattr(Laufzeit, "starten", scheitert)
+    sz = await szenario(zeit=None, ws=False, einrichten=False)
+    monkeypatch.setattr(Laufzeit, "starten", _scheitert)
     with pytest.raises(ValueError):
-        await _eingerichtet(hass, verwaltung)
+        await sz.einrichten()
     await hass.async_block_till_done()
 
-    [eintrag] = hass.config_entries.async_entries(DOMAIN)
-    assert verwaltung.subeintrag(eintrag) is None
-    assert _automatik_geraete(hass, eintrag) == []
+    assert sz.verwaltung.subeintrag(sz.eintrag) is None
+    assert _automatik_geraete(hass, sz.eintrag) == []
 
 
-async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
-    from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
+async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, szenario):
+    from custom_components.heatnexus.const import SUBEINTRAG_AUTOMATIK
     from custom_components.heatnexus.registrierung import untereintraege
 
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
     await hass.async_block_till_done()
-    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    eintrag = sz.eintrag
     [sub] = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_AUTOMATIK]
     geraete = _automatik_geraete(hass, eintrag)
     assert geraete
     assert all(untereintraege(g, eintrag.entry_id) == {sub.subentry_id} for g in geraete)
 
 
-async def test_geloeschter_untereintrag_entfernt_die_automatiken(hass, hass_ws_client, anlage):
+async def test_geloeschter_untereintrag_entfernt_die_automatiken(hass, szenario):
     """Wer „HeatNexus Automatik“ löscht, will keine Automatik mehr; sie läuft nicht ohne Entitäten weiter."""
     from custom_components.heatnexus import _async_options_updated
-    from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
+    from custom_components.heatnexus.const import SUBEINTRAG_AUTOMATIK
     from custom_components.heatnexus.erkennungsstand import untereintraege_abzug
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
     await hass.async_block_till_done()
-    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    eintrag = sz.eintrag
     eintrag.runtime_data |= {"optionen": {}, "untereintraege": untereintraege_abzug(eintrag)}
     [sub] = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_AUTOMATIK]
 
@@ -993,14 +1092,12 @@ async def test_geloeschter_untereintrag_entfernt_die_automatiken(hass, hass_ws_c
     await _async_options_updated(hass, eintrag)
     await hass.async_block_till_done()
 
-    assert HEIZKREIS not in verwaltung.laufzeiten
-    assert verwaltung.konfig(HEIZKREIS) is None
-    assert verwaltung.subeintrag(eintrag) is None
+    assert HEIZKREIS not in sz.verwaltung.laufzeiten
+    assert sz.verwaltung.konfig(HEIZKREIS) is None
+    assert sz.verwaltung.subeintrag(eintrag) is None
 
 
-async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
-    hass, hass_ws_client, anlage
-):
+async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(hass, szenario):
     """Geräte, die noch am Haupteintrag hängen, stünden sonst zweimal in der Übersicht."""
     from homeassistant.helpers import device_registry as dr
 
@@ -1008,8 +1105,8 @@ async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
     from custom_components.heatnexus.const import DOMAIN
     from custom_components.heatnexus.registrierung import untereintraege
 
-    verwaltung, _ = anlage
-    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    sz = await szenario(zeit=None, einrichten=False)
+    eintrag = sz.eintrag
     register = dr.async_get(hass)
     for kennung in (
         verwaltung_modul.system_kennung(eintrag.entry_id),
@@ -1019,99 +1116,28 @@ async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
             config_entry_id=eintrag.entry_id, identifiers={(DOMAIN, kennung)}
         )
 
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    await sz.einrichten()
     await hass.async_block_till_done()
 
-    sub_id = verwaltung.subeintrag(eintrag)
+    sub_id = sz.verwaltung.subeintrag(eintrag)
     geraete = _automatik_geraete(hass, eintrag)
     assert len(geraete) == 2
     assert all(untereintraege(g, eintrag.entry_id) == {sub_id} for g in geraete)
 
 
-async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anlage):
-    """Nachmittags läge der Messwert weit über dem Mittel des Tages."""
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-
-    stufen = verwaltung.laufzeiten[HEIZKREIS].stufen
-
-    assert stufen is not None
-    assert stufen[1] == pytest.approx(10.0, abs=0.1)  # (14 + 6) / 2 aus der Tagesprognose
-
-
-async def test_lage_kennt_at_und_vorlauf_der_steuerung(hass, hass_ws_client, anlage):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    coordinator.data["oids"][f"{PREFIX}/0/0/0"] = "18.4"
-    coordinator.data["oids"][f"{PREFIX}/1/2/0"] = "0.0"
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten()
-    assert laufzeit.lage.at_steuerung == 18.4
-    assert laufzeit.lage.vl_soll == 0.0
-    assert laufzeit.lage.beobachten is True
-
-
-async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, hass_ws_client, anlage):
-    verwaltung, _ = anlage
-    hass.states.async_set("sensor.kueche", "20.8", {"device_class": "temperature"})
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-
-    antwort = await _senden(
-        client,
-        type="heatnexus/automatik/einstellen",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer", "sensor.kueche"],
-        raum_art="minimum",
-        heizflaechen="flaeche",
-        profil="traege",
-        eigene={},
-    )
-
-    assert antwort["success"], antwort
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    assert laufzeit.konfig["raeume"] == ["sensor.wohnzimmer", "sensor.kueche"]
-    assert laufzeit.konfig["profil"] == "traege"
-    await laufzeit.auswerten()
-    assert laufzeit.lage.raum == 20.8
-
-
-async def test_lesen_liefert_stundenraster_und_korrektur(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-
-    antwort = await _senden(client, type="heatnexus/automatik")
-
-    (kreis,) = antwort["result"]["heizkreise"]
-    assert len(kreis["tag"]["stunden"]) == 24
-    assert {"korrigiert", "wolken", "aktion"} <= set(kreis["tag"]["stunden"][12])
-    assert kreis["korrektur"]["fenster"] == 14
-    assert kreis["korrektur"]["noetig"] == 7
-    assert kreis["korrektur"]["temperatur"]["versatz"] is None
-    assert kreis["korrektur"]["sonne"]["aktiv"] is False
-
-
+# --- Speicher -------------------------------------------------------------------
 async def test_gespeicherter_restwert_sensor_wird_beim_laden_verworfen(hass, hass_storage):
     from custom_components.heatnexus.automatik.verwaltung import STORE_KEY, Verwaltung
 
+    konfig = {
+        "heizkreis": HEIZKREIS,
+        "raeume": ["sensor.wohnzimmer"],
+        "wetter": "weather.home",
+        "pv": "sensor.energy_production_today_remaining",
+    }
     hass_storage[STORE_KEY] = {
         "version": 1,
-        "data": {
-            "heizkreise": {
-                HEIZKREIS: {
-                    "konfig": {
-                        "heizkreis": HEIZKREIS,
-                        "raeume": ["sensor.wohnzimmer"],
-                        "wetter": "weather.home",
-                        "pv": "sensor.energy_production_today_remaining",
-                    },
-                    "zustand": {},
-                }
-            }
-        },
+        "data": {"heizkreise": {HEIZKREIS: {"konfig": konfig, "zustand": {}}}},
     }
     verwaltung = Verwaltung(hass)
 
@@ -1120,14 +1146,9 @@ async def test_gespeicherter_restwert_sensor_wird_beim_laden_verworfen(hass, has
     assert verwaltung.konfig(HEIZKREIS)["pv"] is None
 
 
-async def test_vergangene_stunden_behalten_ihre_prognose(hass, hass_ws_client, anlage):
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    heute = dt_util.now().date()
+async def test_vergangene_stunden_behalten_ihre_prognose(szenario):
+    laufzeit = (await szenario(zeit=None)).laufzeit
+    heute = _jetzt().date()
     laufzeit.stunden = [
         e for e in laufzeit.stunden if not e["datetime"].startswith(heute.isoformat() + "T0")
     ]
@@ -1138,90 +1159,34 @@ async def test_vergangene_stunden_behalten_ihre_prognose(hass, hass_ws_client, a
     assert prognose[3]["wolken"] == 10
 
 
-async def test_lesen_liefert_vorschau_und_einzelne_raeume(hass, hass_ws_client, anlage, freezer):
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-
-    antwort = await _senden(client, type="heatnexus/automatik")
-
-    (kreis,) = antwort["result"]["heizkreise"]
-    assert [tag["titel"] for tag in kreis["vorschau"]] == ["Morgen", "Übermorgen"]
-    assert kreis["vorschau"][0]["begruendung"]
-    assert kreis["kennwerte"]["at"] == 12.0
-    assert kreis["kennwerte"]["raeume"][0]["wert"] == 21.4
-
-
-async def test_vorschau_rechnet_die_sonnenquote_wie_der_betrieb(
-    hass, hass_ws_client, anlage, freezer
-):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    einheit = {"unit_of_measurement": "kWh", "device_class": "energy"}
-    hass.states.async_set("sensor.energy_production_today", "20.0", einheit)
-    hass.states.async_set("sensor.energy_production_tomorrow", "5.0", einheit)
-    await _senden(
-        client,
-        type="heatnexus/automatik/einrichten",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer"],
-        wetter="weather.home",
-        pv="sensor.energy_production_today",
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    heute = dt_util.now().date()
-    laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
-
-    antwort = await _senden(client, type="heatnexus/automatik")
-
-    (kreis,) = antwort["result"]["heizkreise"]
-    # Die Vortage zählen umgerechnet auf den Sonnenstand von morgen, daher knapp über 5 ÷ 20.
-    assert kreis["vorschau"][0]["sonnenquote"] == pytest.approx(25.0, abs=1.0)
-
-
-async def test_heute_wird_aus_der_aufzeichnung_nachgetragen(hass, anlage, monkeypatch, freezer):
-    from datetime import timedelta
-
+# --- Aufzeichnung und Räume -------------------------------------------------------
+async def test_heute_wird_aus_der_aufzeichnung_nachgetragen(hass, szenario, monkeypatch, freezer):
     from homeassistant.core import State
     from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.automatik import nachladen
 
-    verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     anfang = dt_util.start_of_local_day()
-    zustaende = {
-        "weather.home": [
-            State(
-                "weather.home",
-                "sunny",
-                {"temperature": 6.5, "cloud_coverage": 20},
-                last_updated=anfang + timedelta(hours=2, minutes=50),
-            ),
-        ],
-        "sensor.wohnzimmer": [
-            State("sensor.wohnzimmer", "20.5", last_updated=anfang + timedelta(hours=1)),
-        ],
-    }
-
-    class Instanz:
-        async def async_add_executor_job(self, aufgabe):
-            return zustaende
-
-    import homeassistant.components.recorder as recorder
-
-    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
-    hass.config.components.add("recorder")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    wetter = {"temperature": 6.5, "cloud_coverage": 20}
+    _aufzeichnung(
+        hass,
+        monkeypatch,
+        {
+            "weather.home": [
+                State(
+                    "weather.home",
+                    "sunny",
+                    wetter,
+                    last_updated=anfang + timedelta(hours=2, minutes=50),
+                ),
+            ],
+            "sensor.wohnzimmer": [
+                State("sensor.wohnzimmer", "20.5", last_updated=anfang + timedelta(hours=1)),
+            ],
+        },
     )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit = (await szenario(zeit=None, ws=False)).laufzeit
     await nachladen.heute_nachtragen(hass, laufzeit)
 
     stunden = laufzeit.verlauf["stunden"]
@@ -1230,57 +1195,28 @@ async def test_heute_wird_aus_der_aufzeichnung_nachgetragen(hass, anlage, monkey
     assert stunden["2"]["raum"] == 20.5
 
 
-async def test_veralteter_raumfuehler_zaehlt_nicht(hass, hass_ws_client, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
+async def test_veralteter_raumfuehler_zaehlt_nicht(hass, szenario, freezer):
+    sz = await szenario(zeit=None, einrichten=False)
     hass.states.async_set("sensor.alt", "29.7", {"device_class": "temperature"})
-    freezer.move_to(dt_util.utcnow() + timedelta(hours=13))
+    freezer.move_to(_jetzt() + timedelta(hours=13))
     hass.states.async_set(
         "sensor.wohnzimmer", "21.0", {"device_class": "temperature"}, force_update=True
     )
-    antwort = await _senden(
-        client,
-        type="heatnexus/automatik/einrichten",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer", "sensor.alt"],
-        wetter="weather.home",
-    )
-    assert antwort["success"], antwort
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit = await sz.einrichten(raeume=["sensor.wohnzimmer", "sensor.alt"])
 
     await laufzeit.auswerten()
 
     assert laufzeit.lage.raum == 21.0
-    raeume = {
-        r["entity_id"]: r
-        for r in (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0][
-            "kennwerte"
-        ]["raeume"]
-    }
+    raeume = {r["entity_id"]: r for r in (await sz.kreis())["kennwerte"]["raeume"]}
     assert raeume["sensor.alt"]["veraltet"] is True
     assert raeume["sensor.wohnzimmer"]["veraltet"] is False
 
 
-async def test_raeume_fehlen_erst_wenn_weniger_als_die_haelfte_liefert(
-    hass, hass_ws_client, anlage
-):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
+async def test_raeume_fehlen_erst_wenn_weniger_als_die_haelfte_liefert(hass, szenario):
     for name, wert in (("wohnzimmer", "21.0"), ("kueche", "20.5"), ("bad", "unavailable")):
         hass.states.async_set(f"sensor.{name}", wert, {"device_class": "temperature"})
-    antwort = await _senden(
-        client,
-        type="heatnexus/automatik/einrichten",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer", "sensor.kueche", "sensor.bad"],
-        wetter="weather.home",
-    )
-    assert antwort["success"], antwort
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    sz = await szenario(zeit=None, raeume=["sensor.wohnzimmer", "sensor.kueche", "sensor.bad"])
+    laufzeit = sz.laufzeit
 
     await laufzeit.auswerten()
     assert laufzeit.lage.raeume_fehlen_seit is None
@@ -1292,39 +1228,19 @@ async def test_raeume_fehlen_erst_wenn_weniger_als_die_haelfte_liefert(
 
 
 async def test_nachgerechnete_gedaempfte_at_ersetzt_einen_frischen_startwert(
-    hass, anlage, monkeypatch, freezer
+    hass, szenario, monkeypatch, freezer
 ):
-    from datetime import timedelta
-
     from homeassistant.core import State
     from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.automatik import nachladen
 
-    verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     anfang = dt_util.start_of_local_day()
     hass.states.async_set("sensor.aussen", "8.0", {"device_class": "temperature"})
     reihe = [State("sensor.aussen", "8.0", last_updated=anfang - timedelta(minutes=10))]
-
-    class Instanz:
-        async def async_add_executor_job(self, aufgabe):
-            return {"sensor.aussen": reihe}
-
-    import homeassistant.components.recorder as recorder
-
-    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
-    hass.config.components.add("recorder")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["sensor.wohnzimmer"],
-            "wetter": "weather.home",
-            "aussen": "sensor.aussen",
-        },
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    _aufzeichnung(hass, monkeypatch, {"sensor.aussen": reihe})
+    laufzeit = (await szenario(zeit=None, ws=False, aussen="sensor.aussen")).laufzeit
     laufzeit.stufen = (20.4, 20.4)  # Startwert vom Nachmittag
     laufzeit.stufen_start = dt_util.now()  # eben geschätzt
 
@@ -1335,48 +1251,30 @@ async def test_nachgerechnete_gedaempfte_at_ersetzt_einen_frischen_startwert(
 
 
 async def test_eingefrorener_fuehler_wird_aus_dem_verlauf_erkannt(
-    hass, anlage, monkeypatch, freezer
+    hass, szenario, monkeypatch, freezer
 ):
     """Ein ausgefallenes Gerät meldet weiter denselben Wert; der Verlauf verrät es."""
-    from datetime import timedelta
-
     from homeassistant.core import State
-    from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.automatik import nachladen
 
-    verwaltung, _ = anlage
     freezer.move_to(MORGEN)
-    jetzt = dt_util.now()
+    jetzt = _jetzt()
     hass.states.async_set("sensor.alt", "29.7", {"device_class": "temperature"})
-    zustaende = {
-        "sensor.alt": [
-            State("sensor.alt", "29.7", last_updated=jetzt - timedelta(hours=30)),
-            State("sensor.alt", "29.7", last_updated=jetzt - timedelta(hours=2)),
-        ],
-        "sensor.wohnzimmer": [
-            State("sensor.wohnzimmer", "21.0", last_updated=jetzt - timedelta(hours=20)),
-            State("sensor.wohnzimmer", "21.4", last_updated=jetzt - timedelta(hours=1)),
-        ],
-    }
 
-    class Instanz:
-        async def async_add_executor_job(self, aufgabe):
-            return zustaende
+    def reihe(kennung, *werte):
+        return [State(kennung, w, last_updated=jetzt - timedelta(hours=h)) for w, h in werte]
 
-    import homeassistant.components.recorder as recorder
-
-    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
-    hass.config.components.add("recorder")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
+    _aufzeichnung(
+        hass,
+        monkeypatch,
         {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["sensor.wohnzimmer", "sensor.alt"],
-            "wetter": "weather.home",
+            "sensor.alt": reihe("sensor.alt", ("29.7", 30), ("29.7", 2)),
+            "sensor.wohnzimmer": reihe("sensor.wohnzimmer", ("21.0", 20), ("21.4", 1)),
         },
     )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    sz = await szenario(zeit=None, ws=False, raeume=["sensor.wohnzimmer", "sensor.alt"])
+    laufzeit = sz.laufzeit
     await nachladen.heute_nachtragen(hass, laufzeit)
 
     assert laufzeit.veraltet("sensor.alt") is True
@@ -1385,16 +1283,10 @@ async def test_eingefrorener_fuehler_wird_aus_dem_verlauf_erkannt(
     assert laufzeit.lage.raum == 21.4
 
 
-async def test_ohne_anpassen_gilt_die_rohe_prognose(hass, hass_ws_client, anlage):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    heute = dt_util.now().date()
+async def test_ohne_anpassen_gilt_die_rohe_prognose(szenario):
+    sz = await szenario(zeit=None)
+    laufzeit = sz.laufzeit
+    heute = _jetzt().date()
     for tag in range(1, 8):
         datum = (heute - timedelta(days=tag)).isoformat()
         for stunde in range(24):
@@ -1402,26 +1294,16 @@ async def test_ohne_anpassen_gilt_die_rohe_prognose(hass, hass_ws_client, anlage
     roh = 10.0  # (14 + 6) / 2 aus der Tagesprognose
     assert laufzeit.tagesmittel(heute) == pytest.approx(roh - 2.0)
 
-    await _senden(
-        client,
-        type="heatnexus/automatik/einstellen",
-        heizkreis=HEIZKREIS,
-        eigene={"anpassen": False},
-    )
+    await sz.einstellen(eigene={"anpassen": False})
 
     assert laufzeit.tagesmittel(heute) == pytest.approx(roh)
-    antwort = await _senden(client, type="heatnexus/automatik")
-    assert antwort["result"]["heizkreise"][0]["korrektur"]["an"] is False
+    assert (await sz.kreis())["korrektur"]["an"] is False
 
 
 async def test_ein_seit_zwoelf_stunden_gleicher_wert_ist_noch_nicht_eingefroren(hass):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
     from custom_components.heatnexus.automatik import nachladen
 
-    jetzt = dt_util.now()
+    jetzt = _jetzt()
     reihen = {
         "sensor.selten": [(jetzt - timedelta(hours=14), 21.5)],
         "sensor.defekt": [(jetzt - timedelta(days=12), 29.7)],
@@ -1430,17 +1312,11 @@ async def test_ein_seit_zwoelf_stunden_gleicher_wert_ist_noch_nicht_eingefroren(
     assert set(nachladen.eingefroren(reihen, jetzt)) == {"sensor.defekt"}
 
 
-def _thermostat(hass, entity_id: str, ist: float, ziel: float, aktion: str = "idle") -> None:
-    attribute = {"current_temperature": ist, "temperature": ziel, "hvac_action": aktion}
-    hass.states.async_set(entity_id, "heat", attribute)
-
-
-async def test_thermostat_zaehlt_gegen_sein_eigenes_ziel(hass, hass_ws_client, anlage):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
+# --- Thermostate --------------------------------------------------------------
+async def test_thermostat_zaehlt_gegen_sein_eigenes_ziel(hass, szenario):
     _thermostat(hass, "climate.bad", 20.4, 20.5)
-    antwort = await _senden(
-        client,
+    sz = await szenario(zeit=None, einrichten=False)
+    antwort = await sz.senden(
         type="heatnexus/automatik/einrichten",
         heizkreis=HEIZKREIS,
         raeume=["climate.bad"],
@@ -1448,35 +1324,23 @@ async def test_thermostat_zaehlt_gegen_sein_eigenes_ziel(hass, hass_ws_client, a
     )
     assert antwort["success"], antwort
     assert antwort["result"]["eigene"] == {"sonnentag": False}
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
 
-    await laufzeit.auswerten()
+    await sz.laufzeit.auswerten()
 
-    assert laufzeit.lage.raeume == ((20.4, 20.5),)
-    assert laufzeit.lage.raum == 20.4
-    kennwerte = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0][
-        "kennwerte"
-    ]
+    assert sz.laufzeit.lage.raeume == ((20.4, 20.5),)
+    assert sz.laufzeit.lage.raum == 20.4
+    kennwerte = (await sz.kreis())["kennwerte"]
     assert kennwerte["abweichung"] == pytest.approx(-0.1)
-    assert kennwerte["eigene_ziele"] is True
-    assert kennwerte["raum_bezug"] is None
-    assert kennwerte["raeume"][0]["ziel"] == 20.5
-    assert kennwerte["raeume"][0]["heizt"] is False
+    assert (kennwerte["eigene_ziele"], kennwerte["raum_bezug"]) == (True, None)
+    assert (kennwerte["raeume"][0]["ziel"], kennwerte["raeume"][0]["heizt"]) == (20.5, False)
 
 
 async def test_raeume_gelten_erst_nach_zwei_stunden_ohne_anforderung_als_ruhig(
-    hass, anlage, freezer
+    hass, szenario, freezer
 ):
-    from datetime import timedelta
-
-    verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     _thermostat(hass, "climate.bad", 20.6, 20.5)
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["climate.bad"], "wetter": "weather.home"},
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit = (await szenario(zeit=None, ws=False, raeume=["climate.bad"])).laufzeit
     assert laufzeit.lage.ruhig is False
 
     freezer.tick(timedelta(hours=2, minutes=1))
@@ -1491,40 +1355,26 @@ async def test_raeume_gelten_erst_nach_zwei_stunden_ohne_anforderung_als_ruhig(
     assert laufzeit.lage.ruhig is False
 
 
-async def test_ohne_thermostat_gibt_es_keine_anforderung(hass, anlage):
-    verwaltung, _ = anlage
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    assert verwaltung.laufzeiten[HEIZKREIS].lage.ruhig is None
+async def test_ohne_thermostat_gibt_es_keine_anforderung(szenario):
+    assert (await szenario(zeit=None, ws=False)).laufzeit.lage.ruhig is None
 
 
-async def test_wunschtemperatur_gilt_fuer_temperaturfuehler(hass, anlage):
-    verwaltung, _ = anlage
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["sensor.wohnzimmer"],
-            "wetter": "weather.home",
-            "raum_ziel": 20.0,
-        },
-    )
-    assert verwaltung.laufzeiten[HEIZKREIS].lage.raeume == ((21.4, 20.0),)
+async def test_wunschtemperatur_gilt_fuer_temperaturfuehler(szenario):
+    laufzeit = (await szenario(zeit=None, ws=False, raum_ziel=20.0)).laufzeit
+    assert laufzeit.lage.raeume == ((21.4, 20.0),)
 
 
-async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, hass_ws_client, anlage):
+async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, szenario):
     from homeassistant.helpers import entity_registry as er
 
     from custom_components.heatnexus.const import DOMAIN
 
-    client = await hass_ws_client(hass)
+    sz = await szenario(zeit=None, einrichten=False)
     _thermostat(hass, "climate.bad", 20.4, 20.5)
     eigener = er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"{HEIZKREIS}-thermostat")
     _thermostat(hass, eigener, 20.0, 21.0)
 
-    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
 
     kennungen = {e["entity_id"]: e for e in antwort["result"]["temperatur"]}
     assert kennungen["climate.bad"]["art"] == "thermostat"
@@ -1532,59 +1382,35 @@ async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, hass
 
 
 async def test_eingefrorenes_thermostat_wird_aus_dem_verlauf_erkannt(
-    hass, anlage, monkeypatch, freezer
+    hass, szenario, monkeypatch, freezer
 ):
-    from datetime import timedelta
-
     from homeassistant.core import State
-    from homeassistant.util import dt as dt_util
 
     from custom_components.heatnexus.automatik import nachladen
 
-    verwaltung, _ = anlage
     freezer.move_to(MORGEN)
-    jetzt = dt_util.now()
+    jetzt = _jetzt()
     _thermostat(hass, "climate.ess", 29.7, 21.0)
     _thermostat(hass, "climate.bad", 20.4, 20.5)
     attribute = {"current_temperature": 29.7, "temperature": 21.0}
-    zustaende = {
-        "climate.ess": [
-            State("climate.ess", "auto", attribute, last_updated=jetzt - timedelta(hours=30)),
-            State("climate.ess", "heat", attribute, last_updated=jetzt - timedelta(hours=2)),
-        ],
-        "climate.bad": [
-            State(
-                "climate.bad",
-                "heat",
-                {"current_temperature": 20.1},
-                last_updated=jetzt - timedelta(hours=20),
-            ),
-            State(
-                "climate.bad",
-                "heat",
-                {"current_temperature": 20.4},
-                last_updated=jetzt - timedelta(hours=1),
-            ),
-        ],
-    }
 
-    class Instanz:
-        async def async_add_executor_job(self, aufgabe):
-            return zustaende
+    def bad(ist, stunden):
+        werte = {"current_temperature": ist}
+        return State("climate.bad", "heat", werte, last_updated=jetzt - timedelta(hours=stunden))
 
-    import homeassistant.components.recorder as recorder
-
-    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
-    hass.config.components.add("recorder")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
+    _aufzeichnung(
+        hass,
+        monkeypatch,
         {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["climate.bad", "climate.ess"],
-            "wetter": "weather.home",
+            "climate.ess": [
+                State("climate.ess", "auto", attribute, last_updated=jetzt - timedelta(hours=30)),
+                State("climate.ess", "heat", attribute, last_updated=jetzt - timedelta(hours=2)),
+            ],
+            "climate.bad": [bad(20.1, 20), bad(20.4, 1)],
         },
     )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    sz = await szenario(zeit=None, ws=False, raeume=["climate.bad", "climate.ess"])
+    laufzeit = sz.laufzeit
     await nachladen.heute_nachtragen(hass, laufzeit)
 
     assert laufzeit.veraltet("climate.ess") is True
@@ -1593,6 +1419,50 @@ async def test_eingefrorenes_thermostat_wird_aus_dem_verlauf_erkannt(
     assert laufzeit.lage.raeume == ((20.4, 20.5),)
 
 
+async def test_ausgeschaltete_thermostate_sind_raeume_ohne_bedarf(hass, szenario):
+    for kennung, ist in (("climate.bad", 20.1), ("climate.kueche", 19.5)):
+        hass.states.async_set(
+            kennung,
+            "off",
+            {"current_temperature": ist, "temperature": None, "hvac_action": "off"},
+        )
+    sz = await szenario(zeit=None, ws=False, raeume=["climate.bad", "climate.kueche"])
+    lage = sz.laufzeit.lage
+    assert lage.raeume == ()
+    assert lage.aus == (20.1, 19.5)
+    assert lage.raum == pytest.approx(19.8)
+    assert sz.laufzeit.zustand.value != "keine_daten"
+
+
+async def test_kaeltester_raum_zaehlt_gegen_sein_eigenes_ziel(hass, szenario):
+    """Raum A 20,5 °C bei Ziel 22, Raum B 21,0 °C bei Ziel 20: A fehlen 1,5 K."""
+    _thermostat(hass, "climate.a", 20.5, 22.0)
+    _thermostat(hass, "climate.b", 21.0, 20.0)
+    sz = await szenario(ws=False, raeume=["climate.a", "climate.b"], raum_art="minimum")
+    laufzeit = sz.laufzeit
+    laufzeit.hausmodell = _modell(14)
+    laufzeit.stunden = _stundenprognose(10.0)
+    jetzt = _jetzt()
+    laufzeit.gedaechtnis = replace(
+        laufzeit.gedaechtnis,
+        absenkung_art="pause",
+        absenkung_von=jetzt,
+        absenkung_bis=jetzt + timedelta(hours=3),
+        absenkung_ziel=jetzt + timedelta(hours=10),
+        absenkung_basis=21.0,
+        absenkung_soll=10.5,
+        absenkung_anlass="modell",
+    )
+    await laufzeit.auswerten()
+    v = laufzeit.lage.vorhersage
+    assert (v.stufe, round(v.ziel_min, 1), v.rueckkehr) == ("programm", 22.1, True)
+    assert laufzeit.gedaechtnis.absenkung_art is None
+    assert laufzeit.begruendung == (
+        "Raum 20,5 °C weicht von der Vorhersage ab – zurück ins Programm."
+    )
+
+
+# --- Vorrangquellen -----------------------------------------------------------
 def _quelle(hass, zustand: str = "on") -> str:
     """Eine Wärmequelle von HeatNexus, wie sie `binary_sensor` anlegt."""
     from homeassistant.helpers import entity_registry as er
@@ -1606,33 +1476,20 @@ def _quelle(hass, zustand: str = "on") -> str:
     return eintrag.entity_id
 
 
-async def test_waermequellen_stehen_als_vorrang_zur_wahl(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
+async def test_waermequellen_stehen_als_vorrang_zur_wahl(hass, szenario):
+    sz = await szenario(zeit=None, einrichten=False)
     quelle = _quelle(hass)
     hass.states.async_set("binary_sensor.tuer", "off", {"device_class": "door"})
 
-    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
 
     assert [e["entity_id"] for e in antwort["result"]["vorrang"]] == [quelle]
 
 
-async def test_vorrangquelle_zaehlt_ihre_minuten(hass, hass_ws_client, anlage, freezer):
-    from datetime import timedelta
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
+async def test_vorrangquelle_zaehlt_ihre_minuten(hass, szenario, freezer):
+    sz = await szenario(einrichten=False)
     quelle = _quelle(hass)
-    antwort = await _senden(
-        client,
-        type="heatnexus/automatik/einrichten",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer"],
-        wetter="weather.home",
-        vorrang=[quelle],
-    )
-    assert antwort["success"], antwort
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit = await sz.einrichten(vorrang=[quelle])
     assert laufzeit.lage.vorrang_laeuft is True
     assert laufzeit.lage.vorrang_name == "Solaranlage"
 
@@ -1644,219 +1501,155 @@ async def test_vorrangquelle_zaehlt_ihre_minuten(hass, hass_ws_client, anlage, f
 
     assert laufzeit.lage.vorrang_laeuft is False
     assert laufzeit.lage.vorrang_minuten == pytest.approx(30)
-    kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
+    kreis = await sz.kreis()
     assert kreis["kennwerte"]["vorrang"] == {"laeuft": False, "minuten": 30, "entity": quelle}
     stunde = next(s for s in kreis["tag"]["stunden"] if s["stunde"] == 8)
     assert stunde["vorrang"] is True
 
 
-async def test_ohne_vorrangquelle_keine_angabe(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
+async def test_ohne_vorrangquelle_keine_angabe(szenario):
+    kreis = await (await szenario(zeit=None)).kreis()
     assert kreis["kennwerte"]["vorrang"] is None
     assert kreis["konfig"]["vorrang"] == []
 
 
-async def test_lieferbeginn_einer_vorrangquelle_rechnet_sofort(
-    hass, hass_ws_client, anlage, freezer
-):
+async def test_lieferbeginn_einer_vorrangquelle_rechnet_sofort(hass, szenario):
     """Der Lieferbeginn rechnet sofort; ein Eingriff folgt nach den nötigen Takten."""
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
+    sz = await szenario(ws=False, einrichten=False)
     quelle = _quelle(hass, "off")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["sensor.wohnzimmer"],
-            "wetter": "weather.home",
-            "vorrang": [quelle],
-        },
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    vorher = len(laufzeit.steller.stand.protokoll)
+    laufzeit = await sz.einrichten(vorrang=[quelle])
+    vorher = len(sz.protokoll)
 
     hass.states.async_set(quelle, "on", {"friendly_name": "Solaranlage"})
     await hass.async_block_till_done()
 
     assert laufzeit.anstehend.zustand.value == "sonnentag"
     assert "Solaranlage liefert" in laufzeit.begruendung
-    assert len(laufzeit.steller.stand.protokoll) == vorher
-    await _takte(laufzeit)
-    eintraege = laufzeit.steller.stand.protokoll
-    assert len(eintraege) == vorher + 1
-    assert eintraege[0]["text"].startswith("Solaranlage liefert")
+    assert len(sz.protokoll) == vorher
+    await sz.takte()
+    assert len(sz.protokoll) == vorher + 1
+    assert sz.protokoll[0]["text"].startswith("Solaranlage liefert")
 
 
-async def test_ausgeschaltete_thermostate_sind_raeume_ohne_bedarf(hass, anlage):
-    verwaltung, _ = anlage
-    for kennung, ist in (("climate.bad", 20.1), ("climate.kueche", 19.5)):
-        hass.states.async_set(
-            kennung,
-            "off",
-            {"current_temperature": ist, "temperature": None, "hvac_action": "off"},
-        )
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["climate.bad", "climate.kueche"],
-            "wetter": "weather.home",
-        },
-    )
-    lage = verwaltung.laufzeiten[HEIZKREIS].lage
-    assert lage.raeume == ()
-    assert lage.aus == (20.1, 19.5)
-    assert lage.raum == pytest.approx(19.8)
-    assert verwaltung.laufzeiten[HEIZKREIS].zustand.value != "keine_daten"
-
-
-async def test_stundenraster_zeigt_was_je_stunde_galt(hass, anlage, freezer):
+# --- Tagesansicht -------------------------------------------------------------
+async def test_stundenraster_zeigt_was_je_stunde_galt(szenario, freezer):
     """Vergangene Stunden behalten ihre Aktion; kommende zeigen den Plan."""
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
     from custom_components.heatnexus.automatik import regel, tagesansicht
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
+    laufzeit = (await szenario(ws=False, takte=True)).laufzeit
     assert laufzeit.zustand == regel.Zustand.SONNENTAG
 
     freezer.tick(timedelta(hours=3))
     laufzeit.gedaechtnis = regel.Gedaechtnis(
-        saison=regel.NUR_WW, saison_seit=dt_util.now(), saison_soll=21.0
+        saison=regel.NUR_WW, saison_seit=_jetzt(), saison_soll=21.0
     )
     await laufzeit.auswerten()
 
-    aktionen = {
-        s["stunde"]: s["aktion"] for s in tagesansicht.heute(laufzeit, dt_util.now())["stunden"]
-    }
-    assert aktionen[8] == "absenkung"
-    assert aktionen[11] == "nur_ww"
-    assert aktionen[15] == "nur_ww"
-    assert aktionen[5] == "programm"
+    aktionen = {s["stunde"]: s["aktion"] for s in tagesansicht.heute(laufzeit, _jetzt())["stunden"]}
+    assert (aktionen[8], aktionen[11], aktionen[15], aktionen[5]) == (
+        "absenkung",
+        "nur_ww",
+        "nur_ww",
+        "programm",
+    )
 
 
-async def test_tagesansicht_nennt_auf_und_untergang(hass, anlage, freezer):
+async def test_tagesansicht_nennt_auf_und_untergang(szenario):
     """Das Raster entscheidet Tag oder Nacht nach der Sonne, nicht nach der Bewölkung."""
-    from homeassistant.util import dt as dt_util
-
     from custom_components.heatnexus.automatik import tagesansicht
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit = (await szenario(ws=False)).laufzeit
     await laufzeit.auswerten()
 
-    tag = tagesansicht.heute(laufzeit, dt_util.now())
+    tag = tagesansicht.heute(laufzeit, _jetzt())
     assert 0 < tag["aufgang"] < 12 < tag["untergang"] < 24
-    vorschau = tagesansicht.vorschau(laufzeit, dt_util.now())
+    vorschau = tagesansicht.vorschau(laufzeit, _jetzt())
     assert all(0 < t["tag"]["aufgang"] < t["tag"]["untergang"] < 24 for t in vorschau)
 
 
-async def test_ausrichtung_ist_eine_auswahl_entitaet(hass, anlage):
+async def test_die_volle_stunde_vermerkt_den_modus(hass, szenario, freezer):
+    """Der Stundentakt trägt Aktion und Modus-Laufzeiten nach, auch ohne Ereignis."""
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    # MORGEN liegt nicht an der Tagesgrenze, damit +1 h nicht in den nächsten Tag rutscht.
+    laufzeit = (await szenario()).laufzeit
+    naechste = (_jetzt() + timedelta(hours=1)).replace(minute=0, second=5, microsecond=0)
+    freezer.move_to(naechste)
+    async_fire_time_changed(hass, naechste)
+    await hass.async_block_till_done()
+    assert laufzeit.verlauf["stunden"][str(naechste.hour)]["aktion"] == "programm"
+    assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww", "heizpause"}
+
+
+# --- Entitäten ---------------------------------------------------------------
+async def test_ausrichtung_ist_eine_auswahl_entitaet(szenario):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.automatik.verwaltung import DOMAENE_JE_ART
 
-    verwaltung, _ = anlage
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    auswahl = KLASSEN["ausrichtung"](verwaltung, HEIZKREIS)
+    sz = await szenario(zeit=None, ws=False)
+    auswahl = KLASSEN["ausrichtung"](sz.verwaltung, HEIZKREIS)
     assert DOMAENE_JE_ART["ausrichtung"] == "select"
     assert auswahl.options == ["eco", "ausgewogen", "komfort"]
     assert auswahl.current_option == "ausgewogen"
 
     await auswahl.async_select_option("eco")
 
-    assert verwaltung.konfig(HEIZKREIS)["ausrichtung"] == "eco"
+    assert sz.verwaltung.konfig(HEIZKREIS)["ausrichtung"] == "eco"
     assert auswahl.current_option == "eco"
 
 
-async def _eingerichtet(hass, verwaltung):
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    return verwaltung.laufzeiten[HEIZKREIS]
-
-
-async def test_automatik_bekommt_ein_eigenes_geraet(hass, anlage):
+async def test_automatik_bekommt_ein_eigenes_geraet(hass, szenario):
     # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
     hass.config.language = "de"
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.const import DOMAIN
 
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
+    sz = await szenario(zeit=None, ws=False)
     for art in ("modus", "zustand", "gedaempft"):
-        geraet = KLASSEN[art](verwaltung, HEIZKREIS).device_info
+        geraet = KLASSEN[art](sz.verwaltung, HEIZKREIS).device_info
         assert geraet["identifiers"] == {(DOMAIN, f"{HEIZKREIS}-automatik")}
         assert geraet["name"] == f"{ANLAGE} · Automatik Heizkreis"
         assert geraet["model"] == "Automatik"
 
 
-async def test_auswahl_fuehrt_aus_und_die_modi(hass, anlage):
+async def test_auswahl_fuehrt_aus_und_die_modi(szenario):
     """„Aus" setzt `aktiv` zurück; der Modus bleibt im Store und kehrt beim Einschalten zurück."""
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
-    auswahl = KLASSEN["modus"](verwaltung, HEIZKREIS)
+    sz = await szenario(zeit=None, ws=False, modus="empfehlen")
+    auswahl = KLASSEN["modus"](sz.verwaltung, HEIZKREIS)
     assert auswahl.options == ["aus", "beobachten", "empfehlen", "schalten"]
     assert "schalter" not in KLASSEN
 
     await auswahl.async_select_option("aus")
-    konfig = verwaltung.laufzeiten[HEIZKREIS].konfig
+    konfig = sz.laufzeit.konfig
     assert (konfig["aktiv"], konfig["modus"]) == (False, "empfehlen")
-    assert KLASSEN["modus"](verwaltung, HEIZKREIS).current_option == "aus"
+    assert KLASSEN["modus"](sz.verwaltung, HEIZKREIS).current_option == "aus"
 
     await auswahl.async_select_option("schalten")
-    neu = KLASSEN["modus"](verwaltung, HEIZKREIS)
-    assert verwaltung.laufzeiten[HEIZKREIS].konfig["aktiv"] is True
+    neu = KLASSEN["modus"](sz.verwaltung, HEIZKREIS)
+    assert sz.laufzeit.konfig["aktiv"] is True
     assert neu.current_option == "schalten"
 
 
-async def test_gespeicherte_abgeschaltete_automatik_zeigt_aus(hass, anlage):
+async def test_gespeicherte_abgeschaltete_automatik_zeigt_aus(szenario):
     """Ein Store mit `aktiv` = False aus der Zeit des Schalters erscheint in der Auswahl als „Aus"."""
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"aktiv": False, "modus": "beobachten"})
+    sz = await szenario(zeit=None, ws=False)
+    await sz.verwaltung.einstellen(HEIZKREIS, {"aktiv": False, "modus": "beobachten"})
 
-    assert KLASSEN["modus"](verwaltung, HEIZKREIS).current_option == "aus"
+    assert KLASSEN["modus"](sz.verwaltung, HEIZKREIS).current_option == "aus"
 
 
-async def test_sensoren_der_automatik(hass, anlage, freezer):
-    from datetime import datetime, timedelta
-
-    from homeassistant.util import dt as dt_util
-
+async def test_sensoren_der_automatik(szenario):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
-    await _takte(laufzeit)
+    sz = await szenario(ws=False, modus="schalten", takte=True)
+    laufzeit = sz.laufzeit
 
     def wert(art):
-        return KLASSEN[art](verwaltung, HEIZKREIS).native_value
+        return KLASSEN[art](sz.verwaltung, HEIZKREIS).native_value
 
     assert wert("gedaempft") == round(laufzeit.lage.at_gedaempft, 1)
     assert laufzeit.lage.grenze_steuerung == 18.0
@@ -1864,24 +1657,19 @@ async def test_sensoren_der_automatik(hass, anlage, freezer):
     assert wert("abweichung") == pytest.approx(0.4)
     assert wert("sonnenquote") == round(laufzeit.lage.sonnenquote)
     assert wert("eingriffe") == 1
-    assert wert("letzter_eingriff") == datetime.fromisoformat(
-        laufzeit.steller.stand.protokoll[0]["zeit"]
-    )
+    assert wert("letzter_eingriff") == datetime.fromisoformat(sz.protokoll[0]["zeit"])
     # Der früheste Beginn heute ist vorbei; es gilt der Sonnenaufgang morgen.
-    morgen = (dt_util.now() + timedelta(days=1)).date()
+    morgen = (_jetzt() + timedelta(days=1)).date()
     assert wert("naechste_entscheidung") == laufzeit.sonne(morgen)[0]
 
 
-async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(hass, anlage, freezer):
-    from types import SimpleNamespace
-
+async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(szenario):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     laufzeit.hausmodell = None
-    sensor = KLASSEN["auskuehlzeit"](verwaltung, HEIZKREIS)
+    sensor = KLASSEN["auskuehlzeit"](sz.verwaltung, HEIZKREIS)
     assert (sensor.native_value, sensor.native_unit_of_measurement) == (None, "h")
     laufzeit.hausmodell = SimpleNamespace(auskuehlzeit_h=42.37)
     assert sensor.native_value == 42.4
@@ -1889,55 +1677,23 @@ async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(hass, anlage, freezer):
     laufzeit.hausmodell = None
 
 
-async def test_stoerung_meldet_eine_gesperrte_steuerung(hass, anlage, freezer):
-    from dataclasses import replace
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
+async def test_stoerung_meldet_eine_gesperrte_steuerung(szenario):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    stoerung = KLASSEN["stoerung"](verwaltung, HEIZKREIS)
+    sz = await szenario(ws=False)
+    stoerung = KLASSEN["stoerung"](sz.verwaltung, HEIZKREIS)
     assert stoerung.is_on is False
 
-    bis = (dt_util.now() + timedelta(hours=1)).isoformat()
-    laufzeit.steller.stand = replace(laufzeit.steller.stand, gesperrt_bis=bis)
+    bis = (_jetzt() + timedelta(hours=1)).isoformat()
+    sz.laufzeit.steller.stand = replace(sz.laufzeit.steller.stand, gesperrt_bis=bis)
     assert stoerung.is_on is True
 
 
-async def test_kennwerte_nennen_die_grenzen_der_steuerung(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
-    await _senden(
-        client,
-        type="heatnexus/automatik/einrichten",
-        heizkreis=HEIZKREIS,
-        raeume=["sensor.wohnzimmer"],
-        wetter="weather.home",
-        ausrichtung="eco",
-    )
-    kennwerte = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0][
-        "kennwerte"
-    ]
-    assert kennwerte["grenze_steuerung"] == 18.0
-    assert kennwerte["grenze_absenk"] == 5.0
-    assert kennwerte["versatz"] == -2.0
-    assert kennwerte["heizgrenze"] == 16.0
-    assert kennwerte["hysterese"] == 1.0
-    assert kennwerte["sonne_schwelle"] == 45.0
-    assert kennwerte["stark_quote"] == 80.0
-
-
-async def test_heizgrenzen_der_steuerung_lassen_sich_setzen(hass, hass_ws_client, anlage):
+async def test_heizgrenzen_der_steuerung_lassen_sich_setzen(szenario):
     """Eine Handeinstellung: geschrieben an die Steuerung, ohne Budget der Automatik."""
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
 
-    antwort = await _senden(
-        client,
+    antwort = await sz.senden(
         type="heatnexus/automatik/heizgrenzen",
         heizkreis=HEIZKREIS,
         heizbetrieb=17.5,
@@ -1945,153 +1701,24 @@ async def test_heizgrenzen_der_steuerung_lassen_sich_setzen(hass, hass_ws_client
     )
 
     assert antwort["success"], antwort
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/21/0", "17.5"),
-        (f"{PREFIX}/3/2/0", "4.0"),
-    ]
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    assert laufzeit.steller.stand.protokoll[0]["art"] == "einstellung"
-    assert laufzeit.steller.stand.eingriffe == 0
+    assert sz.geschrieben == [(f"{PREFIX}/3/21/0", "17.5"), (f"{PREFIX}/3/2/0", "4.0")]
+    assert sz.protokoll[0]["art"] == "einstellung"
+    assert sz.laufzeit.steller.stand.eingriffe == 0
 
 
 @pytest.mark.parametrize("felder", [{"heizbetrieb": 35.0}, {"absenkbetrieb": -12.0}, {}])
-async def test_heizgrenzen_ausserhalb_des_bereichs_werden_abgewiesen(
-    hass, hass_ws_client, anlage, felder
-):
-    _, coordinator = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    antwort = await _senden(
-        client, type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, **felder
-    )
+async def test_heizgrenzen_ausserhalb_des_bereichs_werden_abgewiesen(szenario, felder):
+    sz = await szenario(zeit=None)
+    antwort = await sz.senden(type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, **felder)
     assert not antwort["success"]
-    assert coordinator.client.geschrieben == []
+    assert sz.geschrieben == []
 
 
-async def test_nur_administratoren_setzen_heizgrenzen(
-    hass, hass_ws_client, hass_read_only_access_token, anlage
-):
-    client = await hass_ws_client(hass, hass_read_only_access_token)
-    antwort = await _senden(
-        client, type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, heizbetrieb=18.0
-    )
-    assert antwort["error"]["code"] == "unauthorized"
-
-
-async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
-    # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
-    hass.config.language = "de"
-    from homeassistant.helpers import device_registry as dr
-
-    from custom_components.heatnexus.automatik import system
-    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
-    from custom_components.heatnexus.const import DOMAIN
-    from custom_components.heatnexus.registrierung import geraet_suchen
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    entry = hass.config_entries.async_entries("heatnexus")[0]
-    laufzeit = await _eingerichtet(hass, verwaltung)
-
-    geraet = geraet_suchen(
-        dr.async_get(hass), system.system_kennung(entry.entry_id), entry.entry_id
-    )
-    assert geraet is not None
-    assert geraet.name == "HeatNexus Automatik"
-    kreis = KLASSEN["modus"](verwaltung, HEIZKREIS).device_info
-    assert kreis.get("via_device_id") == geraet.id or kreis.get("via_device") == (
-        DOMAIN,
-        system.system_kennung(entry.entry_id),
-    )
-
-    def wert(art):
-        entitaet = system.KLASSEN[art](verwaltung, entry.entry_id)
-        return entitaet.is_on if art in system.BINAER_ARTEN else entitaet.native_value
-
-    assert wert("status") == "beobachten"
-    assert wert("automatiken") == 1
-    assert wert("stoerung") is False
-    assert wert("prognose") is True
-
-    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
-    await _takte(laufzeit)
-    assert wert("status") == "eingriff"
-    assert wert("eingriffe") == 1
-    assert wert("letzter_eingriff") is not None
-    assert wert("naechste_entscheidung") is not None
-
-    await verwaltung.entfernen(HEIZKREIS)
-    assert (
-        geraet_suchen(dr.async_get(hass), system.system_kennung(entry.entry_id), entry.entry_id)
-        is None
-    )
-
-
-async def test_sonnentag_aktiv_bleibt_waehrend_der_heizpause_aus(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    from custom_components.heatnexus.automatik import regel, system
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    entry = hass.config_entries.async_entries("heatnexus")[0]
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
-    sensor = system.KLASSEN["sonnentag_aktiv"](verwaltung, entry.entry_id)
-    jetzt = dt_util.now()
-    laufend = {
-        "absenkung_von": jetzt,
-        "absenkung_bis": jetzt + timedelta(hours=3),
-        "absenkung_soll": 17.0,
-    }
-
-    laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.PAUSE, **laufend)
-    assert sensor.is_on is False
-    laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.SONNE, **laufend)
-    assert sensor.is_on is True
-
-
-async def test_system_kennungen_gelten_als_bekannt(hass, anlage):
-    from custom_components.heatnexus.automatik import system
-
-    verwaltung, _ = anlage
-    entry = hass.config_entries.async_entries("heatnexus")[0]
-    await _eingerichtet(hass, verwaltung)
-    kennungen = verwaltung.kennungen(entry.entry_id)
-    assert system.system_unique_id(entry.entry_id, "status") in kennungen
-
-
-async def test_diagnose_enthaelt_die_automatik(hass, anlage, freezer):
-    """Ohne den Stand der Automatik lässt sich ein gemeldeter Eingriff nicht nachvollziehen."""
-    from custom_components.heatnexus import diagnostics
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await _takte(laufzeit)
-    entry = hass.config_entries.async_entries("heatnexus")[0]
-
-    automatik = diagnostics.automatik_auszug(hass, entry)
-    assert automatik["system"] == {"automatiken": 1, "status": "beobachten"}
-    (auszug,) = automatik["heizkreise"]
-    assert auszug["zustand"] == "sonnentag"
-    assert auszug["lage"]["grenze_steuerung"] == 18.0
-    assert auszug["grenze"] == 18.0
-    assert auszug["werte"]["grenze_versatz"] == 0.0
-    assert auszug["protokoll"][0]["art"] == "haette"
-    for schluessel in ("konfig", "gedaechtnis", "steller", "vorrang", "verlauf", "korrektur"):
-        assert schluessel in auszug
-
-
-async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_client, anlage):
+async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, szenario):
     """Lehnt die Steuerung den zweiten Wert ab, bleibt der erste nachvollziehbar."""
     # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
     hass.config.language = "de"
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
     geschrieben = []
 
     async def update(oid: str, wert: str) -> None:
@@ -2099,9 +1726,8 @@ async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_
             raise RuntimeError("abgelehnt")
         geschrieben.append((oid, wert))
 
-    coordinator.client.update = update
-    antwort = await _senden(
-        client,
+    sz.coordinator.client.update = update
+    antwort = await sz.senden(
         type="heatnexus/automatik/heizgrenzen",
         heizkreis=HEIZKREIS,
         heizbetrieb=17.5,
@@ -2111,55 +1737,72 @@ async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_
     assert not antwort["success"]
     assert "Absenkbetrieb" in antwort["error"]["message"]
     assert geschrieben == [(f"{PREFIX}/3/21/0", "17.5")]
-    eintrag = verwaltung.laufzeiten[HEIZKREIS].steller.stand.protokoll[0]
-    assert eintrag["art"] == "einstellung"
-    assert "Heizbetrieb 17,5 °C" in eintrag["text"]
+    assert sz.protokoll[0]["art"] == "einstellung"
+    assert "Heizbetrieb 17,5 °C" in sz.protokoll[0]["text"]
 
 
-async def test_die_volle_stunde_vermerkt_den_modus(hass, hass_ws_client, anlage, freezer):
-    """Der Stundentakt trägt Aktion und Modus-Laufzeiten nach, auch ohne Ereignis."""
-    from datetime import timedelta
+# --- System-Gerät -------------------------------------------------------------
+async def test_system_geraet_buendelt_die_automatiken(hass, szenario):
+    # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
+    hass.config.language = "de"
+    from homeassistant.helpers import device_registry as dr
 
-    from homeassistant.util import dt as dt_util
-    from pytest_homeassistant_custom_component.common import async_fire_time_changed
-
-    verwaltung, _coordinator = anlage
-    client = await hass_ws_client(hass)
-    # MORGEN liegt nicht an der Tagesgrenze, damit +1 h nicht in den nächsten Tag rutscht.
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    naechste = (dt_util.now() + timedelta(hours=1)).replace(minute=0, second=5, microsecond=0)
-    freezer.move_to(naechste)
-    async_fire_time_changed(hass, naechste)
-    await hass.async_block_till_done()
-    assert laufzeit.verlauf["stunden"][str(naechste.hour)]["aktion"] == "programm"
-    assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww", "heizpause"}
-
-
-async def test_das_system_hat_die_neuen_sensoren(hass, hass_ws_client, anlage):
-    """`anmelden` legt für jede neue Art eine Entität mit der Systemkennung an."""
-    from custom_components.heatnexus.automatik import system as system_modul
-    from custom_components.heatnexus.automatik.verwaltung import verwaltung_holen
+    from custom_components.heatnexus.automatik import system
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import geraet_suchen
 
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    await hass.async_block_till_done()
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
-    sub_id = verwaltung_holen(hass).subeintrag(entry)
-    for art in (
-        "sonnentag_heute",
-        "nur_ww_heute",
-        "modus_seit",
-        "prognose_mittel",
-        "ueber_heizgrenze",
-    ):
-        aufnahme = _Aufnahme()
-        system_modul.anmelden(hass, entry, aufnahme, art)
-        assert aufnahme.entitaeten, art
-        assert aufnahme.entitaeten[0].unique_id.endswith(f"-automatik-system-{art}")
-        assert aufnahme.untereintraege == [sub_id]
+    sz = await szenario(ws=False)
+    entry = sz.eintrag
+    kennung = system.system_kennung(entry.entry_id)
+
+    geraet = geraet_suchen(dr.async_get(hass), kennung, entry.entry_id)
+    assert geraet is not None
+    assert geraet.name == "HeatNexus Automatik"
+    kreis = KLASSEN["modus"](sz.verwaltung, HEIZKREIS).device_info
+    assert kreis.get("via_device_id") == geraet.id or kreis.get("via_device") == (DOMAIN, kennung)
+
+    def wert(art):
+        entitaet = system.KLASSEN[art](sz.verwaltung, entry.entry_id)
+        return entitaet.is_on if art in system.BINAER_ARTEN else entitaet.native_value
+
+    assert (wert("status"), wert("automatiken"), wert("stoerung")) == ("beobachten", 1, False)
+    assert wert("prognose") is True
+
+    await sz.modus("schalten")
+    await sz.takte()
+    assert (wert("status"), wert("eingriffe")) == ("eingriff", 1)
+    assert wert("letzter_eingriff") is not None
+    assert wert("naechste_entscheidung") is not None
+
+    await sz.verwaltung.entfernen(HEIZKREIS)
+    assert geraet_suchen(dr.async_get(hass), kennung, entry.entry_id) is None
+
+
+async def test_sonnentag_aktiv_bleibt_waehrend_der_heizpause_aus(szenario):
+    from custom_components.heatnexus.automatik import regel, system
+
+    sz = await szenario(ws=False, modus="schalten")
+    sensor = system.KLASSEN["sonnentag_aktiv"](sz.verwaltung, sz.eintrag.entry_id)
+    jetzt = _jetzt()
+    laufend = {
+        "absenkung_von": jetzt,
+        "absenkung_bis": jetzt + timedelta(hours=3),
+        "absenkung_soll": 17.0,
+    }
+
+    sz.laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.PAUSE, **laufend)
+    assert sensor.is_on is False
+    sz.laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.SONNE, **laufend)
+    assert sensor.is_on is True
+
+
+async def test_system_kennungen_gelten_als_bekannt(szenario):
+    from custom_components.heatnexus.automatik import system
+
+    sz = await szenario(zeit=None, ws=False)
+    kennungen = sz.verwaltung.kennungen(sz.eintrag.entry_id)
+    assert system.system_unique_id(sz.eintrag.entry_id, "status") in kennungen
 
 
 class _Aufnahme:
@@ -2174,179 +1817,41 @@ class _Aufnahme:
         self.untereintraege.append(config_subentry_id)
 
 
-async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_client, anlage):
-    from custom_components.heatnexus.automatik import entitaeten
-    from custom_components.heatnexus.const import DOMAIN
+async def test_das_system_hat_die_neuen_sensoren(hass, szenario):
+    """`anmelden` legt für jede neue Art eine Entität mit der Systemkennung an."""
+    from custom_components.heatnexus.automatik import system as system_modul
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
     await hass.async_block_till_done()
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    sub_id = sz.verwaltung.subeintrag(sz.eintrag)
+    for art in (
+        "sonnentag_heute",
+        "nur_ww_heute",
+        "modus_seit",
+        "prognose_mittel",
+        "ueber_heizgrenze",
+    ):
+        aufnahme = _Aufnahme()
+        system_modul.anmelden(hass, sz.eintrag, aufnahme, art)
+        assert aufnahme.entitaeten, art
+        assert aufnahme.entitaeten[0].unique_id.endswith(f"-automatik-system-{art}")
+        assert aufnahme.untereintraege == [sub_id]
+
+
+async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, szenario):
+    from custom_components.heatnexus.automatik import entitaeten
+
+    sz = await szenario(zeit=None)
+    await hass.async_block_till_done()
 
     aufnahme = _Aufnahme()
-    entitaeten.anmelden(hass, entry, aufnahme, "modus")
+    entitaeten.anmelden(hass, sz.eintrag, aufnahme, "modus")
 
     assert aufnahme.entitaeten
-    assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
-
-
-async def test_ein_takt_waehrend_einer_auswertung_geht_nicht_verloren(
-    hass, hass_ws_client, anlage, freezer
-):
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten_ohne_eingriff(client, verwaltung, coordinator)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-
-    await laufzeit._sperre.acquire()
-    aufgabe = hass.async_create_task(laufzeit._takt(None))
-    laufzeit._sperre.release()
-    await aufgabe
-
-    assert laufzeit.anstehend.zaehler == 1
-
-
-async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
-    from datetime import timedelta
-
-    verwaltung, coordinator = anlage
-    freezer.move_to(MORGEN)
-    grenze = coordinator.data["oids"].pop(f"{PREFIX}/3/21/0")
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    assert laufzeit._wartet is True
-
-    coordinator.data["oids"][f"{PREFIX}/3/21/0"] = grenze
-    laufzeit._merken()
-    await hass.async_block_till_done()
-    assert laufzeit._wartet is False
-    assert laufzeit.lage.grenze_steuerung == 18.0
-
-    del coordinator.data["oids"][f"{PREFIX}/3/21/0"]
-    freezer.tick(timedelta(minutes=11))
-    await laufzeit.auswerten()
-    assert laufzeit._wartet is False
-    # Eine Einstellung der Steuerung bleibt gültig, bis ein neuer Wert gelesen ist.
-    assert laufzeit.lage.grenze_steuerung == 18.0
-
-
-async def test_waehrend_die_regel_wartet_rechnen_auch_die_summensensoren(hass, anlage, freezer):
-    """Nach dem Start fehlt ein Wert der Steuerung; die Sensoren am System-Gerät zeigen trotzdem gleich ihren Stand."""
-    from homeassistant.helpers.dispatcher import async_dispatcher_connect
-
-    from custom_components.heatnexus.automatik.laufzeit import SIGNAL_SYSTEM
-
-    verwaltung, coordinator = anlage
-    freezer.move_to(MORGEN)
-    eintrag = hass.config_entries.async_entries("heatnexus")[0]
-    gemeldet = []
-    async_dispatcher_connect(
-        hass, SIGNAL_SYSTEM.format(eintrag.entry_id), lambda: gemeldet.append(1)
-    )
-    del coordinator.data["oids"][f"{PREFIX}/2/9/0"]
-
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await hass.async_block_till_done()
-
-    assert laufzeit._wartet is True
-    assert gemeldet
-
-
-async def test_nach_dem_start_gilt_die_zuletzt_gelesene_heizgrenze(hass, anlage, freezer):
-    """Der erste Abruf nach dem Start trägt `3/21` noch nicht; der Rückfall 17 °C wäre falsch."""
-    verwaltung, coordinator = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await laufzeit.auswerten()
-    zustand = laufzeit.als_dict()
-    assert zustand["grenze_steuerung"] == 18.0
-
-    del coordinator.data["oids"][f"{PREFIX}/3/21/0"]
-    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
-    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
-    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
-    neu = verwaltung.laufzeiten[HEIZKREIS]
-    await neu.auswerten()
-
-    assert neu.lage.grenze_steuerung == 18.0
-
-
-async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
-    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
-
-    # Zeiten in der Zone der Testumgebung, damit der Tag dort um Mitternacht beginnt.
-    freezer.move_to("2026-09-28 20:50:00-07:00")
-    protokoll = [
-        {
-            "zeit": "2026-09-28T11:32:00-07:00",
-            "art": "geschrieben",
-            "text": "",
-            "werte": [["/2/10/0", "0"], ["/3/50/0", "6"]],
-        },
-        {
-            "zeit": "2026-09-28T07:30:00-07:00",
-            "art": "geschrieben",
-            "text": "",
-            "werte": [["/3/4/0", "21.0"], ["/2/10/0", "400"]],
-        },
-    ]
-    beschreibung = {"device_id": HEIZKREIS, "prefix": PREFIX, "preset_allowed": [0, 1, 6]}
-
-    async def prognose(_art, _quelle):
-        return None
-
-    laufzeit = Laufzeit(
-        hass,
-        Coordinator(),
-        beschreibung,
-        {},
-        {
-            "stand": {"protokoll": protokoll},
-            "empfehlung": {"zustand": "sonnentag", "begruendung": "g", "seit": "gestern"},
-        },
-        lambda: None,
-        "e",
-        prognose,
-    )
-
-    assert round(laufzeit.modus_lauf["absenkung"].minuten) == 242
-    assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558
-    assert laufzeit.empfehlung is None
-
-
-async def test_der_heizkreis_heisst_wie_in_der_geraeteliste(hass):
-    """Die Steuerung kann Umlaute als Ersatzzeichen melden; das Gerät trägt den richtigen Namen."""
-    from homeassistant.helpers import device_registry as dr
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
-    from custom_components.heatnexus.const import DOMAIN
-
-    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="e")
-    eintrag.add_to_hass(hass)
-    register = dr.async_get(hass)
-    register.async_get_or_create(
-        config_entry_id="e", identifiers={(DOMAIN, HEIZKREIS)}, name=f"{ANLAGE} · Hebebühne"
-    )
-    beschreibung = {"device_id": HEIZKREIS, "device_name": "Hebeb�hne", "prefix": PREFIX}
-
-    async def prognose(_art, _quelle):
-        return None
-
-    laufzeit = Laufzeit(hass, Coordinator(), beschreibung, {}, {}, lambda: None, "e", prognose)
-
-    assert laufzeit.name == "Hebebühne"
+    assert aufnahme.untereintraege == [sz.verwaltung.subeintrag(sz.eintrag)] != [None]
 
 
 def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
-    from types import SimpleNamespace
-
     from custom_components.heatnexus.automatik.system import SystemAutomatiken
 
     def kreis(kennung: str, anlage: str) -> SimpleNamespace:
@@ -2373,63 +1878,193 @@ def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
     }
 
 
-async def test_umbenannter_raumfuehler_bleibt_in_der_automatik(hass, anlage):
+# --- Diagnose -----------------------------------------------------------------
+async def test_diagnose_enthaelt_die_automatik(hass, szenario):
+    """Ohne den Stand der Automatik lässt sich ein gemeldeter Eingriff nicht nachvollziehen."""
+    from custom_components.heatnexus import diagnostics
+
+    sz = await szenario(ws=False, takte=True)
+
+    automatik = diagnostics.automatik_auszug(hass, sz.eintrag)
+    assert automatik["system"] == {"automatiken": 1, "status": "beobachten"}
+    (auszug,) = automatik["heizkreise"]
+    assert auszug["zustand"] == "sonnentag"
+    assert auszug["lage"]["grenze_steuerung"] == 18.0
+    assert auszug["grenze"] == 18.0
+    assert auszug["werte"]["grenze_versatz"] == 0.0
+    assert auszug["protokoll"][0]["art"] == "haette"
+    for schluessel in ("konfig", "gedaechtnis", "steller", "vorrang", "verlauf", "korrektur"):
+        assert schluessel in auszug
+
+
+# --- Start und Neustart --------------------------------------------------------
+async def test_regel_wartet_auf_die_werte_der_steuerung(hass, szenario, anlage, freezer):
+    _, coordinator = anlage
+    grenze = coordinator.data["oids"].pop(f"{PREFIX}/3/21/0")
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
+    assert laufzeit._wartet is True
+
+    sz.oids[f"{PREFIX}/3/21/0"] = grenze
+    laufzeit._merken()
+    await hass.async_block_till_done()
+    assert laufzeit._wartet is False
+    assert laufzeit.lage.grenze_steuerung == 18.0
+
+    del sz.oids[f"{PREFIX}/3/21/0"]
+    freezer.tick(timedelta(minutes=11))
+    await laufzeit.auswerten()
+    assert laufzeit._wartet is False
+    # Eine Einstellung der Steuerung bleibt gültig, bis ein neuer Wert gelesen ist.
+    assert laufzeit.lage.grenze_steuerung == 18.0
+
+
+async def test_waehrend_die_regel_wartet_rechnen_auch_die_summensensoren(hass, szenario):
+    """Nach dem Start fehlt ein Wert der Steuerung; die Sensoren am System-Gerät zeigen trotzdem gleich ihren Stand."""
+    from homeassistant.helpers.dispatcher import async_dispatcher_connect
+
+    from custom_components.heatnexus.automatik.laufzeit import SIGNAL_SYSTEM
+
+    sz = await szenario(ws=False, einrichten=False)
+    gemeldet = []
+    async_dispatcher_connect(
+        hass, SIGNAL_SYSTEM.format(sz.eintrag.entry_id), lambda: gemeldet.append(1)
+    )
+    del sz.oids[f"{PREFIX}/2/9/0"]
+
+    laufzeit = await sz.einrichten()
+    await hass.async_block_till_done()
+
+    assert laufzeit._wartet is True
+    assert gemeldet
+
+
+async def test_nach_dem_start_gilt_die_zuletzt_gelesene_heizgrenze(szenario):
+    """Der erste Abruf nach dem Start trägt `3/21` noch nicht; der Rückfall 17 °C wäre falsch."""
+    sz = await szenario(ws=False)
+    await sz.laufzeit.auswerten()
+    zustand = sz.laufzeit.als_dict()
+    assert zustand["grenze_steuerung"] == 18.0
+
+    del sz.oids[f"{PREFIX}/3/21/0"]
+    neu = await sz.neu_starten(zustand)
+    await neu.auswerten()
+
+    assert neu.lage.grenze_steuerung == 18.0
+
+
+async def test_nach_dem_start_gilt_die_zuletzt_gelesene_absenkgrenze(szenario):
+    """Auch `3/2` steht nach dem Start sofort im Panel, nicht erst nach dem nächsten Abruf."""
+    sz = await szenario(ws=False)
+    await sz.laufzeit.auswerten()
+    zustand = sz.laufzeit.als_dict()
+    assert zustand["grenze_absenk"] == 5.0
+
+    del sz.oids[f"{PREFIX}/3/2/0"]
+    neu = await sz.neu_starten(zustand)
+
+    assert neu.grenze_absenk() == 5.0
+
+
+async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+
+    # Zeiten in der Zone der Testumgebung, damit der Tag dort um Mitternacht beginnt.
+    freezer.move_to("2026-09-28 20:50:00-07:00")
+    protokoll = [
+        {
+            "zeit": "2026-09-28T11:32:00-07:00",
+            "art": "geschrieben",
+            "text": "",
+            "werte": [["/2/10/0", "0"], ["/3/50/0", "6"]],
+        },
+        {
+            "zeit": "2026-09-28T07:30:00-07:00",
+            "art": "geschrieben",
+            "text": "",
+            "werte": [["/3/4/0", "21.0"], ["/2/10/0", "400"]],
+        },
+    ]
+    beschreibung = {"device_id": HEIZKREIS, "prefix": PREFIX, "preset_allowed": [0, 1, 6]}
+    zustand = {
+        "stand": {"protokoll": protokoll},
+        "empfehlung": {"zustand": "sonnentag", "begruendung": "g", "seit": "gestern"},
+    }
+
+    laufzeit = Laufzeit(
+        hass, Coordinator(), beschreibung, {}, zustand, lambda: None, "e", _keine_prognose
+    )
+
+    assert round(laufzeit.modus_lauf["absenkung"].minuten) == 242
+    assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558
+    assert laufzeit.empfehlung is None
+
+
+async def _keine_prognose(_art, _quelle):
+    return None
+
+
+async def test_der_heizkreis_heisst_wie_in_der_geraeteliste(hass):
+    """Die Steuerung kann Umlaute als Ersatzzeichen melden; das Gerät trägt den richtigen Namen."""
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="e")
+    eintrag.add_to_hass(hass)
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id="e", identifiers={(DOMAIN, HEIZKREIS)}, name=f"{ANLAGE} · Hebebühne"
+    )
+    beschreibung = {"device_id": HEIZKREIS, "device_name": "Hebeb�hne", "prefix": PREFIX}
+
+    laufzeit = Laufzeit(
+        hass, Coordinator(), beschreibung, {}, {}, lambda: None, "e", _keine_prognose
+    )
+
+    assert laufzeit.name == "Hebebühne"
+
+
+async def test_umbenannter_raumfuehler_bleibt_in_der_automatik(hass, szenario):
     from homeassistant.helpers import entity_registry as er
 
     from custom_components.heatnexus.verweise import verweise_verfolgen
 
-    verwaltung, _ = anlage
+    sz = await szenario(zeit=None, ws=False, einrichten=False)
     verweise_verfolgen(hass)
     register = er.async_get(hass)
     fuehler = register.async_get_or_create("sensor", "test", "flur", suggested_object_id="flur")
     hass.states.async_set(fuehler.entity_id, "20.5", {"device_class": "temperature"})
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {"heizkreis": HEIZKREIS, "raeume": [fuehler.entity_id], "wetter": "weather.home"},
-    )
+    await sz.einrichten(raeume=[fuehler.entity_id])
 
     register.async_update_entity(fuehler.entity_id, new_entity_id="sensor.stube")
     await hass.async_block_till_done()
 
-    assert verwaltung.laufzeiten[HEIZKREIS].konfig["raeume"] == ["sensor.stube"]
-    assert verwaltung.konfig(HEIZKREIS)["raeume"] == ["sensor.stube"]
+    assert sz.laufzeit.konfig["raeume"] == ["sensor.stube"]
+    assert sz.verwaltung.konfig(HEIZKREIS)["raeume"] == ["sensor.stube"]
 
 
-async def test_nach_dem_start_gilt_die_zuletzt_gelesene_absenkgrenze(hass, anlage, freezer):
-    """Auch `3/2` steht nach dem Start sofort im Panel, nicht erst nach dem nächsten Abruf."""
-    verwaltung, coordinator = anlage
-    freezer.move_to(MORGEN)
-    coordinator.data["oids"][f"{PREFIX}/3/2/0"] = "5.0"
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await laufzeit.auswerten()
-    zustand = laufzeit.als_dict()
-    assert zustand["grenze_absenk"] == 5.0
-
-    del coordinator.data["oids"][f"{PREFIX}/3/2/0"]
-    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
-    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
-    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
-
-    assert verwaltung.laufzeiten[HEIZKREIS].grenze_absenk() == 5.0
-
-
-async def test_hausmodell_wird_gespeichert_und_geladen(hass, anlage, freezer):
+# --- Hausmodell ---------------------------------------------------------------
+def _modell(paare: int, tage: int = 14):
     from custom_components.heatnexus.automatik import hausmodell
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    modell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6, (0.3,), 0.0, (0.5,))
+    return hausmodell.Modell(
+        40.0, 0.0, 0.6, 0.03, "vorlauf", tage, (0.3,) * paare, 0.0, (0.5,) * paare
+    )
+
+
+async def test_hausmodell_wird_gespeichert_und_geladen(szenario):
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
+    modell = _modell(1, tage=6)
     laufzeit.hausmodell = modell
     laufzeit._fehler_tag = "2026-09-26"
     zustand = laufzeit.als_dict()
     assert zustand["hausmodell"]["auskuehlzeit_h"] == 40.0
     assert zustand["hausmodell_tag"] == "2026-09-26"
 
-    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
-    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
-    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
-    geladen = verwaltung.laufzeiten[HEIZKREIS]
+    geladen = await sz.neu_starten(zustand)
     assert geladen is not laufzeit
     assert geladen.hausmodell == modell
     assert geladen._fehler_tag == "2026-09-26"
@@ -2441,14 +2076,9 @@ async def test_hausmodell_wird_gespeichert_und_geladen(hass, anlage, freezer):
 
 def _lernstunden(tage: int):
     """Stunden eines Hauses mit bekannten Werten, je Tag bis gestern."""
-    from datetime import timedelta
-    import math
-
-    from homeassistant.util import dt as dt_util
-
     from custom_components.heatnexus.automatik import hausmodell
 
-    heute = dt_util.now().date()
+    heute = _jetzt().date()
     ergebnis: dict = {}
     raum = 21.0
     for tag in range(tage):
@@ -2464,23 +2094,20 @@ def _lernstunden(tage: int):
     return ergebnis
 
 
-async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-
+def _lerndaten_festlegen(monkeypatch, laufzeit, art: str, tage) -> None:
     async def lerndaten():
-        return "vorlauf", _lernstunden(7)
+        return art, tage
 
     monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+
+
+async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(szenario, monkeypatch):
+    laufzeit = (await szenario()).laufzeit
+    _lerndaten_festlegen(monkeypatch, laufzeit, "vorlauf", _lernstunden(7))
+
     await laufzeit.hausmodell_lernen()
     modell = laufzeit.hausmodell
-    assert modell.tage == 6
-    assert modell.heiz_art == "vorlauf"
+    assert (modell.tage, modell.heiz_art) == (6, "vorlauf")
     # Ohne bisheriges Modell rechnet der erste Lauf die vergangenen Tage nach.
     nachgerechnet = len(modell.fehler)
     assert nachgerechnet >= 3
@@ -2502,17 +2129,11 @@ async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(
     assert len(laufzeit.hausmodell.fehler) == nachgerechnet
 
 
-async def test_neustart_lernt_nur_ohne_modell_vom_selben_tag(hass, anlage, freezer, monkeypatch):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    from custom_components.heatnexus.automatik import hausmodell
+async def test_neustart_lernt_nur_ohne_modell_vom_selben_tag(hass, szenario, monkeypatch):
     from custom_components.heatnexus.automatik.laufzeit import Laufzeit
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     await hass.async_block_till_done()
     laeufe = []
 
@@ -2520,32 +2141,25 @@ async def test_neustart_lernt_nur_ohne_modell_vom_selben_tag(hass, anlage, freez
         laeufe.append(selbst)
 
     monkeypatch.setattr(Laufzeit, "hausmodell_lernen", lernen)
-    heute = dt_util.now().date()
-    eintrag = hass.config_entries.async_entries("heatnexus")[0]
+    heute = _jetzt().date()
     for gelernt, erwartet in ((heute, 0), (heute - timedelta(days=1), 1)):
-        laufzeit.hausmodell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6)
+        laufzeit.hausmodell = _modell(0, tage=6)
         laufzeit._modell_gelernt = gelernt.isoformat()
         zustand = laufzeit.als_dict()
         assert zustand["hausmodell_gelernt"] == gelernt.isoformat()
-        verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
-        verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
         laeufe.clear()
-        await verwaltung._nachholen(eintrag)
+        laufzeit = await sz.neu_starten(zustand)
         await hass.async_block_till_done()
-        laufzeit = verwaltung.laufzeiten[HEIZKREIS]
         assert len(laeufe) == erwartet
 
 
 async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
-    hass, hass_storage, anlage, freezer, monkeypatch
+    hass, hass_storage, szenario, monkeypatch
 ):
-    from homeassistant.util import dt as dt_util
-
     from custom_components.heatnexus.automatik import hausmodell
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     await hass.async_block_till_done()
     gelernt = []
     echt = hausmodell.lernen
@@ -2566,7 +2180,7 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     await laufzeit.hausmodell_lernen()
     schluessel = f"heatnexus.hausmodell_{HEIZKREIS}"
     assert len(hass_storage[schluessel]["data"]["tage"]) == 7
-    assert laufzeit.als_dict()["hausmodell_gelernt"] == dt_util.now().date().isoformat()
+    assert laufzeit.als_dict()["hausmodell_gelernt"] == _jetzt().date().isoformat()
 
     # Der älteste gelieferte Tag ist angeschnitten; die Ablage hat ihn vollständig.
     aeltester = min(zuletzt)
@@ -2589,42 +2203,33 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     lieferung["art"] = "vorlauf"
     await laufzeit.hausmodell_lernen()
     assert schluessel in hass_storage
-    await verwaltung.entfernen(HEIZKREIS)
+    await sz.verwaltung.entfernen(HEIZKREIS)
     await hass.async_block_till_done()
     assert schluessel not in hass_storage
 
 
-async def _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen):
+async def _lernt_wieder(hass, szenario, monkeypatch, entfernen):
     """Nach `hausmodell_neu` mit dem gegebenen Löschen: Der nächste Lernlauf legt wieder ab."""
     from custom_components.heatnexus.automatik import lernablage
 
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit = (await szenario(ws=False)).laufzeit
     await hass.async_block_till_done()
     monkeypatch.setattr(lernablage, "entfernen", entfernen)
-    tage = _lernstunden(7)
-
-    async def lerndaten():
-        return "vorlauf", tage
-
-    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    _lerndaten_festlegen(monkeypatch, laufzeit, "vorlauf", _lernstunden(7))
     laufzeit.hausmodell_neu()
     return laufzeit
 
 
 async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
-    hass, hass_storage, anlage, freezer, monkeypatch
+    hass, hass_storage, szenario, monkeypatch
 ):
     """Wird der Lernlauf abgebrochen, während er aufs Löschen wartet, lernt der nächste trotzdem."""
-    import asyncio
-
-    verwaltung, _ = anlage
     frei = asyncio.Event()
 
     async def entfernen(_hass, _device_id):
         await frei.wait()
 
-    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    laufzeit = await _lernt_wieder(hass, szenario, monkeypatch, entfernen)
     lauf = hass.async_create_task(laufzeit.hausmodell_lernen())
     await asyncio.sleep(0)
     lauf.cancel()
@@ -2637,29 +2242,22 @@ async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
 
 
 async def test_ein_gescheitertes_loeschen_sperrt_die_ablage_nicht(
-    hass, hass_storage, anlage, freezer, monkeypatch
+    hass, hass_storage, szenario, monkeypatch
 ):
-    verwaltung, _ = anlage
-
     async def entfernen(_hass, _device_id):
         raise OSError("Datei gesperrt")
 
-    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    laufzeit = await _lernt_wieder(hass, szenario, monkeypatch, entfernen)
     await laufzeit.hausmodell_lernen()
     await laufzeit.hausmodell_lernen()
     assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
 
 
-async def test_hausmodell_nennt_den_grund_ohne_modell(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
+async def test_hausmodell_nennt_den_grund_ohne_modell(szenario, monkeypatch):
     from custom_components.heatnexus.automatik import hausmodell
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    sz = await szenario()
+    laufzeit = sz.laufzeit
     # Raum gleich Außenluft und kein Heizen: keine Auskühlzeit passt besser als eine andere.
     unpassend = {
         tag: [hausmodell.Stunde(21.0, 21.0, 21.0, 0.0, None, 0.0)] * 24 for tag in _lernstunden(7)
@@ -2668,38 +2266,47 @@ async def test_hausmodell_nennt_den_grund_ohne_modell(
     async def ohne_daten():
         return None
 
-    async def ohne_aussage():
-        return "vorlauf", unpassend
-
     monkeypatch.setattr(laufzeit, "_lerndaten", ohne_daten)
     await laufzeit.hausmodell_lernen()
     assert laufzeit.lern_grund == "daten"
-    monkeypatch.setattr(laufzeit, "_lerndaten", ohne_aussage)
+    _lerndaten_festlegen(monkeypatch, laufzeit, "vorlauf", unpassend)
     await laufzeit.hausmodell_lernen()
     assert laufzeit.lern_grund == "unpassend"
-    assert (await _kreis(client))["kennwerte"]["hausmodell"] == {
+    assert (await sz.kreis())["kennwerte"]["hausmodell"] == {
         "status": "lernt",
         "grund": "unpassend",
     }
 
 
-async def test_pumpe_lernt_als_pumpe_und_die_art_bleibt_im_modell(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+async def test_pumpe_lernt_als_pumpe_und_die_art_bleibt_im_modell(szenario, monkeypatch):
+    laufzeit = (await szenario()).laufzeit
+    _lerndaten_festlegen(monkeypatch, laufzeit, "pumpe", _lernstunden(7))
 
-    async def lerndaten():
-        return "pumpe", _lernstunden(7)
-
-    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
     await laufzeit.hausmodell_lernen()
+
     assert laufzeit.hausmodell.heiz_art == "pumpe"
 
 
+async def test_stoppen_bricht_das_lernen_ab(szenario, monkeypatch):
+    laufzeit = (await szenario()).laufzeit
+    gestartet = asyncio.Event()
+
+    async def lerndaten():
+        gestartet.set()
+        await asyncio.sleep(3600)
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    await laufzeit._hausmodell_takt(None)
+    await gestartet.wait()
+    aufgabe = laufzeit._lernaufgabe
+    assert not aufgabe.done()
+
+    laufzeit.stoppen()
+    await asyncio.sleep(0)
+    assert aufgabe.cancelled()
+
+
+# --- Lerndaten aus dem Verlauf --------------------------------------------------
 def _verlauf_bereit(hass, monkeypatch, zustaende):
     """Ein Verlauf aus den Zuständen; der Recorder liefert, was die Abfrage verlangt."""
     from homeassistant.components import recorder
@@ -2715,15 +2322,6 @@ def _verlauf_bereit(hass, monkeypatch, zustaende):
     monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
     monkeypatch.setattr(history, "get_significant_states", verlauf)
     hass.config.components.add("recorder")
-
-
-def _lernzeiten_im_test():
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    anfang = dt_util.start_of_local_day(dt_util.now().date() - timedelta(days=14))
-    return [anfang + timedelta(hours=i) for i in range(14 * 24 + 1)]
 
 
 def _entitaeten(hass, plattformen):
@@ -2752,35 +2350,41 @@ def _basis_zustaende(zeiten, aussen, raum_ausfall=range(0)):
                 raum.append(State("sensor.wohnzimmer", "unavailable", {}, last_updated=zeit))
             continue
         raum.append(State("sensor.wohnzimmer", f"{20 + i % 5 / 10}", {}, last_updated=zeit))
+    wetter = {"cloud_coverage": 50, "wind_speed": 3.0}
     return {
         "sensor.wohnzimmer": raum,
         aussen: [State(aussen, "5.0", {}, last_updated=zeiten[0])],
-        "weather.home": [
-            State(
-                "weather.home",
-                "sunny",
-                {"cloud_coverage": 50, "wind_speed": 3.0},
-                last_updated=zeiten[0],
-            )
-        ],
+        "weather.home": [State("weather.home", "sunny", wetter, last_updated=zeiten[0])],
     }
 
 
-async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    from homeassistant.core import State
+VORLAUF = [("sensor", "0-0-0"), ("sensor", "0-2-0")]
+PUMPE = [("sensor", "0-0-0"), ("binary_sensor", "1-20-0")]
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    aussen, vorlauf = _entitaeten(hass, [("sensor", "0-0-0"), ("sensor", "0-2-0")])
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    zeiten = _lernzeiten_im_test()
-    zustaende = _basis_zustaende(zeiten, aussen)
-    zustaende[vorlauf] = [State(vorlauf, "40.0", {}, last_updated=zeiten[0])]
+
+async def _lernverlauf(hass, szenario, monkeypatch, plattformen, heizung, raum_ausfall=range(0)):
+    """Vierzehn Tage Verlauf: Raum, Außenfühler und je Heizentität `heizung(zeiten)`.
+
+    Zurück kommen Laufzeit und Zeiten; `zustaende` lässt sich vor dem Lesen noch ändern.
+    """
+    from homeassistant.core import State
+    from homeassistant.util import dt as dt_util
+
+    sz = await szenario(einrichten=False)
+    aussen, *weitere = _entitaeten(hass, plattformen)
+    laufzeit = await sz.einrichten()
+    anfang = dt_util.start_of_local_day(_jetzt().date() - timedelta(days=14))
+    zeiten = [anfang + timedelta(hours=i) for i in range(14 * 24 + 1)]
+    zustaende = _basis_zustaende(zeiten, aussen, raum_ausfall)
+    for kennung, werte in zip(weitere, heizung, strict=True):
+        if werte:
+            zustaende[kennung] = [State(kennung, w, {}, last_updated=zeiten[i]) for i, w in werte]
     _verlauf_bereit(hass, monkeypatch, zustaende)
+    return laufzeit, zeiten, zustaende
+
+
+async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(hass, szenario, monkeypatch):
+    laufzeit, _, _ = await _lernverlauf(hass, szenario, monkeypatch, VORLAUF, [[(0, "40.0")]])
 
     art, je_tag = await laufzeit._lerndaten()
 
@@ -2792,34 +2396,21 @@ async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(
     assert erste[0].raum_danach == erste[1].raum
     assert erste[23].raum_danach == je_tag[tage[1]][0].raum
     assert erste[3].heizen == pytest.approx(40.0 - erste[3].raum)
-    assert erste[3].wind == 3.0
-    assert erste[3].at == 5.0
-    assert erste[3].sonne == 0.0
+    assert (erste[3].wind, erste[3].at, erste[3].sonne) == (3.0, 5.0, 0.0)
     assert erste[12].sonne > 0.0
 
 
-async def test_angeschnittener_tag_bleibt_mit_seinen_stunden(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    from datetime import timedelta
-
+async def test_angeschnittener_tag_bleibt_mit_seinen_stunden(hass, szenario, monkeypatch):
     from homeassistant.core import State
 
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    aussen, vorlauf = _entitaeten(hass, [("sensor", "0-0-0"), ("sensor", "0-2-0")])
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    zeiten = _lernzeiten_im_test()
-    zustaende = _basis_zustaende(zeiten, aussen)
+    laufzeit, zeiten, zustaende = await _lernverlauf(
+        hass, szenario, monkeypatch, VORLAUF, [[(0, "40.0")]]
+    )
     # Die Aufzeichnung des Raums beginnt erst 04:12; davor hat sie der Recorder gelöscht.
     zustaende["sensor.wohnzimmer"] = [
         State("sensor.wohnzimmer", "20.0", {}, last_updated=zeiten[4] + timedelta(minutes=12)),
         *zustaende["sensor.wohnzimmer"][5:],
     ]
-    zustaende[vorlauf] = [State(vorlauf, "40.0", {}, last_updated=zeiten[0])]
-    _verlauf_bereit(hass, monkeypatch, zustaende)
 
     _, je_tag = await laufzeit._lerndaten()
 
@@ -2827,22 +2418,11 @@ async def test_angeschnittener_tag_bleibt_mit_seinen_stunden(
     assert 0 < len(je_tag[zeiten[0].date()]) < 24
 
 
-async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    from homeassistant.core import State
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    aussen, vorlauf = _entitaeten(hass, [("sensor", "0-0-0"), ("sensor", "0-2-0")])
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    zeiten = _lernzeiten_im_test()
+async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(hass, szenario, monkeypatch):
     # Die Stunden 100 bis 130 haben keinen Raumwert: Tag 5 ab 04:00 bis Tag 6 um 10:00.
-    zustaende = _basis_zustaende(zeiten, aussen, range(100, 131))
-    zustaende[vorlauf] = [State(vorlauf, "40.0", {}, last_updated=zeiten[0])]
-    _verlauf_bereit(hass, monkeypatch, zustaende)
+    laufzeit, _, _ = await _lernverlauf(
+        hass, szenario, monkeypatch, VORLAUF, [[(0, "40.0")]], range(100, 131)
+    )
 
     _, je_tag = await laufzeit._lerndaten()
 
@@ -2856,86 +2436,31 @@ async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(
     assert nach_der_luecke[0].raum == pytest.approx(20.1)
 
 
-async def test_pumpe_liefert_die_heizart_aus_dem_verlauf(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    from homeassistant.core import State
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    aussen, pumpe = _entitaeten(hass, [("sensor", "0-0-0"), ("binary_sensor", "1-20-0")])
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    zeiten = _lernzeiten_im_test()
-    zustaende = _basis_zustaende(zeiten, aussen)
-    zustaende[pumpe] = [
-        State(pumpe, "on", {}, last_updated=zeiten[0]),
-        State(pumpe, "off", {}, last_updated=zeiten[10]),
-    ]
-    _verlauf_bereit(hass, monkeypatch, zustaende)
+async def test_pumpe_liefert_die_heizart_aus_dem_verlauf(hass, szenario, monkeypatch):
+    laufzeit, _, _ = await _lernverlauf(
+        hass, szenario, monkeypatch, PUMPE, [[(0, "on"), (10, "off")]]
+    )
 
     art, je_tag = await laufzeit._lerndaten()
 
     assert art == "pumpe"
     erster = je_tag[sorted(je_tag)[0]]
-    assert erster[3].heizen == 1.0
-    assert erster[12].heizen == 0.0
+    assert (erster[3].heizen, erster[12].heizen) == (1.0, 0.0)
 
 
-async def test_vorlauf_ohne_verlauf_faellt_auf_die_pumpe_zurueck(
-    hass, hass_ws_client, anlage, freezer, monkeypatch
-):
-    from homeassistant.core import State
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    aussen, _vorlauf, pumpe = _entitaeten(
-        hass, [("sensor", "0-0-0"), ("sensor", "0-2-0"), ("binary_sensor", "1-20-0")]
-    )
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    zeiten = _lernzeiten_im_test()
-    zustaende = _basis_zustaende(zeiten, aussen)
-    zustaende[pumpe] = [State(pumpe, "on", {}, last_updated=zeiten[0])]
-    _verlauf_bereit(hass, monkeypatch, zustaende)
+async def test_vorlauf_ohne_verlauf_faellt_auf_die_pumpe_zurueck(hass, szenario, monkeypatch):
+    plattformen = [*VORLAUF, PUMPE[1]]
+    laufzeit, _, _ = await _lernverlauf(hass, szenario, monkeypatch, plattformen, [[], [(0, "on")]])
 
     art, _ = await laufzeit._lerndaten()
 
     assert art == "pumpe"
 
 
-async def test_stoppen_bricht_das_lernen_ab(hass, hass_ws_client, anlage, freezer, monkeypatch):
-    import asyncio
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    gestartet = asyncio.Event()
-
-    async def lerndaten():
-        gestartet.set()
-        await asyncio.sleep(3600)
-
-    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
-    await laufzeit._hausmodell_takt(None)
-    await gestartet.wait()
-    aufgabe = laufzeit._lernaufgabe
-    assert not aufgabe.done()
-
-    laufzeit.stoppen()
-    await asyncio.sleep(0)
-    assert aufgabe.cancelled()
-
-
+# --- Vorhersage mit Hausmodell ----------------------------------------------------
 def _stundenprognose(at: float) -> list[dict]:
     """Heute jede Stunde dieselbe AT, sonnig wie die Prognose der Attrappe."""
-    from homeassistant.util import dt as dt_util
-
-    heute = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    heute = _jetzt().replace(minute=0, second=0, microsecond=0)
     return [
         {
             "datetime": heute.replace(hour=h).isoformat(),
@@ -2947,27 +2472,17 @@ def _stundenprognose(at: float) -> list[dict]:
     ]
 
 
-def _modell(paare: int):
-    from custom_components.heatnexus.automatik import hausmodell
-
-    return hausmodell.Modell(
-        40.0, 0.0, 0.6, 0.03, "vorlauf", 14, (0.3,) * paare, 0.0, (0.5,) * paare
-    )
-
-
-async def _mit_modell(hass, verwaltung, freezer, paare: int):
+async def _mit_modell(szenario, paare: int, **kwargs) -> Szenario:
     """Raum 21,4 °C, Sollwert 21 °C, sonnig bei 10 °C; Horizont 22:00 ohne Zeitprogramm."""
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    laufzeit.hausmodell = _modell(paare)
-    laufzeit.stunden = _stundenprognose(10.0)
-    await _takte(laufzeit)
-    return laufzeit
+    sz = await szenario(**kwargs)
+    sz.laufzeit.hausmodell = _modell(paare)
+    sz.laufzeit.stunden = _stundenprognose(10.0)
+    await sz.takte()
+    return sz
 
 
-async def test_freigegebenes_hausmodell_waehlt_die_heizpause(hass, anlage, freezer):
-    verwaltung, _ = anlage
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+async def test_freigegebenes_hausmodell_waehlt_die_heizpause(szenario):
+    laufzeit = (await _mit_modell(szenario, 14, ws=False)).laufzeit
     assert laufzeit.lage.modell_freigegeben is True
     v = laufzeit.lage.vorhersage
     # Ohne Heizen bleibt der Raum bis 21:00 über 21,0 − 0,2 + 0,3 K Modellfehler.
@@ -2980,9 +2495,8 @@ async def test_freigegebenes_hausmodell_waehlt_die_heizpause(hass, anlage, freez
     assert laufzeit.begruendung == "Räume halten laut Prognose bis 22:00 über 21,4 °C – Heizpause."
 
 
-async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(hass, anlage, freezer):
-    verwaltung, _ = anlage
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 13)
+async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(szenario):
+    laufzeit = (await _mit_modell(szenario, 13, ws=False)).laufzeit
     assert laufzeit.lage.vorhersage is None
     assert laufzeit.lage.modell_freigegeben is False
     assert laufzeit._vorhersage_zuletzt is not None
@@ -2992,15 +2506,12 @@ async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(hass, anlage, fr
 
 @pytest.mark.parametrize(("raum", "zurueck"), [("21.2", False), ("20.9", True)])
 async def test_raum_unter_der_kurve_beendet_die_heizpause_des_modells(
-    hass, anlage, freezer, raum, zurueck
+    hass, szenario, freezer, raum, zurueck
 ):
     """Die Kurve vom Beginn der Pause erwartet um 10:00 21,55 °C; 0,6 K darunter ist zu kalt."""
-    from datetime import timedelta
-
     from homeassistant.util import dt as dt_util
 
-    verwaltung, _ = anlage
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    laufzeit = (await _mit_modell(szenario, 14, ws=False)).laufzeit
     freezer.move_to(dt_util.parse_datetime(MORGEN) + timedelta(hours=2, minutes=30))
     hass.states.async_set("sensor.wohnzimmer", raum, {"device_class": "temperature"})
     await laufzeit.auswerten()
@@ -3012,65 +2523,12 @@ async def test_raum_unter_der_kurve_beendet_die_heizpause_des_modells(
         assert laufzeit.gedaechtnis.pause_sperre == "2026-09-27"
 
 
-async def test_kaeltester_raum_zaehlt_gegen_sein_eigenes_ziel(hass, anlage, freezer):
-    """Raum A 20,5 °C bei Ziel 22, Raum B 21,0 °C bei Ziel 20: A fehlen 1,5 K."""
-    from dataclasses import replace
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    _thermostat(hass, "climate.a", 20.5, 22.0)
-    _thermostat(hass, "climate.b", 21.0, 20.0)
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["climate.a", "climate.b"],
-            "raum_art": "minimum",
-            "wetter": "weather.home",
-        },
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    laufzeit.hausmodell = _modell(14)
-    laufzeit.stunden = _stundenprognose(10.0)
-    jetzt = dt_util.now()
-    laufzeit.gedaechtnis = replace(
-        laufzeit.gedaechtnis,
-        absenkung_art="pause",
-        absenkung_von=jetzt,
-        absenkung_bis=jetzt + timedelta(hours=3),
-        absenkung_ziel=jetzt + timedelta(hours=10),
-        absenkung_basis=21.0,
-        absenkung_soll=10.5,
-        absenkung_anlass="modell",
-    )
-    await laufzeit.auswerten()
-    v = laufzeit.lage.vorhersage
-    assert (v.stufe, round(v.ziel_min, 1), v.rueckkehr) == ("programm", 22.1, True)
-    assert laufzeit.gedaechtnis.absenkung_art is None
-    assert laufzeit.begruendung == (
-        "Raum 20,5 °C weicht von der Vorhersage ab – zurück ins Programm."
-    )
-
-
-async def _kreis(client) -> dict:
-    antwort = await _senden(client, type="heatnexus/automatik")
-    assert antwort["success"], antwort
-    (kreis,) = antwort["result"]["heizkreise"]
-    return kreis
-
-
-async def test_kennwerte_zeigen_das_freigegebene_hausmodell(hass, hass_ws_client, anlage, freezer):
-    from dataclasses import replace
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+async def test_kennwerte_zeigen_das_freigegebene_hausmodell(szenario):
+    sz = await _mit_modell(szenario, 14)
+    laufzeit = sz.laufzeit
     laufzeit.hausmodell = replace(laufzeit.hausmodell, tage=6)
 
-    kreis = await _kreis(client)
+    kreis = await sz.kreis()
 
     assert kreis["kennwerte"]["hausmodell"] == {
         "auskuehlzeit_h": 40.0,
@@ -3088,12 +2546,8 @@ async def test_kennwerte_zeigen_das_freigegebene_hausmodell(hass, hass_ws_client
     assert kreis["tag"]["vorhersage"][0] == [9.0, kurve[0][1]]
 
 
-async def test_ohne_freigabe_ist_das_hausmodell_beobachtet(hass, hass_ws_client, anlage, freezer):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _mit_modell(hass, verwaltung, freezer, 3)
-
-    kreis = await _kreis(client)
+async def test_ohne_freigabe_ist_das_hausmodell_beobachtet(szenario):
+    kreis = await (await _mit_modell(szenario, 3)).kreis()
 
     modell = kreis["kennwerte"]["hausmodell"]
     assert (modell["status"], modell["vergleiche"]) == ("beobachtet", 3)
@@ -3101,56 +2555,36 @@ async def test_ohne_freigabe_ist_das_hausmodell_beobachtet(hass, hass_ws_client,
     assert kreis["tag"]["vorhersage"]
 
 
-async def test_ohne_hausmodell_lernt_die_automatik_noch(hass, hass_ws_client, anlage, freezer):
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-
-    kreis = await _kreis(client)
+async def test_ohne_hausmodell_lernt_die_automatik_noch(szenario):
+    kreis = await (await szenario()).kreis()
 
     assert kreis["kennwerte"]["hausmodell"]["status"] == "lernt"
     assert kreis["tag"]["vorhersage"] == []
 
 
-async def test_neu_lernen_verwirft_das_hausmodell(hass, hass_ws_client, anlage, freezer):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+async def test_neu_lernen_verwirft_das_hausmodell(szenario):
+    sz = await _mit_modell(szenario, 14)
+    laufzeit = sz.laufzeit
     assert laufzeit.hausmodell is not None
 
-    antwort = await _senden(client, type="heatnexus/automatik/hausmodell_neu", heizkreis=HEIZKREIS)
+    antwort = await sz.senden(type="heatnexus/automatik/hausmodell_neu", heizkreis=HEIZKREIS)
 
     assert antwort["success"], antwort
     assert laufzeit.hausmodell is None
     assert laufzeit._vorhersage_zuletzt is None
-    assert (await _kreis(client))["kennwerte"]["hausmodell"]["status"] == "lernt"
+    assert (await sz.kreis())["kennwerte"]["hausmodell"]["status"] == "lernt"
 
 
-async def test_nur_administratoren_lernen_neu(
-    hass, hass_ws_client, hass_read_only_access_token, anlage
-):
-    client = await hass_ws_client(hass, hass_read_only_access_token)
-
-    antwort = await _senden(client, type="heatnexus/automatik/hausmodell_neu", heizkreis=HEIZKREIS)
-
-    assert not antwort["success"]
-    assert antwort["error"]["code"] == "unauthorized"
-
-
-async def test_diagnose_enthaelt_hausmodell_und_vorhersage(hass, anlage, freezer):
-    import json
-
+async def test_diagnose_enthaelt_hausmodell_und_vorhersage(hass, szenario):
     from custom_components.heatnexus import diagnostics
 
-    verwaltung, _ = anlage
-    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
-    entry = hass.config_entries.async_entries("heatnexus")[0]
+    sz = await _mit_modell(szenario, 14, ws=False)
 
-    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+    (auszug,) = diagnostics.automatik_auszug(hass, sz.eintrag)["heizkreise"]
 
     assert auszug["hausmodell"]["auskuehlzeit_h"] == 40.0
     assert auszug["hausmodell"]["fehler_bleibt"] == [0.5] * 14
-    v = laufzeit._vorhersage_zuletzt
+    v = sz.laufzeit._vorhersage_zuletzt
     assert auszug["vorhersage"] == {
         "stufe": "pause",
         "bis": v.bis.isoformat(),
@@ -3161,79 +2595,44 @@ async def test_diagnose_enthaelt_hausmodell_und_vorhersage(hass, anlage, freezer
     json.dumps(auszug)
 
 
-async def test_diagnose_ohne_hausmodell_nennt_nichts(hass, anlage, freezer):
+async def test_diagnose_ohne_hausmodell_nennt_nichts(hass, szenario):
     from custom_components.heatnexus import diagnostics
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    await _eingerichtet(hass, verwaltung)
-    entry = hass.config_entries.async_entries("heatnexus")[0]
+    sz = await szenario(ws=False)
 
-    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+    (auszug,) = diagnostics.automatik_auszug(hass, sz.eintrag)["heizkreise"]
 
     assert (auszug["hausmodell"], auszug["vorhersage"]) == (None, None)
 
 
-async def test_vorschau_folgt_dem_freigegebenen_modell(hass, hass_ws_client, anlage, freezer):
+async def test_vorschau_folgt_dem_freigegebenen_modell(hass, szenario):
     """Mit freigegebenem Modell beginnt die alte Regel keine Heizpause und keinen Sonnentag mehr."""
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
     einheit = {"unit_of_measurement": "kWh", "device_class": "energy"}
-    hass.states.async_set("sensor.energy_production_today", "20.0", einheit)
-    hass.states.async_set("sensor.energy_production_tomorrow", "20.0", einheit)
-    hass.states.async_set("sensor.energy_production_day_3", "20.0", einheit)
-    await verwaltung.einrichten(
-        hass.config_entries.async_entries("heatnexus")[0],
-        {
-            "heizkreis": HEIZKREIS,
-            "raeume": ["sensor.wohnzimmer"],
-            "wetter": "weather.home",
-            "pv": "sensor.energy_production_today",
-        },
-    )
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    heute = dt_util.now().date()
-    laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
-    ohne = [t["zustand"] for t in (await _kreis(client))["vorschau"]]
+    for tag in ("today", "tomorrow", "day_3"):
+        hass.states.async_set(f"sensor.energy_production_{tag}", "20.0", einheit)
+    sz = await szenario(pv="sensor.energy_production_today", direkt=True)
+    heute = _jetzt().date()
+    sz.laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
+    ohne = [t["zustand"] for t in (await sz.kreis())["vorschau"]]
     assert ohne == ["sonnentag", "sonnentag"]
 
-    laufzeit.hausmodell = _modell(14)
+    sz.laufzeit.hausmodell = _modell(14)
 
-    mit = [t["zustand"] for t in (await _kreis(client))["vorschau"]]
+    mit = [t["zustand"] for t in (await sz.kreis())["vorschau"]]
     assert mit == ["programm", "programm"]
 
 
-# --- Optimierungshinweise ----------------------------------------------------
-def _frosttage(anzahl: int, abweichung: float) -> list[dict]:
-    """Ungestörte Frosttage, der letzte zwei Tage vor MORGEN."""
-    from datetime import date, timedelta
-
-    erster = date(2026, 9, 25) - timedelta(days=anzahl - 1)
-    return [
-        {
-            "datum": (erster + timedelta(days=i)).isoformat(),
-            "at": -4.0,
-            "abweichung": abweichung,
-            "soll": 21.0,
-            "morgen_min": None,
-            "ungestoert": True,
-            "stunden": 24,
-        }
-        for i in range(anzahl)
-    ]
-
-
 # --- Wettervorhersage -------------------------------------------------------
+def _vorhersage_dienst(hass, antwort) -> None:
+    from homeassistant.core import SupportsResponse
+
+    hass.services.async_register(
+        "weather", "get_forecasts", antwort, supports_response=SupportsResponse.ONLY
+    )
 
 
 def _ohne_vorhersage(hass):
     """`get_forecasts` lehnt jede Anfrage ab, wie eine Entität ohne Vorhersage."""
-    from homeassistant.core import SupportsResponse
     from homeassistant.exceptions import ServiceValidationError
 
     aufrufe = []
@@ -3242,109 +2641,83 @@ def _ohne_vorhersage(hass):
         aufrufe.append(call.data["type"])
         raise ServiceValidationError("Weather entity does not support forecast")
 
-    hass.services.async_register(
-        "weather", "get_forecasts", ablehnen, supports_response=SupportsResponse.ONLY
-    )
+    _vorhersage_dienst(hass, ablehnen)
     return aufrufe
 
 
-async def test_wetter_ohne_vorhersage_steht_nicht_zur_wahl(hass, hass_ws_client, anlage):
-    client = await hass_ws_client(hass)
+async def test_wetter_ohne_vorhersage_steht_nicht_zur_wahl(hass, szenario):
+    sz = await szenario(zeit=None, einrichten=False)
     hass.states.async_set("weather.nur_jetzt", "sunny", {"supported_features": 0})
     hass.states.async_set("weather.tage", "sunny", {"supported_features": 1})
 
-    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
 
     kennungen = [e["entity_id"] for e in antwort["result"]["wetter"]]
     assert "weather.nur_jetzt" not in kennungen
     assert {"weather.tage", "weather.home"} <= set(kennungen)
 
 
-async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(
-    hass, anlage, freezer, caplog
-):
-    import logging
+FEHLER_BEIDE = [("weather.home", "daily"), ("weather.home", "hourly")]
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
+
+async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(hass, szenario, caplog):
     _ohne_vorhersage(hass)
     caplog.set_level(logging.DEBUG, logger="custom_components.heatnexus")
 
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     await laufzeit._prognose_holen()
     await laufzeit.auswerten()
 
     assert laufzeit.zustand.value == "keine_daten"
     assert laufzeit.begruendung == "Wettervorhersage fehlt – keine neue Entscheidung."
-    assert sorted(verwaltung.prognose_fehler) == [
-        ("weather.home", "daily"),
-        ("weather.home", "hourly"),
-    ]
+    assert sorted(sz.verwaltung.prognose_fehler) == FEHLER_BEIDE
     warnungen = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnungen) == 2
     assert all("weather.home" in r.getMessage() for r in warnungen)
 
 
 async def test_fehlt_die_vorhersage_drei_stunden_erscheint_eine_reparaturmeldung(
-    hass, anlage, freezer
+    hass, szenario, freezer
 ):
-    from datetime import timedelta
-
     from homeassistant.helpers import issue_registry as ir
 
-    from custom_components.heatnexus.const import DOMAIN
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
     _ohne_vorhersage(hass)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    kennung = f"automatik_prognose_{HEIZKREIS}"
-    register = ir.async_get(hass)
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
 
     freezer.tick(timedelta(hours=2, minutes=59))
     await laufzeit._prognose_holen()
-    assert register.async_get_issue(DOMAIN, kennung) is None
+    assert _issue(hass, "automatik_prognose") is None
 
     freezer.tick(timedelta(minutes=1))
     await laufzeit._prognose_holen()
-    meldung = register.async_get_issue(DOMAIN, kennung)
+    meldung = _issue(hass, "automatik_prognose")
     assert meldung is not None
     assert meldung.severity == ir.IssueSeverity.WARNING
     assert meldung.translation_placeholders["wetter"] == "weather.home"
 
-    await verwaltung.entfernen(HEIZKREIS)
-    assert register.async_get_issue(DOMAIN, kennung) is None
+    await sz.verwaltung.entfernen(HEIZKREIS)
+    assert _issue(hass, "automatik_prognose") is None
 
 
 async def test_reparaturmeldung_verschwindet_wenn_die_vorhersage_wieder_kommt(
-    hass, anlage, freezer
+    hass, szenario, freezer
 ):
-    from datetime import timedelta
-
-    from homeassistant.core import SupportsResponse
-    from homeassistant.helpers import issue_registry as ir
-
-    from custom_components.heatnexus.const import DOMAIN
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
     _ohne_vorhersage(hass)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
     freezer.tick(timedelta(hours=3))
-    await laufzeit._prognose_holen()
-    kennung = f"automatik_prognose_{HEIZKREIS}"
-    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is not None
+    await sz.laufzeit._prognose_holen()
+    assert _issue(hass, "automatik_prognose") is not None
 
     async def liefern(call):
         return {"weather.home": {"forecast": []}}
 
-    hass.services.async_register(
-        "weather", "get_forecasts", liefern, supports_response=SupportsResponse.ONLY
-    )
-    await laufzeit._prognose_holen()
+    _vorhersage_dienst(hass, liefern)
+    await sz.laufzeit._prognose_holen()
 
-    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
-    assert verwaltung.prognose_fehler == {}
+    assert _issue(hass, "automatik_prognose") is None
+    assert sz.verwaltung.prognose_fehler == {}
 
 
 async def _neu_gestartet(hass, verwaltung, laufzeit):
@@ -3361,61 +2734,39 @@ async def _neu_gestartet(hass, verwaltung, laufzeit):
     return neu
 
 
-async def test_die_vorhersage_uebersteht_einen_neustart_ohne_wetterdienst(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+@pytest.mark.parametrize(("stunden", "frisch"), [(2, True), (7, False)])
+async def test_eine_gesicherte_vorhersage_uebersteht_einen_neustart_und_altert(
+    hass, szenario, freezer, stunden, frisch
+):
+    """Ohne Wetterdienst gilt nach dem Neustart die gesicherte Vorhersage, bis sie veraltet."""
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     await laufzeit._prognose_holen()
-    stand = dt_util.now()
+    stand = _jetzt()
     _ohne_vorhersage(hass)
 
-    freezer.tick(timedelta(hours=2))
-    neu = await _neu_gestartet(hass, verwaltung, laufzeit)
+    freezer.tick(timedelta(hours=stunden))
+    neu = await _neu_gestartet(hass, sz.verwaltung, laufzeit)
     await laufzeit._anlaufen()
 
-    assert laufzeit.stunden
-    assert laufzeit._prognose_zeit == stand
-    assert laufzeit.prognose_frisch is True
-    assert laufzeit.zustand.value != "keine_daten"
-    assert sorted(neu.prognose_fehler) == [("weather.home", "daily"), ("weather.home", "hourly")]
+    assert laufzeit.prognose_frisch is frisch
+    assert (laufzeit.zustand.value == "keine_daten") is not frisch
+    if frisch:
+        assert laufzeit.stunden
+        assert laufzeit._prognose_zeit == stand
+        assert sorted(neu.prognose_fehler) == FEHLER_BEIDE
 
 
-async def test_eine_gesicherte_vorhersage_altert_weiter(hass, anlage, freezer):
-    from datetime import timedelta
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await laufzeit._prognose_holen()
-    _ohne_vorhersage(hass)
-
-    freezer.tick(timedelta(hours=7))
-    await _neu_gestartet(hass, verwaltung, laufzeit)
-    await laufzeit._anlaufen()
-
-    assert laufzeit.prognose_frisch is False
-    assert laufzeit.zustand.value == "keine_daten"
-
-
-async def test_eine_neue_vorhersage_ersetzt_die_gesicherte(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+async def test_eine_neue_vorhersage_ersetzt_die_gesicherte(hass, szenario, freezer):
+    sz = await szenario(ws=False)
+    laufzeit = sz.laufzeit
     await laufzeit._prognose_holen()
 
     freezer.tick(timedelta(hours=2))
-    await _neu_gestartet(hass, verwaltung, laufzeit)
+    await _neu_gestartet(hass, sz.verwaltung, laufzeit)
     await laufzeit._anlaufen()
 
-    assert laufzeit._prognose_zeit == dt_util.now()
+    assert laufzeit._prognose_zeit == _jetzt()
 
 
 async def test_unlesbare_eintraege_der_prognoseablage_fallen_weg(hass, hass_storage):
@@ -3446,52 +2797,38 @@ async def test_unlesbare_eintraege_der_prognoseablage_fallen_weg(hass, hass_stor
     assert list(prognosen) == [("weather.home", "hourly")]
 
 
-async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.core import SupportsResponse
-    from homeassistant.util import dt as dt_util
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
+async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, szenario):
     hass.states.async_set("weather.home", "sunny", {"supported_features": 4})
     aufrufe = []
 
     async def halbtage(call):
         aufrufe.append(call.data["type"])
-        mittag = dt_util.now().replace(hour=12, minute=0)
+        mittag = _jetzt().replace(hour=12, minute=0)
         eintraege = [
             {"datetime": mittag.isoformat(), "temperature": 16, "templow": 9},
             {"datetime": (mittag + timedelta(hours=10)).isoformat(), "temperature": 7},
         ]
         return {"weather.home": {"forecast": eintraege}}
 
-    hass.services.async_register(
-        "weather", "get_forecasts", halbtage, supports_response=SupportsResponse.ONLY
-    )
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    _vorhersage_dienst(hass, halbtage)
+    laufzeit = (await szenario(ws=False)).laufzeit
     await laufzeit._prognose_holen()
 
     assert set(aufrufe) == {"twice_daily"}
     assert laufzeit.prognose_frisch
-    assert laufzeit.tagesmittel(dt_util.now().date()) == pytest.approx(11.5, abs=3.0)
+    assert laufzeit.tagesmittel(_jetzt().date()) == pytest.approx(11.5, abs=3.0)
     assert laufzeit._tage[0][1:] == (16, 7)
 
 
-async def test_diagnose_nennt_die_wetter_entitaet_und_ihre_fehler(hass, anlage, freezer):
-    import json
-
+async def test_diagnose_nennt_die_wetter_entitaet_und_ihre_fehler(hass, szenario):
     from custom_components.heatnexus import diagnostics
 
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
     hass.states.async_set("weather.home", "sunny", {"supported_features": 3})
     _ohne_vorhersage(hass)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await laufzeit._prognose_holen()
-    entry = hass.config_entries.async_entries("heatnexus")[0]
+    sz = await szenario(ws=False)
+    await sz.laufzeit._prognose_holen()
 
-    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+    (auszug,) = diagnostics.automatik_auszug(hass, sz.eintrag)["heizkreise"]
 
     wetter = auszug["wetter"]
     assert (wetter["entitaet"], wetter["zustand"], wetter["arten"]) == (
@@ -3504,86 +2841,62 @@ async def test_diagnose_nennt_die_wetter_entitaet_und_ihre_fehler(hass, anlage, 
     json.dumps(auszug)
 
 
-async def test_ausgeschaltete_automatik_meldet_keine_fehlende_vorhersage(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.helpers import issue_registry as ir
-
-    from custom_components.heatnexus.const import DOMAIN
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
+async def test_ausgeschaltete_automatik_meldet_keine_fehlende_vorhersage(hass, szenario, freezer):
     _ohne_vorhersage(hass)
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit = (await szenario(ws=False)).laufzeit
     laufzeit.konfig["aktiv"] = False
 
     freezer.tick(timedelta(hours=4))
     await laufzeit._prognose_holen()
 
-    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_prognose_{HEIZKREIS}") is None
+    assert _issue(hass, "automatik_prognose") is None
 
 
-async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, freezer, caplog):
-    import logging
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
+async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, szenario, caplog):
     hass.states.async_set("weather.home", "sunny", {"supported_features": 0})
     aufrufe = _ohne_vorhersage(hass)
     caplog.set_level(logging.WARNING, logger="custom_components.heatnexus")
 
-    await _eingerichtet(hass, verwaltung)
+    sz = await szenario(ws=False)
 
     assert set(aufrufe) == {"hourly", "daily"}
-    assert sorted(verwaltung.prognose_fehler) == [
-        ("weather.home", "daily"),
-        ("weather.home", "hourly"),
-    ]
+    assert sorted(sz.verwaltung.prognose_fehler) == FEHLER_BEIDE
     assert any("weather.home" in r.getMessage() for r in caplog.records)
 
 
-async def test_regellauf_zeigt_den_zaehler(hass, hass_ws_client, anlage, freezer):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    await _schalten(client)
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await _takte(laufzeit)
+async def test_ohne_vorhersage_fragt_die_automatik_bald_wieder(hass, szenario, freezer):
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-    ergebnisse = [e["ergebnis"] for e in kreis["regellauf"]]
-    assert ergebnisse[:3] == ["schreibt", "zaehlt", "zaehlt"]
-    assert kreis["regellauf"][1]["zaehler"] == 2
-    assert kreis["kern"]["anstehend"] is None
-    assert {b["name"] for b in kreis["kern"]["bewertungen"]} >= {"sonne", "raeume"}
+    aufrufe = _ohne_vorhersage(hass)
+    laufzeit = (await szenario(ws=False)).laufzeit
+    await hass.async_block_till_done()
+    anfangs = len(aufrufe)
 
+    async def weiter():
+        freezer.tick(timedelta(seconds=121))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
 
-async def test_ohne_programm_misst_die_kachel_nicht_gegen_den_frostschutz(
-    hass, hass_ws_client, anlage, freezer
-):
-    from custom_components.heatnexus.automatik.entitaeten import AutomatikAbweichung
+    for _ in range(3):
+        await weiter()
+    assert len(aufrufe) >= anfangs + 6
 
-    verwaltung, coordinator = anlage
-    client = await hass_ws_client(hass)
-    freezer.move_to(MORGEN)
-    await _einrichten(client)
-    coordinator.data["oids"][f"{PREFIX}/3/50/0"] = "6"
-    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "4.9"
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten()
+    async def liefern(call):
+        return {"weather.home": {"forecast": [{"datetime": "2026-01-01T00:00:00+00:00"}]}}
 
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-    assert (kreis["kennwerte"]["soll"], kreis["kennwerte"]["abweichung"]) == (None, None)
-    assert AutomatikAbweichung._wert(None, laufzeit) is None
+    _vorhersage_dienst(hass, liefern)
+    await weiter()
+
+    assert laufzeit.prognose_frisch is True
+    assert laufzeit._prognose_versuch is None
 
 
-async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(hass, hass_ws_client, anlage):
+# --- Eigene Werte -------------------------------------------------------------
+async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(szenario):
     """Weicht jedes Feld unter „Erweitert“ vom Profil ab, nimmt das Speichern trotzdem alle an."""
     from custom_components.heatnexus.automatik.konfig import EIGENE_FELDER
 
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
+    sz = await szenario(zeit=None)
     eigene = {
         "grenze_versatz": 0,
         "hysterese": 1,
@@ -3613,67 +2926,30 @@ async def test_alle_eigenen_werte_lassen_sich_zugleich_speichern(hass, hass_ws_c
     }
     assert set(eigene) == EIGENE_FELDER
 
-    antwort = await _senden(
-        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, eigene=eigene
-    )
+    antwort = await sz.einstellen(eigene=eigene)
 
     assert antwort["success"], antwort
 
 
-async def test_eigene_werte_ueberstehen_den_wechsel_von_ausrichtung_und_profil(hass, anlage):
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+async def test_eigene_werte_ueberstehen_den_wechsel_von_ausrichtung_und_profil(szenario):
+    sz = await szenario(zeit=None, ws=False)
+    await sz.verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
 
     for aenderung in ({"ausrichtung": "eco"}, {"ausrichtung": "ausgewogen"}, {"profil": "traege"}):
-        await verwaltung.einstellen(HEIZKREIS, aenderung)
-        assert verwaltung.laufzeiten[HEIZKREIS].konfig["eigene"] == {"stark": True}
-    assert verwaltung.laufzeiten[HEIZKREIS].werte.stark is True
+        await sz.verwaltung.einstellen(HEIZKREIS, aenderung)
+        assert sz.laufzeit.konfig["eigene"] == {"stark": True}
+    assert sz.laufzeit.werte.stark is True
 
 
-async def test_das_laden_behaelt_eigene_werte_gleich_der_vorgabe(hass, anlage):
+async def test_das_laden_behaelt_eigene_werte_gleich_der_vorgabe(hass, szenario):
     from custom_components.heatnexus.automatik.verwaltung import Verwaltung
 
-    verwaltung, _ = anlage
-    await _eingerichtet(hass, verwaltung)
-    await verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
-    await verwaltung.einstellen(HEIZKREIS, {"ausrichtung": "eco"})
-    await verwaltung._store.async_save(verwaltung._daten)
+    sz = await szenario(zeit=None, ws=False)
+    await sz.verwaltung.einstellen(HEIZKREIS, {"eigene": {"stark": True}})
+    await sz.verwaltung.einstellen(HEIZKREIS, {"ausrichtung": "eco"})
+    await sz.verwaltung._store.async_save(sz.verwaltung._daten)
 
     neu = Verwaltung(hass)
     await neu.laden()
 
     assert neu._daten["heizkreise"][HEIZKREIS]["konfig"]["eigene"] == {"stark": True}
-
-
-async def test_ohne_vorhersage_fragt_die_automatik_bald_wieder(hass, anlage, freezer):
-    from datetime import timedelta
-
-    from homeassistant.core import SupportsResponse
-    from pytest_homeassistant_custom_component.common import async_fire_time_changed
-
-    verwaltung, _ = anlage
-    freezer.move_to(MORGEN)
-    aufrufe = _ohne_vorhersage(hass)
-    laufzeit = await _eingerichtet(hass, verwaltung)
-    await hass.async_block_till_done()
-    anfangs = len(aufrufe)
-
-    for _ in range(3):
-        freezer.tick(timedelta(seconds=121))
-        async_fire_time_changed(hass)
-        await hass.async_block_till_done()
-    assert len(aufrufe) >= anfangs + 6
-
-    async def liefern(call):
-        return {"weather.home": {"forecast": [{"datetime": "2026-01-01T00:00:00+00:00"}]}}
-
-    hass.services.async_register(
-        "weather", "get_forecasts", liefern, supports_response=SupportsResponse.ONLY
-    )
-    freezer.tick(timedelta(seconds=121))
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-
-    assert laufzeit.prognose_frisch is True
-    assert laufzeit._prognose_versuch is None
