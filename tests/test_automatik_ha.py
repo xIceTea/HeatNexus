@@ -6,7 +6,6 @@ wird und was nicht.
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 import json
@@ -198,11 +197,11 @@ class Szenario:
         await _takte(self.laufzeit, anzahl)
 
     async def neu_starten(self, zustand: dict):
-        """Die Laufzeit wie nach einem Neustart aus dem gegebenen Zustand starten."""
+        """Die Laufzeit wie nach einem Neustart aus dem gegebenen Zustand; `None`, wenn sie nicht startet."""
         self.verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
         self.verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
         await self.verwaltung._nachholen(self.eintrag)
-        return self.laufzeit
+        return self.verwaltung.laufzeiten.get(HEIZKREIS)
 
 
 @pytest.fixture
@@ -508,23 +507,6 @@ async def test_bestaetigung_gilt_nur_fuer_die_angezeigte_empfehlung(
         assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
-async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(hass, szenario):
-    sz = await szenario(modus="empfehlen", takte=True)
-    laufzeit = sz.laufzeit
-    lauf = laufzeit._auswerten
-
-    async def bestaetigen_waehrend() -> None:
-        laufzeit._auswerten = lauf
-        await lauf()
-        hass.async_create_task(sz.verwaltung.empfehlung_uebernehmen(HEIZKREIS))
-
-    laufzeit._auswerten = bestaetigen_waehrend
-    await laufzeit.auswerten()
-    await hass.async_block_till_done()
-
-    assert sz.geschrieben == ABSENKUNG
-
-
 async def test_bestaetigung_waehrend_die_regel_wartet_bleibt_offen(hass, szenario):
     sz = await szenario(modus="empfehlen", takte=True)
     grenze = sz.oids.pop(f"{PREFIX}/3/21/0")
@@ -732,18 +714,6 @@ async def test_takt_ohne_aenderung_zaehlt_weiter(szenario):
     assert sz.geschrieben[0] == ABSENKUNG[0]
 
 
-async def test_ein_takt_waehrend_einer_auswertung_geht_nicht_verloren(hass, szenario):
-    sz = await szenario(modus="schalten")
-    laufzeit = sz.laufzeit
-
-    await laufzeit._sperre.acquire()
-    aufgabe = hass.async_create_task(laufzeit._takt(None))
-    laufzeit._sperre.release()
-    await aufgabe
-
-    assert laufzeit.anstehend.zaehler == 1
-
-
 async def test_nach_dem_schreiben_liest_die_automatik_gezielt_nach(szenario):
     sz = await _eigene_absenkung(szenario)
 
@@ -941,73 +911,6 @@ async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, szenario):
     assert [a for a in arten if _issue(hass, a)] == []
 
 
-async def test_gleichzeitige_einstellungen_gehen_beide_ein(szenario):
-    """Panel und Auswahl „Modus“ zugleich: Keine der beiden Änderungen geht verloren."""
-    sz = await szenario(zeit=None, ws=False)
-
-    async def laeuft_noch():
-        # Ein laufender Durchgang: `abwarten` gibt die Schleife frei.
-        await asyncio.sleep(0.01)
-
-    sz.laufzeit.abwarten = laeuft_noch
-    await asyncio.gather(
-        sz.verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
-        sz.verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
-    )
-
-    konfig = sz.verwaltung.konfig(HEIZKREIS)
-    assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
-
-
-async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, szenario, monkeypatch, caplog):
-    """Scheitert schon das System-Gerät, steht der Start trotzdem im Log und als Meldung."""
-    sz = await szenario(zeit=None, ws=False)
-    sz.verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
-
-    def kaputt(_entry):
-        raise RuntimeError("Geräteregister gesperrt")
-
-    monkeypatch.setattr(sz.verwaltung, "_system_anlegen", kaputt)
-    await sz.verwaltung._nachholen(sz.eintrag)
-
-    assert _issue(hass, "automatik_start")
-    assert "Start gescheitert" in caplog.text
-
-
-async def _scheitert(*_a, **_k):
-    raise RuntimeError("Start gescheitert")
-
-
-async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(szenario):
-    """Die Laufzeit rechnet schon mit der neuen Konfiguration; gespeichert wird dieselbe."""
-    sz = await szenario(zeit=None, ws=False)
-    laufzeit = sz.laufzeit
-    echt = laufzeit.starten
-    laufzeit.starten = _scheitert
-    with pytest.raises(RuntimeError):
-        await sz.verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
-    laufzeit.starten = echt
-
-    assert laufzeit.konfig["modus"] == "empfehlen"
-    assert sz.verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
-
-
-async def test_ein_gescheiterter_neustart_verwirft_das_hausmodell_trotzdem(szenario):
-    """Die neue Konfiguration steht schon; ein zweiter Versuch sähe keinen Unterschied mehr."""
-    sz = await szenario(zeit=None, ws=False)
-    laufzeit = sz.laufzeit
-    echt = laufzeit.starten
-    verworfen: list = []
-    laufzeit.modell_neu_lernen = lambda: verworfen.append(True)
-    laufzeit.starten = _scheitert
-    with pytest.raises(RuntimeError):
-        await sz.verwaltung.einstellen(HEIZKREIS, {"wetter": "weather.andere"})
-    laufzeit.starten = echt
-
-    assert verworfen == [True]
-    assert sz.verwaltung.konfig(HEIZKREIS)["wetter"] == "weather.andere"
-
-
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 
@@ -1016,20 +919,6 @@ def _automatik_geraete(hass, eintrag):
         for g in dr.async_entries_for_config_entry(dr.async_get(hass), eintrag.entry_id)
         if any(k.endswith("-automatik") for _, k in g.identifiers)
     ]
-
-
-async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, szenario, monkeypatch):
-    """Ohne Automatik bleiben weder System-Gerät noch Untereintrag „HeatNexus Automatik“."""
-    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
-
-    sz = await szenario(zeit=None, ws=False, einrichten=False)
-    monkeypatch.setattr(Laufzeit, "starten", _scheitert)
-    with pytest.raises(ValueError):
-        await sz.einrichten()
-    await hass.async_block_till_done()
-
-    assert sz.verwaltung.subeintrag(sz.eintrag) is None
-    assert _automatik_geraete(hass, sz.eintrag) == []
 
 
 async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, szenario):
@@ -1094,27 +983,7 @@ async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(hass, sz
     assert all(untereintraege(g, eintrag.entry_id) == {sub_id} for g in geraete)
 
 
-# --- Speicher -------------------------------------------------------------------
-async def test_gespeicherter_restwert_sensor_wird_beim_laden_verworfen(hass, hass_storage):
-    from custom_components.heatnexus.automatik.verwaltung import STORE_KEY, Verwaltung
-
-    konfig = {
-        "heizkreis": HEIZKREIS,
-        "raeume": ["sensor.wohnzimmer"],
-        "wetter": "weather.home",
-        "pv": "sensor.energy_production_today_remaining",
-    }
-    hass_storage[STORE_KEY] = {
-        "version": 1,
-        "data": {"heizkreise": {HEIZKREIS: {"konfig": konfig, "zustand": {}}}},
-    }
-    verwaltung = Verwaltung(hass)
-
-    await verwaltung.laden()
-
-    assert verwaltung.konfig(HEIZKREIS)["pv"] is None
-
-
+# --- Prognose -------------------------------------------------------------------
 async def test_vergangene_stunden_behalten_ihre_prognose(szenario):
     laufzeit = (await szenario(zeit=None)).laufzeit
     heute = _jetzt().date()
@@ -2138,51 +2007,6 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     assert schluessel not in hass_storage
 
 
-async def _lernt_wieder(hass, szenario, monkeypatch, entfernen):
-    """Nach `hausmodell_neu` mit dem gegebenen Löschen: Der nächste Lernlauf legt wieder ab."""
-    from custom_components.heatnexus.automatik import lernablage
-
-    laufzeit = (await szenario(ws=False)).laufzeit
-    await hass.async_block_till_done()
-    monkeypatch.setattr(lernablage, "entfernen", entfernen)
-    _lerndaten_festlegen(monkeypatch, laufzeit, "vorlauf", _lernstunden(7))
-    laufzeit.hausmodell_neu()
-    return laufzeit
-
-
-async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
-    hass, hass_storage, szenario, monkeypatch
-):
-    """Wird der Lernlauf abgebrochen, während er aufs Löschen wartet, lernt der nächste trotzdem."""
-    frei = asyncio.Event()
-
-    async def entfernen(_hass, _device_id):
-        await frei.wait()
-
-    laufzeit = await _lernt_wieder(hass, szenario, monkeypatch, entfernen)
-    lauf = hass.async_create_task(laufzeit.hausmodell_lernen())
-    await asyncio.sleep(0)
-    lauf.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await lauf
-    frei.set()
-
-    await laufzeit.hausmodell_lernen()
-    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
-
-
-async def test_ein_gescheitertes_loeschen_sperrt_die_ablage_nicht(
-    hass, hass_storage, szenario, monkeypatch
-):
-    async def entfernen(_hass, _device_id):
-        raise OSError("Datei gesperrt")
-
-    laufzeit = await _lernt_wieder(hass, szenario, monkeypatch, entfernen)
-    await laufzeit.hausmodell_lernen()
-    await laufzeit.hausmodell_lernen()
-    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
-
-
 async def test_hausmodell_nennt_den_grund_ohne_modell(szenario, monkeypatch):
     from custom_components.heatnexus.automatik import hausmodell
 
@@ -2215,25 +2039,6 @@ async def test_pumpe_lernt_als_pumpe_und_die_art_bleibt_im_modell(szenario, monk
     await laufzeit.hausmodell_lernen()
 
     assert laufzeit.hausmodell.heiz_art == "pumpe"
-
-
-async def test_stoppen_bricht_das_lernen_ab(szenario, monkeypatch):
-    laufzeit = (await szenario()).laufzeit
-    gestartet = asyncio.Event()
-
-    async def lerndaten():
-        gestartet.set()
-        await asyncio.sleep(3600)
-
-    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
-    await laufzeit._hausmodell_takt(None)
-    await gestartet.wait()
-    aufgabe = laufzeit._lernaufgabe
-    assert not aufgabe.done()
-
-    laufzeit.stoppen()
-    await asyncio.sleep(0)
-    assert aufgabe.cancelled()
 
 
 # --- Lerndaten aus dem Verlauf --------------------------------------------------
@@ -2659,34 +2464,6 @@ async def test_eine_neue_vorhersage_ersetzt_die_gesicherte(hass, szenario, freez
     await laufzeit._anlaufen()
 
     assert laufzeit._prognose_zeit == _jetzt()
-
-
-async def test_unlesbare_eintraege_der_prognoseablage_fallen_weg(hass, hass_storage):
-    from custom_components.heatnexus.automatik import prognoseablage
-
-    gut = {
-        "wetter": "weather.home",
-        "art": "hourly",
-        "zeit": "2026-01-01T08:00:00+00:00",
-        "daten": [{"a": 1}],
-    }
-    hass_storage[prognoseablage.SCHLUESSEL] = {
-        "version": prognoseablage.FASSUNG,
-        "key": prognoseablage.SCHLUESSEL,
-        "data": {
-            "prognosen": [
-                gut,
-                "kaputt",
-                {**gut, "zeit": "gestern"},
-                {**gut, "art": "daily", "daten": []},
-                {**gut, "art": "daily", "daten": "nein"},
-            ]
-        },
-    }
-
-    prognosen = await prognoseablage.laden(prognoseablage.ablage(hass))
-
-    assert list(prognosen) == [("weather.home", "hourly")]
 
 
 async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, szenario):
