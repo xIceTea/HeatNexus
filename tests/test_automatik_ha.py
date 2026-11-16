@@ -328,8 +328,10 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(hass, szenario):
 
     hass.bus.async_listen("heatnexus_automatik_empfehlung", merken)
     hass.config.language = "en"
-    sz = await szenario(modus="empfehlen", takte=True)
+    sz = await szenario(modus="empfehlen")
     laufzeit = sz.laufzeit
+    assert laufzeit.empfehlung is None
+    await sz.takte()
     await hass.async_block_till_done()
 
     assert laufzeit.empfehlung is not None
@@ -552,21 +554,32 @@ async def test_einrichten_startet_im_beobachtungsmodus(szenario):
 
 
 async def test_lesen_zeigt_den_heizkreis(szenario):
-    sz = await szenario(zeit=None)
+    sz = await szenario()
 
     antwort = await sz.senden(type="heatnexus/automatik")
 
     assert antwort["success"], antwort
+    assert antwort["result"]["darf_aendern"] is True
     (kreis,) = antwort["result"]["heizkreise"]
-    assert kreis["eingerichtet"] is True
-    assert kreis["anlage"] == ANLAGE
+    assert (kreis["eingerichtet"], kreis["anlage"]) == (True, ANLAGE)
     kennwerte = kreis["kennwerte"]
     assert (kennwerte["raum"], kennwerte["eigene_ziele"], kennwerte["raum_bezug"]) == (
         21.4,
         False,
         21.0,
     )
-    assert antwort["result"]["darf_aendern"] is True
+    assert (kennwerte["at"], kennwerte["raeume"][0]["wert"]) == (12.0, 21.4)
+    assert (kennwerte["vorrang"], kreis["konfig"]["vorrang"]) == (None, [])
+    assert kennwerte["hausmodell"]["status"] == "lernt"
+    assert [tag["titel"] for tag in kreis["vorschau"]] == ["Morgen", "Übermorgen"]
+    assert kreis["vorschau"][0]["begruendung"]
+    assert len(kreis["tag"]["stunden"]) == 24
+    assert {"korrigiert", "wolken", "aktion"} <= set(kreis["tag"]["stunden"][12])
+    assert kreis["tag"]["vorhersage"] == []
+    korrektur = kreis["korrektur"]
+    assert (korrektur["fenster"], korrektur["noetig"]) == (14, 7)
+    assert korrektur["temperatur"]["versatz"] is None
+    assert korrektur["sonne"]["aktiv"] is False
 
 
 async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(hass, szenario):
@@ -604,28 +617,6 @@ async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(hass, szenario):
     assert kreis["empfehlung"]["begruendung"] == Woerterbuch("en").satz(deutsch)
     assert kreis["empfehlung"]["begruendung"] != deutsch
     assert sz.laufzeit.empfehlung["begruendung"] == deutsch
-
-
-async def test_lesen_liefert_stundenraster_und_korrektur(szenario):
-    sz = await szenario(zeit=None)
-
-    kreis = await sz.kreis()
-
-    assert len(kreis["tag"]["stunden"]) == 24
-    assert {"korrigiert", "wolken", "aktion"} <= set(kreis["tag"]["stunden"][12])
-    korrektur = kreis["korrektur"]
-    assert (korrektur["fenster"], korrektur["noetig"]) == (14, 7)
-    assert korrektur["temperatur"]["versatz"] is None
-    assert korrektur["sonne"]["aktiv"] is False
-
-
-async def test_lesen_liefert_vorschau_und_einzelne_raeume(szenario):
-    kreis = await (await szenario()).kreis()
-
-    assert [tag["titel"] for tag in kreis["vorschau"]] == ["Morgen", "Übermorgen"]
-    assert kreis["vorschau"][0]["begruendung"]
-    assert kreis["kennwerte"]["at"] == 12.0
-    assert kreis["kennwerte"]["raeume"][0]["wert"] == 21.4
 
 
 async def test_vorschau_rechnet_die_sonnenquote_wie_der_betrieb(hass, szenario):
@@ -734,15 +725,6 @@ async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(szenario):
     assert sz.laufzeit.zustand.value == "programm"
 
 
-async def test_wechsel_nach_empfehlen_empfiehlt_nach_drei_takten(szenario):
-    sz = await szenario(modus="empfehlen")
-    assert sz.laufzeit.empfehlung is None
-
-    await sz.takte()
-
-    assert sz.laufzeit.empfehlung["zustand"] == "sonnentag"
-
-
 async def test_takt_ohne_aenderung_zaehlt_weiter(szenario):
     sz = await szenario(modus="schalten")
     for _ in range(3):
@@ -823,12 +805,20 @@ async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(szenario, fr
 
 
 # --- Ausschalten und Rücknahme ----------------------------------------------
-async def test_ausschalten_nimmt_die_absenkung_zurueck(szenario):
+@pytest.mark.parametrize("abgelehnt", [False, True], ids=["angenommen", "abgelehnt"])
+async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, szenario, abgelehnt):
+    """Eine abgelehnte Rücknahme meldet sich und bleibt auch nach dem Einschalten bekannt."""
     sz = await szenario(modus="schalten", takte=True)
+    sz.coordinator.client.ablehnen = abgelehnt
 
     await sz.einstellen(aktiv=False)
 
-    assert sz.geschrieben[-1] == ENDE
+    assert (sz.geschrieben[-1] == ENDE) is not abgelehnt
+    assert (_issue(hass, "automatik_ruecknahme") is not None) is abgelehnt
+    assert (sz.laufzeit.gedaechtnis.absenkung_art is not None) is abgelehnt
+    sz.coordinator.client.ablehnen = False
+    await sz.einstellen(aktiv=True)
+    assert (sz.laufzeit.gedaechtnis.absenkung_art is not None) is abgelehnt
 
 
 async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anlage, freezer):
@@ -850,27 +840,6 @@ async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anla
     await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
 
     assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
-
-
-async def test_abgelehnte_ruecknahme_meldet_sich(hass, szenario):
-    sz = await szenario(modus="schalten", takte=True)
-    sz.coordinator.client.ablehnen = True
-
-    await sz.einstellen(aktiv=False)
-
-    assert _issue(hass, "automatik_ruecknahme") is not None
-    assert sz.laufzeit.gedaechtnis.absenkung_art is not None
-
-
-async def test_wiedereinschalten_behaelt_die_nicht_zurueckgenommene_absenkung(szenario):
-    sz = await szenario(modus="schalten", takte=True)
-    sz.coordinator.client.ablehnen = True
-    await sz.einstellen(aktiv=False)
-    sz.coordinator.client.ablehnen = False
-
-    await sz.einstellen(aktiv=True)
-
-    assert sz.laufzeit.gedaechtnis.absenkung_art is not None
 
 
 async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
@@ -1355,16 +1324,14 @@ async def test_raeume_gelten_erst_nach_zwei_stunden_ohne_anforderung_als_ruhig(
     assert laufzeit.lage.ruhig is False
 
 
-async def test_ohne_thermostat_gibt_es_keine_anforderung(szenario):
-    assert (await szenario(zeit=None, ws=False)).laufzeit.lage.ruhig is None
+async def test_temperaturfuehler_zaehlen_gegen_die_wunschtemperatur_ohne_anforderung(szenario):
+    lage = (await szenario(zeit=None, ws=False, raum_ziel=20.0)).laufzeit.lage
+    assert (lage.raeume, lage.ruhig) == (((21.4, 20.0),), None)
 
 
-async def test_wunschtemperatur_gilt_fuer_temperaturfuehler(szenario):
-    laufzeit = (await szenario(zeit=None, ws=False, raum_ziel=20.0)).laufzeit
-    assert laufzeit.lage.raeume == ((21.4, 20.0),)
-
-
-async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, szenario):
+async def test_zur_wahl_stehen_fremde_thermostate_waermequellen_und_wetter_mit_vorhersage(
+    hass, szenario
+):
     from homeassistant.helpers import entity_registry as er
 
     from custom_components.heatnexus.const import DOMAIN
@@ -1373,12 +1340,20 @@ async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, szen
     _thermostat(hass, "climate.bad", 20.4, 20.5)
     eigener = er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"{HEIZKREIS}-thermostat")
     _thermostat(hass, eigener, 20.0, 21.0)
+    quelle = _quelle(hass)
+    hass.states.async_set("binary_sensor.tuer", "off", {"device_class": "door"})
+    hass.states.async_set("weather.nur_jetzt", "sunny", {"supported_features": 0})
+    hass.states.async_set("weather.tage", "sunny", {"supported_features": 1})
 
-    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
+    ergebnis = (await sz.senden(type="heatnexus/automatik/kandidaten"))["result"]
 
-    kennungen = {e["entity_id"]: e for e in antwort["result"]["temperatur"]}
+    kennungen = {e["entity_id"]: e for e in ergebnis["temperatur"]}
     assert kennungen["climate.bad"]["art"] == "thermostat"
     assert eigener not in kennungen
+    assert [e["entity_id"] for e in ergebnis["vorrang"]] == [quelle]
+    wetter = {e["entity_id"] for e in ergebnis["wetter"]}
+    assert "weather.nur_jetzt" not in wetter
+    assert {"weather.tage", "weather.home"} <= wetter
 
 
 async def test_eingefrorenes_thermostat_wird_aus_dem_verlauf_erkannt(
@@ -1476,16 +1451,6 @@ def _quelle(hass, zustand: str = "on") -> str:
     return eintrag.entity_id
 
 
-async def test_waermequellen_stehen_als_vorrang_zur_wahl(hass, szenario):
-    sz = await szenario(zeit=None, einrichten=False)
-    quelle = _quelle(hass)
-    hass.states.async_set("binary_sensor.tuer", "off", {"device_class": "door"})
-
-    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
-
-    assert [e["entity_id"] for e in antwort["result"]["vorrang"]] == [quelle]
-
-
 async def test_vorrangquelle_zaehlt_ihre_minuten(hass, szenario, freezer):
     sz = await szenario(einrichten=False)
     quelle = _quelle(hass)
@@ -1505,12 +1470,6 @@ async def test_vorrangquelle_zaehlt_ihre_minuten(hass, szenario, freezer):
     assert kreis["kennwerte"]["vorrang"] == {"laeuft": False, "minuten": 30, "entity": quelle}
     stunde = next(s for s in kreis["tag"]["stunden"] if s["stunde"] == 8)
     assert stunde["vorrang"] is True
-
-
-async def test_ohne_vorrangquelle_keine_angabe(szenario):
-    kreis = await (await szenario(zeit=None)).kreis()
-    assert kreis["kennwerte"]["vorrang"] is None
-    assert kreis["konfig"]["vorrang"] == []
 
 
 async def test_lieferbeginn_einer_vorrangquelle_rechnet_sofort(hass, szenario):
@@ -1817,38 +1776,22 @@ class _Aufnahme:
         self.untereintraege.append(config_subentry_id)
 
 
-async def test_das_system_hat_die_neuen_sensoren(hass, szenario):
-    """`anmelden` legt für jede neue Art eine Entität mit der Systemkennung an."""
-    from custom_components.heatnexus.automatik import system as system_modul
+async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, szenario):
+    """`anmelden` legt je Art eine Entität an; die des Systems tragen die Systemkennung."""
+    from custom_components.heatnexus.automatik import entitaeten, system
 
     sz = await szenario(zeit=None)
     await hass.async_block_till_done()
     sub_id = sz.verwaltung.subeintrag(sz.eintrag)
-    for art in (
-        "sonnentag_heute",
-        "nur_ww_heute",
-        "modus_seit",
-        "prognose_mittel",
-        "ueber_heizgrenze",
-    ):
+    assert sub_id is not None
+    neue = ("sonnentag_heute", "nur_ww_heute", "modus_seit", "prognose_mittel", "ueber_heizgrenze")
+    for modul, art in [*((system, art) for art in neue), (entitaeten, "modus")]:
         aufnahme = _Aufnahme()
-        system_modul.anmelden(hass, sz.eintrag, aufnahme, art)
+        modul.anmelden(hass, sz.eintrag, aufnahme, art)
         assert aufnahme.entitaeten, art
-        assert aufnahme.entitaeten[0].unique_id.endswith(f"-automatik-system-{art}")
         assert aufnahme.untereintraege == [sub_id]
-
-
-async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, szenario):
-    from custom_components.heatnexus.automatik import entitaeten
-
-    sz = await szenario(zeit=None)
-    await hass.async_block_till_done()
-
-    aufnahme = _Aufnahme()
-    entitaeten.anmelden(hass, sz.eintrag, aufnahme, "modus")
-
-    assert aufnahme.entitaeten
-    assert aufnahme.untereintraege == [sz.verwaltung.subeintrag(sz.eintrag)] != [None]
+        if modul is system:
+            assert aufnahme.entitaeten[0].unique_id.endswith(f"-automatik-system-{art}")
 
 
 def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
@@ -1895,6 +1838,7 @@ async def test_diagnose_enthaelt_die_automatik(hass, szenario):
     assert auszug["protokoll"][0]["art"] == "haette"
     for schluessel in ("konfig", "gedaechtnis", "steller", "vorrang", "verlauf", "korrektur"):
         assert schluessel in auszug
+    assert (auszug["hausmodell"], auszug["vorhersage"]) == (None, None)
 
 
 # --- Start und Neustart --------------------------------------------------------
@@ -1939,31 +1883,20 @@ async def test_waehrend_die_regel_wartet_rechnen_auch_die_summensensoren(hass, s
     assert gemeldet
 
 
-async def test_nach_dem_start_gilt_die_zuletzt_gelesene_heizgrenze(szenario):
-    """Der erste Abruf nach dem Start trägt `3/21` noch nicht; der Rückfall 17 °C wäre falsch."""
+async def test_nach_dem_start_gelten_die_zuletzt_gelesenen_heizgrenzen(szenario):
+    """Der erste Abruf nach dem Start trägt `3/21` und `3/2` noch nicht; ein Rückfallwert wäre falsch."""
     sz = await szenario(ws=False)
     await sz.laufzeit.auswerten()
     zustand = sz.laufzeit.als_dict()
-    assert zustand["grenze_steuerung"] == 18.0
+    assert (zustand["grenze_steuerung"], zustand["grenze_absenk"]) == (18.0, 5.0)
 
-    del sz.oids[f"{PREFIX}/3/21/0"]
+    for adresse in ("3/21", "3/2"):
+        del sz.oids[f"{PREFIX}/{adresse}/0"]
     neu = await sz.neu_starten(zustand)
+    assert neu.grenze_absenk() == 5.0
     await neu.auswerten()
 
-    assert neu.lage.grenze_steuerung == 18.0
-
-
-async def test_nach_dem_start_gilt_die_zuletzt_gelesene_absenkgrenze(szenario):
-    """Auch `3/2` steht nach dem Start sofort im Panel, nicht erst nach dem nächsten Abruf."""
-    sz = await szenario(ws=False)
-    await sz.laufzeit.auswerten()
-    zustand = sz.laufzeit.als_dict()
-    assert zustand["grenze_absenk"] == 5.0
-
-    del sz.oids[f"{PREFIX}/3/2/0"]
-    neu = await sz.neu_starten(zustand)
-
-    assert neu.grenze_absenk() == 5.0
+    assert (neu.lage.grenze_steuerung, neu.lage.grenze_absenk) == (18.0, 5.0)
 
 
 async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
@@ -2436,25 +2369,22 @@ async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(hass, szenar
     assert nach_der_luecke[0].raum == pytest.approx(20.1)
 
 
-async def test_pumpe_liefert_die_heizart_aus_dem_verlauf(hass, szenario, monkeypatch):
-    laufzeit, _, _ = await _lernverlauf(
-        hass, szenario, monkeypatch, PUMPE, [[(0, "on"), (10, "off")]]
-    )
+@pytest.mark.parametrize(
+    ("plattformen", "vorlauf"),
+    [(PUMPE, []), ([*VORLAUF, PUMPE[1]], [[]])],
+    ids=["pumpe", "vorlauf_ohne_verlauf"],
+)
+async def test_pumpe_liefert_die_heizart_aus_dem_verlauf(
+    hass, szenario, monkeypatch, plattformen, vorlauf
+):
+    pumpe = [(0, "on"), (10, "off")]
+    laufzeit, _, _ = await _lernverlauf(hass, szenario, monkeypatch, plattformen, [*vorlauf, pumpe])
 
     art, je_tag = await laufzeit._lerndaten()
 
     assert art == "pumpe"
     erster = je_tag[sorted(je_tag)[0]]
     assert (erster[3].heizen, erster[12].heizen) == (1.0, 0.0)
-
-
-async def test_vorlauf_ohne_verlauf_faellt_auf_die_pumpe_zurueck(hass, szenario, monkeypatch):
-    plattformen = [*VORLAUF, PUMPE[1]]
-    laufzeit, _, _ = await _lernverlauf(hass, szenario, monkeypatch, plattformen, [[], [(0, "on")]])
-
-    art, _ = await laufzeit._lerndaten()
-
-    assert art == "pumpe"
 
 
 # --- Vorhersage mit Hausmodell ----------------------------------------------------
@@ -2555,13 +2485,6 @@ async def test_ohne_freigabe_ist_das_hausmodell_beobachtet(szenario):
     assert kreis["tag"]["vorhersage"]
 
 
-async def test_ohne_hausmodell_lernt_die_automatik_noch(szenario):
-    kreis = await (await szenario()).kreis()
-
-    assert kreis["kennwerte"]["hausmodell"]["status"] == "lernt"
-    assert kreis["tag"]["vorhersage"] == []
-
-
 async def test_neu_lernen_verwirft_das_hausmodell(szenario):
     sz = await _mit_modell(szenario, 14)
     laufzeit = sz.laufzeit
@@ -2593,16 +2516,6 @@ async def test_diagnose_enthaelt_hausmodell_und_vorhersage(hass, szenario):
         "fehler": v.fehler,
     }
     json.dumps(auszug)
-
-
-async def test_diagnose_ohne_hausmodell_nennt_nichts(hass, szenario):
-    from custom_components.heatnexus import diagnostics
-
-    sz = await szenario(ws=False)
-
-    (auszug,) = diagnostics.automatik_auszug(hass, sz.eintrag)["heizkreise"]
-
-    assert (auszug["hausmodell"], auszug["vorhersage"]) == (None, None)
 
 
 async def test_vorschau_folgt_dem_freigegebenen_modell(hass, szenario):
@@ -2643,18 +2556,6 @@ def _ohne_vorhersage(hass):
 
     _vorhersage_dienst(hass, ablehnen)
     return aufrufe
-
-
-async def test_wetter_ohne_vorhersage_steht_nicht_zur_wahl(hass, szenario):
-    sz = await szenario(zeit=None, einrichten=False)
-    hass.states.async_set("weather.nur_jetzt", "sunny", {"supported_features": 0})
-    hass.states.async_set("weather.tage", "sunny", {"supported_features": 1})
-
-    antwort = await sz.senden(type="heatnexus/automatik/kandidaten")
-
-    kennungen = [e["entity_id"] for e in antwort["result"]["wetter"]]
-    assert "weather.nur_jetzt" not in kennungen
-    assert {"weather.tage", "weather.home"} <= set(kennungen)
 
 
 FEHLER_BEIDE = [("weather.home", "daily"), ("weather.home", "hourly")]
