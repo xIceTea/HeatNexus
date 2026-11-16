@@ -459,6 +459,49 @@ async def test_derselbe_fund_laeuft_nur_einmal(hass):
     assert ergebnis["reason"] == "already_in_progress"
 
 
+def _eintrag_mit(hass, host: str, **weitere):
+    """Ein Eintrag mit einer Steuerung unter `host`; `weitere` gehen an den Eintrag."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    eintrag = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        minor_version=2,
+        title="Anlage",
+        unique_id=KENNUNG,
+        data={
+            "name": "Anlage",
+            CONF_SYSTEMS: [
+                {"host": host, "password": "geheim", "label": "Anlage", "username": "USER"}
+            ],
+        },
+        options={host: {"levels": ["info", "operate"]}, CONF_SPRACHE: "auto"},
+        **weitere,
+    )
+    eintrag.add_to_hass(hass)
+    return eintrag
+
+
+async def test_eine_adresse_eines_abgeschalteten_eintrags_wird_nicht_angeboten(hass):
+    from homeassistant.config_entries import ConfigEntryDisabler
+
+    _eintrag_mit(hass, ALT, disabled_by=ConfigEntryDisabler.USER)
+
+    ergebnis, verbindung = await _gefunden(hass, _mdns(ALT))
+
+    assert ergebnis["reason"] == "already_configured"
+    verbindung.assert_not_called()
+
+
+async def test_das_laden_eines_eintrags_schliesst_offene_funde_seiner_adressen(hass):
+    await _gefunden(hass, _mdns(NEU))
+    eintrag = _eintrag_mit(hass, NEU)
+
+    await _einrichten(hass, eintrag)
+
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
 async def _umzug_bestaetigen(hass, ergebnis: dict, verbindung=None) -> tuple[dict, AsyncMock]:
     """Im Menü des Fundes „Adresse nachführen“ wählen."""
     verbindung = verbindung or _verbindung()

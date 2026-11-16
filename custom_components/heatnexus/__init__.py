@@ -181,6 +181,21 @@ def _sprachwahl_umstellen(hass: HomeAssistant) -> None:
             hass.config_entries.async_update_entry(eintrag, options=optionen)
 
 
+@callback
+def _funde_schliessen(hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict]) -> None:
+    """Offene Funde für Adressen dieses Eintrags schließen, etwa nach dem Wiedereinschalten.
+
+    Der Dialog, der den Eintrag gerade anlegt, trägt dessen Kennung und bleibt offen.
+    """
+    adressen = {s.get(CONF_HOST) for s in systeme}
+    for fund in hass.config_entries.flow.async_progress_by_handler(
+        DOMAIN, include_uninitialized=True
+    ):
+        kontext = fund["context"]
+        if kontext.get("host") in adressen and kontext.get("unique_id") != entry.unique_id:
+            hass.config_entries.flow.async_abort(fund["flow_id"])
+
+
 def _marken_je_anlage_uebernehmen(
     hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict]
 ) -> None:
@@ -461,6 +476,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not systeme:
         raise mit_text(ConfigEntryNotReady, "keine_anlage_im_eintrag")
 
+    _funde_schliessen(hass, entry, systeme)
     _marken_je_anlage_uebernehmen(hass, entry, systeme)
 
     hass.data.setdefault(DOMAIN, {})

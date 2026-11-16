@@ -246,9 +246,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if kennung:
             await self.async_set_unique_id(kennung)
             self._abort_if_unique_id_configured()
-        eintraege = self._aktive_eintraege()
-        if any(s.get(CONF_HOST) == host for e in eintraege for s in e.data.get(CONF_SYSTEMS, [])):
+        # Auch ein abgeschalteter Eintrag behält seine Adressen.
+        alle = self._async_current_entries(include_ignore=False)
+        if any(s.get(CONF_HOST) == host for e in alle for s in e.data.get(CONF_SYSTEMS, [])):
             return self.async_abort(reason="already_configured")
+        eintraege = self._aktive_eintraege()
         self._gefunden = host
         self.context["host"] = host
         self.context["title_placeholders"] = {"name": host}
