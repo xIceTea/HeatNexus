@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta, timezone
+import logging
 
 import pytest
 
@@ -538,3 +539,100 @@ def test_empfehlen_schreibt_rueckkehr_und_sicherheit(s, regel, aktion):
     assert ausfuehren(steller, entscheidung(regel, regel.Aktion(art, **felder)), empfehlen=True)
     assert schreiber.aufrufe
     assert steller.empfohlen is False
+
+
+# --- Halb geschriebene Eingriffe ---------------------------------------------
+TEMPERATUR = "/1/15/0/3/4/0"
+DAUER = "/1/15/0/2/10/0"
+
+
+class Steuerung:
+    def __init__(self, *ablehnen: str) -> None:
+        """Nimmt alles an außer den Adressen in `ablehnen`."""
+        self.ablehnen = set(ablehnen)
+        self.aufrufe: list[tuple[str, str]] = []
+
+    async def __call__(self, oid: str, wert: str) -> None:
+        if oid in self.ablehnen:
+            raise RuntimeError("abgelehnt")
+        self.aufrufe.append((oid, wert))
+
+
+def _pause(regel, soll: float = 17.5):
+    aktion = regel.Aktion("pause", soll=soll, minuten=400, erneuern=True)
+    return regel.Entscheidung(regel.Zustand.HEIZPAUSE, (aktion,), "Grund.", regel.Gedaechtnis())
+
+
+@pytest.mark.parametrize(
+    ("soll_vorher", "geschrieben"),
+    [(17.0, [(TEMPERATUR, "17.5"), (TEMPERATUR, "17.0")]), (None, [(TEMPERATUR, "17.5")])],
+    ids=["laufende_absenkung", "ohne_absenkung"],
+)
+def test_ohne_dauer_wird_der_vorige_raumsoll_zurueckgeschrieben(
+    s, regel, caplog, soll_vorher, geschrieben
+):
+    """Ohne laufende Absenkung wirkt `3/4` allein nicht; dann bleibt es beim Warnen."""
+    steuerung = Steuerung(DAUER)
+    steller = s.Steller("/1/15/0", UML, steuerung)
+
+    with caplog.at_level(logging.WARNING):
+        assert ausfuehren(steller, _pause(regel), betriebswahl=1, soll_vorher=soll_vorher) is False
+
+    assert steuerung.aufrufe == geschrieben
+    assert steller.halb_soll is None
+    assert "ohne Dauer" in caplog.text
+
+
+def test_scheitert_auch_die_ruecknahme_gilt_der_neue_raumsoll(s, regel, caplog):
+    steuerung = Steuerung(DAUER)
+    steller = s.Steller("/1/15/0", UML, steuerung)
+
+    async def erst_dann_nichts(oid: str, wert: str) -> None:
+        if steuerung.aufrufe:
+            raise RuntimeError("abgelehnt")
+        steuerung.aufrufe.append((oid, wert))
+
+    steller._schreiben = erst_dann_nichts
+    with caplog.at_level(logging.WARNING):
+        assert ausfuehren(steller, _pause(regel), betriebswahl=1, soll_vorher=17.0) is False
+
+    assert steuerung.aufrufe == [(TEMPERATUR, "17.5")]
+    assert steller.halb_soll == 17.5
+    assert "ohne Dauer" in caplog.text
+
+
+def test_ein_neuer_lauf_vergisst_den_halben_raumsoll(s, regel):
+    steller = s.Steller("/1/15/0", UML, Steuerung(DAUER))
+    steller.halb_soll = 17.5
+
+    leer = regel.Entscheidung(regel.Zustand.PROGRAMM, (), "", regel.Gedaechtnis())
+    ausfuehren(steller, leer, betriebswahl=1)
+
+    assert steller.halb_soll is None
+
+
+def test_zeiten_ohne_zone_aus_dem_store_entfallen(s, regel):
+    """Ein naiver Zeitpunkt ließe jeden Vergleich mit `jetzt` scheitern."""
+    stand = s.Stand.aus_dict(
+        {
+            "zuletzt": "2026-09-27T06:58:00",
+            "gesperrt_bis": "2026-09-27T08:00:00",
+            "protokoll": [
+                {"zeit": "2026-09-27T06:50:00", "art": "abgelehnt", "sicherheit": True},
+                {"zeit": JETZT.isoformat(), "art": "geschrieben", "text": ""},
+                {"art": "geprueft"},
+            ],
+        }
+    )
+
+    assert stand.zuletzt is None
+    assert stand.gesperrt_bis is None
+    assert [e["art"] for e in stand.protokoll] == ["geschrieben"]
+    steller = s.Steller("/1/15/0", UML, Steuerung(), stand)
+    aktion = regel.Aktion("absenkung_ende", sicherheit=True)
+    e = regel.Entscheidung(regel.Zustand.SICHERHEIT, (aktion,), "", regel.Gedaechtnis())
+    assert ausfuehren(steller, e, betriebswahl=1) is True
+    handeingriff = steller.handeingriff(
+        regel.Gedaechtnis(), jetzt=JETZT, betriebswahl=1, rest_min=0, betriebsart=1, abgerufen=JETZT
+    )
+    assert handeingriff is None
