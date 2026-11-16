@@ -1207,6 +1207,7 @@ def test_vorausschau_schreibt_den_sollwert_der_stufe(m, w, vh):
     absenk_e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "absenkung")), m.Gedaechtnis(), w)
     assert (pause_e.aktionen[0].soll, pause_e.aktionen[0].minuten) == (17.0, 400)
     assert absenk_e.aktionen[0].soll == round(21.0 - w.absenkung_k, 1)
+    assert pause_e.begruendung == "Räume halten laut Prognose bis 17:00 über 20,9 °C – Heizpause."
 
 
 def test_vorausschau_endet_am_horizont(m, w, vh):
@@ -1228,6 +1229,7 @@ def test_rueckkehr_beendet_den_eingriff_des_modells(m, w, vh):
     e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause", rueckkehr=True)), g, w)
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
     assert e.zustand == m.Zustand.PROGRAMM
+    assert e.begruendung == "Raum 21,4 °C weicht von der Vorhersage ab – zurück ins Programm."
     assert e.gedaechtnis.absenkung_art is None
     assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
 

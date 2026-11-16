@@ -1431,10 +1431,7 @@ async def test_kaeltester_raum_zaehlt_gegen_sein_eigenes_ziel(hass, szenario):
     await laufzeit.auswerten()
     v = laufzeit.lage.vorhersage
     assert (v.stufe, round(v.ziel_min, 1), v.rueckkehr) == ("programm", 22.1, True)
-    assert laufzeit.gedaechtnis.absenkung_art is None
-    assert laufzeit.begruendung == (
-        "Raum 20,5 °C weicht von der Vorhersage ab – zurück ins Programm."
-    )
+    assert (laufzeit.lage.raum, laufzeit.gedaechtnis.absenkung_art) == (20.5, None)
 
 
 # --- Vorrangquellen -----------------------------------------------------------
@@ -2420,9 +2417,7 @@ async def test_freigegebenes_hausmodell_waehlt_die_heizpause(szenario):
     assert round(v.tiefst, 1) == 21.4
     g = laufzeit.gedaechtnis
     assert (g.absenkung_art, g.absenkung_anlass, g.absenkung_soll) == ("pause", "modell", 10.5)
-    assert f"{g.absenkung_ziel:%H:%M}" == "22:00"
     assert laufzeit.zustand.value == "heizpause"
-    assert laufzeit.begruendung == "Räume halten laut Prognose bis 22:00 über 21,4 °C – Heizpause."
 
 
 async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(szenario):
@@ -2446,11 +2441,6 @@ async def test_raum_unter_der_kurve_beendet_die_heizpause_des_modells(
     hass.states.async_set("sensor.wohnzimmer", raum, {"device_class": "temperature"})
     await laufzeit.auswerten()
     assert (laufzeit.gedaechtnis.absenkung_art is None) is zurueck
-    if zurueck:
-        assert laufzeit.begruendung == (
-            "Raum 20,9 °C weicht von der Vorhersage ab – zurück ins Programm."
-        )
-        assert laufzeit.gedaechtnis.pause_sperre == "2026-09-27"
 
 
 async def test_kennwerte_zeigen_das_freigegebene_hausmodell(szenario):
@@ -2561,7 +2551,7 @@ def _ohne_vorhersage(hass):
 FEHLER_BEIDE = [("weather.home", "daily"), ("weather.home", "hourly")]
 
 
-async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(hass, szenario, caplog):
+async def test_fehlende_vorhersage_haelt_die_regel_an_und_warnt_einmal(hass, szenario, caplog):
     _ohne_vorhersage(hass)
     caplog.set_level(logging.DEBUG, logger="custom_components.heatnexus")
 
@@ -2571,7 +2561,8 @@ async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(hass, 
     await laufzeit.auswerten()
 
     assert laufzeit.zustand.value == "keine_daten"
-    assert laufzeit.begruendung == "Wettervorhersage fehlt – keine neue Entscheidung."
+    lage = laufzeit.lage
+    assert (lage.prognose_ok, lage.raum, lage.at, lage.soll) == (False, 21.4, 12.0, 21.0)
     assert sorted(sz.verwaltung.prognose_fehler) == FEHLER_BEIDE
     warnungen = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnungen) == 2
