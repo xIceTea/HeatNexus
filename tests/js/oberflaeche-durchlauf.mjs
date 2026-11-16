@@ -194,7 +194,9 @@ REITER.forEach((reiter) => {
     fuss: [...flaeche.shadowRoot.querySelectorAll(".zp-fuss")].map((fuss) => fuss.children.map(text)),
     schaltzeiten: flaeche.shadowRoot.querySelectorAll(".schaltzeit").length,
     segmentWerte: [...flaeche.shadowRoot.querySelectorAll(".zp-segmentwert")].map(text),
-    klartext: [...flaeche.shadowRoot.querySelectorAll(".zp-klartext")].map(text),
+    klartext: [...flaeche.shadowRoot.querySelectorAll(".zp-tabelle")].map(text),
+    zeitmarken: flaeche.shadowRoot.querySelectorAll(".zp-marken").length,
+    oeffnenTasten: [...flaeche.shadowRoot.querySelectorAll(".zp-taste")].filter((taste) => text(taste) === "Öffnen").length,
     heuteKarten: flaeche.shadowRoot.querySelectorAll(".zp-heute").length,
     legenden: flaeche.shadowRoot.querySelectorAll(".zp-legende").length,
     // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
@@ -793,6 +795,39 @@ if (programmZwei) {
 }
 bilanz.bezeichnung = bezeichnung;
 
+// Bezeichnung im Reiter: Der Stift öffnet das Feld, Speichern sendet nur die Bezeichnung.
+{
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const wurzel = flaeche.shadowRoot;
+  const zwei = () =>
+    wurzel
+      .querySelectorAll(".zp-programm")
+      .find((k) => k.querySelector(".zp-programmname") && text(k.querySelector(".zp-programmname")).startsWith("Programm 2"));
+  const vorStift = !!zwei().querySelector(".zp-benennen");
+  zwei().querySelector(".zp-stift").ausloesen("click");
+  const form = zwei().querySelector(".zp-benennen");
+  const feld = form && form.querySelector(".zp-bezeichnung");
+  const vorbelegt = feld ? feld.value : null;
+  if (feld) feld.value = " Herbst ";
+  const vorWs = wsAufrufe.length;
+  const vorDienst = dienstAufrufe.length;
+  if (form) form.querySelector(".zp-speichern").ausloesen("click");
+  for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+  bilanz.stift = {
+    vorStift,
+    offen: !!form,
+    vorbelegt,
+    gesendet: wsAufrufe
+      .slice(vorWs)
+      .filter((anfrage) => anfrage.type === "heatnexus/bezeichnung")
+      .map((anfrage) => [anfrage.entity_id, anfrage.bezeichnung]),
+    programmGeschrieben: dienstAufrufe.slice(vorDienst).some((aufruf) => aufruf.dienst === "heatnexus.set_time_program"),
+    zu: !zwei().querySelector(".zp-benennen"),
+  };
+}
+
 // Die Betriebswahl zeigt die Bezeichnung, der Wert bleibt der Optionstext.
 states["select.betriebswahl"].state = "Programm 1";
 const beschriftetesFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, null);
@@ -827,11 +862,9 @@ flaeche._reiter = "zeitprogramme";
 flaeche._gebaut = false;
 flaeche._zeichnen();
 // Programm 2 steht im gewählten Reiter; „Öffnen“ holt den Dialog.
-const gezeigtZwei = flaeche.shadowRoot
-  .querySelectorAll(".zp-programm")
-  .find((programm) => text(programm.querySelector(".zp-programmname")).startsWith("Programm 2"));
-const nameZwei =
-  gezeigtZwei && gezeigtZwei.querySelectorAll(".zp-taste").find((taste) => taste.classList.contains("betont"));
+const nameZwei = programmZwei && {
+  ausloesen: () => flaeche._zeitprogrammBearbeiten(programmZwei, document.createElement("div")),
+};
 let bezeichnungUndZeiten = null;
 if (nameZwei) {
   const vorZugleich = dienstAufrufe.length;

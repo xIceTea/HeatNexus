@@ -147,30 +147,47 @@ export const ZEITPROGRAMME = `
     .zp-reiter button { flex: 1 1 auto; padding: 6px 5px; gap: 5px; }
   }
   .zp-zeilen { display: flex; flex-direction: column; }
-  .zp-zeile {
-    display: grid; grid-template-columns: 64px 1fr; row-gap: 3px; padding: 6px 0;
-    border-radius: 8px; cursor: pointer;
-  }
+  .zp-zeile { display: flex; flex-direction: column; gap: 4px; padding: 8px 6px; border-radius: 8px; cursor: pointer; }
+  .zp-zeile + .zp-zeile { border-top: 1px solid var(--hn-flaeche); }
   .zp-zeile:hover { background: color-mix(in srgb, var(--hn-flaeche) 60%, transparent); }
   .zp-zeile:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
-  .zp-zeilenkopf, .zp-zeilenkopf:hover { padding: 0; cursor: default; background: none; }
-  .zp-zeilenkopf .zeitraster-skala { margin: 0 6px 0 0; }
-  .zp-tagname { align-self: center; padding-left: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .zp-tagname { font-size: 14px; font-weight: 600; white-space: nowrap; }
   .zp-tagname.heute { color: var(--hn-akzent); }
   .zp-spur {
-    position: relative; height: 14px; margin-right: 6px; border-radius: 7px;
-    background: var(--hn-flaeche); overflow: hidden;
+    position: relative; height: 16px; border-radius: 8px; background: var(--hn-flaeche); overflow: hidden;
   }
-  .zp-stunde { position: absolute; top: 3px; bottom: 3px; width: 1px; background: var(--hn-linie); }
-  .zp-fuellung { position: absolute; top: 0; bottom: 0; border-radius: 7px; background: var(--hn-akzent); }
+  .zp-stunde { position: absolute; top: 4px; bottom: 4px; width: 1px; background: var(--hn-linie); }
+  .zp-fuellung { position: absolute; top: 0; bottom: 0; border-radius: 8px; background: var(--hn-akzent); }
   .zp-fuellung.halb { opacity: 0.45; }
   .zp-spur .jetzt-linie {
     position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--hn-text);
   }
-  .zp-klartext {
-    grid-column: 2; font-size: 12.5px; color: var(--hn-gedaempft);
-    font-variant-numeric: tabular-nums; text-wrap: pretty;
+  /* Die Uhrzeiten an den Grenzen; die Rechnung lässt zu dichte weg, damit nichts übereinander steht. */
+  .zp-marken {
+    position: relative; height: 15px; font-size: 11px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums;
   }
+  .zp-marken span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .zp-tabelle {
+    display: grid; grid-template-columns: 10px max-content max-content; column-gap: 12px; row-gap: 4px;
+    align-items: center; margin-top: 2px; font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  .zp-feld { width: 10px; height: 10px; border-radius: 3px; background: var(--hn-akzent); }
+  .zp-feld.halb { opacity: 0.45; }
+  .zp-feld.leer { background: var(--hn-flaeche); box-shadow: inset 0 0 0 1px var(--hn-linie); }
+  .zp-twert { font-weight: 600; }
+  .zp-tzeit.rest, .zp-twert.rest { color: var(--hn-gedaempft); font-weight: 400; }
+  .zp-kopfzeile { display: flex; align-items: flex-start; gap: 8px; }
+  .zp-kopfzeile .zp-lage { flex: 1; min-width: 0; }
+  .zp-stift {
+    flex: none; display: inline-flex; padding: 3px; border: 0; border-radius: 6px; background: transparent;
+    color: var(--hn-gedaempft); cursor: pointer; --mdc-icon-size: 18px;
+  }
+  .zp-stift:hover { color: var(--hn-text); background: var(--hn-flaeche); }
+  .zp-stift:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-benennen { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--hn-flaeche); }
+  .zp-benennen .zp-bezeichnung-zeile { margin-bottom: 0; }
+  .zp-benennen .zp-meldung { margin-top: 0; min-height: 0; }
+  .zp-benennen .zp-meldung:empty { display: none; }
   .zp-zeile.offen { background: var(--hn-flaeche); border-radius: 8px 8px 0 0; }
   /* Der Editor hängt unter seiner Zeile und gehört sichtbar zu ihr. */
   .zp-zeileneditor {

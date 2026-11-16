@@ -108,27 +108,47 @@ function fenster(stuecke, grund) {
   return liste;
 }
 
+// Zeitmarken an der Spur brauchen Abstand; auf dem Handy entspricht das etwa ihrer Breite.
+const MARKEN_ABSTAND_MINUTEN = 150;
+
+function fensterDesTages(stuecke, grenzen) {
+  if (grenzen.schalt) return fenster(stuecke.map((s) => ({ ...s, wert: s.wert >= 0.5 ? 1 : 0 })), 0);
+  return fenster(stuecke, Math.min(...stuecke.map((s) => s.wert)));
+}
+
 /**
- * Der Klartext unter einer Tageszeile, in Stücken, die nicht brechen:
- * „05:30–08:00 · 21,0 °C“, …, „sonst 18,0 °C“; Schaltprogramme „an 06:00–07:30“, ….
+ * Die Tabelle unter einer Tageszeile: je Fenster Stufe, Zeit und Wert, zuletzt die übrige Zeit.
+ * Zeilen: {stufe: "voll"|"halb"|null, zeit, wert}.
  */
-export function klartext(stuecke, grenzen, { t = OHNE, sprache } = {}) {
-  if (!stuecke || !stuecke.length) return [t("kein Zeitplan")];
-  const zeit = (s) => `${uhrzeit(s.von)}–${bisText(s.bis)}`;
-  if (grenzen.schalt) {
-    const an = stuecke.filter((s) => s.wert >= 0.5);
-    if (!an.length) return [t("immer aus")];
-    if (an.length === 1 && an[0].von === 0 && an[0].bis === TAG_MINUTEN) return [t("immer an")];
-    const zeiten = fenster(stuecke.map((s) => ({ ...s, wert: s.wert >= 0.5 ? 1 : 0 })), 0).map(zeit);
-    return [einsetzen(t("an {zeit}"), { zeit: zeiten[0] }), ...zeiten.slice(1)];
-  }
-  const werte = stuecke.map((s) => s.wert);
+export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
+  if (!stuecke || !stuecke.length) return [{ stufe: null, zeit: t("kein Zeitplan"), wert: "" }];
+  const zeit = (s) => `${uhrzeit(s.von)} – ${bisText(s.bis)}`;
+  const text = (wert) => (grenzen.schalt ? t(wert >= 0.5 ? "Ein" : "Aus") : temperatur(wert, sprache));
+  const werte = stuecke.map((s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert));
   const grund = Math.min(...werte);
-  if (Math.max(...werte) === grund) {
-    return [einsetzen(t("ganztags {wert}"), { wert: temperatur(grund, sprache) })];
-  }
-  const teile = fenster(stuecke, grund).map((s) => `${zeit(s)} · ${temperatur(s.wert, sprache)}`);
-  return [...teile, einsetzen(t("sonst {wert}"), { wert: temperatur(grund, sprache) })];
+  const hoch = Math.max(...werte);
+  if (hoch === grund) return [{ stufe: grenzen.schalt && !hoch ? null : "voll", zeit: t("ganztags"), wert: text(grund) }];
+  const zeilen = fensterDesTages(stuecke, grenzen).map((s) => ({
+    stufe: grenzen.schalt || s.wert === hoch ? "voll" : "halb",
+    zeit: zeit(s),
+    wert: text(s.wert),
+  }));
+  return [...zeilen, { stufe: null, zeit: t("übrige Zeit"), wert: text(grund) }];
+}
+
+/** Die Uhrzeiten, an denen ein Fenster beginnt oder endet; zu dichte fallen weg, die Tabelle nennt sie. */
+export function zeitmarken(stuecke, grenzen) {
+  if (!stuecke || !stuecke.length) return [];
+  const grenzpunkte = fensterDesTages(stuecke, grenzen)
+    .flatMap((s) => [s.von, s.bis])
+    .filter((minute) => minute > 0 && minute < TAG_MINUTEN);
+  const marken = [];
+  [...new Set(grenzpunkte)]
+    .sort((a, b) => a - b)
+    .forEach((minute) => {
+      if (!marken.length || minute - marken[marken.length - 1] >= MARKEN_ABSTAND_MINUTEN) marken.push(minute);
+    });
+  return marken;
 }
 
 /** Je Abschnitt die Füllung der Spur: der höchste Wert „voll“, Zwischenwerte „halb“, der Grundwert leer. */

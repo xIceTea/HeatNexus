@@ -22,16 +22,18 @@ import {
   spurKnoten,
   tagesabschnitte,
   uebersichtKnoten,
+  uhrzeit,
 } from "../zeitprogramm.js";
 import { zeileneditorKnoten } from "../zeileneditor.js";
 import {
   HEUTE_GRUPPEN,
   blockEinsetzen,
   heuteText,
-  klartext,
+  tabelle,
   legendeKnoten,
   nachTeilen,
   tagesspur,
+  zeitmarken,
 } from "../zeitprogrammseite.js";
 
 // Fußtexte der Gruppen, deren Programme einander ablösen; die übrigen nehmen den Hinweis ihres Programms.
@@ -273,7 +275,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     const wahl = this._zpWahl ? this._zpWahl.get(this._gruppenSchluessel(gruppe)) : "";
     const offen = this._zpOffen && programme.some((p) => p.entity === this._zpOffen.entity);
     const editor = offen ? `${this._zpOffen.entity}#${this._zpOffen.stelle}` : "";
-    return [this._ortszeit().tag, this._wahlText(gruppe), wahl, editor, ...teile].join("|");
+    const benennen = programme.some((p) => p.entity === this._zpBenennen) ? this._zpBenennen : "";
+    return [this._ortszeit().tag, this._wahlText(gruppe), wahl, editor, benennen, ...teile].join("|");
   }
 
   /** Die Jetzt-Linien eines Knotens auf die aktuelle Minute setzen, ohne ihn neu zu bauen. */
@@ -335,14 +338,17 @@ export const ZeitprogrammeMixin = (Basis) =>
   _programmTeile({ programm, vorlauf }) {
     const rueckmeldung = this._rueckmeldung(programm);
     const vorlaufRueckmeldung = vorlauf ? this._rueckmeldung(vorlauf) : null;
-    // „Öffnen“, nicht „Bearbeiten“: Der Dialog zeigt zuerst die Zeiten als „von – bis“.
-    const oeffnen = this._zpTaste("Öffnen", "zp-taste betont", () =>
-      this._zeitprogrammBearbeiten(programm, rueckmeldung)
-    );
+    const stift = this._zpTaste("", "zp-stift", () => {
+      this._zpBenennen = this._zpBenennen === programm.entity ? null : programm.entity;
+      this._aktualisieren();
+    });
+    stift.appendChild(this._symbolKnoten("mdi:pencil-outline"));
+    stift.title = this._t("Bezeichnung ändern");
+    stift.setAttribute("aria-label", this._t("Bezeichnung ändern"));
     return {
       rueckmeldung,
       vorlaufRueckmeldung,
-      oeffnen,
+      stift,
       aktivieren: this._aktivierenTaste(programm, rueckmeldung),
     };
   }
@@ -405,8 +411,12 @@ export const ZeitprogrammeMixin = (Basis) =>
     const knoten = document.createElement("div");
     knoten.className = "zp-programm";
     if (programm.wirkung && this._gilt(programm)) knoten.classList.add("aktiv");
-    knoten.appendChild(this._lageZeile(gruppe, stand));
+    const kopf = document.createElement("div");
+    kopf.className = "zp-kopfzeile";
+    kopf.append(this._lageZeile(gruppe, stand), eigene.stift);
+    knoten.appendChild(kopf);
     if (stand.sichtbar.length > 1) knoten.appendChild(this._programmReiter(gruppe, stand));
+    if (this._zpBenennen === programm.entity) knoten.appendChild(this._benennenKnoten(programm));
     const zeit = this._ortszeit();
     knoten.appendChild(this._tageszeilen(programm, zeit, eigene.rueckmeldung, gruppe.sprache));
     const vorlaufBloecke = vorlauf ? this._bloecke(vorlauf.entity) : null;
@@ -418,7 +428,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     }
     const leiste = document.createElement("div");
     leiste.className = "zp-karteleiste";
-    const knoepfe = [eigene.oeffnen, eigene.aktivieren, eigene.rueckmeldung, eigene.vorlaufRueckmeldung];
+    const knoepfe = [eigene.aktivieren, eigene.rueckmeldung, eigene.vorlaufRueckmeldung];
     leiste.append(...knoepfe.filter(Boolean));
     knoten.appendChild(leiste);
     return knoten;
@@ -515,10 +525,6 @@ export const ZeitprogrammeMixin = (Basis) =>
       return liste;
     }
     const grenzen = skala(bloecke, programm.art);
-    const kopf = document.createElement("div");
-    kopf.className = "zp-zeile zp-zeilenkopf";
-    kopf.append(document.createElement("span"), skalaKnoten());
-    liste.appendChild(kopf);
     blockraster(bloecke, t).forEach((reihe) => {
       const heute = reihe.tage.includes(zeit.tag) ? zeit.minute : null;
       const offen = this._zeileOffen(programm, reihe);
@@ -541,16 +547,28 @@ export const ZeitprogrammeMixin = (Basis) =>
     const tag = document.createElement("span");
     tag.className = jetzt === null ? "zp-tagname" : "zp-tagname heute";
     tag.textContent = reihe.text;
-    const text = document.createElement("div");
-    text.className = "zp-klartext";
-    klartext(reihe.abschnitte, grenzen, { t, sprache: this._sprachcode(sprache) }).forEach((stueck, n) => {
-      if (n) text.append(", ");
-      const teil = document.createElement("span");
-      teil.className = "zp-stueck";
-      teil.textContent = stueck;
-      text.appendChild(teil);
+    const marken = document.createElement("div");
+    marken.className = "zp-marken";
+    zeitmarken(reihe.abschnitte, grenzen).forEach((minute) => {
+      const marke = document.createElement("span");
+      marke.style.left = `${(minute / TAG_MINUTEN) * 100}%`;
+      marke.textContent = uhrzeit(minute);
+      marken.appendChild(marke);
     });
-    zeile.append(tag, tagesspur(reihe.abschnitte, grenzen, { t, jetzt }), text);
+    const liste = document.createElement("div");
+    liste.className = "zp-tabelle";
+    tabelle(reihe.abschnitte, grenzen, { t, sprache: this._sprachcode(sprache) }).forEach(({ stufe, zeit, wert }) => {
+      const feld = document.createElement("i");
+      feld.className = `zp-feld ${stufe || "leer"}`;
+      const wann = document.createElement("span");
+      wann.className = stufe ? "zp-tzeit" : "zp-tzeit rest";
+      wann.textContent = zeit;
+      const was = document.createElement("span");
+      was.className = stufe ? "zp-twert" : "zp-twert rest";
+      was.textContent = wert;
+      liste.append(feld, wann, was);
+    });
+    zeile.append(tag, tagesspur(reihe.abschnitte, grenzen, { t, jetzt }), marken, liste);
     zeile.addEventListener("click", oeffnen);
     zeile.addEventListener("keydown", (ereignis) => {
       if (ereignis.key !== "Enter" && ereignis.key !== " ") return;
@@ -796,6 +814,43 @@ export const ZeitprogrammeMixin = (Basis) =>
       programm.entity
     );
     this._nachfassen({ entity: programm.entity });
+  }
+
+  /** Die eigene Bezeichnung unter der Reiterleiste ändern; Titel und Betriebswahl lesen sie aus den Paneldaten. */
+  _benennenKnoten(programm) {
+    const { zeile, feld } = this._bezeichnungFeld(programm);
+    const meldung = document.createElement("div");
+    meldung.className = "zp-meldung";
+    const schliessen = () => {
+      this._zpBenennen = null;
+      this._aktualisieren();
+    };
+    const speichern = this._zpTaste("Speichern", "zp-taste betont zp-speichern", async () => {
+      const bezeichnung = feld.value.trim();
+      if (bezeichnung === (programm.bezeichnung || "")) {
+        schliessen();
+        return;
+      }
+      speichern.disabled = true;
+      try {
+        await this._hass.callWS({ type: "heatnexus/bezeichnung", entity_id: programm.entity, bezeichnung });
+      } catch (err) {
+        console.warn("HeatNexus: Bezeichnung nicht gespeichert", err);
+        meldung.className = "zp-meldung fehler";
+        meldung.textContent = this._t("Die Bezeichnung konnte nicht gespeichert werden.");
+        speichern.disabled = false;
+        return;
+      }
+      schliessen();
+      await this._datenHolen();
+    });
+    const aktionen = document.createElement("div");
+    aktionen.className = "zp-ze-aktionen";
+    aktionen.append(this._zpTaste("Abbrechen", "zp-taste zp-abbrechen", schliessen), speichern);
+    const knoten = document.createElement("div");
+    knoten.className = "zp-benennen";
+    knoten.append(zeile, meldung, aktionen);
+    return knoten;
   }
 
   // -------------------------------------------------------------------

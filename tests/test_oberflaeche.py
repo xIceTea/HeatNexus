@@ -219,12 +219,27 @@ def test_ohne_waermeanforderung_steht_ein_strich(durchlauf):
     assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
 
 
-def test_die_werte_stehen_im_klartext_unter_der_spur(durchlauf):
-    """Die Spur trägt keine Zahlen; Zeiten und Werte stehen darunter als Klartext."""
+def test_die_werte_stehen_in_einer_tabelle_unter_der_spur(durchlauf):
+    """Die Spur trägt keine Zahlen; Zeiten und Werte stehen darunter als Tabelle."""
     zeitprogramme = durchlauf["zeitprogramme"]
     assert zeitprogramme["schaltzeiten"] == 0
     assert zeitprogramme["segmentWerte"] == []
-    assert any("sonst" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
+    assert any("übrige Zeit" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
+    assert zeitprogramme["zeitmarken"] > 0
+
+
+def test_bearbeitet_wird_nur_ueber_die_tageszeile(durchlauf):
+    """Eine zweite Taste „Öffnen“ neben der antippbaren Zeile führte zum selben Ziel."""
+    assert durchlauf["zeitprogramme"]["oeffnenTasten"] == 0
+
+
+def test_der_stift_aendert_nur_die_bezeichnung(durchlauf):
+    stift = durchlauf["stift"]
+    assert (stift["vorStift"], stift["offen"]) == (False, True)
+    assert stift["vorbelegt"] == "Übergangszeit"
+    assert stift["gesendet"] == [["sensor.programm_2", "Herbst"]]
+    assert stift["programmGeschrieben"] is False
+    assert stift["zu"] is True
 
 
 def test_eine_karte_je_anlagenteil_statt_je_programm(durchlauf):

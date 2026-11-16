@@ -15,7 +15,8 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Im Reiter „Zeitprogramme“ wählt eine Reiterleiste das Programm; ein Punkt markiert das geltende.
-- Jede Tageszeile zeigt eine einfarbige Spur und darunter Zeiten und Werte als Text.
+- Jede Tageszeile zeigt eine einfarbige Spur mit Schaltzeiten und darunter eine Tabelle der Werte.
+- Eine Bezeichnung für ein Zeitprogramm vergibt der Stift neben der Lagezeile.
 - Puffertemperaturen und Beladegrad erscheinen nur noch am Puffermodul, nicht ein zweites Mal am Kessel ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Im Systemstatus zeigt das Puffermodul „Puffer oben“ statt der Kesseltemperatur ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Pufferladepumpe des Puffermoduls mit Kesselumschaltung ist ab Werk deaktiviert ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
