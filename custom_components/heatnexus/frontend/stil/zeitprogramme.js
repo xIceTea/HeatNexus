@@ -101,6 +101,8 @@ export const ZEITPROGRAMME = `
   .zp-heute-titel { font-size: 13px; font-weight: 600; }
   .zp-heute-programm { font-size: 12px; opacity: 0.6; }
   .zp-heute-text { font-size: 13px; font-variant-numeric: tabular-nums; }
+  /* In der Spalte gilt flex:1 der Höhe, nicht der Breite; hier bleibt die Spur so hoch, wie sie ist. */
+  .zp-heute-spur .spur { flex: none; }
   @media (max-width: 700px) {
     .zp-heute-zeile { grid-template-columns: 1fr; }
     .zp-heute-kopf > span { display: none; }
@@ -114,38 +116,62 @@ export const ZEITPROGRAMME = `
   .zp-verlauf { display: inline-block; width: 72px; height: 8px; border-radius: 4px; }
   .zp-ein { display: inline-block; width: 18px; height: 8px; border-radius: 4px; }
 
-  /* Karte je Anlagenteil: das geltende Programm groß, die übrigen als Minibalken. */
+  /* Karte je Anlagenteil: Lagezeile, ein Reiter je Programm, je Block eine Spur in einer Farbe mit Klartext. */
   .zp-kartensymbol { --mdc-icon-size: 20px; opacity: 0.8; }
   .zp-gruppe + .zp-gruppe { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hn-flaeche); }
-  .zp-programm { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--hn-linie); }
-  .zp-programm.aktiv {
-    border-color: var(--hn-akzent);
-    background: color-mix(in srgb, var(--hn-akzent) 8%, transparent);
+  .zp-programm { display: flex; flex-direction: column; gap: 8px; }
+  .zp-lage { font-size: 13px; color: var(--hn-gedaempft); text-wrap: pretty; }
+  .zp-stueck { white-space: nowrap; }
+  .zp-programmname, .zp-lagename { font-weight: 600; color: var(--hn-text); }
+  .zp-aktiv { font-weight: 600; color: var(--hn-akzent); }
+  .zp-reiter {
+    display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--hn-flaeche);
   }
-  .zp-programmkopf { margin-bottom: 6px; font-size: 14px; }
-  .zp-programmname { font-weight: 600; }
-  .zp-programm .zp-karteleiste { padding-top: 10px; }
-  .zp-mini {
-    display: grid; grid-template-columns: minmax(110px, 180px) 1fr auto;
-    align-items: center; gap: 10px; padding: 6px 2px 0;
+  .zp-reiter button {
+    flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--hn-gedaempft);
+    font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
   }
-  .zp-mini .rueckmeldung { grid-column: 1 / -1; }
-  .zp-mini .rueckmeldung:empty { display: none; }
-  @media (max-width: 700px) {
-    .zp-mini { grid-template-columns: 1fr auto; }
-    .zp-minispuren { grid-column: 1 / -1; grid-row: 2; }
+  .zp-reiter button:hover { color: var(--hn-text); }
+  .zp-reiter button[aria-selected="true"] {
+    background: var(--hn-karte); color: var(--hn-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
-  .zp-mini.leer { grid-template-columns: minmax(110px, 180px) 1fr; opacity: 0.6; }
-  .zp-mininame {
-    font: inherit; font-size: 13px; text-align: left; padding: 0; color: inherit;
-    background: none; border: none; cursor: pointer; text-decoration: underline dotted;
-    text-underline-offset: 3px;
+  .zp-reiter button.leer { opacity: 0.55; }
+  .zp-reiter button:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-reiter .zp-programmname, .zp-reiter .zp-mininame { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .zp-reiter .zp-mininame { font-weight: 400; }
+  .zp-punkt-gilt { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--hn-akzent); }
+  /* Auf dem Telefon richten sich die Reiter nach ihrem Inhalt; der Zusatz „leer“ entfällt, der Reiter bleibt blass. */
+  @media (max-width: 420px) {
+    .zp-reiter .zp-zusatz { display: none; }
+    .zp-reiter button { flex: 1 1 auto; padding: 6px 5px; gap: 5px; }
   }
-  .zp-minispuren { gap: 2px; }
-  /* In der Spalte gilt flex:1 der Höhe, nicht der Breite; hier bleibt die Spur so hoch, wie sie ist. */
-  .zp-heute-spur .spur, .zp-minispuren .spur { flex: none; }
-  .zp-minispuren .spur:not(.duenn) { height: 10px; }
-  .zp-mini .zp-taste { padding: 4px 10px; font-size: 12px; }
+  .zp-zeilen { display: flex; flex-direction: column; }
+  .zp-zeile {
+    display: grid; grid-template-columns: 64px 1fr; row-gap: 3px; padding: 6px 0;
+    border-radius: 8px; cursor: pointer;
+  }
+  .zp-zeile:hover { background: color-mix(in srgb, var(--hn-flaeche) 60%, transparent); }
+  .zp-zeile:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-zeilenkopf, .zp-zeilenkopf:hover { padding: 0; cursor: default; background: none; }
+  .zp-zeilenkopf .zeitraster-skala { margin: 0 6px 0 0; }
+  .zp-tagname { align-self: center; padding-left: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .zp-tagname.heute { color: var(--hn-akzent); }
+  .zp-spur {
+    position: relative; height: 14px; margin-right: 6px; border-radius: 7px;
+    background: var(--hn-flaeche); overflow: hidden;
+  }
+  .zp-stunde { position: absolute; top: 3px; bottom: 3px; width: 1px; background: var(--hn-linie); }
+  .zp-fuellung { position: absolute; top: 0; bottom: 0; border-radius: 7px; background: var(--hn-akzent); }
+  .zp-fuellung.halb { opacity: 0.45; }
+  .zp-spur .jetzt-linie {
+    position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--hn-text);
+  }
+  .zp-klartext {
+    grid-column: 2; font-size: 12.5px; color: var(--hn-gedaempft);
+    font-variant-numeric: tabular-nums; text-wrap: pretty;
+  }
+  .zp-abschnitt { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); }
   .zp-leer { font-size: 12px; font-style: italic; }
   .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }
   .zp-warnung { font-size: 13px; color: var(--warning-color); margin-bottom: 2px; }

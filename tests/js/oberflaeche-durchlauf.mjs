@@ -194,6 +194,7 @@ REITER.forEach((reiter) => {
     fuss: [...flaeche.shadowRoot.querySelectorAll(".zp-fuss")].map((fuss) => fuss.children.map(text)),
     schaltzeiten: flaeche.shadowRoot.querySelectorAll(".schaltzeit").length,
     segmentWerte: [...flaeche.shadowRoot.querySelectorAll(".zp-segmentwert")].map(text),
+    klartext: [...flaeche.shadowRoot.querySelectorAll(".zp-klartext")].map(text),
     heuteKarten: flaeche.shadowRoot.querySelectorAll(".zp-heute").length,
     legenden: flaeche.shadowRoot.querySelectorAll(".zp-legende").length,
     // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
@@ -695,6 +696,11 @@ const dialogTaste = (betont) =>
   rueckfrageDialog()
     .querySelectorAll(".dialog-taste")
     .find((taste) => taste.classList.contains("betont") === betont);
+// „Aktivieren“ steht am gezeigten Programm, das nicht gilt: erst den Reiter von Programm 2 wählen.
+const reiterVon = (anfang) =>
+  flaeche.shadowRoot.querySelectorAll("[role=tab]").find((taste) => text(taste).startsWith(anfang));
+const vorReiter = sichtbareAktivieren().length;
+reiterVon("Programm 2").ausloesen("click");
 const vorAktivieren = sichtbareAktivieren().length;
 
 const vorNein = dienstAufrufe.length;
@@ -723,6 +729,7 @@ flaeche._aktualisieren();
 const waehrendUmstellung = sichtbareAktivieren().length;
 zeit.zeitLaufenLassen();
 bilanz.aktivieren = {
+  vorReiter,
   vorher: vorAktivieren,
   frage: frageText,
   nachNein,
@@ -819,10 +826,12 @@ hass.callWS = async (anfrage) => {
 flaeche._reiter = "zeitprogramme";
 flaeche._gebaut = false;
 flaeche._zeichnen();
-// Programm 2 gilt nicht und steht als Minibalken; sein Name öffnet den Dialog.
-const nameZwei = flaeche.shadowRoot
-  .querySelectorAll(".zp-mininame")
-  .find((name) => text(name).startsWith("Programm 2"));
+// Programm 2 steht im gewählten Reiter; „Öffnen“ holt den Dialog.
+const gezeigtZwei = flaeche.shadowRoot
+  .querySelectorAll(".zp-programm")
+  .find((programm) => text(programm.querySelector(".zp-programmname")).startsWith("Programm 2"));
+const nameZwei =
+  gezeigtZwei && gezeigtZwei.querySelectorAll(".zp-taste").find((taste) => taste.classList.contains("betont"));
 let bezeichnungUndZeiten = null;
 if (nameZwei) {
   const vorZugleich = dienstAufrufe.length;
@@ -908,10 +917,10 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         text: text(zeile.querySelector(".zp-heute-text")),
         jetztLinien: zeile.querySelectorAll(".jetzt-linie").length,
       })),
-    leer: wurzel.querySelectorAll(".zp-mini").filter((zeile) => zeile.classList.contains("leer")).map((zeile) => ({
-      name: text(zeile.querySelector(".zp-mininame")),
-      spuren: zeile.querySelectorAll(".spur").length,
-      aktivieren: zeile.querySelectorAll(".zp-aktivieren").length,
+    leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
+      name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      spuren: taste.querySelectorAll(".zp-spur").length,
+      aktivieren: taste.querySelectorAll(".zp-aktivieren").length,
     })),
   };
   zwei.attributes.blocks = zweiBloecke;
@@ -1000,7 +1009,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   // Fokus: Ein Neuaufbau der Gruppe lässt die Taste fokussiert, an der man stand.
   flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
   flaeche._aktualisieren();
-  const taste = wurzel.querySelectorAll(".zp-mini").map((zeile) => zeile.querySelector(".zp-aktivieren")).find(Boolean);
+  const taste = wurzel.querySelectorAll(".zp-aktivieren").find((knopf) => !knopf.hidden);
   taste.focus();
   const vorUmstellung = gross();
   states["select.betriebswahl"].state = "Standby";

@@ -219,12 +219,12 @@ def test_ohne_waermeanforderung_steht_ein_strich(durchlauf):
     assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
 
 
-def test_die_werte_stehen_im_balken_statt_darunter(durchlauf):
-    """Die Schaltzeiten als Text doppelten den Balken; die genauen Zeiten zeigt der Dialog."""
+def test_die_werte_stehen_im_klartext_unter_der_spur(durchlauf):
+    """Die Spur trägt keine Zahlen; Zeiten und Werte stehen darunter als Klartext."""
     zeitprogramme = durchlauf["zeitprogramme"]
     assert zeitprogramme["schaltzeiten"] == 0
-    assert zeitprogramme["segmentWerte"], "Im Balken steht kein Wert"
-    assert all(text.endswith("°C") for text in zeitprogramme["segmentWerte"])
+    assert zeitprogramme["segmentWerte"] == []
+    assert any("sonst" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
 
 
 def test_eine_karte_je_anlagenteil_statt_je_programm(durchlauf):
@@ -380,7 +380,7 @@ def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
 
 def test_das_aktive_zeitprogramm_traegt_eine_textmarke(durchlauf):
     """Farbe allein trägt keine Aussage; die Marke steht bei jeder aktiven Karte."""
-    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["· aktiv", "· aktiv"]
+    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["gilt", "gilt"]
 
 
 def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):
@@ -842,8 +842,14 @@ def test_waehrend_der_umstellung_ist_keine_taste_zu_sehen(durchlauf):
     assert durchlauf["aktivieren"]["waehrendUmstellung"] == 0
 
 
-def test_nach_der_umstellung_wechselt_die_taste_zum_alten_programm(durchlauf):
-    assert durchlauf["aktivieren"]["danach"] == ["Programm 1"]
+def test_aktivieren_steht_erst_am_gewaehlten_reiter(durchlauf):
+    """Vor der Wahl zeigt die Karte das geltende Programm; dort gibt es nichts zu aktivieren."""
+    assert durchlauf["aktivieren"]["vorReiter"] == 0
+
+
+def test_nach_der_umstellung_verschwindet_die_taste(durchlauf):
+    """Das gezeigte Programm gilt jetzt; die Taste steht nur an einem, das nicht gilt."""
+    assert durchlauf["aktivieren"]["danach"] == []
 
 
 def test_nach_der_umstellung_steht_das_neue_programm_gross(durchlauf):

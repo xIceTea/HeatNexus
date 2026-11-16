@@ -6,6 +6,7 @@
 
 import {
   SKALEN,
+  TAG_MINUTEN,
   einsetzen,
   farbe,
   naechsterWechsel,
@@ -78,6 +79,104 @@ export function heuteText(bloecke, zeit, grenzen, t = OHNE) {
     teile.push(einsetzen(t("ab {zeit} {wert}"), { zeit: wann, wert: wertText(wechsel.wert, grenzen, t) }));
   }
   return teile.join(" · ");
+}
+
+// Zwischen Zahl und Einheit bricht keine Zeile.
+const GESCHUETZT = " ";
+
+function bisText(minute) {
+  return minute >= TAG_MINUTEN ? "24:00" : uhrzeit(minute);
+}
+
+function temperatur(wert, sprache) {
+  const zahl = Number(wert).toLocaleString(sprache || undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `${zahl}${GESCHUETZT}°C`;
+}
+
+/** Die Abschnitte über dem Grundwert; ein Fenster über Mitternacht wird zu einem. */
+function fenster(stuecke, grund) {
+  const liste = stuecke.filter((s) => s.wert !== grund).map((s) => ({ ...s }));
+  const erstes = liste[0];
+  const letztes = liste[liste.length - 1];
+  if (liste.length > 1 && erstes.von === 0 && letztes.bis === TAG_MINUTEN && erstes.wert === letztes.wert) {
+    return [...liste.slice(1, -1), { von: letztes.von, bis: erstes.bis, wert: erstes.wert }];
+  }
+  return liste;
+}
+
+/**
+ * Der Klartext unter einer Tageszeile, in Stücken, die nicht brechen:
+ * „05:30–08:00 · 21,0 °C“, …, „sonst 18,0 °C“; Schaltprogramme „an 06:00–07:30“, ….
+ */
+export function klartext(stuecke, grenzen, { t = OHNE, sprache } = {}) {
+  if (!stuecke || !stuecke.length) return [t("kein Zeitplan")];
+  const zeit = (s) => `${uhrzeit(s.von)}–${bisText(s.bis)}`;
+  if (grenzen.schalt) {
+    const an = stuecke.filter((s) => s.wert >= 0.5);
+    if (!an.length) return [t("immer aus")];
+    if (an.length === 1 && an[0].von === 0 && an[0].bis === TAG_MINUTEN) return [t("immer an")];
+    const zeiten = fenster(stuecke.map((s) => ({ ...s, wert: s.wert >= 0.5 ? 1 : 0 })), 0).map(zeit);
+    return [einsetzen(t("an {zeit}"), { zeit: zeiten[0] }), ...zeiten.slice(1)];
+  }
+  const werte = stuecke.map((s) => s.wert);
+  const grund = Math.min(...werte);
+  if (Math.max(...werte) === grund) {
+    return [einsetzen(t("ganztags {wert}"), { wert: temperatur(grund, sprache) })];
+  }
+  const teile = fenster(stuecke, grund).map((s) => `${zeit(s)} · ${temperatur(s.wert, sprache)}`);
+  return [...teile, einsetzen(t("sonst {wert}"), { wert: temperatur(grund, sprache) })];
+}
+
+/** Je Abschnitt die Füllung der Spur: der höchste Wert „voll“, Zwischenwerte „halb“, der Grundwert leer. */
+export function stufen(stuecke, grenzen) {
+  if (grenzen.schalt) return stuecke.map((s) => (s.wert >= 0.5 ? "voll" : null));
+  const werte = stuecke.map((s) => s.wert);
+  const grund = Math.min(...werte);
+  const hoch = Math.max(...werte);
+  if (hoch === grund) return stuecke.map(() => "voll");
+  return stuecke.map((s) => (s.wert === grund ? null : s.wert === hoch ? "voll" : "halb"));
+}
+
+/** Eine Tagesspur in einer Farbe: Füllung nach Stufe, Stundenstriche, auf Wunsch die Jetzt-Linie. */
+export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
+  const spur = document.createElement("div");
+  spur.className = "zp-spur";
+  [6, 12, 18].forEach((stunde) => {
+    const strich = document.createElement("i");
+    strich.className = "zp-stunde";
+    strich.style.left = `${(stunde / 24) * 100}%`;
+    spur.appendChild(strich);
+  });
+  const stufe = stufen(stuecke, grenzen);
+  // Nachbarn gleicher Stufe und gleichen Werts als eine Füllung, sonst stünde eine Fuge darin.
+  const flaechen = [];
+  stuecke.forEach((stueck, n) => {
+    const vorige = flaechen[flaechen.length - 1];
+    if (vorige && vorige.stufe === stufe[n] && vorige.wert === stueck.wert && vorige.bis === stueck.von) {
+      vorige.bis = stueck.bis;
+    } else {
+      flaechen.push({ ...stueck, stufe: stufe[n] });
+    }
+  });
+  flaechen.forEach((stueck) => {
+    if (!stueck.stufe) return;
+    const fuellung = document.createElement("i");
+    fuellung.className = `zp-fuellung ${stueck.stufe}`;
+    fuellung.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
+    fuellung.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
+    fuellung.title = `${uhrzeit(stueck.von)}–${bisText(stueck.bis)} · ${wertText(stueck.wert, grenzen, t)}`;
+    spur.appendChild(fuellung);
+  });
+  if (Number.isFinite(jetzt)) {
+    const linie = document.createElement("i");
+    linie.className = "jetzt-linie";
+    linie.style.left = `${(jetzt / TAG_MINUTEN) * 100}%`;
+    spur.appendChild(linie);
+  }
+  return spur;
 }
 
 /** Die Legende der Skalen, die auf der Seite vorkommen: Raum, Wasser, Ein. */
