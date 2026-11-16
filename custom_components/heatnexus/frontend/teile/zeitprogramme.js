@@ -4,7 +4,6 @@
  * Gerechnet wird in ../zeitprogramm.js und ../zeitprogrammseite.js; eingebunden als Mixin in heatnexus-panel.js.
  */
 
-import { BREITE_MAX } from "../ordnung.js";
 import {
   BEZEICHNUNG_MAX,
   blockraster,
@@ -18,19 +17,14 @@ import {
   TAG_MINUTEN,
   schaltetNie,
   skala,
-  skalaKnoten,
-  spurKnoten,
-  tagesabschnitte,
   uebersichtKnoten,
   uhrzeit,
 } from "../zeitprogramm.js";
 import { zeileneditorKnoten } from "../zeileneditor.js";
 import {
-  HEUTE_GRUPPEN,
   blockEinsetzen,
   heuteText,
   tabelle,
-  legendeKnoten,
   nachTeilen,
   tagesspur,
   zeitmarken,
@@ -71,17 +65,7 @@ export const ZeitprogrammeMixin = (Basis) =>
       knoten: this._teilKarte({ ...teil, sprache: anlage.sprache }),
       breite: 2,
     }));
-    if (this._alleAnlagen()) return karten;
-    const heute = { id: "zeitprogramme:heute", titel: this._t("Heute"), breite: BREITE_MAX };
-    return [{ ...heute, knoten: this._heuteKarte([anlage]) }, ...karten];
-  }
-
-  /** Der gemeinsame Heute-Streifen unter „Alle“, je Anlage eine Zwischenzeile. */
-  _zeitprogrammeHeute() {
-    const knoten = this._heuteKarte(this._anlagen());
-    if (!knoten) return document.createElement("div");
-    const karte = { id: "zeitprogramme:heute", titel: this._t("Heute"), knoten, breite: BREITE_MAX };
-    return this._raster({ id: "alle" }, [karte], "");
+    return karten;
   }
 
   /** Solange der Reiter offen ist, einmal je Minute die Bindungen laufen lassen. */
@@ -163,108 +147,6 @@ export const ZeitprogrammeMixin = (Basis) =>
     return wahlName ? `${wahlName}: ${option}` : option;
   }
 
-  /** Arten der Farbskala, die auf der Seite vorkommen, für die Legende. */
-  _skalenDerSeite(anlagen) {
-    const arten = new Set();
-    anlagen.forEach((anlage) =>
-      (anlage.zeitprogramme || []).forEach((programm) => {
-        const bloecke = this._bloecke(programm.entity);
-        if (bloecke && !istLeer(bloecke)) arten.add(skala(bloecke, programm.art).art);
-      })
-    );
-    return arten;
-  }
-
-  // -------------------------------------------------------------------
-  // Heute-Streifen
-  // -------------------------------------------------------------------
-  _heuteKarte(anlagen) {
-    const mitProgramm = anlagen.filter((anlage) => (anlage.zeitprogramme || []).length);
-    if (!mitProgramm.length) return null;
-    const karte = this._karte(this._t("Heute"));
-    karte.classList.add("zp-heute");
-    const kopf = document.createElement("div");
-    kopf.className = "zp-heute-zeile zp-heute-kopf";
-    kopf.append(document.createElement("span"), skalaKnoten(), document.createElement("span"));
-    karte.appendChild(kopf);
-    mitProgramm.forEach((anlage) => {
-      karte.appendChild(this._inSprache(anlage, (sicht) => sicht._heuteAnlage(anlage, anlagen.length > 1)));
-    });
-    karte.appendChild(legendeKnoten(this._skalenDerSeite(mitProgramm), this._t.bind(this)));
-    return karte;
-  }
-
-  _heuteAnlage(anlage, mitName) {
-    const gruppe = document.createElement("div");
-    gruppe.className = "zp-heute-anlage";
-    if (mitName) {
-      const name = document.createElement("div");
-      name.className = "zp-heute-anlagenname";
-      name.textContent = anlage.name || "Anlage";
-      name.dataset.roh = "";
-      gruppe.appendChild(name);
-    }
-    nachTeilen(anlage.zeitprogramme).forEach((teil) => {
-      teil.gruppen
-        .filter((eintrag) => HEUTE_GRUPPEN.has(eintrag.gruppe))
-        .forEach((eintrag) => gruppe.appendChild(this._heuteZeile(teil, eintrag)));
-    });
-    return gruppe;
-  }
-
-  /** Eine Zeile: Anlagenteil, der heutige Tag des geltenden Programms, rechts jetzt und der nächste Wechsel. */
-  _heuteZeile(teil, gruppe) {
-    const zeile = document.createElement("div");
-    zeile.className = "zp-heute-zeile";
-    zeile.dataset.gruppe = gruppe.gruppe;
-    const name = document.createElement("div");
-    name.className = "zp-heute-name";
-    const erstes = gruppe.eintraege[0].programm;
-    if (erstes.symbol) name.appendChild(this._symbolKnoten(erstes.symbol));
-    const titel = document.createElement("span");
-    titel.className = "zp-heute-titel";
-    titel.textContent = gruppe.gruppe === "warmwasser" ? this._t("Warmwasser") : teil.anlagenteil;
-    if (gruppe.gruppe !== "warmwasser") titel.dataset.roh = "";
-    const programm = document.createElement("span");
-    programm.className = "zp-heute-programm";
-    programm.dataset.roh = "";
-    name.append(titel, programm);
-    const spur = document.createElement("div");
-    spur.className = "zeitraster zp-heute-spur";
-    const text = document.createElement("div");
-    text.className = "zp-heute-text";
-    zeile.append(name, spur, text);
-    const teile = { programm, spur, text, anlagenteil: teil.anlagenteil };
-    let stand = null;
-    this._bindungen.push(() => {
-      // Die Zeile hat keine Bedienelemente; sie darf jede Minute neu entstehen.
-      const kennung = `${this._gruppenKennung(gruppe)}|${this._ortszeit().minute}`;
-      if (kennung === stand) return;
-      stand = kennung;
-      this._heuteZeichnen(gruppe, teile);
-    });
-    return zeile;
-  }
-
-  _heuteZeichnen(gruppe, teile) {
-    const t = this._t.bind(this);
-    const { aktiv, gross } = this._gruppenStand(gruppe);
-    const zeit = this._ortszeit();
-    const zusatz = gruppe.gruppe === "warmwasser" ? ` · ${teile.anlagenteil}` : "";
-    const bloecke = aktiv ? this._bloecke(aktiv.programm.entity) || [] : [];
-    const grenzen = skala(bloecke, aktiv && aktiv.programm.art);
-    const zeigt = aktiv || gross;
-    teile.programm.textContent = zeigt ? this._programmTitel(zeigt.programm) + zusatz : "";
-    const heute = aktiv ? tagesabschnitte(bloecke, zeit.tag) : [];
-    teile.spur.replaceChildren(spurKnoten(heute, grenzen, { t, jetzt: zeit.minute }));
-    if (aktiv) {
-      teile.text.textContent = heuteText(bloecke, zeit, grenzen, t);
-      return;
-    }
-    const lage = t(gross ? "wirkt nicht" : "kein Programm");
-    teile.text.textContent = [lage, this._wahlText(gruppe)].filter(Boolean).join(" · ");
-  }
-
   /** Was eine Gruppe neu aufbaut: Wochentag, Auswahl, Blöcke, geltendes Programm. Die Minute nicht. */
   _gruppenKennung(gruppe) {
     const programme = gruppe.eintraege.flatMap(({ programm, vorlauf }) => [programm, vorlauf].filter(Boolean));
@@ -277,6 +159,15 @@ export const ZeitprogrammeMixin = (Basis) =>
     const editor = offen ? `${this._zpOffen.entity}#${this._zpOffen.stelle}` : "";
     const benennen = programme.some((p) => p.entity === this._zpBenennen) ? this._zpBenennen : "";
     return [this._ortszeit().tag, this._wahlText(gruppe), wahl, editor, benennen, ...teile].join("|");
+  }
+
+  /** „jetzt … · ab …“ hängt an der Uhr; die Lagezeile entsteht deshalb bei jedem Takt neu, der Rest nicht. */
+  _lageAuffrischen(knoten, gruppe) {
+    const alt = knoten.querySelector(".zp-lage");
+    if (!alt) return;
+    const { sichtbar, aktiv } = this._gruppenStand(gruppe);
+    const neu = this._lageZeile(gruppe, { sichtbar, aktiv, gezeigt: this._gezeigt(gruppe, sichtbar, aktiv) });
+    if (neu.textContent !== alt.textContent) alt.replaceWith(neu);
   }
 
   /** Die Jetzt-Linien eines Knotens auf die aktuelle Minute setzen, ohne ihn neu zu bauen. */
@@ -321,6 +212,7 @@ export const ZeitprogrammeMixin = (Basis) =>
         stand = kennung;
         this._gruppeZeichnen(knoten, gruppe, teile);
       }
+      this._lageAuffrischen(knoten, gruppe);
       this._jetztLinienSetzen(knoten);
       this._tastenSetzen(gruppe, teile);
     });

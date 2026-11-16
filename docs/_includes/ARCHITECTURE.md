@@ -344,7 +344,8 @@ was dort steht, lädt der Browser genau so.
 | `stil/*.js` | das CSS, je Bereich ein Teil (Grund, Raster, Karten, Dialog, …) |
 | `ordnung.js` | Reihenfolge der Karten und Zeitkonstanten – dieselbe Rechnung wie `anordnung.py` auf dem Server |
 | `zeitprogramm.js` | Zeitprogramme: Abschnitte, Farbskala, nächster Wechsel, Prüfung, Nutzlast, Wochenraster, Editor |
-| `zeitprogrammseite.js` | Reiter Zeitprogramme: Gruppen je Anlagenteil, Text im Heute-Streifen, Legende |
+| `zeitprogrammseite.js` | Reiter Zeitprogramme: Gruppen je Anlagenteil, Lagezeile, Tabelle und Zeitmarken je Block, Tagesspur, Block einsetzen |
+| `zeileneditor.js` | Editor unter einer Tageszeile: Schaltzeiten und Wochentage eines Blocks |
 | `zeichen.js` | das HeatNexus-Zeichen als SVG für Kopfzeile und Fenster „Darstellung“ |
 | `teile/*.js` | die Abschnitte der Oberfläche, je einer als Mixin |
 

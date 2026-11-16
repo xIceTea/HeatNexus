@@ -968,15 +968,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._reiter = "zeitprogramme";
   flaeche._gebaut = false;
   flaeche._zeichnen();
+  reiterVon("Programm 1").ausloesen("click");
   const wurzel = flaeche.shadowRoot;
   const heute = {
-    zeilen: [...wurzel.querySelectorAll(".zp-heute-zeile")]
-      .filter((zeile) => zeile.dataset.gruppe)
-      .map((zeile) => ({
-        gruppe: zeile.dataset.gruppe,
-        programm: text(zeile.querySelector(".zp-heute-programm")),
-        text: text(zeile.querySelector(".zp-heute-text")),
-        jetztLinien: zeile.querySelectorAll(".jetzt-linie").length,
+    zeilen: [...wurzel.querySelectorAll(".zp-gruppe")]
+      .filter((gruppe) => gruppe.dataset.gruppe)
+      .map((gruppe) => ({
+        gruppe: gruppe.dataset.gruppe,
+        lage: text(gruppe.querySelector(".zp-lage")),
+        jetztLinien: gruppe.querySelectorAll(".jetzt-linie").length,
       })),
     leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
       name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
@@ -1001,7 +1001,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._zeichnen();
   heute.alle = {
     karten: wurzel.querySelectorAll(".zp-heute").length,
-    anlagen: [...wurzel.querySelectorAll(".zp-heute-anlagenname")].map(text),
+    programmKarten: wurzel.querySelectorAll(".zp-karte").length,
     legenden: wurzel.querySelectorAll(".zp-legende").length,
   };
   flaeche._daten = vorherDaten;
@@ -1043,7 +1043,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   bilanz.vorlaufRueckmeldung = teile.vorlaufRueckmeldung && teile.vorlaufRueckmeldung.dataset.programm;
 }
 
-// Uhr: Ohne Zustandsänderung rücken Heute-Text und Jetzt-Linie mit dem Minutentakt vor.
+// Uhr: Ohne Zustandsänderung rücken Lagezeile und Jetzt-Linie mit dem Minutentakt vor.
 {
   flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
   hass.config = { time_zone: "UTC" };
@@ -1054,15 +1054,16 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   // Der Takt läuft nur, solange das Panel im Dokument hängt.
   Object.defineProperty(flaeche, "isConnected", { value: true, configurable: true });
   const wurzel = flaeche.shadowRoot;
-  const heizen = () => wurzel.querySelectorAll(".zp-heute-zeile").find((zeile) => zeile.dataset.gruppe === "heizen");
+  reiterVon("Programm 2").ausloesen("click");
+  const heizen = () => wurzel.querySelectorAll(".zp-gruppe").find((gruppe) => gruppe.dataset.gruppe === "heizen");
   const gross = () => wurzel.querySelectorAll(".zp-programm")[0];
-  const vorher = { text: text(heizen().querySelector(".zp-heute-text")), gross: gross() };
+  const vorher = { text: text(heizen().querySelector(".zp-lage")), gross: gross() };
   flaeche._jetzt = () => new Date("2026-09-21T22:30:00Z");
   zeit.takteAusloesen(60 * 1000);
   const linie = gross().querySelector(".jetzt-linie");
   bilanz.uhr = {
     vorher: vorher.text,
-    nachher: text(heizen().querySelector(".zp-heute-text")),
+    nachher: text(heizen().querySelector(".zp-lage")),
     gleicherKnoten: gross() === vorher.gross,
     linie: linie && linie.style.left,
   };

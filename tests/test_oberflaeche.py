@@ -263,19 +263,19 @@ def test_der_hinweis_steht_einmal_im_kartenfuss(durchlauf):
     ]
 
 
-def test_der_heute_streifen_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
+def test_die_lagezeile_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
     """Montag 10:00: Programm 1 hält 21 °C bis 22:00, dann 16 °C."""
     zeilen = durchlauf["heute"]["zeilen"]
     assert [z["gruppe"] for z in zeilen] == ["heizen", "warmwasser"]
-    heizen = zeilen[0]
-    assert heizen["programm"] == "Programm 1"
-    assert heizen["text"] == "jetzt 21 °C · ab 22:00 16 °C"
+    assert "Programm 1 gilt" in zeilen[0]["lage"]
+    assert "jetzt 21 °C · ab 22:00 16 °C" in zeilen[0]["lage"]
     assert all(z["jetztLinien"] == 1 for z in zeilen)
 
 
-def test_die_legende_steht_einmal_je_seite(durchlauf):
-    assert durchlauf["zeitprogramme"]["heuteKarten"] == 1
-    assert durchlauf["zeitprogramme"]["legenden"] == 1
+def test_es_gibt_keine_heute_karte_und_keine_legende(durchlauf):
+    """Die Lage steht in jeder Karte; eine eigene Karte „Heute“ wiederholte sie nur."""
+    assert durchlauf["zeitprogramme"]["heuteKarten"] == 0
+    assert durchlauf["zeitprogramme"]["legenden"] == 0
 
 
 def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):
@@ -305,11 +305,10 @@ def test_das_zirkulationsprogramm_der_anderen_art_bleibt_klein_sichtbar(durchlau
     assert zirkulation["gross"] == "sensor.zirk_temp"
 
 
-def test_unter_alle_steht_ein_streifen_mit_jeder_anlage(durchlauf):
+def test_unter_alle_stehen_nur_die_karten_der_anlagen(durchlauf):
     alle = durchlauf["heute"]["alle"]
-    assert alle["karten"] == 1
-    assert alle["anlagen"] == ["Anlage A", "Anlage B"]
-    assert alle["legenden"] == 1
+    assert (alle["karten"], alle["legenden"]) == (0, 0)
+    assert alle["programmKarten"] >= 2
 
 
 def test_der_zeitprogramm_dialog_zeigt_erst_die_spannen(durchlauf):
@@ -1613,11 +1612,11 @@ def test_der_vorlauf_hat_eine_eigene_rueckmeldung(durchlauf):
     assert durchlauf["vorlaufRueckmeldung"] == "sensor.vorlauf_1"
 
 
-def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
+def test_der_minutentakt_bewegt_lagezeile_und_jetzt_linie(durchlauf):
     """Montag 22:30: 16 °C bis Dienstag 06:00. Das große Programm bleibt derselbe Knoten."""
     uhr = durchlauf["uhr"]
-    assert uhr["vorher"] == "jetzt 21 °C · ab 22:00 16 °C"
-    assert uhr["nachher"] == "jetzt 16 °C · ab Di 06:00 21 °C"
+    assert uhr["vorher"].endswith("jetzt 21 °C · ab 22:00 16 °C")
+    assert uhr["nachher"].endswith("jetzt 16 °C · ab Di 06:00 21 °C")
     assert uhr["gleicherKnoten"] is True
     assert uhr["linie"] == "93.75%"
 

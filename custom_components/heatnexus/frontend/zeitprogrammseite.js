@@ -5,11 +5,9 @@
  */
 
 import {
-  SKALEN,
   TAGE,
   TAG_MINUTEN,
   einsetzen,
-  farbe,
   naechsterWechsel,
   tagText,
   uhrzeit,
@@ -19,9 +17,6 @@ import {
 
 /** Reihenfolge der Gruppen in einer Karte; Programme ohne Gruppe folgen danach. */
 export const GRUPPEN = ["heizen", "warmwasser", "zirkulation", "puffer"];
-
-/** Gruppen mit einer Zeile im Heute-Streifen. Zirkulation fehlt: Ein/Aus sagt über den Tag wenig. */
-export const HEUTE_GRUPPEN = new Set(["heizen", "warmwasser", "puffer"]);
 
 const OHNE = (text) => text;
 
@@ -212,47 +207,4 @@ export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
     spur.appendChild(linie);
   }
   return spur;
-}
-
-/** Die Legende der Skalen, die auf der Seite vorkommen: Raum, Wasser, Ein. */
-export function legendeKnoten(arten, t = OHNE) {
-  const knoten = document.createElement("div");
-  knoten.className = "zp-legende";
-  [
-    ["raum", "Raum"],
-    ["wasser", "Wasser"],
-  ]
-    .filter(([art]) => arten.has(art))
-    .forEach(([art, name]) => {
-      const grenzen = { ...SKALEN[art], schalt: false };
-      const verlauf = document.createElement("i");
-      verlauf.className = "zp-verlauf";
-      verlauf.style.background = `linear-gradient(to right, ${farbe(grenzen.min, grenzen)}, ${farbe(
-        grenzen.max,
-        grenzen
-      )})`;
-      knoten.appendChild(legendeEintrag(t(name), `${grenzen.min} °C`, verlauf, `${grenzen.max} °C`));
-    });
-  if (arten.has("schalt")) {
-    const ein = document.createElement("i");
-    ein.className = "zp-ein";
-    ein.style.background = farbe(1, { schalt: true });
-    knoten.appendChild(legendeEintrag(t("Ein"), ein));
-  }
-  return knoten;
-}
-
-function legendeEintrag(...teile) {
-  const eintrag = document.createElement("span");
-  eintrag.className = "zp-legende-eintrag";
-  teile.forEach((teil) => {
-    if (typeof teil !== "string") {
-      eintrag.appendChild(teil);
-      return;
-    }
-    const text = document.createElement("span");
-    text.textContent = teil;
-    eintrag.appendChild(text);
-  });
-  return eintrag;
 }

@@ -85,37 +85,6 @@ export const ZEITPROGRAMME = `
   .zeitraster-zeile.vorlauf .tag { font-weight: 400; opacity: 0.55; }
   .zeitraster-abschnitt { margin: 10px 0 2px; font-size: 12px; font-weight: 600; opacity: 0.6; }
 
-  /* Heute-Streifen: Name, Tagesbalken, Text in festen Spalten, damit die Balken untereinander stehen. */
-  .zp-heute-zeile {
-    display: grid; grid-template-columns: minmax(130px, 200px) 1fr minmax(170px, 230px);
-    align-items: center; gap: 4px 14px; padding: 6px 0;
-  }
-  .zp-heute-kopf { padding: 0; }
-  .zp-heute-kopf .zeitraster-skala { margin-left: 0; }
-  .zp-heute-anlagenname {
-    margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; opacity: 0.6;
-  }
-  .zp-heute-name { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; align-items: center; }
-  .zp-heute-name ha-icon { --mdc-icon-size: 18px; grid-row: span 2; opacity: 0.8; }
-  .zp-heute-titel { font-size: 13px; font-weight: 600; }
-  .zp-heute-programm { font-size: 12px; opacity: 0.6; }
-  .zp-heute-text { font-size: 13px; font-variant-numeric: tabular-nums; }
-  /* In der Spalte gilt flex:1 der Höhe, nicht der Breite; hier bleibt die Spur so hoch, wie sie ist. */
-  .zp-heute-spur .spur { flex: none; }
-  @media (max-width: 700px) {
-    .zp-heute-zeile { grid-template-columns: 1fr; }
-    .zp-heute-kopf > span { display: none; }
-  }
-  .zp-legende {
-    display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px;
-    padding-top: 10px; border-top: 1px solid var(--hn-flaeche); font-size: 12px; opacity: 0.8;
-  }
-  .zp-legende-eintrag { display: inline-flex; align-items: center; gap: 6px; }
-  .zp-legende-eintrag span:first-child { font-weight: 600; }
-  .zp-verlauf { display: inline-block; width: 72px; height: 8px; border-radius: 4px; }
-  .zp-ein { display: inline-block; width: 18px; height: 8px; border-radius: 4px; }
-
   /* Karte je Anlagenteil: Lagezeile, ein Reiter je Programm, je Block eine Spur in einer Farbe mit Klartext. */
   .zp-kartensymbol { --mdc-icon-size: 20px; opacity: 0.8; }
   .zp-gruppe + .zp-gruppe { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hn-flaeche); }
