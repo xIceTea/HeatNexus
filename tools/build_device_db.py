@@ -272,13 +272,39 @@ def _merkmale(eintraege, ziel: dict) -> None:
             ziel.setdefault("neustart", []).append(adresse)
 
 
+# Gruppen, die die Herstellerliste mit einem Schlüssel statt einer Text-ID führt,
+# zugeordnet zur Text-ID gleichen Inhalts aus denselben Dateien. Ein Schlüssel
+# ohne Text-ID ergibt keine Gruppe, sonst erschiene er als Name einer Entität.
+GRUPPEN_TEXT_ID = {
+    "boiler_temperatures": "EmStrId_BOILER_TEMPERATURE",
+    "hot_water_load": "EmStrId_DHW_LOAD",
+    "lon_system_data": "EmStrId_LON_SYSTEM_DATA",
+    "module_functions": "EmStrId_MODULE_FUNCTIONS",
+    "puffer_loading_pump": "EmStrId_BUFFER_LOADING_PUMP",
+    "puffer_temperatures": "EmStrId_BUFFER_TEMPERATURES",
+    "pump_supplementary_boiler": "EmStrId_PUMP_FOR_ZSK",
+    "stratified_charge": "EmStrId_STRATIFIED_LOADING",
+    "supplementary_boiler": "EmStrId_PEAK_LOAD_BOILER_ZSK",
+    "switch_valve": "EmStrId_SWITCHING_VALVE",
+    "switches_puffer_temperatures": "EmStrId_SWITCH_BUFFER_TEMP",
+    "system_configuration": "EmStrId_SYSTEM_CONFIGURATION",
+}
+
+
+def _gruppentext(schluessel: str, texte: dict) -> str | None:
+    """Klartext einer Gruppe, oder None, wenn der Hersteller keinen führt."""
+    return texte.get(GRUPPEN_TEXT_ID.get(schluessel, schluessel))
+
+
 def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
     """Benannte Gruppen einer Ebene: Klartext -> Datenpunkte."""
     ergebnis: dict[str, list[str]] = {}
     for eintrag in eintraege or []:
         if not isinstance(eintrag, dict) or not eintrag.get("group_name"):
             continue
-        name = texte.get(eintrag["group_name"], eintrag["group_name"])
+        name = _gruppentext(eintrag["group_name"], texte)
+        if name is None:
+            continue
         adressen = _adressen(eintrag.get("parameters"))
         if adressen:
             ergebnis.setdefault(name, []).extend(

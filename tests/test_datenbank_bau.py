@@ -278,3 +278,29 @@ def test_jede_eigene_uebersetzung_steht_in_der_datenbank(generator):
         if sprache in fassungen and adresse not in db["sprachen"][sprache]["names"]
     )
     assert (veraltet, fehlt) == ([], [])
+
+
+def test_ein_gruppenschluessel_bekommt_den_herstellertext_gleichen_inhalts(generator):
+    eintraege = [{"group_name": "pump_supplementary_boiler", "parameters": [{"oid": "7/21"}]}]
+    gruppen = generator._gruppen(eintraege, {"EmStrId_PUMP_FOR_ZSK": "Pumpe ZSK"})
+    assert gruppen == {"Pumpe ZSK": ["7/21"]}
+
+
+def test_ein_gruppenschluessel_ohne_herstellertext_ergibt_keine_gruppe(generator):
+    eintraege = [{"group_name": "group-oem-50", "parameters": [{"oid": "51/114"}]}]
+    assert generator._gruppen(eintraege, {}) == {}
+
+
+def test_kein_gruppenname_der_datenbank_ist_ein_roher_schluessel():
+    db = json.loads(
+        (WERKZEUG.parents[1] / "custom_components/heatnexus/device_db.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    roh = sorted(
+        name
+        for ebenen in db["layers"].values()
+        for name in (ebenen.get("groups") or {})
+        if name.startswith(("EmStrId_", "group-")) or "_" in name
+    )
+    assert roh == []
