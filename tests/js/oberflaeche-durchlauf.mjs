@@ -464,7 +464,7 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
   zweiteGruppen[2].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
-  // Die Helligkeit ist blass, solange ein Satz nur eine Fassung kennt oder Home Assistant folgt.
+  // Die Helligkeit ist blass, solange „Home Assistant“ gewählt ist.
   const helligkeitsblock = zweiteGruppen[1].parentElement;
   const helligkeitStand = () => ({
     aus: helligkeitsblock.classList.contains("aus"),

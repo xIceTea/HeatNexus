@@ -1509,6 +1509,9 @@ def _weitere(farben):
         (farben.THEMA_PFLAUME, farben.FARBEN_PFLAUME),
         (farben.THEMA_WINDHAGER, farben.FARBEN_WINDHAGER),
         (farben.THEMA_WINDHAGER_DUNKEL, farben.FARBEN_WINDHAGER_DUNKEL),
+        (farben.THEMA_TERRAKOTTA_HELL, farben.FARBEN_TERRAKOTTA_HELL),
+        (farben.THEMA_PETROL_HELL, farben.FARBEN_PETROL_HELL),
+        (farben.THEMA_PFLAUME_HELL, farben.FARBEN_PFLAUME_HELL),
     )
 
 
@@ -1629,6 +1632,9 @@ def test_die_nutzdaten_schicken_das_bild_einmal(karte, anlage):
         "pflaume_dunkel",
         "windhager_hell",
         "windhager_dunkel",
+        "terrakotta_hell",
+        "petrol_hell",
+        "pflaume_hell",
     }
     assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
 
@@ -1680,10 +1686,11 @@ def _kontrast(vorn: str, hinten: str) -> float:
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
-def test_die_windhager_saetze_bleiben_lesbar(schema, farben, tmp_path):
+def test_die_windhager_und_hellen_saetze_bleiben_lesbar(schema, farben, tmp_path):
     """Akzent und Grün dienen auch als Schrift; beide halten 4,5 : 1 auf der Karte."""
     paletten = _paletten(schema, tmp_path)
-    for satz in (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL):
+    saetze = (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL)
+    for satz in (*saetze, "terrakotta_hell", "petrol_hell", "pflaume_hell"):
         palette = paletten[satz]
         karte = palette["--hn-karte"]
         for variable in ("--hn-text", "--hn-gedaempft", "--hn-akzent", "--hn-gut"):
@@ -1709,6 +1716,9 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
         "pflaume": farben.FARBEN_PFLAUME,
         "windhager": farben.FARBEN_WINDHAGER,
         "windhager_dunkel": farben.FARBEN_WINDHAGER_DUNKEL,
+        "terrakotta_hell": farben.FARBEN_TERRAKOTTA_HELL,
+        "petrol_hell": farben.FARBEN_PETROL_HELL,
+        "pflaume_hell": farben.FARBEN_PFLAUME_HELL,
     }
     for name, farben in saetze.items():
         for rolle in ("vorlauf", "glut", "warm"):

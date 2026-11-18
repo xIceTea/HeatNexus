@@ -1595,11 +1595,11 @@ def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
 
 
-def test_die_helligkeit_ist_blass_wo_der_satz_nur_eine_fassung_kennt(durchlauf):
+def test_die_helligkeit_ist_nur_bei_home_assistant_blass(durchlauf):
     assert durchlauf["darstellung"]["helligkeit"] == {
-        "anfangs": {"aus": True, "grund": "Nur dunkel"},
+        "anfangs": {"aus": False, "grund": ""},
         "homeAssistant": {"aus": True, "grund": "Folgt dem Thema von Home Assistant"},
-        "terrakotta": {"aus": True, "grund": "Nur dunkel"},
+        "terrakotta": {"aus": False, "grund": ""},
         "windhager": {"aus": False, "grund": ""},
     }
 
@@ -1607,7 +1607,7 @@ def test_die_helligkeit_ist_blass_wo_der_satz_nur_eine_fassung_kennt(durchlauf):
 def test_ein_gewaehlter_satz_geht_mit_seiner_helligkeit_zum_server(durchlauf):
     """Ein Satz allein gälte am Server als alter Wert und würde übersetzt.
 
-    Gespeichert war Petrol, das nur dunkel kennt; die Helligkeit bleibt dabei stehen.
+    Gespeichert war Petrol aus der Zeit vor der Helligkeit, also dunkel; die Helligkeit bleibt dabei stehen.
     """
     assert durchlauf["darstellung"]["gesendet"] == [
         {"farbsatz": "heatnexus", "helligkeit": "dunkel"}

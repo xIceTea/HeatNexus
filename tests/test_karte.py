@@ -128,6 +128,9 @@ def test_die_zeichnung_geht_einmal_hinaus(karte, anlage):
         "pflaume_dunkel",
         "windhager_hell",
         "windhager_dunkel",
+        "terrakotta_hell",
+        "petrol_hell",
+        "pflaume_hell",
     }
 
 

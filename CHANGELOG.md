@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Der Farbsatz „Windhager-Stil“ färbt Oberfläche und Schaubild wie die Bediengeräte, hell oder dunkel.
+- Die Farbsätze Terrakotta, Petrol und Pflaume gibt es auch in einer hellen Fassung.
 - Ein Tipp auf eine Tageszeile öffnet darunter Schaltzeiten und Wochentage zum Bearbeiten.
 
 ### Geändert

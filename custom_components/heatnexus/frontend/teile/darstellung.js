@@ -442,14 +442,14 @@ export const DarstellungMixin = (Basis) =>
       });
     }
 
-    /** Hell, dunkel oder automatisch; blass, wo der Satz nur eine Fassung kennt oder Home Assistant folgt. */
+    /** Hell, dunkel oder automatisch; blass bei „Home Assistant“, das dem eigenen Thema folgt. */
     _helligkeitWahl(wahl, wert, nachWahl) {
-      const block = this._darstellungUnterwahl("", wahl(this._t("Helligkeit"), "helligkeit", "helligkeit"));
+      const block = this._darstellungUnterwahl(
+        this._t("Folgt dem Thema von Home Assistant"),
+        wahl(this._t("Helligkeit"), "helligkeit", "helligkeit")
+      );
       const stellen = () => {
         const satz = FARBSAETZE.find((s) => s.schluessel === wert("farbsatz")) || FARBSAETZE[0];
-        const [einzige] = satz.fassungen;
-        const grund = !einzige ? "Folgt dem Thema von Home Assistant" : einzige === "hell" ? "Nur hell" : "Nur dunkel";
-        block.querySelector(".unter-bedingung").textContent = this._t(grund);
         this._unterwahlStellen(block, satz.fassungen.length > 1);
       };
       nachWahl.push(stellen);

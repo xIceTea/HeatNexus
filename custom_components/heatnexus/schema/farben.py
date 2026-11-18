@@ -159,6 +159,59 @@ FARBEN_WINDHAGER: dict[str, str] = {
 }
 
 
+# Helle Fassungen von Terrakotta, Petrol und Pflaume: der helle Satz, im Ton des
+# jeweiligen Akzents getönt.
+FARBEN_TERRAKOTTA_HELL: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": "#9a8a7c",
+    "text": "#4d4038",
+    "titel": "#2a2420",
+    "korpus": "#e9e0d6",
+    "korpus_hell": "#f5efe8",
+    "korpus_dunkel": "#d6c8b9",
+    "warm": "#b5482a",
+    "glut": FARBE_VORLAUF,
+    **HOLZ,
+    "kalt": "#4a76a8",
+    "schrift": SCHRIFT,
+}
+
+
+FARBEN_PETROL_HELL: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": "#7f9894",
+    "text": "#3a4e4b",
+    "titel": "#1a2624",
+    "korpus": "#d9e6e3",
+    "korpus_hell": "#edf4f2",
+    "korpus_dunkel": "#bfd3cf",
+    "warm": "#b8492c",
+    "glut": FARBE_VORLAUF,
+    **HOLZ,
+    "kalt": "#2f6aa8",
+    "schrift": SCHRIFT,
+}
+
+
+FARBEN_PFLAUME_HELL: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": "#918599",
+    "text": "#4a3f54",
+    "titel": "#241d2b",
+    "korpus": "#e5dfec",
+    "korpus_hell": "#f2eef6",
+    "korpus_dunkel": "#d0c6dc",
+    "warm": "#b8454f",
+    "glut": FARBE_VORLAUF,
+    **HOLZ,
+    "kalt": "#5562b3",
+    "schrift": SCHRIFT,
+}
+
+
 # Dunkle Fassung des Windhager-Stils. Die Bediengeräte kennen keine; Grundton ist
 # das Anthrazit der Kesselgehäuse, Puffer warm und kalt bleiben wie im hellen Satz.
 FARBEN_WINDHAGER_DUNKEL: dict[str, str] = {
@@ -194,6 +247,15 @@ THEMA_PETROL = "petrol_dunkel"
 THEMA_PFLAUME = "pflaume_dunkel"
 
 
+THEMA_TERRAKOTTA_HELL = "terrakotta_hell"
+
+
+THEMA_PETROL_HELL = "petrol_hell"
+
+
+THEMA_PFLAUME_HELL = "pflaume_hell"
+
+
 THEMA_WINDHAGER = "windhager_hell"
 
 
@@ -210,9 +272,9 @@ FARBSAETZE = (FARBSATZ_HOME_ASSISTANT, "heatnexus", "terrakotta", "petrol", "pfl
 
 FASSUNGEN: dict[str, tuple[str, ...]] = {
     "heatnexus": ("hell", "dunkel"),
-    "terrakotta": ("dunkel",),
-    "petrol": ("dunkel",),
-    "pflaume": ("dunkel",),
+    "terrakotta": ("hell", "dunkel"),
+    "petrol": ("hell", "dunkel"),
+    "pflaume": ("hell", "dunkel"),
     "windhager": ("hell", "dunkel"),
 }
 
@@ -269,6 +331,9 @@ FARBABBILDUNGEN = {
     THEMA_TERRAKOTTA: entsprechung(FARBEN_TERRAKOTTA),
     THEMA_PETROL: entsprechung(FARBEN_PETROL),
     THEMA_PFLAUME: entsprechung(FARBEN_PFLAUME),
+    THEMA_TERRAKOTTA_HELL: entsprechung(FARBEN_TERRAKOTTA_HELL),
+    THEMA_PETROL_HELL: entsprechung(FARBEN_PETROL_HELL),
+    THEMA_PFLAUME_HELL: entsprechung(FARBEN_PFLAUME_HELL),
     THEMA_WINDHAGER: entsprechung(FARBEN_WINDHAGER),
     THEMA_WINDHAGER_DUNKEL: entsprechung(FARBEN_WINDHAGER_DUNKEL),
 }

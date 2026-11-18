@@ -68,6 +68,11 @@ def test_jeder_satz_nennt_seine_fassungen(farben):
         assert fassungen and set(fassungen) <= {"hell", "dunkel"}, satz
 
 
+def test_jeder_satz_gibt_es_hell_und_dunkel(farben):
+    for satz, fassungen in farben.FASSUNGEN.items():
+        assert fassungen == ("hell", "dunkel"), satz
+
+
 def test_jede_fassung_hat_ihre_schaubildtabelle(farben):
     """Nur die Grundzeichnung, HeatNexus dunkel, braucht keine."""
     erwartet = {
@@ -110,7 +115,7 @@ def test_unbekanntes_faellt_auf_den_standard(tmp_path):
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
 def test_satz_und_helligkeit_ergeben_die_palette(tmp_path):
-    """„Automatisch“ folgt Home Assistant; ein Satz ohne helle Fassung bleibt dunkel."""
+    """„Automatisch“ folgt Home Assistant; die gewählte Fassung gilt, wo der Satz sie hat."""
     faelle = [
         ["heatnexus", "auto", True],
         ["heatnexus", "auto", False],
@@ -129,7 +134,7 @@ def test_satz_und_helligkeit_ergeben_die_palette(tmp_path):
         ["heatnexus_hell", "heatnexus_hell"],
         ["heatnexus_hell", "heatnexus_hell"],
         ["windhager_dunkel", "windhager_dunkel"],
-        ["terrakotta_dunkel", "terrakotta_dunkel"],
+        ["terrakotta_hell", "terrakotta_hell"],
         [None, "heatnexus_hell"],
     ]
 
