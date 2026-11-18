@@ -122,11 +122,11 @@ def test_die_zeichnung_geht_einmal_hinaus(karte, anlage):
     nutzdaten = karte.schaubild_nutzdaten(anlage)
     assert nutzdaten["schema_svg"].startswith("<svg")
     assert set(nutzdaten["schema_farben"]) == {
-        "hell",
-        "terrakotta",
-        "petrol",
-        "pflaume",
-        "windhager",
+        "heatnexus_hell",
+        "terrakotta_dunkel",
+        "petrol_dunkel",
+        "pflaume_dunkel",
+        "windhager_hell",
         "windhager_dunkel",
     }
 

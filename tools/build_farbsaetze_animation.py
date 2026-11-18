@@ -68,7 +68,9 @@ def _temperaturfarben() -> dict[str, dict[str, str]]:
 def _zeichnung(svg: str, satz: str) -> str:
     """Die Zeichnung im gewünschten Satz als Datenadresse."""
     schema = schema_modul()
-    umgestellt = svg if satz == "dunkel" else schema.farben.farben_umstellen(svg, satz)
+    # Die Tabellen tragen Satz und Fassung im Namen, „terrakotta_dunkel“.
+    thema = "heatnexus_hell" if satz == "hell" else f"{satz}_dunkel"
+    umgestellt = svg if satz == "dunkel" else schema.farben.farben_umstellen(svg, thema)
     kodiert = base64.b64encode(umgestellt.encode("utf-8")).decode("ascii")
     return f"data:image/svg+xml;base64,{kodiert}"
 

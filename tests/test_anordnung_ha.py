@@ -123,3 +123,52 @@ async def test_erzeugerwahl_ohne_ansicht_oder_ueber_der_grenze_wird_abgewiesen(
             client, type="heatnexus/anordnung/einstellungen", einstellungen={"erzeuger": wahl}
         )
         assert not antwort["success"], wahl
+
+
+async def test_farbsatz_und_helligkeit_werden_gespeichert(hass, hass_ws_client):
+    from custom_components.heatnexus.anordnung import async_register_anordnung
+
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+
+    neu = {"farbsatz": "windhager", "helligkeit": "dunkel"}
+    antwort = await _senden(client, type="heatnexus/anordnung/einstellungen", einstellungen=neu)
+    assert antwort["success"], antwort
+    gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]["einstellungen"]
+    assert {k: gelesen[k] for k in neu} == neu
+
+    falsch = {"farbsatz": "windhager", "helligkeit": "grell"}
+    antwort = await _senden(client, type="heatnexus/anordnung/einstellungen", einstellungen=falsch)
+    assert not antwort["success"]
+
+
+async def test_ein_alter_farbsatz_vom_offenen_browser_wird_uebersetzt(hass, hass_ws_client):
+    """Ein Browser mit dem Stand vor dem Update schickt bis zum Neuladen noch den alten Wert."""
+    from custom_components.heatnexus.anordnung import async_register_anordnung
+
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+
+    alt = {"farbsatz": "hell"}
+    antwort = await _senden(client, type="heatnexus/anordnung/einstellungen", einstellungen=alt)
+    assert antwort["success"], antwort
+    gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]["einstellungen"]
+    assert (gelesen["farbsatz"], gelesen["helligkeit"]) == ("heatnexus", "hell")
+
+
+async def test_der_gespeicherte_alte_farbsatz_wird_beim_laden_uebersetzt(
+    hass, hass_ws_client, hass_storage, hass_admin_user
+):
+    from custom_components.heatnexus.anordnung import async_register_anordnung
+
+    hass_storage["heatnexus.anordnung"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "heatnexus.anordnung",
+        "data": {"benutzer": {hass_admin_user.id: {"einstellungen": {"farbsatz": "terrakotta"}}}},
+    }
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+
+    gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]["einstellungen"]
+    assert (gelesen["farbsatz"], gelesen["helligkeit"]) == ("terrakotta", "dunkel")

@@ -1,4 +1,4 @@
-"""Farbsätze des Schaubilds: dunkel, hell, terrakotta, petrol, pflaume, Windhager-Stil.
+"""Farbsätze des Schaubilds: HeatNexus, Terrakotta, Petrol, Pflaume, Windhager, je Fassung.
 
 Gezeichnet wird immer im dunklen Satz; `farben_umstellen` tauscht die Farben
 eines fertigen Bildes gegen die des gewählten Satzes.
@@ -178,42 +178,68 @@ FARBEN_WINDHAGER_DUNKEL: dict[str, str] = {
 }
 
 
-THEMA_DUNKEL = "dunkel"
+# Ein Thema ist Farbsatz und Fassung zusammen, „<satz>_<hell|dunkel>“.
+THEMA_DUNKEL = "heatnexus_dunkel"
 
 
-THEMA_HELL = "hell"
+THEMA_HELL = "heatnexus_hell"
 
 
-THEMA_TERRAKOTTA = "terrakotta"
+THEMA_TERRAKOTTA = "terrakotta_dunkel"
 
 
-THEMA_PETROL = "petrol"
+THEMA_PETROL = "petrol_dunkel"
 
 
-THEMA_PFLAUME = "pflaume"
+THEMA_PFLAUME = "pflaume_dunkel"
 
 
-THEMA_WINDHAGER = "windhager"
+THEMA_WINDHAGER = "windhager_hell"
 
 
 THEMA_WINDHAGER_DUNKEL = "windhager_dunkel"
 
 
-# Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
-# Assistant, die übrigen legen den Satz fest.
-FARBSATZ_AUTO = "auto"
+# Was die Oberfläche anbieten darf. „home_assistant“ nimmt die Farben des
+# Themas von Home Assistant; die übrigen gibt es in den genannten Fassungen.
+FARBSATZ_HOME_ASSISTANT = "home_assistant"
 
 
-FARBSAETZE = (
-    FARBSATZ_AUTO,
-    THEMA_DUNKEL,
-    THEMA_HELL,
-    THEMA_TERRAKOTTA,
-    THEMA_PETROL,
-    THEMA_PFLAUME,
-    THEMA_WINDHAGER,
-    THEMA_WINDHAGER_DUNKEL,
-)
+FARBSAETZE = (FARBSATZ_HOME_ASSISTANT, "heatnexus", "terrakotta", "petrol", "pflaume", "windhager")
+
+
+FASSUNGEN: dict[str, tuple[str, ...]] = {
+    "heatnexus": ("hell", "dunkel"),
+    "terrakotta": ("dunkel",),
+    "petrol": ("dunkel",),
+    "pflaume": ("dunkel",),
+    "windhager": ("hell", "dunkel"),
+}
+
+
+HELLIGKEITEN = ("auto", "hell", "dunkel")
+
+
+# Bis 1.15 trug ein Schlüssel Satz und Helligkeit zugleich.
+ALTE_FARBSAETZE: dict[str, tuple[str, str]] = {
+    "auto": (FARBSATZ_HOME_ASSISTANT, "auto"),
+    "dunkel": ("heatnexus", "dunkel"),
+    "hell": ("heatnexus", "hell"),
+    "terrakotta": ("terrakotta", "dunkel"),
+    "petrol": ("petrol", "dunkel"),
+    "pflaume": ("pflaume", "dunkel"),
+    "windhager": ("windhager", "hell"),
+    "windhager_dunkel": ("windhager", "dunkel"),
+}
+
+
+def farbwahl_uebersetzen(einstellungen: dict) -> dict:
+    """Einen alten Farbsatz in Satz und Helligkeit teilen; mit Helligkeit gilt der Wert schon neu."""
+    alt = einstellungen.get("farbsatz")
+    if "helligkeit" in einstellungen or alt not in ALTE_FARBSAETZE:
+        return einstellungen
+    satz, helligkeit = ALTE_FARBSAETZE[alt]
+    return {**einstellungen, "farbsatz": satz, "helligkeit": helligkeit}
 
 
 def entsprechung(ziel: dict[str, str]) -> dict[str, str]:

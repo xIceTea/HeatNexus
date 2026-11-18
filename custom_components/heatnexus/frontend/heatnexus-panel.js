@@ -24,7 +24,7 @@
  */
 
 import { STIL } from "./stil.js";
-import { PALETTEN } from "./ordnung.js";
+import { PALETTEN, paletteSchluessel } from "./ordnung.js";
 import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
@@ -332,7 +332,7 @@ class HeatNexusPanel extends Grundlage {
 
   /** Den gewählten Farbsatz am Wirtselement setzen; `auto` räumt ihn ab. */
   _paletteAnwenden() {
-    const palette = PALETTEN[this._farbsatz()] || null;
+    const palette = PALETTEN[paletteSchluessel(this._farbsatz(), this._helligkeit(), this._dunkelModus())] || null;
     // Alle Farbsätze zusammen nennen die Eigenschaften, die wieder zu entfernen sind.
     const bekannt = new Set(Object.values(PALETTEN).flatMap((satz) => Object.keys(satz)));
     bekannt.forEach((name) => {

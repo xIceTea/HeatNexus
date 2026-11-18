@@ -29,7 +29,8 @@ type: custom:heatnexus-schaubild
 | Feld | Bedeutung | Vorgabe |
 |---|---|---|
 | `anlage` | Kennung oder Name der Anlage, `alle` für sämtliche | die erste gefundene |
-| `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume`, `windhager`, `windhager_dunkel` | `auto` |
+| `farbsatz` | `home_assistant`, `heatnexus`, `terrakotta`, `petrol`, `pflaume`, `windhager` | `home_assistant` |
+| `helligkeit` | `auto`, `hell`, `dunkel`; ohne Wirkung bei `home_assistant` | `auto` |
 | `schrift` | `klein`, `normal`, `gross`, `sehr_gross` | `normal` |
 | `animation` | Pumpen und Leitungen bewegen sich | `true` |
 | `pumpen` | Pumpen stehen als Marke im Bild | `true` |

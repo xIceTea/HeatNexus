@@ -31,11 +31,11 @@ import voluptuous as vol
 
 from .const import DOMAIN
 from .helpers import ordnung_anwenden  # noqa: F401  (Teil der Schnittstelle dieses Moduls)
-from .schema import FARBSAETZE
+from .schema import ALTE_FARBSAETZE, FARBSAETZE, HELLIGKEITEN, farbwahl_uebersetzen
 
-# Fassung des Speicherformats. Wird sie erhöht, muss `_async_migrate_func`
-# eines Stores die alten Daten übersetzen – bis dahin gibt es nur die 1.
-ANORDNUNG_STORE_VERSION = 1
+# Fassung des Speicherformats. Fassung 2 teilt den alten Farbsatz in Satz und
+# Helligkeit; `_AnordnungStore._async_migrate_func` übersetzt Fassung 1.
+ANORDNUNG_STORE_VERSION = 2
 ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 
 # Reiter, die eine eigene Anordnung haben.
@@ -132,7 +132,9 @@ ERZEUGERWAHL = vol.All(
 # Jede Einstellung gilt für die ganze Oberfläche, nicht für eine Anlage.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
-        vol.Optional("farbsatz"): vol.In(FARBSAETZE),
+        # Alte Werte schickt ein Browser mit dem Stand vor dem Update; sie werden übersetzt.
+        vol.Optional("farbsatz"): vol.In((*FARBSAETZE, *ALTE_FARBSAETZE)),
+        vol.Optional("helligkeit"): vol.In(HELLIGKEITEN),
         vol.Optional("kopf"): vol.In(KOPFSTILE),
         vol.Optional("menue"): vol.In(MENUESTILE),
         vol.Optional("alle"): vol.In(ALLESTILE),
@@ -153,11 +155,32 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
 )
 
 
+class _AnordnungStore(Store):
+    """Der Speicher der Anordnung; er übersetzt ältere Fassungen beim Laden."""
+
+    async def _async_migrate_func(
+        self, alte_fassung: int, alte_unterfassung: int, daten: dict[str, Any]
+    ) -> dict[str, Any]:
+        benutzer = {
+            kennung: _farbwahl_im_eintrag(eintrag)
+            for kennung, eintrag in (daten.get("benutzer") or {}).items()
+        }
+        return {**daten, "benutzer": benutzer}
+
+
+def _farbwahl_im_eintrag(eintrag: dict[str, Any]) -> dict[str, Any]:
+    """Die Einstellungen eines Benutzers mit Satz und Helligkeit statt des alten Farbsatzes."""
+    einstellungen = eintrag.get(EINSTELLUNGEN)
+    if not einstellungen:
+        return eintrag
+    return {**eintrag, EINSTELLUNGEN: farbwahl_uebersetzen(einstellungen)}
+
+
 def _store(hass: HomeAssistant) -> Store:
     """Der Speicher – einer für die ganze Integration, Benutzer darin getrennt."""
     speicher = hass.data.get(f"{DOMAIN}_anordnung_store")
     if speicher is None:
-        speicher = Store(hass, ANORDNUNG_STORE_VERSION, ANORDNUNG_STORE_KEY)
+        speicher = _AnordnungStore(hass, ANORDNUNG_STORE_VERSION, ANORDNUNG_STORE_KEY)
         hass.data[f"{DOMAIN}_anordnung_store"] = speicher
     return speicher
 
@@ -200,7 +223,8 @@ async def einstellungen_setzen(
     """Die Einstellungen eines Benutzers ergänzen – Reiter bleiben unberührt."""
     alle = dict(await _laden(hass))
     eigene = dict(alle.get(benutzer_id) or {})
-    eigene[EINSTELLUNGEN] = {**(eigene.get(EINSTELLUNGEN) or {}), **einstellungen}
+    neu = farbwahl_uebersetzen(einstellungen)
+    eigene[EINSTELLUNGEN] = {**(eigene.get(EINSTELLUNGEN) or {}), **neu}
     alle[benutzer_id] = eigene
     await _sichern(hass, alle)
 

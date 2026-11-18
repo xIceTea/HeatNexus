@@ -455,7 +455,7 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert schaubild["dunkel"] != schaubild["hell"]
     # Ein Wert, den der helle Satz wirklich austauscht. Vor- und Rücklauf
     # stehen in jedem Satz gleich und taugen dafür nicht.
-    tabelle = anlage["schema_farben"]["hell"]
+    tabelle = anlage["schema_farben"]["heatnexus_hell"]
     dunkler_wert = next(alt for alt, neu in tabelle.items() if alt != neu)
     assert unquote(schaubild["dunkel"]).count(dunkler_wert) > 0
     assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
@@ -528,8 +528,9 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [8, 4, 2, 2, 3, 3, 3, 2, 2, 2]
+    assert darstellung["kacheln"] == [6, 3, 4, 2, 2, 3, 3, 3, 2, 2, 2]
     assert darstellung["anfangs"][1:] == [
+        ["dunkel"],
         ["standard"],
         ["zeichen"],
         ["umbrechen"],
@@ -541,6 +542,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["an"],
     ]
     assert darstellung["nachKlick"][1:] == [
+        ["dunkel"],
         ["farbig"],
         ["zeichen"],
         ["umbrechen"],
@@ -635,7 +637,7 @@ def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     # Trotz hellem Erscheinungsbild: der gewählte Satz gilt.
     assert schaubild["terrakotta"] not in (schaubild["hell"], schaubild["dunkel"])
     assert schaubild["wahlDunkel"] == schaubild["dunkel"]
-    terrakotta = anlage["schema_farben"]["terrakotta"]
+    terrakotta = anlage["schema_farben"]["terrakotta_dunkel"]
     assert unquote(schaubild["terrakotta"]).count(next(iter(terrakotta.values()))) > 0
 
 
@@ -1591,6 +1593,25 @@ def test_meldung_und_kesselzustand_stehen_gemeinsam_im_kopf(durchlauf):
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
+
+
+def test_die_helligkeit_ist_blass_wo_der_satz_nur_eine_fassung_kennt(durchlauf):
+    assert durchlauf["darstellung"]["helligkeit"] == {
+        "anfangs": {"aus": True, "grund": "Nur dunkel"},
+        "homeAssistant": {"aus": True, "grund": "Folgt dem Thema von Home Assistant"},
+        "terrakotta": {"aus": True, "grund": "Nur dunkel"},
+        "windhager": {"aus": False, "grund": ""},
+    }
+
+
+def test_ein_gewaehlter_satz_geht_mit_seiner_helligkeit_zum_server(durchlauf):
+    """Ein Satz allein gälte am Server als alter Wert und würde übersetzt.
+
+    Gespeichert war Petrol, das nur dunkel kennt; die Helligkeit bleibt dabei stehen.
+    """
+    assert durchlauf["darstellung"]["gesendet"] == [
+        {"farbsatz": "heatnexus", "helligkeit": "dunkel"}
+    ]
 
 
 def test_das_mausrad_scrollt_nicht_die_seite_hinter_dem_fenster(durchlauf):

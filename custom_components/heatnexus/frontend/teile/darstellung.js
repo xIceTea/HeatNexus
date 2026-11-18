@@ -8,6 +8,7 @@ import {
   BESCHRIFTUNG_FARBEN,
   DARSTELLUNG,
   ERZEUGER_MAX,
+  FARBSAETZE,
   KOPFSTILE,
   PALETTEN,
   beschriftungLesbar,
@@ -17,7 +18,15 @@ import {
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms"]);
+const KOMPAKT = new Set(["helligkeit", "strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms"]);
+
+// Satz und Helligkeit werden zusammen gespeichert; ein Satz allein gälte am Server als alter Wert.
+const FARBPAAR = ["farbsatz", "helligkeit"];
+
+/** Die geänderten Schlüssel; ist einer des Farbpaars dabei, kommt der andere mit. */
+function mitFarbpaar(schluessel) {
+  return schluessel.some((s) => FARBPAAR.includes(s)) ? [...new Set([...schluessel, ...FARBPAAR])] : schluessel;
+}
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
@@ -51,6 +60,11 @@ export const DarstellungMixin = (Basis) =>
     /** Der Farbsatz von Oberfläche und Schaubild. */
     _farbsatz() {
       return this._stilwahl("farbsatz");
+    }
+
+    /** Hell, dunkel oder automatisch nach Home Assistant. */
+    _helligkeit() {
+      return this._stilwahl("helligkeit");
     }
 
     /** Die Marke in der Kopfzeile. */
@@ -187,7 +201,8 @@ export const DarstellungMixin = (Basis) =>
 
       const entwurf = {};
       const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilGespeichert(schluessel));
-      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel));
+      const geaendert = () =>
+        mitFarbpaar(Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel)));
 
       const leiste = document.createElement("div");
       leiste.className = "dialog-leiste";
@@ -210,6 +225,7 @@ export const DarstellungMixin = (Basis) =>
       const nachWahl = [leisteStellen, () => this._vorschauZeigen(entwurf)];
       const wahl = (name, art, schluessel) => {
         const waehlen = (stil) => {
+          if (FARBPAAR.includes(schluessel)) FARBPAAR.forEach((s) => (entwurf[s] = wert(s)));
           entwurf[schluessel] = stil;
           nachWahl.forEach((stellen) => stellen());
         };
@@ -224,7 +240,12 @@ export const DarstellungMixin = (Basis) =>
       groesseStellen();
 
       const aussehen = [
-        [this._t("Farbsatz"), this._t("Gilt für Oberfläche und Schaubild."), wahl(this._t("Farbsatz"), "farben", "farbsatz")],
+        [
+          this._t("Farbsatz"),
+          this._t("Gilt für Oberfläche und Schaubild."),
+          wahl(this._t("Farbsatz"), "farben", "farbsatz"),
+          this._helligkeitWahl(wahl, wert, nachWahl),
+        ],
         [this._t("Kopfzeile"), this._t("Legt Zeichen und Namen oben links fest."), wahl(this._t("Kopfzeile"), "kopf", "kopf")],
         [this._t("Seitenleiste"), this._t("Legt fest, wie sich die Seitenleiste öffnet."), wahl(this._t("Seitenleiste"), "menue", "menue")],
       ];
@@ -421,6 +442,21 @@ export const DarstellungMixin = (Basis) =>
       });
     }
 
+    /** Hell, dunkel oder automatisch; blass, wo der Satz nur eine Fassung kennt oder Home Assistant folgt. */
+    _helligkeitWahl(wahl, wert, nachWahl) {
+      const block = this._darstellungUnterwahl("", wahl(this._t("Helligkeit"), "helligkeit", "helligkeit"));
+      const stellen = () => {
+        const satz = FARBSAETZE.find((s) => s.schluessel === wert("farbsatz")) || FARBSAETZE[0];
+        const [einzige] = satz.fassungen;
+        const grund = !einzige ? "Folgt dem Thema von Home Assistant" : einzige === "hell" ? "Nur hell" : "Nur dunkel";
+        block.querySelector(".unter-bedingung").textContent = this._t(grund);
+        this._unterwahlStellen(block, satz.fassungen.length > 1);
+      };
+      nachWahl.push(stellen);
+      stellen();
+      return block;
+    }
+
     /** Eine Zeile im Fenster: Name und Erklärung links, die Wahl rechts; schmal untereinander. */
     _darstellungZeile(name, text, inhalt) {
       const zeile = document.createElement("section");
@@ -533,9 +569,12 @@ export const DarstellungMixin = (Basis) =>
       bild.dataset.roh = "";
       if (art === "farben") {
         bild.className = "farb-vorschau";
-        const satz = PALETTEN[schluessel];
+        const { fassungen = [] } = FARBSAETZE.find((s) => s.schluessel === schluessel) || {};
+        const satz = PALETTEN[`${schluessel}_${fassungen.includes("dunkel") ? "dunkel" : fassungen[0]}`];
         if (satz) {
-          bild.style.background = satz["--hn-grund"];
+          // Ein Satz mit beiden Fassungen zeigt sie diagonal geteilt.
+          const hell = fassungen.length > 1 && PALETTEN[`${schluessel}_hell`]["--hn-grund"];
+          bild.style.background = hell ? `linear-gradient(135deg, ${satz["--hn-grund"]} 50%, ${hell} 50%)` : satz["--hn-grund"];
           for (const [klasse, farbe] of [["balken", satz["--hn-akzent"]], ["flaeche", satz["--hn-karte"]]]) {
             const teil = document.createElement("i");
             teil.className = klasse;
@@ -543,8 +582,8 @@ export const DarstellungMixin = (Basis) =>
             bild.appendChild(teil);
           }
         } else {
-          const dunkel = PALETTEN.dunkel["--hn-grund"];
-          const hell = PALETTEN.hell["--hn-grund"];
+          const dunkel = PALETTEN.heatnexus_dunkel["--hn-grund"];
+          const hell = PALETTEN.heatnexus_hell["--hn-grund"];
           bild.style.background = `linear-gradient(135deg, ${dunkel} 50%, ${hell} 50%)`;
         }
         return bild;

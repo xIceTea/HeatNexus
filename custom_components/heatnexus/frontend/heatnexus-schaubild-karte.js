@@ -13,7 +13,16 @@ import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
 import { STIL } from "./stil.js";
-import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, darstellungWahl, schriftmass } from "./ordnung.js";
+import {
+  ALTE_FARBSAETZE,
+  FARBSAETZE,
+  HELLIGKEITEN,
+  SCHAUBILD_SPEICHER,
+  SCHRIFTMASSE,
+  darstellungWahl,
+  farbwahl,
+  schriftmass,
+} from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
@@ -40,7 +49,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 
   static getStubConfig() {
-    return { type: `custom:${ELEMENT}`, farbsatz: "auto", schrift: "normal", animation: true };
+    return { type: `custom:${ELEMENT}`, farbsatz: "home_assistant", helligkeit: "auto", schrift: "normal", animation: true };
   }
 
   // Volle Breite im Raster der Ansicht: Neben dem Bild steht die Werteliste,
@@ -55,8 +64,13 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 
   setConfig(config) {
-    if (config && config.farbsatz && !FARBSAETZE.some((s) => s.schluessel === config.farbsatz)) {
+    // Alte Werte bis 1.15 gelten weiter; `farbwahl` übersetzt sie.
+    const bekannt = (wert) => FARBSAETZE.some((s) => s.schluessel === wert) || wert in ALTE_FARBSAETZE;
+    if (config && config.farbsatz && !bekannt(config.farbsatz)) {
       throw new Error(`Unbekannter Farbsatz: ${config.farbsatz}`);
+    }
+    if (config && config.helligkeit && !HELLIGKEITEN.some((h) => h.schluessel === config.helligkeit)) {
+      throw new Error(`Unbekannte Helligkeit: ${config.helligkeit}`);
     }
     if (config && config.schrift && !SCHRIFTMASSE.some((m) => m.schluessel === config.schrift)) {
       throw new Error(`Unbekanntes Schriftmaß: ${config.schrift}`);
@@ -67,7 +81,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
       this._config.zeichnungen,
       this._config.mischer,
     ]);
-    this._config = { farbsatz: "auto", schrift: "normal", animation: true, ...(config || {}) };
+    this._config = { schrift: "normal", animation: true, ...(config || {}) };
     this._gebaut = false;
     const jetzt = JSON.stringify([
       this._config.werte,
@@ -100,7 +114,12 @@ class HeatNexusSchaubildKarte extends Grundlage {
 
   /** Der im Editor gewählte Satz gilt; das Panel fragt hier seine Anordnung. */
   _farbsatz() {
-    return this._config.farbsatz;
+    return farbwahl(this._config.farbsatz, this._config.helligkeit).farbsatz;
+  }
+
+  /** Die im Editor gewählte Helligkeit. */
+  _helligkeit() {
+    return farbwahl(this._config.farbsatz, this._config.helligkeit).helligkeit;
   }
 
   /** Das im Editor gewählte Schriftmaß der Marken. */

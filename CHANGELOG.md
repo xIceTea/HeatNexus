@@ -10,11 +10,12 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Die Farbsätze „Windhager-Stil“ und „Windhager-Stil Dunkel“ färben Oberfläche und Schaubild.
+- Der Farbsatz „Windhager-Stil“ färbt Oberfläche und Schaubild wie die Bediengeräte, hell oder dunkel.
 - Ein Tipp auf eine Tageszeile öffnet darunter Schaltzeiten und Wochentage zum Bearbeiten.
 
 ### Geändert
 
+- Im Fenster „Darstellung“ sind Farbsatz und Helligkeit getrennt wählbar; die bisherige Wahl bleibt.
 - Im Reiter „Zeitprogramme“ wählt eine Reiterleiste das Programm; ein Punkt markiert das geltende.
 - Jede Tageszeile zeigt eine einfarbige Spur mit Schaltzeiten und darunter eine Tabelle der Werte.
 - Eine Bezeichnung für ein Zeitprogramm vergibt der Stift neben der Lagezeile.

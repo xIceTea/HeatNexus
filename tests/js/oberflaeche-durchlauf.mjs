@@ -431,7 +431,7 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
   const gedrueckt = () =>
     gruppen.map((g) => g.querySelectorAll(".darstellung-muster").filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert));
   const anfangs = gedrueckt();
-  gruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "farbig").ausloesen("click");
+  gruppen[2].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "farbig").ausloesen("click");
   const nachKlick = gedrueckt();
   const kopfNachKlick = flaeche._kopfstil();
   const [schliessen, uebernehmen] = fenster.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste");
@@ -463,7 +463,21 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
   const zweites = wurzel.querySelectorAll(".schleier")[vorher];
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
-  zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  zweiteGruppen[2].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  // Die Helligkeit ist blass, solange ein Satz nur eine Fassung kennt oder Home Assistant folgt.
+  const helligkeitsblock = zweiteGruppen[1].parentElement;
+  const helligkeitStand = () => ({
+    aus: helligkeitsblock.classList.contains("aus"),
+    grund: helligkeitsblock.querySelector(".unter-bedingung").hidden ? "" : String(helligkeitsblock.querySelector(".unter-bedingung").textContent),
+  });
+  const satzWaehlen = (satz) => zweiteGruppen[0].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === satz).ausloesen("click");
+  const helligkeit = { anfangs: helligkeitStand() };
+  satzWaehlen("home_assistant");
+  helligkeit.homeAssistant = helligkeitStand();
+  satzWaehlen("terrakotta");
+  helligkeit.terrakotta = helligkeitStand();
+  satzWaehlen("windhager");
+  helligkeit.windhager = helligkeitStand();
   const kopfInDerVorschau = flaeche._kopfstil();
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
@@ -481,8 +495,19 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,
     scrollen,
+    helligkeit,
   };
   flaeche._darstellungSetzen({ kopf: "standard" });
+  // Ein gewählter Satz geht mit seiner Helligkeit zum Server, auch wenn diese gleich blieb.
+  const gesendet = [];
+  const setzen = flaeche._darstellungSetzen;
+  flaeche._darstellungSetzen = (teil) => gesendet.push(teil);
+  flaeche._darstellungOeffnen();
+  const drittes = wurzel.querySelectorAll(".schleier")[vorher];
+  drittes.querySelectorAll(".darstellung-wahl")[0].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "heatnexus").ausloesen("click");
+  drittes.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste")[1].ausloesen("click");
+  flaeche._darstellungSetzen = setzen;
+  bilanz.darstellung.gesendet = gesendet;
 }
 
 // „Schließen" im Menü neben „Fertig" schließt das Fenster.

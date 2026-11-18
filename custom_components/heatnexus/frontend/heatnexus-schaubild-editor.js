@@ -7,7 +7,7 @@
  */
 
 import { elementname } from "./kartenhuelle.js";
-import { FARBSAETZE, SCHRIFTMASSE } from "./ordnung.js";
+import { FARBSAETZE, HELLIGKEITEN, SCHRIFTMASSE, farbwahl } from "./ordnung.js";
 
 // Der Name trägt die Fassung: Eine nachgeladene Karte öffnet ihren eigenen Editor.
 const ELEMENT = elementname("heatnexus-schaubild-editor");
@@ -16,6 +16,7 @@ const ALLE = "alle";
 const BESCHRIFTUNG = {
   anlage: "Anlage",
   farbsatz: "Farbsatz",
+  helligkeit: "Helligkeit",
   schrift: "Schriftgröße im Schaubild",
   animation: "Animation",
   pumpen: "Pumpen im Schaubild",
@@ -233,6 +234,15 @@ class HeatNexusSchaubildEditor extends HTMLElement {
             },
           },
           {
+            name: "helligkeit",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: HELLIGKEITEN.map((h) => ({ value: h.schluessel, label: h.titel })),
+              },
+            },
+          },
+          {
             name: "schrift",
             selector: {
               select: {
@@ -378,7 +388,6 @@ class HeatNexusSchaubildEditor extends HTMLElement {
     const zeilen = this._config.zeilen || {};
     return {
       anlage: this._config.anlage || ALLE,
-      farbsatz: "auto",
       schrift: "normal",
       animation: true,
       pumpen: true,
@@ -388,6 +397,8 @@ class HeatNexusSchaubildEditor extends HTMLElement {
       titel_bild: this._t("Anlagenübersicht"),
       titel_liste: this._t("Werte"),
       ...this._config,
+      // Ein alter Farbsatz erscheint geteilt; gespeichert werden danach beide Felder.
+      ...farbwahl(this._config.farbsatz, this._config.helligkeit),
       zusatzwerte: this._eintraege()
         .map((eintrag) => eintrag.entity)
         .filter((entity) => this._ausDerAnlage(entity)),

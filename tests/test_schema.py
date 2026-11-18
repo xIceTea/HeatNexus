@@ -1518,8 +1518,7 @@ def test_der_dunkle_windhager_satz_hat_ein_eigenes_schaubild(farben):
         farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER]
         != farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_DUNKEL]
     )
-    for thema in (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL):
-        assert thema in farben.FARBSAETZE
+    assert farben.FASSUNGEN["windhager"] == ("hell", "dunkel")
 
 
 def test_jeder_weitere_satz_kennt_alle_rollen(schema, farben):
@@ -1624,11 +1623,11 @@ def test_die_nutzdaten_schicken_das_bild_einmal(karte, anlage):
     nutzdaten = karte.schaubild_nutzdaten({"id": "a", "name": "X", "teile": anlage})
     assert nutzdaten["schema_svg"].startswith("<svg")
     assert set(nutzdaten["schema_farben"]) == {
-        "hell",
-        "terrakotta",
-        "petrol",
-        "pflaume",
-        "windhager",
+        "heatnexus_hell",
+        "terrakotta_dunkel",
+        "petrol_dunkel",
+        "pflaume_dunkel",
+        "windhager_hell",
         "windhager_dunkel",
     }
     assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
@@ -1662,12 +1661,12 @@ def _paletten(schema, tmp_path) -> dict[str, dict[str, str]]:
 def test_jeder_feste_satz_hat_eine_vollstaendige_palette(schema, farben, tmp_path):
     """Eine fehlende Variable bliebe am Wirtselement auf dem vorigen Satz stehen."""
     paletten = _paletten(schema, tmp_path)
-    variablen = set(paletten["dunkel"])
-    for satz in farben.FARBSAETZE:
-        if satz == farben.FARBSATZ_AUTO:
-            continue
-        assert satz in paletten, f"{satz} fehlt in PALETTEN"
-        assert set(paletten[satz]) == variablen, f"{satz} nennt andere Variablen"
+    variablen = set(paletten["heatnexus_dunkel"])
+    for satz, fassungen in farben.FASSUNGEN.items():
+        for fassung in fassungen:
+            thema = f"{satz}_{fassung}"
+            assert thema in paletten, f"{thema} fehlt in PALETTEN"
+            assert set(paletten[thema]) == variablen, f"{thema} nennt andere Variablen"
 
 
 def _kontrast(vorn: str, hinten: str) -> float:

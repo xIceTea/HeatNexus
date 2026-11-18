@@ -27,14 +27,17 @@ fertige Karte). Hier steht nur, was andere Module davon brauchen.
 
 from __future__ import annotations
 
-from .farben import FARBSAETZE
+from .farben import ALTE_FARBSAETZE, FARBSAETZE, HELLIGKEITEN, farbwahl_uebersetzen
 from .karte import anlagenschema, schaubild_daten, schaubild_nutzdaten
 from .werte import ANALOG_SOLLWERT, modul_in_betrieb, passt, traegt, treffer
 
 __all__ = [
+    "ALTE_FARBSAETZE",
     "ANALOG_SOLLWERT",
     "FARBSAETZE",
+    "HELLIGKEITEN",
     "anlagenschema",
+    "farbwahl_uebersetzen",
     "modul_in_betrieb",
     "passt",
     "schaubild_daten",

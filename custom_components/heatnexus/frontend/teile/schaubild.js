@@ -8,7 +8,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse, schaubildSchluessel } from "../ordnung.js";
 import { SchaubildAutomatikMixin } from "./schaubildautomatik.js";
 import { SchaubildWerteMixin } from "./schaubildwerte.js";
 import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
@@ -69,12 +69,15 @@ export const SchaubildMixin = (Basis) =>
     return "Anlagenübersicht";
   }
 
-  /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
+  /** Satz und Fassung, die gerade gelten; „Automatisch“ folgt dem Erscheinungsbild. */
   _farbsatzGilt() {
-    const satz = this._farbsatz();
-    if (satz && satz !== "auto") return satz;
+    return schaubildSchluessel(this._farbsatz(), this._helligkeit(), this._dunkelModus());
+  }
+
+  /** Ob Home Assistant dunkel steht; ohne Auskunft bleibt es offen, und es gilt Dunkel. */
+  _dunkelModus() {
     const themen = this._hass && this._hass.themes;
-    return themen && themen.darkMode === false ? "hell" : "dunkel";
+    return themen ? themen.darkMode : undefined;
   }
 
   /**
