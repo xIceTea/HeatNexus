@@ -128,14 +128,14 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="k k-drittel" href="{{ anleitung }}#oberflaeche">
         <h3>Sieben Farbsätze.</h3>
         <p>Vor- und Rücklauf bleiben in jedem Satz rot und blau.</p>
-        <div class="farben" aria-label="Dunkel, Hell, Terrakotta, Petrol, Pflaume, Windhager-Stil Blau und Rot">
+        <div class="farben" aria-label="Dunkel, Hell, Terrakotta, Petrol, Pflaume, Windhager-Stil hell und dunkel">
           <i style="--a:#1e232b;--b:#5b8def" title="Dunkel"></i>
           <i style="--a:#ffffff;--b:#2e6de0" title="Hell"></i>
           <i style="--a:#242220;--b:#d98e46" title="Terrakotta"></i>
           <i style="--a:#192226;--b:#3fa89a" title="Petrol"></i>
           <i style="--a:#211b2a;--b:#a878e0" title="Pflaume"></i>
-          <i style="--a:#ffffff;--b:#287cb3" title="Windhager-Stil Blau"></i>
-          <i style="--a:#ffffff;--b:#c20012" title="Windhager-Stil Rot"></i>
+          <i style="--a:#ffffff;--b:#c20012" title="Windhager-Stil"></i>
+          <i style="--a:#283035;--b:#f86a74" title="Windhager-Stil Dunkel"></i>
         </div>
       </a>
       <a class="k k-drittel insel" href="{{ anleitung }}#einrichtung">

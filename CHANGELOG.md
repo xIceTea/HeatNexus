@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Zwei Farbsätze im Windhager-Stil färben Oberfläche und Schaubild wie die Bediengeräte.
+- Die Farbsätze „Windhager-Stil“ und „Windhager-Stil Dunkel“ färben Oberfläche und Schaubild.
 - Ein Tipp auf eine Tageszeile öffnet darunter Schaltzeiten und Wochentage zum Bearbeiten.
 
 ### Geändert

@@ -141,7 +141,7 @@ FARBEN_PFLAUME: dict[str, str] = {
 
 
 # Windhager-Stil, angelehnt an die Bediengeräte: grauer Grund, helle Flächen,
-# Puffer warm rot, kalt blau. Beide Windhager-Sätze teilen dieses Bild.
+# Puffer warm rot, kalt blau.
 FARBEN_WINDHAGER: dict[str, str] = {
     "vorlauf": FARBE_VORLAUF,
     "ruecklauf": FARBE_RUECKLAUF,
@@ -151,6 +151,25 @@ FARBEN_WINDHAGER: dict[str, str] = {
     "korpus": "#e5e5e5",
     "korpus_hell": "#f2f2f2",
     "korpus_dunkel": "#bdbdbd",
+    "warm": "#e22f43",
+    "glut": FARBE_VORLAUF,
+    **HOLZ,
+    "kalt": "#5f8dc7",
+    "schrift": SCHRIFT,
+}
+
+
+# Dunkle Fassung des Windhager-Stils. Die Bediengeräte kennen keine; Grundton ist
+# das Anthrazit der Kesselgehäuse, Puffer warm und kalt bleiben wie im hellen Satz.
+FARBEN_WINDHAGER_DUNKEL: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": "#6b747b",
+    "text": "#d0d4d7",
+    "titel": "#f2f2f2",
+    "korpus": "#343c42",
+    "korpus_hell": "#3e474e",
+    "korpus_dunkel": "#252c31",
     "warm": "#e22f43",
     "glut": FARBE_VORLAUF,
     **HOLZ,
@@ -174,10 +193,10 @@ THEMA_PETROL = "petrol"
 THEMA_PFLAUME = "pflaume"
 
 
-THEMA_WINDHAGER_BLAU = "windhager_blau"
+THEMA_WINDHAGER = "windhager"
 
 
-THEMA_WINDHAGER_ROT = "windhager_rot"
+THEMA_WINDHAGER_DUNKEL = "windhager_dunkel"
 
 
 # Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
@@ -192,8 +211,8 @@ FARBSAETZE = (
     THEMA_TERRAKOTTA,
     THEMA_PETROL,
     THEMA_PFLAUME,
-    THEMA_WINDHAGER_BLAU,
-    THEMA_WINDHAGER_ROT,
+    THEMA_WINDHAGER,
+    THEMA_WINDHAGER_DUNKEL,
 )
 
 
@@ -224,8 +243,8 @@ FARBABBILDUNGEN = {
     THEMA_TERRAKOTTA: entsprechung(FARBEN_TERRAKOTTA),
     THEMA_PETROL: entsprechung(FARBEN_PETROL),
     THEMA_PFLAUME: entsprechung(FARBEN_PFLAUME),
-    THEMA_WINDHAGER_BLAU: entsprechung(FARBEN_WINDHAGER),
-    THEMA_WINDHAGER_ROT: entsprechung(FARBEN_WINDHAGER),
+    THEMA_WINDHAGER: entsprechung(FARBEN_WINDHAGER),
+    THEMA_WINDHAGER_DUNKEL: entsprechung(FARBEN_WINDHAGER_DUNKEL),
 }
 
 

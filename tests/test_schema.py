@@ -1412,6 +1412,7 @@ def test_die_leitungsfarben_gelten_in_jedem_satz(farben):
         farben.FARBEN_PETROL,
         farben.FARBEN_PFLAUME,
         farben.FARBEN_WINDHAGER,
+        farben.FARBEN_WINDHAGER_DUNKEL,
     ):
         for rolle in farben.FESTE_ROLLEN:
             assert satz[rolle] == farben.FARBEN[rolle], f"{rolle} weicht ab"
@@ -1425,8 +1426,8 @@ def test_die_leitungen_ueberstehen_jeden_wechsel(schema, farben, anlage):
         farben.THEMA_TERRAKOTTA,
         farben.THEMA_PETROL,
         farben.THEMA_PFLAUME,
-        farben.THEMA_WINDHAGER_BLAU,
-        farben.THEMA_WINDHAGER_ROT,
+        farben.THEMA_WINDHAGER,
+        farben.THEMA_WINDHAGER_DUNKEL,
     ):
         gewechselt = farben.farben_umstellen(dunkel, thema)
         assert farben.FARBE_VORLAUF in gewechselt, f"{thema}: der Vorlauf ist umgefärbt"
@@ -1506,18 +1507,18 @@ def _weitere(farben):
     return (
         (farben.THEMA_PETROL, farben.FARBEN_PETROL),
         (farben.THEMA_PFLAUME, farben.FARBEN_PFLAUME),
-        (farben.THEMA_WINDHAGER_BLAU, farben.FARBEN_WINDHAGER),
-        (farben.THEMA_WINDHAGER_ROT, farben.FARBEN_WINDHAGER),
+        (farben.THEMA_WINDHAGER, farben.FARBEN_WINDHAGER),
+        (farben.THEMA_WINDHAGER_DUNKEL, farben.FARBEN_WINDHAGER_DUNKEL),
     )
 
 
-def test_die_windhager_saetze_teilen_das_schaubild(farben):
-    """Der Akzent wirkt nur an der Oberfläche; das Schaubild ist in beiden gleich."""
+def test_der_dunkle_windhager_satz_hat_ein_eigenes_schaubild(farben):
+    """Helle Gehäuse auf dunkler Karte fielen aus dem Bild."""
     assert (
-        farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_BLAU]
-        == farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_ROT]
+        farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER]
+        != farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_DUNKEL]
     )
-    for thema in (farben.THEMA_WINDHAGER_BLAU, farben.THEMA_WINDHAGER_ROT):
+    for thema in (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL):
         assert thema in farben.FARBSAETZE
 
 
@@ -1583,7 +1584,8 @@ def test_der_browser_tauscht_dieselben_farben(schema, farben, anlage, tmp_path):
         farben.THEMA_TERRAKOTTA,
         farben.THEMA_PETROL,
         farben.THEMA_PFLAUME,
-        farben.THEMA_WINDHAGER_BLAU,
+        farben.THEMA_WINDHAGER,
+        farben.THEMA_WINDHAGER_DUNKEL,
     ]
     ergebnis = _im_browser(
         schema,
@@ -1626,8 +1628,8 @@ def test_die_nutzdaten_schicken_das_bild_einmal(karte, anlage):
         "terrakotta",
         "petrol",
         "pflaume",
-        "windhager_blau",
-        "windhager_rot",
+        "windhager",
+        "windhager_dunkel",
     }
     assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
 
@@ -1682,7 +1684,7 @@ def _kontrast(vorn: str, hinten: str) -> float:
 def test_die_windhager_saetze_bleiben_lesbar(schema, farben, tmp_path):
     """Akzent und Grün dienen auch als Schrift; beide halten 4,5 : 1 auf der Karte."""
     paletten = _paletten(schema, tmp_path)
-    for satz in (farben.THEMA_WINDHAGER_BLAU, farben.THEMA_WINDHAGER_ROT):
+    for satz in (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL):
         palette = paletten[satz]
         karte = palette["--hn-karte"]
         for variable in ("--hn-text", "--hn-gedaempft", "--hn-akzent", "--hn-gut"):
@@ -1707,6 +1709,7 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
         "petrol": farben.FARBEN_PETROL,
         "pflaume": farben.FARBEN_PFLAUME,
         "windhager": farben.FARBEN_WINDHAGER,
+        "windhager_dunkel": farben.FARBEN_WINDHAGER_DUNKEL,
     }
     for name, farben in saetze.items():
         for rolle in ("vorlauf", "glut", "warm"):
