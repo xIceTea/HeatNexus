@@ -28,6 +28,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Das Mausrad scrollt in einem Fenster nicht mehr die Seite dahinter.
 - Störung 107 erscheint mit Klartext statt als unbekannter Code.
 - Das Thermostat zeigt eine noch nicht gelesene Restzeit der Vorgabe als unbekannt statt 0.
 - Unbenannte Datenpunkte zeigen keinen internen Gruppenschlüssel mehr.

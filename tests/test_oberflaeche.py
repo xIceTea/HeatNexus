@@ -1593,6 +1593,22 @@ def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
 
 
+def test_das_mausrad_scrollt_nicht_die_seite_hinter_dem_fenster(durchlauf):
+    """Am Ende der Liste und neben dem Fenster bleibt die Seite stehen; zurück scrollt das Fenster selbst."""
+    assert durchlauf["darstellung"]["scrollen"] == {
+        "amEndeWeiter": True,
+        "amEndeZurueck": False,
+        "daneben": True,
+    }
+
+
+def test_ein_fenster_reicht_den_schwung_nicht_weiter():
+    """Auch Wischen am Handy scrollt am Ende der Liste nicht die Seite dahinter."""
+    stil = (PANEL_JS.parent / "stil" / "dialog.js").read_text(encoding="utf-8")
+    regel = stil[stil.index("  .dialog { max-height") :].split("}")[0]
+    assert "overscroll-behavior: contain" in regel
+
+
 def test_die_leiste_eines_fensters_bleibt_sichtbar():
     """Ein langes Fenster scrollt in sich; Schließen und Übernehmen kleben unten."""
     stil = (PANEL_JS.parent / "stil" / "dialog.js").read_text(encoding="utf-8")

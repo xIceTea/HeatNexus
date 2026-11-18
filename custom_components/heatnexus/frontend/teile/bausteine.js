@@ -13,6 +13,18 @@
 // Sie zeichnen die ganze Fläche oder wählen die Sprache selbst.
 const AM_ELEMENT = new Set(["_zeichnen", "_aufbauen", "_aktualisieren", "_sicht", "_inSprache"]);
 
+/** Ob zwischen `ziel` und `schleier` ein Bereich liegt, der sich in Richtung `schub` noch bewegen lässt. */
+function kannScrollen(ziel, schleier, schub) {
+  for (let stelle = ziel; stelle && stelle !== schleier; stelle = stelle.parentNode) {
+    const hoehe = stelle.scrollHeight || 0;
+    const sicht = stelle.clientHeight || 0;
+    if (hoehe <= sicht + 1) continue;
+    if (schub < 0 && stelle.scrollTop > 0) return true;
+    if (schub > 0 && stelle.scrollTop + sicht < hoehe - 1) return true;
+  }
+  return false;
+}
+
 export const BausteineMixin = (Basis) =>
   class extends Basis {
     /**
@@ -262,12 +274,33 @@ export const BausteineMixin = (Basis) =>
         },
         { signal: abbruch.signal }
       );
+      this._radImFensterHalten(schleier, abbruch.signal);
       stapel.push(abbrechen);
       this.shadowRoot.appendChild(schleier);
       // Ein Fenster beginnt oben; der Fokus auf einer Taste der unteren Leiste scrollt es nicht dorthin.
       if (fokus) fokus.focus({ preventScroll: true });
       dialog.scrollTop = 0;
       return zu;
+    }
+
+    /** Mausrad und Wischen bewegen nur das Fenster; die Seite dahinter bleibt stehen, auch am Ende der Liste. */
+    _radImFensterHalten(schleier, signal) {
+      const anhalten = (ereignis, schub) => {
+        if (!kannScrollen(ereignis.target, schleier, schub)) ereignis.preventDefault();
+      };
+      let wischY = 0;
+      const optionen = { passive: false, signal };
+      schleier.addEventListener("wheel", (ereignis) => anhalten(ereignis, ereignis.deltaY), optionen);
+      schleier.addEventListener("touchstart", (ereignis) => (wischY = ereignis.touches[0].clientY), { passive: true, signal });
+      schleier.addEventListener(
+        "touchmove",
+        (ereignis) => {
+          const y = ereignis.touches[0].clientY;
+          anhalten(ereignis, wischY - y);
+          wischY = y;
+        },
+        optionen
+      );
     }
 
     /** Tab bleibt im Fenster: vom letzten Bedienelement zurück zum ersten und umgekehrt. */

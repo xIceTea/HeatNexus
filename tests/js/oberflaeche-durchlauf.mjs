@@ -441,6 +441,21 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
   };
   const leiste = () => ({ text: String(schliessen.textContent), rot: schliessen.classList.contains("betont"), uebernehmen: !uebernehmen.hidden });
   const leisteNachKlick = leiste();
+  // Das Mausrad bleibt im Fenster: am Ende der Liste und neben dem Fenster scrollt die Seite dahinter nicht.
+  const rahmen = fenster.querySelector(".dialog");
+  Object.assign(rahmen, { scrollHeight: 1000, clientHeight: 500, scrollTop: 500 });
+  const innen = gruppen[0];
+  const gesperrt = (ziel, deltaY) => {
+    let gestoppt = false;
+    fenster.ausloesen("wheel", { target: ziel, deltaY, preventDefault() { gestoppt = true; } });
+    return gestoppt;
+  };
+  const scrollen = {
+    amEndeWeiter: gesperrt(innen, 100),
+    amEndeZurueck: gesperrt(innen, -100),
+    daneben: gesperrt(fenster, 100),
+  };
+  rahmen.scrollTop = 0;
   uebernehmen.ausloesen("click");
   const kopfNachUebernehmen = flaeche._kopfstil();
   // Ein zweites Fenster: geändert und verworfen bleibt die alte Wahl.
@@ -465,6 +480,7 @@ bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), b
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,
+    scrollen,
   };
   flaeche._darstellungSetzen({ kopf: "standard" });
 }
