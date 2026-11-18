@@ -238,6 +238,8 @@ export const FARBSAETZE = [
   { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warmes Dunkel mit Terrakotta" },
   { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhiges Dunkel mit Petrolgrün" },
   { schluessel: "pflaume", titel: "Pflaume", hinweis: "Dunkles Violett mit Pflaume" },
+  { schluessel: "windhager_blau", titel: "Windhager-Stil Blau", hinweis: "Hell wie die Bediengeräte, blauer Akzent" },
+  { schluessel: "windhager_rot", titel: "Windhager-Stil Rot", hinweis: "Hell wie die Bediengeräte, roter Akzent" },
 ];
 
 // Die Einstellungen im Fenster „Darstellung“: Schlüssel am Server, dazu die
@@ -305,6 +307,24 @@ export function schriftmass(schluessel) {
 // Was ein fester Satz an der Oberfläche setzt. `auto` steht nicht darin: Dann
 // gelten die Vorgaben aus `stil.js`, die den Variablen von Home Assistant
 // folgen.
+/** Der Windhager-Stil; die zwei Sätze unterscheiden sich nur im Akzent. */
+function windhagerStil(akzent) {
+  return {
+    "--hn-grund": "#f2f2f2",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#404040",
+    "--hn-gedaempft": "#666666",
+    "--hn-akzent": akzent,
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#e5e5e5",
+    "--hn-flaeche": "#f2f2f2",
+    "--hn-sonne": "#b7791f",
+    "--hn-ww": "#006fd2",
+    "--hn-gut": "#318803",
+    "--hn-at": "#00796b",
+  };
+}
+
 export const PALETTEN = {
   dunkel: {
     "--hn-grund": "#14171c",
@@ -376,6 +396,10 @@ export const PALETTEN = {
     "--hn-gut": "#7bd88f",
     "--hn-at": "#4fd1b5",
   },
+  // Angelehnt an die Windhager-Bediengeräte. Akzent und Grün sind so weit
+  // abgedunkelt, dass sie als Schrift 4,5 : 1 auf der Karte halten.
+  windhager_blau: windhagerStil("#287cb3"),
+  windhager_rot: windhagerStil("#c20012"),
 };
 
 /**

@@ -1411,6 +1411,7 @@ def test_die_leitungsfarben_gelten_in_jedem_satz(farben):
         farben.FARBEN_TERRAKOTTA,
         farben.FARBEN_PETROL,
         farben.FARBEN_PFLAUME,
+        farben.FARBEN_WINDHAGER,
     ):
         for rolle in farben.FESTE_ROLLEN:
             assert satz[rolle] == farben.FARBEN[rolle], f"{rolle} weicht ab"
@@ -1424,6 +1425,8 @@ def test_die_leitungen_ueberstehen_jeden_wechsel(schema, farben, anlage):
         farben.THEMA_TERRAKOTTA,
         farben.THEMA_PETROL,
         farben.THEMA_PFLAUME,
+        farben.THEMA_WINDHAGER_BLAU,
+        farben.THEMA_WINDHAGER_ROT,
     ):
         gewechselt = farben.farben_umstellen(dunkel, thema)
         assert farben.FARBE_VORLAUF in gewechselt, f"{thema}: der Vorlauf ist umgefärbt"
@@ -1497,13 +1500,25 @@ def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, farben, anlag
 
 
 # ---------------------------------------------------------------------------
-# Weitere Farbsätze: Petrol und Pflaume
+# Weitere Farbsätze: Petrol, Pflaume und die zwei Sätze im Windhager-Stil
 # ---------------------------------------------------------------------------
 def _weitere(farben):
     return (
         (farben.THEMA_PETROL, farben.FARBEN_PETROL),
         (farben.THEMA_PFLAUME, farben.FARBEN_PFLAUME),
+        (farben.THEMA_WINDHAGER_BLAU, farben.FARBEN_WINDHAGER),
+        (farben.THEMA_WINDHAGER_ROT, farben.FARBEN_WINDHAGER),
     )
+
+
+def test_die_windhager_saetze_teilen_das_schaubild(farben):
+    """Der Akzent wirkt nur an der Oberfläche; das Schaubild ist in beiden gleich."""
+    assert (
+        farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_BLAU]
+        == farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_ROT]
+    )
+    for thema in (farben.THEMA_WINDHAGER_BLAU, farben.THEMA_WINDHAGER_ROT):
+        assert thema in farben.FARBSAETZE
 
 
 def test_jeder_weitere_satz_kennt_alle_rollen(schema, farben):
@@ -1563,7 +1578,13 @@ def _im_browser(schema, tmp_path, rumpf: str, nutzlast):
 def test_der_browser_tauscht_dieselben_farben(schema, farben, anlage, tmp_path):
     """Der Austausch geschieht im Browser – er muss dasselbe ergeben wie hier."""
     dunkel = _svg_von(schema, anlage)
-    themen = [farben.THEMA_HELL, farben.THEMA_TERRAKOTTA, farben.THEMA_PETROL, farben.THEMA_PFLAUME]
+    themen = [
+        farben.THEMA_HELL,
+        farben.THEMA_TERRAKOTTA,
+        farben.THEMA_PETROL,
+        farben.THEMA_PFLAUME,
+        farben.THEMA_WINDHAGER_BLAU,
+    ]
     ergebnis = _im_browser(
         schema,
         tmp_path,
@@ -1600,7 +1621,14 @@ def test_die_nutzdaten_schicken_das_bild_einmal(karte, anlage):
     """Ein Bild je Farbsatz wäre fünfmal dieselbe Zeichnung."""
     nutzdaten = karte.schaubild_nutzdaten({"id": "a", "name": "X", "teile": anlage})
     assert nutzdaten["schema_svg"].startswith("<svg")
-    assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
+    assert set(nutzdaten["schema_farben"]) == {
+        "hell",
+        "terrakotta",
+        "petrol",
+        "pflaume",
+        "windhager_blau",
+        "windhager_rot",
+    }
     assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
 
 
@@ -1611,6 +1639,55 @@ def test_die_oberflaeche_kennt_dieselben_saetze(schema, farben):
     )
     for satz in farben.FARBSAETZE:
         assert f'schluessel: "{satz}"' in text, f"{satz} fehlt in ordnung.js"
+
+
+def _paletten(schema, tmp_path) -> dict[str, dict[str, str]]:
+    """`PALETTEN` aus `ordnung.js`, so wie der Browser sie liest."""
+    ordnung_js = (Path(schema.__file__).parents[1] / "frontend" / "ordnung.js").resolve()
+    skript = tmp_path / "paletten.mjs"
+    skript.write_text(
+        f'import {{ PALETTEN }} from "{ordnung_js.as_uri()}";\n'
+        "console.log(JSON.stringify(PALETTEN));\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    return json.loads(ausgabe.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_jeder_feste_satz_hat_eine_vollstaendige_palette(schema, farben, tmp_path):
+    """Eine fehlende Variable bliebe am Wirtselement auf dem vorigen Satz stehen."""
+    paletten = _paletten(schema, tmp_path)
+    variablen = set(paletten["dunkel"])
+    for satz in farben.FARBSAETZE:
+        if satz == farben.FARBSATZ_AUTO:
+            continue
+        assert satz in paletten, f"{satz} fehlt in PALETTEN"
+        assert set(paletten[satz]) == variablen, f"{satz} nennt andere Variablen"
+
+
+def _kontrast(vorn: str, hinten: str) -> float:
+    def leuchtdichte(wert: str) -> float:
+        teile = [int(wert[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        lin = [k / 12.92 if k <= 0.03928 else ((k + 0.055) / 1.055) ** 2.4 for k in teile]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    hell, dunkel = sorted((leuchtdichte(vorn), leuchtdichte(hinten)), reverse=True)
+    return (hell + 0.05) / (dunkel + 0.05)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_die_windhager_saetze_bleiben_lesbar(schema, farben, tmp_path):
+    """Akzent und Grün dienen auch als Schrift; beide halten 4,5 : 1 auf der Karte."""
+    paletten = _paletten(schema, tmp_path)
+    for satz in (farben.THEMA_WINDHAGER_BLAU, farben.THEMA_WINDHAGER_ROT):
+        palette = paletten[satz]
+        karte = palette["--hn-karte"]
+        for variable in ("--hn-text", "--hn-gedaempft", "--hn-akzent", "--hn-gut"):
+            assert _kontrast(palette[variable], karte) >= 4.5, f"{satz}: {variable}"
+        assert _kontrast(palette["--hn-akzent-text"], palette["--hn-akzent"]) >= 4.5, satz
 
 
 def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
@@ -1629,6 +1706,7 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
         "terrakotta": farben.FARBEN_TERRAKOTTA,
         "petrol": farben.FARBEN_PETROL,
         "pflaume": farben.FARBEN_PFLAUME,
+        "windhager": farben.FARBEN_WINDHAGER,
     }
     for name, farben in saetze.items():
         for rolle in ("vorlauf", "glut", "warm"):

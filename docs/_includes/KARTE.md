@@ -29,7 +29,7 @@ type: custom:heatnexus-schaubild
 | Feld | Bedeutung | Vorgabe |
 |---|---|---|
 | `anlage` | Kennung oder Name der Anlage, `alle` für sämtliche | die erste gefundene |
-| `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume` | `auto` |
+| `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume`, `windhager_blau`, `windhager_rot` | `auto` |
 | `schrift` | `klein`, `normal`, `gross`, `sehr_gross` | `normal` |
 | `animation` | Pumpen und Leitungen bewegen sich | `true` |
 | `pumpen` | Pumpen stehen als Marke im Bild | `true` |

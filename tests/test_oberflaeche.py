@@ -528,7 +528,7 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3, 2, 2, 2]
+    assert darstellung["kacheln"] == [8, 4, 2, 2, 3, 3, 3, 2, 2, 2]
     assert darstellung["anfangs"][1:] == [
         ["standard"],
         ["zeichen"],

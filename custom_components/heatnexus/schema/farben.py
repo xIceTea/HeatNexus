@@ -1,4 +1,4 @@
-"""Farbsätze des Schaubilds: dunkel, hell, terrakotta, petrol, pflaume.
+"""Farbsätze des Schaubilds: dunkel, hell, terrakotta, petrol, pflaume, Windhager-Stil.
 
 Gezeichnet wird immer im dunklen Satz; `farben_umstellen` tauscht die Farben
 eines fertigen Bildes gegen die des gewählten Satzes.
@@ -140,6 +140,25 @@ FARBEN_PFLAUME: dict[str, str] = {
 }
 
 
+# Windhager-Stil, angelehnt an die Bediengeräte: grauer Grund, helle Flächen,
+# Puffer warm rot, kalt blau. Beide Windhager-Sätze teilen dieses Bild.
+FARBEN_WINDHAGER: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": "#565656",
+    "text": "#404040",
+    "titel": "#363636",
+    "korpus": "#e5e5e5",
+    "korpus_hell": "#f2f2f2",
+    "korpus_dunkel": "#bdbdbd",
+    "warm": "#e22f43",
+    "glut": FARBE_VORLAUF,
+    **HOLZ,
+    "kalt": "#5f8dc7",
+    "schrift": SCHRIFT,
+}
+
+
 THEMA_DUNKEL = "dunkel"
 
 
@@ -155,6 +174,12 @@ THEMA_PETROL = "petrol"
 THEMA_PFLAUME = "pflaume"
 
 
+THEMA_WINDHAGER_BLAU = "windhager_blau"
+
+
+THEMA_WINDHAGER_ROT = "windhager_rot"
+
+
 # Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
 # Assistant, die übrigen legen den Satz fest.
 FARBSATZ_AUTO = "auto"
@@ -167,6 +192,8 @@ FARBSAETZE = (
     THEMA_TERRAKOTTA,
     THEMA_PETROL,
     THEMA_PFLAUME,
+    THEMA_WINDHAGER_BLAU,
+    THEMA_WINDHAGER_ROT,
 )
 
 
@@ -197,6 +224,8 @@ FARBABBILDUNGEN = {
     THEMA_TERRAKOTTA: entsprechung(FARBEN_TERRAKOTTA),
     THEMA_PETROL: entsprechung(FARBEN_PETROL),
     THEMA_PFLAUME: entsprechung(FARBEN_PFLAUME),
+    THEMA_WINDHAGER_BLAU: entsprechung(FARBEN_WINDHAGER),
+    THEMA_WINDHAGER_ROT: entsprechung(FARBEN_WINDHAGER),
 }
 
 
