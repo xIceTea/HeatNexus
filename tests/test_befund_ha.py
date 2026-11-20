@@ -229,12 +229,14 @@ async def test_ein_spaeter_bekannter_kessel_bekommt_seine_sensoren(hass, anlage)
     assert "SN1-1-0-befund-starts" in {s.unique_id for s in angelegt}
 
 
-def _plattform(hass):
+def _plattform(hass, eintrag):
     """Legt Sensoren wie Home Assistant an; ihr Zustand steht danach in `hass.states`."""
     from homeassistant.core import callback
     from pytest_homeassistant_custom_component.common import MockEntityPlatform
 
     plattform = MockEntityPlatform(hass, domain="sensor", platform_name="heatnexus")
+    # Ein Gerät hängt nur an einer Entität, deren Plattform einen Config-Eintrag hat.
+    plattform.config_entry = eintrag
 
     @callback
     def anlegen(neu):
@@ -278,7 +280,7 @@ async def test_spaet_bekannter_kessel_zeigt_gleich_seinen_befund(hass, monkeypat
     zaehler = {k: daten["oids"].pop(k) for k in list(daten["oids"]) if k.startswith(KESSEL)}
     verwaltung, eintrag = await _starten(hass, koordinator)
     try:
-        anmelden(hass, eintrag, _plattform(hass))
+        anmelden(hass, eintrag, _plattform(hass, eintrag))
         daten["devices"].append(kessel)
         daten["oids"] |= zaehler
         async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id))
@@ -295,7 +297,7 @@ async def test_sensoren_finden_ihren_stand_nach_neustart_des_befunds(hass, anlag
 
     verwaltung, eintrag = anlage
     _wert_je_ziel(monkeypatch)
-    anmelden(hass, eintrag, _plattform(hass))
+    anmelden(hass, eintrag, _plattform(hass, eintrag))
     await hass.async_block_till_done()
     await verwaltung.eintrag_stoppen(eintrag)
     await verwaltung.eintrag_starten(eintrag)
@@ -548,6 +550,7 @@ async def brennstoffzahlen(hass, anlage):
     zahlen = []
     be.anmelden_number(hass, eintrag, zahlen.extend)
     plattform = MockEntityPlatform(hass, domain="number", platform_name="heatnexus")
+    plattform.config_entry = eintrag
     await plattform.async_add_entities(zahlen)
     be.dienst_anmelden(plattform)
     vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
