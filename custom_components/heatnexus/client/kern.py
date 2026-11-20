@@ -118,12 +118,12 @@ class WindhagerHttpClient(
         # Metadaten aus den Menü-Ebenen: OID -> vollständiger Datenpunkt.
         # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
         self.menu_meta: dict = {}
-        # OID -> (prefix, menu_id, Position in der Ebene) für den Sammelabruf.
         # Statisch immer gepollte OIDs (aktive Entities + Climate).
         self.poll_oids: set = set()
-        # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
-        # (z.B. eine vom Nutzer eingeschaltete Service-Entity).
+        # Dynamisch angemeldete OIDs, etwa eine vom Nutzer eingeschaltete Service-Entity.
         self._dynamic_oids: set = set()
+        # Klassen, die eine Anmeldung mitgibt; getrennt, weil ein neues Einlesen `poll_class` ersetzt.
+        self._dynamic_klassen: dict[str, str] = {}
         # Wie viele Entitäten eine dynamisch angemeldete Adresse brauchen.
         self._oid_nutzer: dict[str, int] = {}
         # Zeitprogramme (typeId 30) werden nicht über lookup, sondern über den

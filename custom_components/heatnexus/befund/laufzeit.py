@@ -22,7 +22,7 @@ from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
-from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN
+from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN, POLL_BEFUND
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
@@ -246,7 +246,7 @@ class Sammler:
             return
         noetig = abgaslauf.abruf(self.coordinator) | waermepumpelauf.abruf(self.coordinator)
         for oid in sorted(noetig - self._abruf):
-            anmelden(oid)
+            anmelden(oid, POLL_BEFUND)
             self._abruf.add(oid)
 
     def _heizraum(self) -> float | None:

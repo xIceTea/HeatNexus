@@ -645,9 +645,15 @@ async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
     aerowin(sammler)
     angemeldet: list[str] = []
     abgemeldet: list[str] = []
+    klassen: set[str] = set()
+
+    def anmelden(oid, klasse=None):
+        angemeldet.append(oid)
+        klassen.add(klasse)
+
     sammler.coordinator.client = SimpleNamespace(
         steuerung_kennung=lambda: "steuerung-SN1",
-        register_poll_oid=angemeldet.append,
+        register_poll_oid=anmelden,
         unregister_poll_oid=abgemeldet.append,
     )
     jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
@@ -656,6 +662,7 @@ async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
     erwartet = {f"{AEROWIN}{a}" for a in ("/52/12/0", "/52/15/0", "/50/6/0", "/50/26/0")}
     assert erwartet | {f"{AEROWIN}/52/62/0"} == set(angemeldet)
     assert len(angemeldet) == 5
+    assert klassen == {"befund"}
     await sammler.beenden()
     assert sorted(abgemeldet) == sorted(angemeldet)
 

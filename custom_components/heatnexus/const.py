@@ -337,12 +337,14 @@ MAX_UPDATE_INTERVAL = 300
 POLL_FAST = "fast"
 POLL_NORMAL = "normal"
 POLL_SLOW = "slow"
-POLL_KLASSEN = frozenset({POLL_FAST, POLL_NORMAL, POLL_SLOW})
+# Werte, die nur der Befund in seinem Fünf-Minuten-Takt braucht.
+POLL_BEFUND = "befund"
+POLL_KLASSEN = frozenset({POLL_FAST, POLL_NORMAL, POLL_BEFUND, POLL_SLOW})
 # Angestrebter Abstand zweier Abrufe je Klasse, in Sekunden. Daraus wird der
 # Takt am tatsächlich eingestellten Intervall berechnet – eine feste Vielfache
 # stimmte nur bei den voreingestellten 30 s: Bei 300 s wären aus den 15 Minuten
 # der langsamen Klasse zweieinhalb Stunden geworden.
-POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_SLOW: 900}
+POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_BEFUND: 300, POLL_SLOW: 900}
 
 # Entitätsarten, die die Anlage bedienen oder ihren Zustand zeigen: immer schnell.
 POLL_TYPEN_SCHNELL = frozenset(

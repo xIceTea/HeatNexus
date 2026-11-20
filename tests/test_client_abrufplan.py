@@ -320,6 +320,38 @@ def test_eine_eingeschaltete_entitaet_meldet_sich_selbst_an(client):
     assert client._faellig() == set()
 
 
+def test_ein_befundwert_kommt_im_takt_des_befunds(client):
+    """Ein abgeschalteter Fachparameter, den der Befund braucht, läuft im Fünf-Minuten-Takt."""
+    oid = "/1/60/0/0/42/0"
+    client.devices = [{"oid": oid, "name": "O2", "enabled_default": False}]
+    client._compute_poll_oids()
+    client.register_poll_oid(oid, "befund")
+    client._rest = set()
+    assert client._takte()["befund"] == 10
+    client._tick = 10
+    assert oid in client._faellig()
+    client._tick = 1
+    assert oid not in client._faellig()
+
+
+def test_der_schnellere_takt_einer_entitaet_bleibt(client):
+    oid = "/1/60/0/0/7/0"
+    client.devices = [{"oid": oid, "name": "Kesseltemperatur", "type": "sensor"}]
+    client._compute_poll_oids()
+    client.register_poll_oid(oid, "befund")
+    client._rest = set()
+    client._tick = 1
+    assert oid in client._faellig()
+
+
+def test_der_befundtakt_endet_mit_der_abmeldung(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.unregister_poll_oid(oid)
+    client.register_poll_oid(oid)
+    assert client._abrufklasse(oid) == "normal"
+
+
 # ---------------------------------------------------------------------------
 # Fälligkeit: der Takt hängt am eingestellten Intervall
 # ---------------------------------------------------------------------------

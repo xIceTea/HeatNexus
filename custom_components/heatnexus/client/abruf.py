@@ -15,6 +15,7 @@ import time
 
 from ..const import (
     FETCH_CONCURRENCY,
+    POLL_BEFUND,
     POLL_BLOCK,
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
@@ -63,7 +64,7 @@ class AbrufMixin:
     """Zyklischer Abruf und gezielte Lesevorgänge."""
 
     # Je schneller die Klasse, desto kleiner der Rang.
-    _KLASSEN_RANG = {POLL_FAST: 0, POLL_NORMAL: 1, POLL_SLOW: 2}
+    _KLASSEN_RANG = {POLL_FAST: 0, POLL_NORMAL: 1, POLL_BEFUND: 2, POLL_SLOW: 3}
 
     # OIDs, die statisch immer mitgepollt werden müssen, weil eine
     # Climate-Entity sie für Anzeige/Berechnung braucht.
@@ -114,14 +115,17 @@ class AbrufMixin:
         """
         return (self.poll_oids | self._dynamic_oids) - self._abgemeldet
 
-    def register_poll_oid(self, oid: str) -> None:
+    def register_poll_oid(self, oid: str, klasse: str | None = None) -> None:
         """Eine Entity meldet ihre OID zum zyklischen Polling an.
 
         Eine eben angemeldete Adresse wird einmal gelesen, gleich welcher
         Klasse: Entities melden sich erst nach dem ersten Durchlauf an, und ein
         träger Wert stünde sonst bis zum nächsten langsamen Takt ohne Zahl da.
+        Eine mitgegebene Klasse gilt, solange keine Entität einen schnelleren Takt hat.
         """
         if oid and oid not in self._abgemeldet:
+            if klasse:
+                self._klasse_eintragen(self._dynamic_klassen, oid, klasse)
             neu = oid not in self._dynamic_oids
             self._dynamic_oids.add(oid)
             self._oid_nutzer[oid] = self._oid_nutzer.get(oid, 0) + 1
@@ -141,6 +145,7 @@ class AbrufMixin:
             return
         self._oid_nutzer.pop(oid, None)
         self._dynamic_oids.discard(oid)
+        self._dynamic_klassen.pop(oid, None)
         # Auch das vorgemerkte Erstlesen entfällt: Niemand wartet mehr darauf.
         self._rest.discard(oid)
 
@@ -498,6 +503,11 @@ class AbrufMixin:
         """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
         return poll_takte(self.update_interval)
 
+    def _abrufklasse(self, oid: str) -> str:
+        """Die schnellere Klasse aus Beschreibung und Anmeldung; ohne beide der mittlere Takt."""
+        klassen = {k for k in (self.poll_class.get(oid), self._dynamic_klassen.get(oid)) if k}
+        return min(klassen, key=lambda k: self._KLASSEN_RANG.get(k, 9), default=POLL_NORMAL)
+
     def _faellig(self, tick: int | None = None) -> set:
         """OIDs, die in diesem Durchlauf an der Reihe sind.
 
@@ -512,7 +522,7 @@ class AbrufMixin:
         tick = self._tick if tick is None else tick
         faellig = set()
         for oid in self.abrufplan:
-            takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
+            takt = takte.get(self._abrufklasse(oid), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
             if tick == 0 or tick % takt == 0:
