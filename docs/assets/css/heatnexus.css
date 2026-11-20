@@ -347,7 +347,7 @@ a.k:hover { box-shadow: 0 0 0 1px var(--linie-stark); }
 .sprachen span:first-child { color: var(--tinte); }
 
 /* Jeder Kreis zeigt Grund und Akzent eines Farbsatzes der Oberfläche. */
-.farben { display: flex; gap: 10px; margin-top: 22px; }
+.farben { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 .farben i {
   width: 34px; height: 34px; border-radius: 50%;
   background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%);

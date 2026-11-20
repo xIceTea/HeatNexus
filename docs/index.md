@@ -126,16 +126,19 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <div class="sprachen" aria-label="Deutsch, Englisch, Niederländisch"><span>DE</span><span>EN</span><span>NL</span></div>
       </a>
       <a class="k k-drittel" href="{{ anleitung }}#oberflaeche">
-        <h3>Sieben Farbsätze.</h3>
+        <h3>Fünf Farbsätze, hell und dunkel.</h3>
         <p>Vor- und Rücklauf bleiben in jedem Satz rot und blau.</p>
-        <div class="farben" aria-label="Dunkel, Hell, Terrakotta, Petrol, Pflaume, Windhager-Stil hell und dunkel">
-          <i style="--a:#1e232b;--b:#5b8def" title="Dunkel"></i>
-          <i style="--a:#ffffff;--b:#2e6de0" title="Hell"></i>
-          <i style="--a:#242220;--b:#d98e46" title="Terrakotta"></i>
-          <i style="--a:#192226;--b:#3fa89a" title="Petrol"></i>
-          <i style="--a:#211b2a;--b:#a878e0" title="Pflaume"></i>
-          <i style="--a:#ffffff;--b:#c20012" title="Windhager-Stil"></i>
-          <i style="--a:#283035;--b:#f86a74" title="Windhager-Stil Dunkel"></i>
+        <div class="farben" aria-label="HeatNexus, Terrakotta, Petrol, Pflaume und Windhager-Stil, je dunkel und hell">
+          <i style="--a:#1e232b;--b:#5b8def" title="HeatNexus dunkel"></i>
+          <i style="--a:#f4f5f7;--b:#2e6de0" title="HeatNexus hell"></i>
+          <i style="--a:#242220;--b:#d98e46" title="Terrakotta dunkel"></i>
+          <i style="--a:#f7f3ef;--b:#a85a24" title="Terrakotta hell"></i>
+          <i style="--a:#192226;--b:#3fa89a" title="Petrol dunkel"></i>
+          <i style="--a:#f1f6f5;--b:#1f7a6e" title="Petrol hell"></i>
+          <i style="--a:#211b2a;--b:#a878e0" title="Pflaume dunkel"></i>
+          <i style="--a:#f6f3f8;--b:#7b4bb0" title="Pflaume hell"></i>
+          <i style="--a:#283035;--b:#f86a74" title="Windhager-Stil dunkel"></i>
+          <i style="--a:#f2f2f2;--b:#c20012" title="Windhager-Stil hell"></i>
         </div>
       </a>
       <a class="k k-drittel insel" href="{{ anleitung }}#einrichtung">
