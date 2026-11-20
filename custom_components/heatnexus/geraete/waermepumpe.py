@@ -62,5 +62,16 @@ NUR_ANZEIGE: tuple[str, ...] = (
 )
 ENTITAETEN: list[dict] = []
 
-# Was der Befund für den Gütegrad liest; Phase 4 und 7 sind Heizbetrieb.
-BEFUND = {"waermepumpe": {"vorlauf": "/52/15/0", "phase": "/50/6/0", "phasen_heizen": (4, 7)}}
+# Was der Befund für den Gütegrad liest; Phase 4 und 7 sind Heizbetrieb. Es gibt Tageszähler und
+# den COP des Tages. Die Wärmemenge Warmwasser heute steigt in 0,1 kWh, also in jedem Takt.
+BEFUND = {
+    "waermepumpe": {
+        "vorlauf": "/52/15/0",
+        "phase": "/50/6/0",
+        "phasen_heizen": (4, 7),
+        "luft": "/52/12/0",
+        "leistung": "/50/26/0",
+        "tageszaehler": {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"},
+        "ww_heute": "/52/62/0",
+    }
+}

@@ -6,22 +6,21 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from ..geraete import BEFUND
 from ..helpers import get_oid_value
 from . import waermepumpe
 from .auswertung import Waermepumpengeraet
 from .pflegelauf import beschreibungen, geraetename
 from .pflegeziele import praefix
 
-LUFT, LEISTUNG, EHEIZUNG = "/52/12/0", "/50/26/0", "/56/5/0"
+_WP = {fct: BEFUND[fct]["waermepumpe"] for fct in waermepumpe.FUNKTIONSTYPEN}
+LUFT = {fct: w["luft"] for fct, w in _WP.items()}
+LEISTUNG = {fct: w["leistung"] for fct, w in _WP.items()}
 # fctType 7 führt Tageszähler und den COP des Tages; fctType 27 nur Gesamtzähler.
-TAGESZAEHLER = {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"}
-# Wärmemenge Warmwasser heute: steigt in 0,1 kWh und damit in jedem Takt der Bereitung.
-WW_HEUTE = "/52/62/0"
+TAGESZAEHLER, WW_HEUTE = _WP[7]["tageszaehler"], _WP[7]["ww_heute"]
 VORLAUF, PHASE = waermepumpe.VORLAUF, waermepumpe.PHASE
-WAERME_27 = ("/60/18/0", "/52/59/0")
-STROM_27 = ("/52/81/0", "/52/120/0")
-KUEHLEN_27 = ("/60/19/0", "/52/63/0")
-BH_27 = "/52/50/0"
+EHEIZUNG, BH_27 = _WP[27]["eheizung"], _WP[27]["bh"]
+WAERME_27, STROM_27, KUEHLEN_27 = _WP[27]["waerme"], _WP[27]["strom"], _WP[27]["kuehlen"]
 # Der Bezug beginnt neu mit dem Tag, an dem der Verdampfer gereinigt wurde.
 PFLEGE_ART = "verdampfer"
 
@@ -84,7 +83,7 @@ def abruf(coordinator: Any) -> set[str]:
     """Die Adressen, die je Takt frisch sein müssen, auch ohne aktivierte Entität."""
     oids: set[str] = set()
     for z in ziele_von(coordinator):
-        adressen = [LUFT, LEISTUNG, VORLAUF[z.fct_type], PHASE[z.fct_type]]
+        adressen = [LUFT[z.fct_type], LEISTUNG[z.fct_type], VORLAUF[z.fct_type], PHASE[z.fct_type]]
         adressen += [WW_HEUTE] if z.fct_type == 7 else [EHEIZUNG]
         oids |= {f"{z.prefix}{a}" for a in adressen}
     return oids
@@ -120,8 +119,8 @@ def messen(
         ww = wert(WW_HEUTE) if z.fct_type == 7 else None
         probe = waermepumpe.Probe(
             wert(VORLAUF[z.fct_type]),
-            wert(LUFT),
-            wert(LEISTUNG),
+            wert(LUFT[z.fct_type]),
+            wert(LEISTUNG[z.fct_type]),
             wert(PHASE[z.fct_type]),
             ww,
             wert(EHEIZUNG) if z.fct_type == 27 else None,

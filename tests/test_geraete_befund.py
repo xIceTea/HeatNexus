@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
-from .conftest import load_standalone
+from .conftest import COMPONENT_DIR, load_standalone
 
 
 @pytest.fixture(scope="module")
@@ -40,3 +42,25 @@ def test_eine_weitere_geraeteklasse_bekommt_kalenderpflege_und_abgas(monkeypatch
         "jahresreinigung",
     }
     assert [z.logwin for z in abgasziele.ziele(beschreibungen, {"70": "1409"})] == [True]
+
+
+def test_waermepumpenadressen_stehen_im_geraetemodul(geraete):
+    tag, gesamt = geraete.BEFUND[7]["waermepumpe"], geraete.BEFUND[27]["waermepumpe"]
+    assert tag["tageszaehler"] == {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"}
+    assert tag["ww_heute"] == "/52/62/0"
+    assert gesamt["waerme"] == ("/60/18/0", "/52/59/0")
+    assert gesamt["eheizung"] == "/56/5/0"
+    assert {w["luft"] for w in (tag, gesamt)} == {"/52/12/0"}
+
+
+def test_waermepumpenlauf_nennt_keine_eigenen_adressen():
+    lauf = load_standalone("befund.waermepumpelauf")
+    quelle = (COMPONENT_DIR / "befund" / "waermepumpelauf.py").read_text(encoding="utf-8")
+    assert not re.search(r'"/\d+/\d+/\d+"', quelle)
+    assert lauf.LUFT == {7: "/52/12/0", 27: "/52/12/0"}
+    assert lauf.LEISTUNG == {7: "/50/26/0", 27: "/50/26/0"}
+    assert (lauf.EHEIZUNG, lauf.WW_HEUTE, lauf.BH_27) == ("/56/5/0", "/52/62/0", "/52/50/0")
+    assert lauf.TAGESZAEHLER == {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"}
+    assert lauf.WAERME_27 == ("/60/18/0", "/52/59/0")
+    assert lauf.STROM_27 == ("/52/81/0", "/52/120/0")
+    assert lauf.KUEHLEN_27 == ("/60/19/0", "/52/63/0")
