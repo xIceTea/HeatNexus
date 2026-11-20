@@ -72,10 +72,15 @@ def test_speichern_und_laden(a):
     archiv = a.Archiv()
     archiv.messen("hk", datetime(2026, 10, 1, 10, 0), werte())
     archiv.messen("hk", datetime(2026, 10, 1, 11, 0), werte())
-    archiv.nachgerechnet = 1
+    archiv.nachgerechnet = {"stunden": 2, "abgas": 1}
     wieder = a.Archiv.aus_dict(archiv.als_dict())
     assert wieder.stunden("hk") == archiv.stunden("hk")
-    assert wieder.nachgerechnet == 1
+    assert wieder.nachgerechnet == {"stunden": 2, "abgas": 1}
+
+
+def test_ein_gemeinsamer_nachrechenstand_gilt_fuer_jeden_teil(a):
+    archiv = a.Archiv.aus_dict({"nachgerechnet": 5})
+    assert archiv.nachgerechnet == {teil: 5 for teil in a.NACHRECHNEN_TEILE}
 
 
 def test_kuerzen_behaelt_tage(a):
@@ -108,7 +113,7 @@ def test_nachtragen_bildet_vergangene_tage(a):
 def test_kaputter_speicher_ergibt_leeres_archiv(a, roh):
     archiv = a.Archiv.aus_dict(roh)
     assert archiv.stunden("hk") == []
-    assert archiv.nachgerechnet == 0
+    assert archiv.nachgerechnet == {}
 
 
 def test_vortag_entsteht_auch_nach_neustart_ueber_mitternacht(a):

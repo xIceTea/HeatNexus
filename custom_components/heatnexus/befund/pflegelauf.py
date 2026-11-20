@@ -77,6 +77,35 @@ def _wert(zeile: dict[str, Any]) -> Any:
     return zeile.get("mean") if zeile.get("mean") is not None else zeile.get("state")
 
 
+def offen(
+    coordinator: Any, archiv: Any, entitaet_von: Callable[[str, str], str | None]
+) -> list[tuple[Any, str]]:
+    """Die Pflegeziele ohne bekannten Tag der letzten Erledigung, je mit ihrer Entität."""
+    return [
+        (z, e)
+        for z in pflegeziele_von(coordinator)
+        if z.pflege.adresse and not archiv.pflege_eintrag(z.prefix, z.pflege.art).get("zuletzt")
+        if (e := entitaet_von(z.device_id, z.pflege.adresse))
+    ]
+
+
+def eintragen(
+    ziele: list[tuple[Any, str]],
+    archiv: Any,
+    statistik: dict[str, list[dict[str, Any]]],
+    stunde_von: Callable[[dict[str, Any]], str],
+) -> int:
+    """Den Tag der letzten Erledigung aus der Statistik ins Archiv; zählt die gefundenen."""
+    gefunden = 0
+    for z, entity_id in ziele:
+        reihe = [(stunde_von(zeile), _wert(zeile)) for zeile in statistik.get(entity_id, [])]
+        if tag := pflege.letzte_erledigung(reihe, z.pflege, z.max_feld):
+            eintrag = archiv.pflege_eintrag(z.prefix, z.pflege.art) | {"zuletzt": tag}
+            archiv.pflege_setzen(z.prefix, z.pflege.art, eintrag)
+            gefunden += 1
+    return gefunden
+
+
 async def nachrechnen(
     coordinator: Any,
     archiv: Any,
@@ -85,18 +114,6 @@ async def nachrechnen(
     stunde_von: Callable[[dict[str, Any]], str],
 ) -> int:
     """Den Tag der letzten Erledigung aus der Langzeitstatistik, wo noch keiner bekannt ist."""
-    offen = [
-        (z, e)
-        for z in pflegeziele_von(coordinator)
-        if z.pflege.adresse and not archiv.pflege_eintrag(z.prefix, z.pflege.art).get("zuletzt")
-        if (e := entitaet_von(z.device_id, z.pflege.adresse))
-    ]
-    statistik = await holen({e for _, e in offen}) if offen else {}
-    gefunden = 0
-    for z, entity_id in offen:
-        reihe = [(stunde_von(zeile), _wert(zeile)) for zeile in statistik.get(entity_id, [])]
-        if tag := pflege.letzte_erledigung(reihe, z.pflege, z.max_feld):
-            eintrag = archiv.pflege_eintrag(z.prefix, z.pflege.art) | {"zuletzt": tag}
-            archiv.pflege_setzen(z.prefix, z.pflege.art, eintrag)
-            gefunden += 1
-    return gefunden
+    ziele = offen(coordinator, archiv, entitaet_von)
+    statistik = await holen({e for _, e in ziele}) if ziele else {}
+    return eintragen(ziele, archiv, statistik, stunde_von)

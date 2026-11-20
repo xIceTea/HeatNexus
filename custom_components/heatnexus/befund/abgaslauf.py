@@ -18,6 +18,8 @@ NACHGERECHNET = "abgas_nachgerechnet"
 # Ebenda: seit wann ein O2-Wert gelesen wurde; ohne eigene Entität kommt er erst mit dem ersten Takt.
 O2_GESEHEN = "abgas_o2"
 # Reihenfolge wie `abgas.stunde_aus_statistik`.
+# Statistikarten, die das Nachrechnen des Abgaswächters braucht.
+ARTEN = frozenset({"mean", "min", "max"})
 FELDER_STATISTIK = {"leistung": LEISTUNG, "abgas": ABGAS, "kessel": KESSEL, "o2": O2}
 
 
@@ -132,25 +134,26 @@ def _je_stunde(
     return stunden
 
 
-async def nachrechnen(
-    coordinator: Any,
-    archiv: Any,
-    entitaet_von: Callable[[str, str], str | None],
-    holen: Callable[[set[str], set[str]], Awaitable[dict[str, list[dict[str, Any]]]]],
-    stunde_von: Callable[[dict[str, Any]], str],
-    heute: str,
-) -> int:
-    """Tage vor dem ersten Takt aus Stundenmittel, -minimum und -maximum.
-
-    Ohne Leistung (LogWIN) oder O2 entsteht der Bezug nur im Takt, nach Phase gefiltert.
-    """
+def reihen_von(
+    coordinator: Any, entitaet_von: Callable[[str, str], str | None]
+) -> dict[str, dict[str, str]]:
+    """Je Kessel die Entitäten für das Nachrechnen; nur mit Leistung und O2."""
     reihen = {}
     for z in ziele_von(coordinator):
         felder = {n: entitaet_von(z.device_id, a) for n, a in FELDER_STATISTIK.items()}
         if not z.logwin and all(felder.values()):
             reihen[z.prefix] = {n: e for n, e in felder.items() if e}
-    ids = {e for felder in reihen.values() for e in felder.values()}
-    statistik = await holen(ids, {"mean", "min", "max"}) if ids else {}
+    return reihen
+
+
+def eintragen(
+    reihen: dict[str, dict[str, str]],
+    archiv: Any,
+    statistik: dict[str, list[dict[str, Any]]],
+    stunde_von: Callable[[dict[str, Any]], str],
+    heute: str,
+) -> int:
+    """Tage vor dem ersten Takt aus der Statistik ins Archiv; zählt die neuen Stunden."""
     neu = 0
     for prefix, felder in reihen.items():
         # Früher nachgerechnete Tage entstehen neu; die Langzeitstatistik hat sie noch.
@@ -172,3 +175,21 @@ async def nachrechnen(
         if neu_tage := sorted(set(tage) - vorhanden):
             archiv.pflege_setzen(prefix, NACHGERECHNET, {"bis": neu_tage[-1]})
     return neu
+
+
+async def nachrechnen(
+    coordinator: Any,
+    archiv: Any,
+    entitaet_von: Callable[[str, str], str | None],
+    holen: Callable[[set[str], set[str]], Awaitable[dict[str, list[dict[str, Any]]]]],
+    stunde_von: Callable[[dict[str, Any]], str],
+    heute: str,
+) -> int:
+    """Tage vor dem ersten Takt aus Stundenmittel, -minimum und -maximum.
+
+    Ohne Leistung (LogWIN) oder O2 entsteht der Bezug nur im Takt, nach Phase gefiltert.
+    """
+    reihen = reihen_von(coordinator, entitaet_von)
+    ids = {e for felder in reihen.values() for e in felder.values()}
+    statistik = await holen(ids, set(ARTEN)) if ids else {}
+    return eintragen(reihen, archiv, statistik, stunde_von, heute)

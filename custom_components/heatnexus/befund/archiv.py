@@ -16,6 +16,8 @@ KESSEL = "k"
 MESSWERTE = ("at", "vl", "vi", "soll")
 # Schlüssel einer Stunde in Ortszeit; Heizkreis-Befunde und Nachrechnen lesen ihn ebenso.
 STUNDE = "%Y-%m-%d %H"
+# Teile, die aus der Langzeitstatistik nachgerechnet werden; jeder führt seinen eigenen Stand.
+NACHRECHNEN_TEILE = ("stunden", "pflege", "abgas")
 
 
 def _schluessel(zeit: datetime) -> str:
@@ -121,7 +123,7 @@ class Archiv:
         # Je Wärmepumpe und Tag Temperatursummen und Zählerstände; die Logik steht in `waermepumpe.py`.
         self.wp: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
-        self.nachgerechnet = 0
+        self.nachgerechnet: dict[str, int] = {}
 
     @classmethod
     def aus_dict(cls, roh: Any) -> Archiv:
@@ -140,16 +142,13 @@ class Archiv:
             "wp",
         ):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
-        stand = roh.get("nachgerechnet")
-        archiv.nachgerechnet = (
-            stand if isinstance(stand, int) and not isinstance(stand, bool) else 0
-        )
+        archiv.nachgerechnet = _nachrechenstand(roh.get("nachgerechnet"))
         return archiv
 
     def als_dict(self) -> dict[str, Any]:
         return {
             "fassung": FASSUNG,
-            "nachgerechnet": self.nachgerechnet,
+            "nachgerechnet": dict(self.nachgerechnet),
             "stunden_hk": self.stunden_hk,
             "stunden_k": self.stunden_k,
             "tage_hk": self.tage_hk,
@@ -300,3 +299,18 @@ class Archiv:
         for eintrag in self.brennstoff.values():
             if "zaehler" in eintrag:
                 eintrag["zaehler"] = {d: v for d, v in eintrag["zaehler"].items() if d >= grenze_t}
+
+
+def _ganzzahl(wert: Any) -> bool:
+    return isinstance(wert, int) and not isinstance(wert, bool)
+
+
+def _nachrechenstand(roh: Any) -> dict[str, int]:
+    """Stand je Teil; ein früher gemeinsamer Stand gilt für jeden Teil."""
+    if _ganzzahl(roh):
+        return dict.fromkeys(NACHRECHNEN_TEILE, roh)
+    if not isinstance(roh, dict):
+        return {}
+    return {
+        teil: stand for teil, stand in roh.items() if teil in NACHRECHNEN_TEILE and _ganzzahl(stand)
+    }

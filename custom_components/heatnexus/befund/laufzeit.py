@@ -34,7 +34,10 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 5
+# Je Teil die Fassung seiner Nachrechnung; eine höhere rechnet nur diesen Teil neu.
+NACHRECHNEN = {"stunden": 5, "pflege": 5, "abgas": 5}
+# Statistikarten der Stundenreihen von Heizkreis und Kessel.
+STUNDEN_ARTEN = frozenset({"mean", "state"})
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"
@@ -196,7 +199,7 @@ class Sammler:
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
         self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
-        if self.archiv.nachgerechnet < NACHRECHNEN_FASSUNG:
+        if self._veraltet():
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
             )
@@ -369,13 +372,48 @@ class Sammler:
             leistung = stunde.pop("leistung", None)
             stunde["kwh"] = leistung / 100 * nenn if leistung is not None and nenn else None
 
+    def _veraltet(self) -> list[str]:
+        """Die Teile, deren Nachrechnung älter ist als ihre aktuelle Fassung."""
+        stand = self.archiv.nachgerechnet
+        return [teil for teil, fassung in NACHRECHNEN.items() if stand.get(teil, 0) < fassung]
+
     async def nachrechnen(self) -> int:
         """Vergangene Stunden aus der Langzeitstatistik; vorhandene bleiben, Räume füllen sich live."""
         if "recorder" not in self.hass.config.components:
             return 0
-        reihen = self._reihen()
-        ids = {e for felder in reihen.values() for e in felder.values()}
-        statistik = await self._statistik(ids) if ids else {}
+        teile = self._veraltet()
+        register = er.async_get(self.hass)
+
+        def entitaet_von(device_id: str, adresse: str) -> str | None:
+            return _entitaet(register, device_id, adresse)
+
+        reihen = self._reihen() if "stunden" in teile else {}
+        pflege = (
+            pflegelauf.offen(self.coordinator, self.archiv, entitaet_von)
+            if "pflege" in teile
+            else []
+        )
+        abgas = abgaslauf.reihen_von(self.coordinator, entitaet_von) if "abgas" in teile else {}
+        ids = {e for felder in (*reihen.values(), *abgas.values()) for e in felder.values()}
+        ids |= {e for _, e in pflege}
+        arten = STUNDEN_ARTEN | (abgaslauf.ARTEN if abgas else frozenset())
+        statistik = await self._statistik(ids, set(arten)) if ids else {}
+        neu = self._stunden_eintragen(reihen, statistik)
+        neu += pflegelauf.eintragen(pflege, self.archiv, statistik, _stunde)
+        neu += abgaslauf.eintragen(
+            abgas, self.archiv, statistik, _stunde, dt_util.now().date().isoformat()
+        )
+        self.archiv.nachgerechnet = self.archiv.nachgerechnet | {t: NACHRECHNEN[t] for t in teile}
+        self.archiv.kuerzen(dt_util.now().date())
+        self.speichern()
+        self.aktualisieren()
+        return neu
+
+    def _stunden_eintragen(
+        self,
+        reihen: dict[tuple[str, str], dict[str, str]],
+        statistik: dict[str, list[dict[str, Any]]],
+    ) -> int:
         neu = 0
         for (art, kennung), felder in reihen.items():
             stunden = self._stunden_aus(art, felder, statistik)
@@ -384,31 +422,7 @@ class Sammler:
             else:
                 self._kessel_stunden(kennung, stunden)
                 neu += self.archiv.nachtragen_kessel(kennung, stunden)
-        neu += await self._pflege_nachrechnen()
-        register = er.async_get(self.hass)
-        neu += await abgaslauf.nachrechnen(
-            self.coordinator,
-            self.archiv,
-            lambda device_id, adresse: _entitaet(register, device_id, adresse),
-            self._statistik,
-            _stunde,
-            dt_util.now().date().isoformat(),
-        )
-        self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
-        self.archiv.kuerzen(dt_util.now().date())
-        self.speichern()
-        self.aktualisieren()
         return neu
-
-    async def _pflege_nachrechnen(self) -> int:
-        register = er.async_get(self.hass)
-        return await pflegelauf.nachrechnen(
-            self.coordinator,
-            self.archiv,
-            lambda device_id, adresse: _entitaet(register, device_id, adresse),
-            self._statistik,
-            _stunde,
-        )
 
     # --- Auswerten ------------------------------------------------------------
     def _kreis(self, b: dict[str, Any]) -> auswertung.Kreis:

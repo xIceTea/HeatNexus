@@ -110,6 +110,53 @@ async def test_nachrechnen_ohne_recorder_ist_leer(hass, anlage):
     assert await sammler.nachrechnen() == 0
 
 
+def _statistik_mitschreiben(hass, sammler, monkeypatch):
+    """Der Sammler sieht einen Recorder und je Adresse eine Entität; jede Abfrage wird notiert."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    hass.config.components.add("recorder")
+    monkeypatch.setattr(laufzeit, "_entitaet", lambda _r, d, a: f"sensor.{d}{a}")
+    abfragen = []
+
+    async def statistik(ids, arten=None):
+        abfragen.append((set(ids), set(arten or ())))
+        return {}
+
+    monkeypatch.setattr(sammler, "_statistik", statistik)
+    return abfragen
+
+
+async def test_nachrechnen_fragt_die_statistik_einmal(hass, anlage, monkeypatch):
+    """Stunden, Pflege und Abgas teilen sich eine Abfrage der Langzeitstatistik."""
+    from custom_components.heatnexus.befund.laufzeit import NACHRECHNEN
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    abfragen = _statistik_mitschreiben(hass, sammler, monkeypatch)
+    await sammler.nachrechnen()
+    assert len(abfragen) == 1
+    ids, arten = abfragen[0]
+    assert "sensor.SN1-1-0/0/42/0" in ids
+    assert {"mean", "min", "max"} <= arten
+    assert sammler.archiv.nachgerechnet == NACHRECHNEN
+
+
+async def test_nachrechnen_nur_fuer_veraltete_teile(hass, anlage, monkeypatch):
+    """Ist nur der Stand des Abgasteils veraltet, fragt die Statistik nur dessen Reihen ab."""
+    from custom_components.heatnexus.befund.laufzeit import NACHRECHNEN
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.nachgerechnet = NACHRECHNEN | {"abgas": 0}
+    abfragen = _statistik_mitschreiben(hass, sammler, monkeypatch)
+    await sammler.nachrechnen()
+    ids, _ = abfragen[0]
+    assert ids == {f"sensor.SN1-1-0/0/{gm}/0" for gm in ("9", "11", "7", "42")}
+    assert sammler.archiv.nachgerechnet == NACHRECHNEN
+
+
 async def test_stoppen_speichert_und_entfernt(hass, anlage):
     verwaltung, eintrag = anlage
     await verwaltung.eintrag_stoppen(eintrag)
