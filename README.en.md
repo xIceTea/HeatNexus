@@ -28,6 +28,7 @@ in the sidebar shows the system as a diagram.
 - **Care, flue gas, fuel and heat pump**: the analysis shows care dates, reports warmer flue gas since cleaning and tells how long the fuel lasts. On the heat pump it compares the efficiency grade with the state after the last evaporator cleaning.
 - **Faults in plain text** with remedies, plus the message list of the control panel.
 - **System state per controller** as a sensor for notifications.
+- **Connection and response time per controller** as diagnostic sensors; a repair issue reports an overloaded or faulty controller.
 - **Repairs** in Home Assistant list an unreachable controller and system parts that deliver no values.
 - **Dashboard and seven automation blueprints** built from what the system provides.
 - **German, English and Dutch** in the panel, datapoints and fault texts.
