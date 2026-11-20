@@ -125,20 +125,22 @@ class AbrufMixin:
         """
         if oid and oid not in self._abgemeldet:
             if klasse:
-                self._klasse_eintragen(self._dynamic_klassen, oid, klasse)
+                anmeldungen = self._dynamic_klassen.setdefault(oid, {})
+                anmeldungen[klasse] = anmeldungen.get(klasse, 0) + 1
             neu = oid not in self._dynamic_oids
             self._dynamic_oids.add(oid)
             self._oid_nutzer[oid] = self._oid_nutzer.get(oid, 0) + 1
             if neu and oid not in self._letzte_werte:
                 self._rest.add(oid)
 
-    def unregister_poll_oid(self, oid: str) -> None:
+    def unregister_poll_oid(self, oid: str, klasse: str | None = None) -> None:
         """Eine entfernte/deaktivierte Entity meldet ihre OID ab.
 
         Gezählt wird, wer sie braucht: Ein Zählerstand und seine Ableitungen
         lesen dieselbe Adresse, und die eine abzuschalten darf die andere nicht
-        blind stellen.
+        blind stellen. Wer mit Klasse angemeldet hat, meldet mit derselben ab.
         """
+        self._klasse_austragen(oid, klasse)
         offen = self._oid_nutzer.get(oid, 0) - 1
         if offen > 0:
             self._oid_nutzer[oid] = offen
@@ -148,6 +150,17 @@ class AbrufMixin:
         self._dynamic_klassen.pop(oid, None)
         # Auch das vorgemerkte Erstlesen entfällt: Niemand wartet mehr darauf.
         self._rest.discard(oid)
+
+    def _klasse_austragen(self, oid: str, klasse: str | None) -> None:
+        """Eine Anmeldung mit Klasse zurücknehmen; es gilt die schnellste der übrigen."""
+        anmeldungen = self._dynamic_klassen.get(oid)
+        if not klasse or not anmeldungen or klasse not in anmeldungen:
+            return
+        anmeldungen[klasse] -= 1
+        if anmeldungen[klasse] <= 0:
+            del anmeldungen[klasse]
+        if not anmeldungen:
+            del self._dynamic_klassen[oid]
 
     def _abmelden(self, oid: str, data, status: int) -> bool:
         """Einen abgelehnten Datenpunkt aus dem zyklischen Abruf nehmen.
@@ -505,7 +518,9 @@ class AbrufMixin:
 
     def abrufklasse(self, oid: str) -> str:
         """Die schnellere Klasse aus Beschreibung und Anmeldung; ohne beide der mittlere Takt."""
-        klassen = {k for k in (self.poll_class.get(oid), self._dynamic_klassen.get(oid)) if k}
+        klassen = set(self._dynamic_klassen.get(oid, ()))
+        if beschrieben := self.poll_class.get(oid):
+            klassen.add(beschrieben)
         return min(klassen, key=lambda k: self._KLASSEN_RANG.get(k, 9), default=POLL_NORMAL)
 
     def _faellig(self, tick: int | None = None) -> set:

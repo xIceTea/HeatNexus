@@ -731,10 +731,14 @@ async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
         angemeldet.append(oid)
         klassen.add(klasse)
 
+    def abmelden(oid, klasse=None):
+        abgemeldet.append(oid)
+        klassen.add(klasse)
+
     sammler.coordinator.client = SimpleNamespace(
         steuerung_kennung=lambda: "steuerung-SN1",
         register_poll_oid=anmelden,
-        unregister_poll_oid=abgemeldet.append,
+        unregister_poll_oid=abmelden,
     )
     jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
     await sammler.messen(jetzt)
@@ -745,6 +749,7 @@ async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
     assert klassen == {"befund"}
     await sammler.beenden()
     assert sorted(abgemeldet) == sorted(angemeldet)
+    assert klassen == {"befund"}
 
 
 async def test_waermepumpe_abtauen_zaehlt_nicht(hass, anlage):

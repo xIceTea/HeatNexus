@@ -352,6 +352,23 @@ def test_der_befundtakt_endet_mit_der_abmeldung(client):
     assert client.abrufklasse(oid) == "normal"
 
 
+def test_der_befundtakt_endet_auch_wenn_eine_entitaet_bleibt(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.register_poll_oid(oid)
+    client.unregister_poll_oid(oid, "befund")
+    assert client.abrufklasse(oid) == "normal"
+    assert oid in client.abrufplan
+
+
+def test_nach_der_abmeldung_gilt_die_schnellste_verbleibende_klasse(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.register_poll_oid(oid, "fast")
+    client.unregister_poll_oid(oid, "fast")
+    assert client.abrufklasse(oid) == "befund"
+
+
 # ---------------------------------------------------------------------------
 # Fälligkeit: der Takt hängt am eingestellten Intervall
 # ---------------------------------------------------------------------------

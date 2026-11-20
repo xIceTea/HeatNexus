@@ -122,8 +122,8 @@ class WindhagerHttpClient(
         self.poll_oids: set = set()
         # Dynamisch angemeldete OIDs, etwa eine vom Nutzer eingeschaltete Service-Entity.
         self._dynamic_oids: set = set()
-        # Klassen, die eine Anmeldung mitgibt; getrennt, weil ein neues Einlesen `poll_class` ersetzt.
-        self._dynamic_klassen: dict[str, str] = {}
+        # Klassen der Anmeldungen, je Klasse gezählt; getrennt, weil ein neues Einlesen `poll_class` ersetzt.
+        self._dynamic_klassen: dict[str, dict[str, int]] = {}
         # Wie viele Entitäten eine dynamisch angemeldete Adresse brauchen.
         self._oid_nutzer: dict[str, int] = {}
         # Zeitprogramme (typeId 30) werden nicht über lookup, sondern über den

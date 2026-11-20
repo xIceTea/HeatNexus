@@ -231,7 +231,7 @@ class Sammler:
             self._aufgabe.cancel()
         if abmelden := getattr(self._client(), "unregister_poll_oid", None):
             for oid in self._abruf:
-                abmelden(oid)
+                abmelden(oid, POLL_BEFUND)
         self._abruf = set()
         await self._store.async_save(self.archiv.als_dict())
 
