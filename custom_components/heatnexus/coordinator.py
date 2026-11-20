@@ -205,6 +205,13 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         finally:
             IM_ABRUF.reset(token)
 
+    def _letzter_stand(self) -> dict:
+        """Die zuletzt gelesenen Werte mit der Geräteliste, die jetzt gilt.
+
+        Die Liste ist kein Messwert: Nach einem Einlesen darf sie nicht veralten.
+        """
+        return {**self.data, "devices": self.client.geraeteliste}
+
     async def _abrufen(self):
         """Werte der Anlage holen."""
         # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
@@ -242,7 +249,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # jedem Leser eine Anlage ohne Datenpunkte, und die Entitäten würden stillgelegt.
             if not self.data:
                 raise mit_text(UpdateFailed, "keine_werte", anlage=self.host, fehler=err) from err
-            return self.data
+            return self._letzter_stand()
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
@@ -260,7 +267,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 raise mit_text(
                     UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
                 ) from err
-            return self.data
+            return self._letzter_stand()
 
     async def werte_nachlesen(self, oids: list[str]) -> dict | None:
         """Einzelne Adressen sofort lesen und in den Bestand legen; None bei Fehlschlag.

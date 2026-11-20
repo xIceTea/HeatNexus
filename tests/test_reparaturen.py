@@ -207,6 +207,7 @@ async def test_ohne_vorherige_werte_ist_die_zeitueberschreitung_ein_fehlschlag(c
 async def test_mit_vorherigen_werten_bleiben_diese_stehen(coordinator):
     """Ein einzelner verpasster Abruf soll die Anzeige nicht leeren."""
     coordinator.data = {"oids": {"/1/15/0/0/7/0": "42"}, "devices": [{"id": "a"}]}
+    coordinator.client.geraeteliste = [{"id": "a"}]
     coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
 
     assert await coordinator._async_update_data() == coordinator.data
