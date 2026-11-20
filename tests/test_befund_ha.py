@@ -995,3 +995,20 @@ async def test_abgas_ohne_o2_statistik_wird_nicht_nachgerechnet(hass, anlage):
     assert neu == 0
     assert sammler.archiv.abgas_tage(KESSEL) == {}
     assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {}
+
+
+async def test_ein_fehler_bei_den_kennungen_haelt_den_stand_nicht_auf(hass, anlage, monkeypatch):
+    """Lassen sich die Befund-Entitäten nicht ermitteln, entsteht der Stand trotzdem."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+
+    def kaputt(*_args):
+        raise ValueError("Beschreibung unlesbar")
+
+    monkeypatch.setattr(laufzeit, "_kennungen_der_anlage", kaputt)
+    sammler.letzter = None
+    sammler.aktualisieren()
+    assert sammler.letzter is not None
+    sammler.nachziehen()

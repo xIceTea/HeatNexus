@@ -510,12 +510,11 @@ class Sammler:
     def aktualisieren(self) -> None:
         """Den Stand für die Sensoren neu rechnen; sie lesen ihn über das Signal."""
         try:
-            gerechnet_fuer = self._entitaeten()
             self.letzter = self.stand()
         except Exception:  # die Sensoren behalten den letzten Stand
             _LOGGER.debug("Befund %s: Auswertung fehlgeschlagen", self.anlage_id, exc_info=True)
             return
-        self._gerechnet_fuer = gerechnet_fuer
+        self._gerechnet_fuer = self._entitaeten()
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
 
     def nachziehen(self) -> None:
@@ -523,11 +522,17 @@ class Sammler:
 
         Ein später erkanntes Gerät fehlt sonst im Stand, bis die nächste Stunde schließt.
         """
-        if self._entitaeten() != self._gerechnet_fuer:
+        jetzt = self._entitaeten()
+        if jetzt is not None and jetzt != self._gerechnet_fuer:
             self.aktualisieren()
 
-    def _entitaeten(self) -> frozenset[str]:
-        return frozenset(_kennungen_der_anlage(self.coordinator, self.archiv))
+    def _entitaeten(self) -> frozenset[str] | None:
+        """Die Kennungen der Befund-Entitäten; None, wenn sie sich nicht ermitteln lassen."""
+        try:
+            return frozenset(_kennungen_der_anlage(self.coordinator, self.archiv))
+        except Exception:  # das Anlegen der Entitäten darf daran nicht scheitern
+            _LOGGER.debug("Befund %s: Kennungen nicht ermittelbar", self.anlage_id, exc_info=True)
+            return None
 
     def melden(self) -> None:
         """Hinweise je Heizkreis in die Seitenleiste, wenn er es will; nur bei geänderten Hinweisen."""
