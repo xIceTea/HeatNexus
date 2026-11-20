@@ -369,6 +369,13 @@ def test_nach_der_abmeldung_gilt_die_schnellste_verbleibende_klasse(client):
     assert client.abrufklasse(oid) == "befund"
 
 
+def test_eine_abgelehnte_adresse_verliert_ihre_klasse(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client._abmelden(oid, {"reason": "invalid Identifier"}, 409)
+    assert oid not in client._dynamic_klassen
+
+
 # ---------------------------------------------------------------------------
 # Fälligkeit: der Takt hängt am eingestellten Intervall
 # ---------------------------------------------------------------------------

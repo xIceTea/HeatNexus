@@ -180,6 +180,7 @@ class AbrufMixin:
         self.poll_oids.discard(oid)
         self._dynamic_oids.discard(oid)
         self._oid_nutzer.pop(oid, None)
+        self._dynamic_klassen.pop(oid, None)
         self._rest.discard(oid)
         return True
 
