@@ -152,7 +152,7 @@ class AbrufMixin:
         self._rest.discard(oid)
 
     def _klasse_austragen(self, oid: str, klasse: str | None) -> None:
-        """Eine Anmeldung mit Klasse zurücknehmen; es gilt die schnellste der übrigen."""
+        """Nimmt eine Anmeldung mit Klasse zurück; danach gilt die schnellste übrige Klasse."""
         anmeldungen = self._dynamic_klassen.get(oid)
         if not klasse or not anmeldungen or klasse not in anmeldungen:
             return

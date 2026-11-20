@@ -67,7 +67,7 @@ def test_waermepumpenlauf_nennt_keine_eigenen_adressen():
 
 
 def test_jede_waermepumpe_nennt_luft_und_leistung(geraete):
-    """Der Befund baut seine Tabellen beim Import; eine Lücke fiele erst beim Laden auf."""
+    """Fehlt einer Wärmepumpe ein Eintrag, scheitert sonst erst das Laden der Integration."""
     funktionen = load_standalone("befund.waermepumpe").FUNKTIONSTYPEN
     assert {7, 27} <= set(funktionen)
     for fct in funktionen:

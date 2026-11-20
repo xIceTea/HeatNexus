@@ -188,7 +188,7 @@ class Sammler:
         self.anlage_id = anlage_id
         self.archiv = Archiv()
         self.letzter: dict[str, Any] | None = None
-        # Die Befund-Entitäten, für die `letzter` gerechnet ist.
+        # Für diese Befund-Entitäten ist `letzter` berechnet.
         self._gerechnet_fuer: frozenset[str] | None = None
         # Je Heizkreis die Befunde, deren Hinweis zuletzt in der Seitenleiste stand.
         self._gemeldet: dict[str, frozenset[str]] = {}
@@ -518,7 +518,7 @@ class Sammler:
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
 
     def nachziehen(self) -> None:
-        """Neu rechnen, wenn die Anlage seit dem letzten Stand andere Befund-Entitäten hat.
+        """Rechnet neu, wenn die Anlage seit dem letzten Stand andere Befund-Entitäten hat.
 
         Ein später erkanntes Gerät fehlt sonst im Stand, bis die nächste Stunde schließt.
         """

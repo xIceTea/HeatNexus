@@ -265,7 +265,7 @@ def _zustand(hass, kennung):
 
 
 async def test_spaet_bekannter_kessel_zeigt_gleich_seinen_befund(hass, monkeypatch):
-    """Ist der Kessel beim Laden noch unbekannt, tragen seine Sensoren beim Anlegen den Stand."""
+    """Ist der Kessel beim Laden noch unbekannt, zeigen seine Sensoren beim Anlegen den Stand."""
     from homeassistant.helpers.dispatcher import async_dispatcher_send
 
     from custom_components.heatnexus.befund.entitaeten import anmelden
@@ -290,7 +290,7 @@ async def test_spaet_bekannter_kessel_zeigt_gleich_seinen_befund(hass, monkeypat
 
 
 async def test_sensoren_finden_ihren_stand_nach_neustart_des_befunds(hass, anlage, monkeypatch):
-    """Startet der Befund neu, während seine Sensoren stehen, zeigen sie gleich den Stand."""
+    """Startet der Befund neu, während seine Sensoren schon angelegt sind, zeigen sie sofort den Stand."""
     from custom_components.heatnexus.befund.entitaeten import anmelden
 
     verwaltung, eintrag = anlage
@@ -998,7 +998,7 @@ async def test_abgas_ohne_o2_statistik_wird_nicht_nachgerechnet(hass, anlage):
 
 
 async def test_ein_fehler_bei_den_kennungen_haelt_den_stand_nicht_auf(hass, anlage, monkeypatch):
-    """Lassen sich die Befund-Entitäten nicht ermitteln, entsteht der Stand trotzdem."""
+    """Auch wenn sich die Befund-Entitäten nicht ermitteln lassen, entsteht der Stand."""
     from custom_components.heatnexus.befund import laufzeit
 
     verwaltung, _ = anlage

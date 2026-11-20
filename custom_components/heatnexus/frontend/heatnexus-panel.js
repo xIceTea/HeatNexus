@@ -145,7 +145,7 @@ class HeatNexusPanel extends Grundlage {
     try {
       window.sessionStorage.setItem(LAGE_SPEICHER, JSON.stringify({ reiter: this._reiter, anlage: this._anlageIndex }));
     } catch (err) {
-      // Ein gesperrter Speicher hält die Lage nur bis zum Seitenwechsel.
+      // Ohne Sitzungsspeicher gilt die Lage nur bis zum nächsten Seitenwechsel.
     }
   }
 
@@ -461,7 +461,7 @@ class HeatNexusPanel extends Grundlage {
   }
 
   /**
-   * Nach dem ersten Aufbau, einem Dialog und der Rückkehr der App die Fläche für zwei Bilder auf eine eigene Ebene heben.
+   * Hebt die Fläche nach dem ersten Aufbau, nach einem Dialog und nach der Rückkehr der App für zwei Bilder auf eine eigene Ebene.
    * Mobile Browser zeichnen verdeckte und klebende Bereiche sonst erst beim Scrollen wieder.
    */
   _nachUnterbrechungNeuZeichnen() {
@@ -478,7 +478,7 @@ class HeatNexusPanel extends Grundlage {
       () => document.visibilityState === "visible" && anheben(),
       optionen
     );
-    // Nach dem Zurückkehren von einer anderen Seite entsteht ein neues Element, und kein Ereignis folgt.
+    // Nach der Rückkehr von einer anderen Seite entsteht ein neues Element, ohne dass ein Ereignis folgt.
     if (!this._einmalAngehoben) {
       requestAnimationFrame(() => {
         if (!this.isConnected) return;
@@ -711,7 +711,7 @@ class HeatNexusPanel extends Grundlage {
     const leiste = inhalt.querySelector(".reiter");
     if (!leiste) return;
     leiste.scrollLeft = vorher;
-    // Im ersten Aufbau sind Tasten und Symbole oft noch nicht vermessen; ein Bild später stimmt die Breite.
+    // Beim ersten Aufbau haben Tasten und Symbole oft noch keine Breite; ein Bild später stimmt sie.
     if (nochmal) requestAnimationFrame(() => this.isConnected && this._reiterZeigen(inhalt, leiste.scrollLeft, false));
     const taste = leiste.querySelector('[aria-selected="true"]');
     if (!taste || !(leiste.scrollWidth > leiste.clientWidth) || !taste.getBoundingClientRect) return;

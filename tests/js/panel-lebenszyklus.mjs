@@ -261,7 +261,7 @@ const befund = {};
   globalThis.sessionStorage = gemerkt;
 }
 
-// --- Nur der erste Aufbau hebt an; eine fremde Lage wird geprüft; Reiter zweimal ausgerichtet ---
+// --- Anheben beim zweiten Aufbau, gemerkte Anlage außerhalb der Liste, Reiterausrichtung ---
 {
   const { flaeche } = bauen();
   flaeche.isConnected = true;
