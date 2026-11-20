@@ -46,6 +46,7 @@ def _client():
         oids={"/1/60/0/0/7/0", "/1/60/0/2/1/0"},
         poll_oids={"/1/60/0/0/7/0"},
         poll_class={"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "slow"},
+        abrufklasse=lambda oid: {"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "slow"}.get(oid),
         abrufplan={"/1/60/0/0/7/0"},
         _dynamic_oids=set(),
         time_programs=[],
@@ -334,6 +335,17 @@ async def test_jede_beschreibung_nennt_ihre_klasse_und_ob_sie_gelesen_wird(expor
     assert nach_oid["/1/60/0/0/7/0"]["im_abruf"] is True
     assert nach_oid["/1/60/0/2/1/0"]["im_abruf"] is False
     assert anlage["anlage"]["abrufklassen"] == {"fast": 1}
+
+
+def test_die_klasse_folgt_dem_takt_in_dem_gelesen_wird(diagnostics):
+    """Meldet der Befund eine träge Adresse an, steht ihr tatsächlicher Takt im Export."""
+    coordinator = _coordinator()
+    coordinator.client.abrufplan = {"/1/60/0/0/7/0", "/1/60/0/2/1/0"}
+    coordinator.client.abrufklasse = {"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "befund"}.get
+    anlage = diagnostics._anlage(coordinator)
+    nach_oid = {b["oid"]: b for b in anlage["beschreibungen"]}
+    assert nach_oid["/1/60/0/2/1/0"]["poll_klasse"] == "befund"
+    assert anlage["anlage"]["abrufklassen"] == {"befund": 1, "fast": 1}
 
 
 def test_ein_zeitprogramm_wird_nicht_als_fehlend_gelesen(diagnostics):

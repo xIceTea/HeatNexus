@@ -17,9 +17,9 @@ KESSEL, LEISTUNG, PHASE, O2 = "/0/7/0", "/0/9/0", "/2/1/0", "/0/42/0"
 NACHGERECHNET = "abgas_nachgerechnet"
 # Ebenda: seit wann ein O2-Wert gelesen wurde; ohne eigene Entität kommt er erst mit dem ersten Takt.
 O2_GESEHEN = "abgas_o2"
-# Reihenfolge wie `abgas.stunde_aus_statistik`.
 # Statistikarten, die das Nachrechnen des Abgaswächters braucht.
 ARTEN = frozenset({"mean", "min", "max"})
+# Reihenfolge wie `abgas.stunde_aus_statistik`.
 FELDER_STATISTIK = {"leistung": LEISTUNG, "abgas": ABGAS, "kessel": KESSEL, "o2": O2}
 
 

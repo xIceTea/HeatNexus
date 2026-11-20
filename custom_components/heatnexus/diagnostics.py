@@ -280,7 +280,7 @@ def _anlage(coordinator) -> dict[str, Any]:
     beschreibungen = [
         {
             **b,
-            "poll_klasse": client.poll_class.get(b.get("oid")),
+            "poll_klasse": client.abrufklasse(b["oid"]) if b.get("oid") else None,
             # `None` heißt „gehört nicht in den Abrufplan": Zeitprogramme
             # kommen über den object-Endpunkt, eine Taste zeigt nichts an.
             "im_abruf": (
@@ -293,7 +293,7 @@ def _anlage(coordinator) -> dict[str, Any]:
     nach_ebene: dict[str, int] = {}
     nach_klasse: dict[str, int] = {}
     for oid in plan:
-        klasse = client.poll_class.get(oid) or "unbekannt"
+        klasse = client.abrufklasse(oid) or "unbekannt"
         nach_klasse[klasse] = nach_klasse.get(klasse, 0) + 1
     for beschreibung in beschreibungen:
         typ = beschreibung.get("type", "unbekannt")

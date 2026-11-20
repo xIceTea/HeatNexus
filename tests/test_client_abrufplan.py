@@ -349,7 +349,7 @@ def test_der_befundtakt_endet_mit_der_abmeldung(client):
     client.register_poll_oid(oid, "befund")
     client.unregister_poll_oid(oid)
     client.register_poll_oid(oid)
-    assert client._abrufklasse(oid) == "normal"
+    assert client.abrufklasse(oid) == "normal"
 
 
 # ---------------------------------------------------------------------------

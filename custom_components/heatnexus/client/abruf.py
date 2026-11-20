@@ -503,7 +503,7 @@ class AbrufMixin:
         """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
         return poll_takte(self.update_interval)
 
-    def _abrufklasse(self, oid: str) -> str:
+    def abrufklasse(self, oid: str) -> str:
         """Die schnellere Klasse aus Beschreibung und Anmeldung; ohne beide der mittlere Takt."""
         klassen = {k for k in (self.poll_class.get(oid), self._dynamic_klassen.get(oid)) if k}
         return min(klassen, key=lambda k: self._KLASSEN_RANG.get(k, 9), default=POLL_NORMAL)
@@ -522,7 +522,7 @@ class AbrufMixin:
         tick = self._tick if tick is None else tick
         faellig = set()
         for oid in self.abrufplan:
-            takt = takte.get(self._abrufklasse(oid), 1)
+            takt = takte.get(self.abrufklasse(oid), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
             if tick == 0 or tick % takt == 0:
