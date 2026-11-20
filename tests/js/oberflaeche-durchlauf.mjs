@@ -1017,8 +1017,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .map((gruppe) => ({
         gruppe: gruppe.dataset.gruppe,
         lage: text(gruppe.querySelector(".zp-lage")),
+        titel: text(gruppe.querySelector(".zp-titel")),
         jetztLinien: gruppe.querySelectorAll(".jetzt-linie").length,
       })),
+    gilt: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("gilt")).map((taste) => ({
+      name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      punkte: taste.querySelectorAll(".zp-punkt-gilt").length,
+    })),
     leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
       name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
       spuren: taste.querySelectorAll(".zp-spur").length,

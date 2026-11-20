@@ -106,10 +106,18 @@ export const ZEITPROGRAMME = `
     background: var(--hn-karte); color: var(--hn-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   .zp-reiter button.leer { opacity: 0.55; }
+  /* Das geltende Programm: die ganze Taste in der Akzentfarbe, gewählt oder nicht. */
+  .zp-reiter button.gilt {
+    background: color-mix(in srgb, var(--hn-akzent) 18%, transparent); color: var(--hn-text);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hn-akzent) 55%, transparent);
+  }
+  .zp-reiter button.gilt[aria-selected="true"] {
+    background: color-mix(in srgb, var(--hn-akzent) 30%, var(--hn-karte));
+    box-shadow: inset 0 0 0 1px var(--hn-akzent), 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
   .zp-reiter button:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
   .zp-reiter .zp-programmname, .zp-reiter .zp-mininame { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .zp-reiter .zp-mininame { font-weight: 400; }
-  .zp-punkt-gilt { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--hn-akzent); }
   /* Auf dem Telefon richten sich die Reiter nach ihrem Inhalt; der Zusatz „leer“ entfällt, der Reiter bleibt blass. */
   @media (max-width: 420px) {
     .zp-reiter .zp-zusatz { display: none; }
@@ -120,33 +128,33 @@ export const ZEITPROGRAMME = `
   .zp-zeile + .zp-zeile { border-top: 1px solid var(--hn-flaeche); }
   .zp-zeile:hover { background: color-mix(in srgb, var(--hn-flaeche) 60%, transparent); }
   .zp-zeile:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
-  .zp-tagname { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .zp-tagname { font-size: 15px; font-weight: 600; white-space: nowrap; }
   .zp-tagname.heute { color: var(--hn-akzent); }
   .zp-spur {
-    position: relative; height: 16px; border-radius: 8px; background: var(--hn-flaeche); overflow: hidden;
+    position: relative; height: 28px; border-radius: 14px; background: var(--hn-flaeche); overflow: hidden;
   }
-  .zp-stunde { position: absolute; top: 4px; bottom: 4px; width: 1px; background: var(--hn-linie); }
-  .zp-fuellung { position: absolute; top: 0; bottom: 0; border-radius: 8px; background: var(--hn-akzent); }
-  .zp-fuellung.halb { opacity: 0.45; }
+  .zp-stunde { position: absolute; top: 8px; bottom: 8px; width: 1px; background: var(--hn-linie); }
+  /* Die Abschnitte stoßen ohne eigene Rundung aneinander; gerundet ist nur die Spur. */
+  .zp-fuellung { position: absolute; top: 0; bottom: 0; background: var(--hn-akzent); }
   .zp-spur .jetzt-linie {
     position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--hn-text);
   }
   /* Die Uhrzeiten an den Grenzen; die Rechnung lässt zu dichte weg, damit nichts übereinander steht. */
   .zp-marken {
-    position: relative; height: 15px; font-size: 11px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums;
+    position: relative; height: 17px; font-size: 12px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums;
   }
   .zp-marken span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
   .zp-tabelle {
-    display: grid; grid-template-columns: 10px max-content max-content; column-gap: 12px; row-gap: 4px;
-    align-items: center; margin-top: 2px; font-size: 13px; font-variant-numeric: tabular-nums;
+    display: grid; grid-template-columns: 12px max-content max-content; column-gap: 14px; row-gap: 6px;
+    align-items: center; margin-top: 4px; font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums;
   }
-  .zp-feld { width: 10px; height: 10px; border-radius: 3px; background: var(--hn-akzent); }
-  .zp-feld.halb { opacity: 0.45; }
+  .zp-feld { width: 12px; height: 12px; border-radius: 4px; background: var(--hn-akzent); }
   .zp-feld.leer { background: var(--hn-flaeche); box-shadow: inset 0 0 0 1px var(--hn-linie); }
   .zp-twert { font-weight: 600; }
   .zp-tzeit.rest, .zp-twert.rest { color: var(--hn-gedaempft); font-weight: 400; }
   .zp-kopfzeile { display: flex; align-items: flex-start; gap: 8px; }
-  .zp-kopfzeile .zp-lage { flex: 1; min-width: 0; }
+  .zp-kopftext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .zp-titel { font-size: 17px; font-weight: 600; line-height: 1.3; color: var(--hn-text); }
   .zp-stift {
     flex: none; display: inline-flex; padding: 3px; border: 0; border-radius: 6px; background: transparent;
     color: var(--hn-gedaempft); cursor: pointer; --mdc-icon-size: 18px;

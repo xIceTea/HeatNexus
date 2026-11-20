@@ -272,10 +272,24 @@ def test_die_lagezeile_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
     assert all(z["jetztLinien"] == 1 for z in zeilen)
 
 
+def test_ein_einzelnes_programm_steht_als_titel_ueber_der_lagezeile(durchlauf):
+    """Mit Reitern nennt die Leiste das Programm; allein steht sein Name als eigene Zeile."""
+    heizen, warmwasser = durchlauf["heute"]["zeilen"]
+    assert heizen["titel"] == ""
+    assert warmwasser["titel"] == "WW-Programm"
+    assert "WW-Programm" not in warmwasser["lage"]
+    assert warmwasser["lage"].startswith("gilt")
+
+
 def test_es_gibt_keine_heute_karte_und_keine_legende(durchlauf):
     """Die Lage steht in jeder Karte; eine eigene Karte „Heute“ wiederholte sie nur."""
     assert durchlauf["zeitprogramme"]["heuteKarten"] == 0
     assert durchlauf["zeitprogramme"]["legenden"] == 0
+
+
+def test_der_reiter_des_geltenden_programms_ist_ganz_eingefaerbt(durchlauf):
+    """Die ganze Taste trägt die Farbe; ein Punkt daneben ist nicht mehr nötig."""
+    assert durchlauf["heute"]["gilt"] == [{"name": "Programm 1", "punkte": 0}]
 
 
 def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):

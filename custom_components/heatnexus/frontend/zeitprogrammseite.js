@@ -8,6 +8,7 @@ import {
   TAGE,
   TAG_MINUTEN,
   einsetzen,
+  farbe,
   naechsterWechsel,
   tagText,
   uhrzeit,
@@ -111,9 +112,15 @@ function fensterDesTages(stuecke, grenzen) {
   return fenster(stuecke, Math.min(...stuecke.map((s) => s.wert)));
 }
 
+/** Je Abschnitt die Farbe seiner Temperatur; ein Schaltprogramm färbt nur „Ein“. */
+export function farben(stuecke, grenzen) {
+  if (grenzen.schalt) return stuecke.map((s) => (s.wert >= 0.5 ? farbe(1, grenzen) : null));
+  return stuecke.map((s) => farbe(s.wert, grenzen));
+}
+
 /**
- * Die Tabelle unter einer Tageszeile: je Fenster Stufe, Zeit und Wert, zuletzt die übrige Zeit.
- * Zeilen: {stufe: "voll"|"halb"|null, zeit, wert}.
+ * Die Tabelle unter einer Tageszeile: je Fenster Stufe, Farbe, Zeit und Wert, zuletzt die übrige Zeit.
+ * Zeilen: {stufe: "voll"|"halb"|null, farbe, zeit, wert}; `farbe` ist `null`, wo die Spur leer bleibt.
  */
 export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
   if (!stuecke || !stuecke.length) return [{ stufe: null, zeit: t("kein Zeitplan"), wert: "" }];
@@ -122,13 +129,18 @@ export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
   const werte = stuecke.map((s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert));
   const grund = Math.min(...werte);
   const hoch = Math.max(...werte);
-  if (hoch === grund) return [{ stufe: grenzen.schalt && !hoch ? null : "voll", zeit: t("ganztags"), wert: text(grund) }];
+  const ton = (wert) => (grenzen.schalt && wert < 0.5 ? null : farbe(wert, grenzen));
+  if (hoch === grund) {
+    const stufe = grenzen.schalt && !hoch ? null : "voll";
+    return [{ stufe, farbe: ton(grund), zeit: t("ganztags"), wert: text(grund) }];
+  }
   const zeilen = fensterDesTages(stuecke, grenzen).map((s) => ({
     stufe: grenzen.schalt || s.wert === hoch ? "voll" : "halb",
+    farbe: ton(s.wert),
     zeit: zeit(s),
     wert: text(s.wert),
   }));
-  return [...zeilen, { stufe: null, zeit: t("übrige Zeit"), wert: text(grund) }];
+  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("übrige Zeit"), wert: text(grund) }];
 }
 
 /** Die Uhrzeiten, an denen ein Fenster beginnt oder endet; zu dichte fallen weg, die Tabelle nennt sie. */
@@ -146,16 +158,6 @@ export function zeitmarken(stuecke, grenzen) {
   return marken;
 }
 
-/** Je Abschnitt die Füllung der Spur: der höchste Wert „voll“, Zwischenwerte „halb“, der Grundwert leer. */
-export function stufen(stuecke, grenzen) {
-  if (grenzen.schalt) return stuecke.map((s) => (s.wert >= 0.5 ? "voll" : null));
-  const werte = stuecke.map((s) => s.wert);
-  const grund = Math.min(...werte);
-  const hoch = Math.max(...werte);
-  if (hoch === grund) return stuecke.map(() => "voll");
-  return stuecke.map((s) => (s.wert === grund ? null : s.wert === hoch ? "voll" : "halb"));
-}
-
 /**
  * Einen Block einsetzen, ohne das Programm der Anlage anzufassen: Seine Tage verlassen die übrigen Blöcke,
  * ein Block ohne Tage fällt weg. `stelle` −1 hängt einen neuen Block an.
@@ -170,7 +172,7 @@ export function blockEinsetzen(bloecke, stelle, neu) {
   return liste.filter((eintrag) => eintrag.tage.length);
 }
 
-/** Eine Tagesspur in einer Farbe: Füllung nach Stufe, Stundenstriche, auf Wunsch die Jetzt-Linie. */
+/** Eine Tagesspur: je Abschnitt die Farbe seiner Temperatur, Stundenstriche, auf Wunsch die Jetzt-Linie. */
 export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
   const spur = document.createElement("div");
   spur.className = "zp-spur";
@@ -180,21 +182,22 @@ export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
     strich.style.left = `${(stunde / 24) * 100}%`;
     spur.appendChild(strich);
   });
-  const stufe = stufen(stuecke, grenzen);
-  // Nachbarn gleicher Stufe und gleichen Werts als eine Füllung, sonst stünde eine Fuge darin.
+  const ton = farben(stuecke, grenzen);
+  // Nachbarn gleicher Farbe und gleichen Werts als eine Füllung, sonst stünde eine Fuge darin.
   const flaechen = [];
   stuecke.forEach((stueck, n) => {
     const vorige = flaechen[flaechen.length - 1];
-    if (vorige && vorige.stufe === stufe[n] && vorige.wert === stueck.wert && vorige.bis === stueck.von) {
+    if (vorige && vorige.farbe === ton[n] && vorige.wert === stueck.wert && vorige.bis === stueck.von) {
       vorige.bis = stueck.bis;
     } else {
-      flaechen.push({ ...stueck, stufe: stufe[n] });
+      flaechen.push({ ...stueck, farbe: ton[n] });
     }
   });
   flaechen.forEach((stueck) => {
-    if (!stueck.stufe) return;
+    if (!stueck.farbe) return;
     const fuellung = document.createElement("i");
-    fuellung.className = `zp-fuellung ${stueck.stufe}`;
+    fuellung.className = "zp-fuellung";
+    fuellung.style.background = stueck.farbe;
     fuellung.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
     fuellung.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
     fuellung.title = `${uhrzeit(stueck.von)}–${bisText(stueck.bis)} · ${wertText(stueck.wert, grenzen, t)}`;

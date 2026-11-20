@@ -1,7 +1,7 @@
-"""Zeitprogramme lesen: Klartext und Stufen einer Tageszeile.
+"""Zeitprogramme lesen: Klartext und Farben einer Tageszeile.
 
-Je Block steht eine Spur in einer Farbe und darunter der Klartext. Beides wird
-aus den Abschnitten gerechnet; geprüft wird diese Rechnung in Node.
+Je Block steht eine Spur in den Farben der Temperaturen und darunter der Klartext.
+Beides wird aus den Abschnitten gerechnet; geprüft wird diese Rechnung in Node.
 """
 
 from __future__ import annotations
@@ -22,14 +22,14 @@ GESCHUETZT = " "
 
 @pytest.fixture(scope="module")
 def ansicht(tmp_path_factory) -> dict:
-    """Klartext und Stufen für typische Tage in Node rechnen."""
+    """Klartext und Farben für typische Tage in Node rechnen."""
     skript = tmp_path_factory.mktemp("ansicht") / "ansicht.mjs"
     modul = (FRONTEND / "zeitprogramm.js").resolve().as_uri()
     seite = (FRONTEND / "zeitprogrammseite.js").resolve().as_uri()
     skript.write_text(
         f"""
-import {{ abschnitte, skala }} from "{modul}";
-import {{ blockEinsetzen, tabelle, stufen, zeitmarken }} from "{seite}";
+import {{ abschnitte, farbe, skala }} from "{modul}";
+import {{ blockEinsetzen, farben, tabelle, zeitmarken }} from "{seite}";
 
 const p = (paare) => paare.map(([zeit, wert]) => ({{ zeit, wert }}));
 const tag = (paare) => abschnitte(p(paare));
@@ -59,9 +59,10 @@ console.log(JSON.stringify({{
   leer: tabelle([], raum(werktag), {{ sprache: "de" }}),
   marken_werktag: zeitmarken(tag(werktag), raum(werktag)),
   marken_dicht: zeitmarken(tag([[360, 21], [420, 18], [960, 21], [1320, 18]]), raum([[360, 21], [420, 18]])),
-  stufen_werktag: stufen(tag(werktag), raum(werktag)),
-  stufen_zwei_werte: stufen(tag([[360, 21], [1320, 17]]), raum([[360, 21], [1320, 17]])),
-  stufen_schalt: stufen(tag([[360, 1], [450, 0]]), schalt),
+  farben_werktag: farben(tag(werktag), raum(werktag)),
+  farben_erwartet: [18, 21, 18, 21.5, 18].map((wert) => farbe(wert, raum(werktag))),
+  farben_schalt: farben(tag([[360, 1], [450, 0]]), schalt),
+  ein_farbe: farbe(1, schalt),
   mit_samstag: mitSamstag.map((b) => b.tage),
   ganze_woche: ganzeWoche.map((b) => b.tage),
   neuer_block: neuerBlock.map((b) => [b.tage, b.punkte]),
@@ -130,11 +131,20 @@ def test_eine_zu_dichte_zeitmarke_faellt_weg(ansicht):
     assert ansicht["marken_dicht"] == [360, 960, 1320]
 
 
-def test_hoechster_wert_voll_zwischenwerte_halb_grundwert_leer(ansicht):
-    # Umlauf 18, 21, 18, 21,5, 18: nur 21,5 ist der höchste Wert.
-    assert ansicht["stufen_werktag"] == [None, "halb", None, "voll", None]
-    assert ansicht["stufen_zwei_werte"] == [None, "voll", None]
-    assert ansicht["stufen_schalt"] == [None, "voll", None]
+def test_jeder_abschnitt_traegt_die_farbe_seiner_temperatur(ansicht):
+    """Auch die übrige Zeit ist eingefärbt; wärmer heißt röter, auf der festen Skala des Programms."""
+    assert ansicht["farben_werktag"] == ansicht["farben_erwartet"]
+    assert len(set(ansicht["farben_werktag"])) == 3
+
+
+def test_ein_schaltprogramm_faerbt_nur_ein(ansicht):
+    assert ansicht["farben_schalt"] == [None, ansicht["ein_farbe"], None]
+
+
+def test_die_tabelle_nennt_die_farbe_jeder_zeile(ansicht):
+    zeilen = ansicht["werktag"]
+    assert zeilen[-1]["farbe"] == ansicht["farben_erwartet"][0]
+    assert zeilen[1]["farbe"] == ansicht["farben_erwartet"][3]
 
 
 def test_ein_tag_wandert_aus_dem_anderen_block(ansicht):

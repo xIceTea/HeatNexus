@@ -305,7 +305,17 @@ export const ZeitprogrammeMixin = (Basis) =>
     if (programm.wirkung && this._gilt(programm)) knoten.classList.add("aktiv");
     const kopf = document.createElement("div");
     kopf.className = "zp-kopfzeile";
-    kopf.append(this._lageZeile(gruppe, stand), eigene.stift);
+    const kopftext = document.createElement("div");
+    kopftext.className = "zp-kopftext";
+    // Mit Reitern nennt die Leiste das Programm; allein steht sein Name als Titel.
+    if (stand.sichtbar.length === 1) {
+      const titel = document.createElement("div");
+      titel.className = "zp-titel";
+      titel.appendChild(this._programmName(programm, "zp-programmname"));
+      kopftext.appendChild(titel);
+    }
+    kopftext.appendChild(this._lageZeile(gruppe, stand));
+    kopf.append(kopftext, eigene.stift);
     knoten.appendChild(kopf);
     if (stand.sichtbar.length > 1) knoten.appendChild(this._programmReiter(gruppe, stand));
     if (this._zpBenennen === programm.entity) knoten.appendChild(this._benennenKnoten(programm));
@@ -326,12 +336,11 @@ export const ZeitprogrammeMixin = (Basis) =>
     return knoten;
   }
 
-  /** „Programm 1 gilt · Betriebswahl: … · jetzt 21 °C · ab 22:00 16 °C“, in Stücken, die nicht brechen. */
+  /** „Programm 1 gilt · Betriebswahl: … · jetzt 21 °C · ab 22:00 16 °C“; ein einzelnes Programm steht im Titel. */
   _lageZeile(gruppe, { sichtbar, aktiv, gezeigt }) {
     const t = this._t.bind(this);
     const allein = sichtbar.length === 1;
     const stuecke = [];
-    if (allein) stuecke.push(this._programmName(gezeigt.programm, "zp-programmname"));
     if (aktiv && (!allein || aktiv.programm.wirkung)) {
       const gilt = document.createElement("span");
       gilt.className = "zp-aktiv";
@@ -359,7 +368,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     return zeile;
   }
 
-  /** Eine Reiterleiste statt Minibalken; der Punkt steht am geltenden Programm. */
+  /** Eine Reiterleiste statt Minibalken; der Reiter des geltenden Programms ist eingefärbt. */
   _programmReiter(gruppe, { sichtbar, aktiv, gezeigt }) {
     const leiste = document.createElement("div");
     leiste.className = "zp-reiter";
@@ -375,10 +384,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     taste.setAttribute("role", "tab");
     taste.setAttribute("aria-selected", String(eintrag === gezeigt));
     if (eintrag === aktiv) {
-      const punkt = document.createElement("span");
-      punkt.className = "zp-punkt-gilt";
-      punkt.title = this._t("gilt");
-      taste.appendChild(punkt);
+      taste.classList.add("gilt");
+      taste.title = this._t("gilt");
     }
     const name = this._programmName(programm, eintrag === gezeigt ? "zp-programmname" : "zp-mininame");
     if (istLeer(this._bloecke(programm.entity) || [])) {
@@ -449,9 +456,11 @@ export const ZeitprogrammeMixin = (Basis) =>
     });
     const liste = document.createElement("div");
     liste.className = "zp-tabelle";
-    tabelle(reihe.abschnitte, grenzen, { t, sprache: this._sprachcode(sprache) }).forEach(({ stufe, zeit, wert }) => {
+    const zeilen = tabelle(reihe.abschnitte, grenzen, { t, sprache: this._sprachcode(sprache) });
+    zeilen.forEach(({ stufe, farbe, zeit, wert }) => {
       const feld = document.createElement("i");
-      feld.className = `zp-feld ${stufe || "leer"}`;
+      feld.className = farbe ? "zp-feld" : "zp-feld leer";
+      if (farbe) feld.style.background = farbe;
       const wann = document.createElement("span");
       wann.className = stufe ? "zp-tzeit" : "zp-tzeit rest";
       wann.textContent = zeit;

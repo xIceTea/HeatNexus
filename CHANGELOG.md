@@ -17,8 +17,9 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Im Fenster „Darstellung“ sind Farbsatz und Helligkeit getrennt wählbar; die bisherige Wahl bleibt.
-- Im Reiter „Zeitprogramme“ wählt eine Reiterleiste das Programm; ein Punkt markiert das geltende.
-- Jede Tageszeile zeigt eine einfarbige Spur mit Schaltzeiten und darunter eine Tabelle der Werte.
+- Im Reiter „Zeitprogramme“ wählt eine Reiterleiste das Programm; das geltende ist eingefärbt.
+- Jede Tageszeile zeigt eine Spur in den Farben der Temperaturen und eine Tabelle der Werte.
+- Bei nur einem Programm steht dessen Name als Titel über der Lagezeile.
 - Eine Bezeichnung für ein Zeitprogramm vergibt der Stift neben der Lagezeile.
 - Die Karte „Heute“ entfällt; jede Programmkarte nennt den aktuellen Wert und den nächsten Wechsel.
 - Puffertemperaturen und Beladegrad erscheinen nur noch am Puffermodul, nicht ein zweites Mal am Kessel ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
