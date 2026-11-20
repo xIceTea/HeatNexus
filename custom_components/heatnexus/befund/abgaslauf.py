@@ -50,7 +50,7 @@ def abruf(coordinator: Any) -> set[str]:
         f"{z.prefix}{a}"
         for z in ziele_von(coordinator)
         for a in adressen
-        if not (z.logwin and a == LEISTUNG)
+        if not (z.ohne_leistung and a == LEISTUNG)
     }
 
 
@@ -69,9 +69,11 @@ def messen(
             return get_oid_value(coordinator, adresse, z.prefix)
 
         _o2_merken(coordinator, archiv, z.prefix, zeit.date().isoformat())
-        leistung = None if z.logwin else wert(LEISTUNG)
+        leistung = None if z.ohne_leistung else wert(LEISTUNG)
         messung = abgas.Messung(wert(ABGAS), wert(KESSEL), leistung, wert(PHASE), wert(O2))
-        neu[z.prefix], stufe = abgas.bewerten(zustaende.get(z.prefix, {}), messung, zeit, z.logwin)
+        neu[z.prefix], stufe = abgas.bewerten(
+            zustaende.get(z.prefix, {}), messung, zeit, z.ohne_leistung
+        )
         if stufe is None or messung.abgas is None or messung.kessel is None:
             continue
         dt = messung.abgas - messung.kessel
@@ -100,7 +102,7 @@ def geraete(coordinator: Any, archiv: Any) -> list[Abgasgeraet]:
                 kennung=z.device_id,
                 name=geraetename(coordinator, z.device_id),
                 prefix=z.prefix,
-                logwin=z.logwin,
+                ohne_leistung=z.ohne_leistung,
                 brennstoff=abgas.brennstoff(z.fct_type, code),
                 bezug_ab=archiv.pflege_eintrag(z.prefix, z.bezug_art).get("zuletzt"),
                 mit_o2=mit_o2(coordinator, z.prefix, archiv),
@@ -141,7 +143,7 @@ def reihen_von(
     reihen = {}
     for z in ziele_von(coordinator):
         felder = {n: entitaet_von(z.device_id, a) for n, a in FELDER_STATISTIK.items()}
-        if not z.logwin and all(felder.values()):
+        if not z.ohne_leistung and all(felder.values()):
             reihen[z.prefix] = {n: e for n, e in felder.items() if e}
     return reihen
 

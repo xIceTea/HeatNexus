@@ -62,7 +62,7 @@ def stufe(leistung: float) -> str:
 
 
 def bewerten(
-    zustand: dict[str, Any], messung: Messung, zeit: datetime, logwin: bool
+    zustand: dict[str, Any], messung: Messung, zeit: datetime, ohne_leistung: bool
 ) -> tuple[dict[str, Any], str | None]:
     """Ob ein Takt im ruhigen Betrieb liegt; liefert den neuen Laufzustand und die Stufe."""
     if messung.phase != MODULATION:
@@ -71,9 +71,9 @@ def bewerten(
     neu = {"seit": seit, "leistung": messung.leistung}
     if messung.abgas is None or messung.kessel is None:
         return neu, None
-    if zeit - seit < (MIN_LAUF_LOGWIN if logwin else MIN_LAUF):
+    if zeit - seit < (MIN_LAUF_LOGWIN if ohne_leistung else MIN_LAUF):
         return neu, None
-    if logwin:
+    if ohne_leistung:
         return neu, LOGWIN_STUFE
     vorher, leistung = zustand.get("leistung"), messung.leistung
     if leistung is None or leistung < MIN_LEISTUNG or vorher is None:
@@ -231,7 +231,7 @@ def vergleich(
     tage: dict[str, dict[str, list[float]]],
     bezug_ab: str | None,
     heute: date,
-    logwin: bool,
+    ohne_leistung: bool,
     brennstoff_: str,
     nachgerechnet_bis: str | None = None,
 ) -> tuple[form.Befund, form.Befund]:
@@ -253,7 +253,7 @@ def vergleich(
     angaben["stufen"] = {
         s: [round(b[s][0] / b[s][1], 1), round(v[s][0] / v[s][1], 1)] for s in stufen
     }
-    viele = logwin and all(min(b[s][1], v[s][1]) >= LOGWIN_BELASTBAR for s in stufen)
+    viele = ohne_leistung and all(min(b[s][1], v[s][1]) >= LOGWIN_BELASTBAR for s in stufen)
     stufe_ = form.BELASTBAR if len(stufen) >= 2 or viele else form.VORLAEUFIG
     status = form.status_aus(stufe_, anstieg >= GRENZE_K)
     dt = form.Befund("abgas", status, anstieg, "K", stufe_, angaben)

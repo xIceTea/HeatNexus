@@ -41,7 +41,7 @@ def test_eine_weitere_geraeteklasse_bekommt_kalenderpflege_und_abgas(monkeypatch
         "asche",
         "jahresreinigung",
     }
-    assert [z.logwin for z in abgasziele.ziele(beschreibungen, {"70": "1409"})] == [True]
+    assert [z.ohne_leistung for z in abgasziele.ziele(beschreibungen, {"70": "1409"})] == [True]
 
 
 def test_waermepumpenadressen_stehen_im_geraetemodul(geraete):

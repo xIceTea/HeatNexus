@@ -70,7 +70,7 @@ def test_abgasziele_an_biowin_purowin_und_logwin(z):
         d("/1/70/0", "0/11", 6, device="gas"),
     ]
     ziele = az.ziele(b, {"65": "2009", "66": "1415"})
-    assert [(x.device_id, x.fct_type, x.logwin, x.bezug_art) for x in ziele] == [
+    assert [(x.device_id, x.fct_type, x.ohne_leistung, x.bezug_art) for x in ziele] == [
         ("puro", 25, False, "hauptreinigung"),
         ("bio", 9, False, "hauptreinigung"),
         ("log", 10, True, "jahresreinigung"),

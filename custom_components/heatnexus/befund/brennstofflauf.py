@@ -41,7 +41,7 @@ def vorgabe(coordinator: Any, z: AbgasZiel) -> dict[str, Any]:
         ergebnis["heizwert"] = heizwert * 1000
     if (grad := _wirkungsgrad(coordinator)) is not None:
         ergebnis["wirkungsgrad"] = grad
-    if z.logwin:
+    if z.ohne_leistung:
         nenn = next((w for a in NENN if (w := wert(a))), None)
         ergebnis["fuellmenge"] = brennstoff.fuellmenge(nenn)
     return ergebnis
@@ -67,7 +67,7 @@ def geraete(coordinator: Any) -> list[Brennstoffgeraet]:
 
 def einstellung(coordinator: Any, z: AbgasZiel) -> str | None:
     """Welche Einstellung die Rechnung braucht: Füllmenge am LogWIN, Heizwert ohne Zähler."""
-    if z.logwin:
+    if z.ohne_leistung:
         return "fuellmenge"
     return "heizwert" if vorgabe(coordinator, z)["weise"] == "waerme" else None
 

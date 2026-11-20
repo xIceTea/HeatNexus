@@ -138,13 +138,13 @@ class BrennstoffEinstellung(_Lager, NumberEntity):
 
     def __init__(self, anlage_id: str, ziel: AbgasZiel) -> None:
         super().__init__(anlage_id, ziel)
-        self._schluessel = "fuellmenge" if ziel.logwin else "heizwert"
+        self._schluessel = "fuellmenge" if ziel.ohne_leistung else "heizwert"
         self._attr_unique_id = f"{ziel.device_id}-brennstoff-{self._schluessel}"
         self._attr_translation_key = f"brennstoff_{self._schluessel}"
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        if self._ziel.logwin:
+        if self._ziel.ohne_leistung:
             return "kg"
         return f"kWh/{brennstoff.EINHEIT.get(self._vorgabe().get('art', 'pellets'))}"
 

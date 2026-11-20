@@ -22,46 +22,52 @@ def m(ab, abgas=120.0, kessel=70.0, leistung=60.0, phase=8, o2=7.0):
 
 
 def test_gueltig_erst_nach_15_minuten_modulation(ab):
-    zustand, stufe = ab.bewerten({}, m(ab), T0, logwin=False)
+    zustand, stufe = ab.bewerten({}, m(ab), T0, ohne_leistung=False)
     assert stufe is None
-    zustand, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=10), logwin=False)
+    zustand, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=10), ohne_leistung=False)
     assert stufe is None
-    _, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=15), logwin=False)
+    _, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=15), ohne_leistung=False)
     assert stufe == "50"
 
 
 def test_phasenwechsel_beginnt_von_vorn(ab):
-    zustand, _ = ab.bewerten({}, m(ab), T0, logwin=False)
-    zustand, _ = ab.bewerten(zustand, m(ab, phase=17), T0 + timedelta(minutes=5), logwin=False)
-    _, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=20), logwin=False)
+    zustand, _ = ab.bewerten({}, m(ab), T0, ohne_leistung=False)
+    zustand, _ = ab.bewerten(
+        zustand, m(ab, phase=17), T0 + timedelta(minutes=5), ohne_leistung=False
+    )
+    _, stufe = ab.bewerten(zustand, m(ab), T0 + timedelta(minutes=20), ohne_leistung=False)
     assert stufe is None
 
 
 def test_leistungssprung_und_teillast_ungueltig(ab):
-    zustand, _ = ab.bewerten({}, m(ab, leistung=60.0), T0, logwin=False)
+    zustand, _ = ab.bewerten({}, m(ab, leistung=60.0), T0, ohne_leistung=False)
     zustand, stufe = ab.bewerten(
-        zustand, m(ab, leistung=80.0), T0 + timedelta(minutes=20), logwin=False
+        zustand, m(ab, leistung=80.0), T0 + timedelta(minutes=20), ohne_leistung=False
     )
     assert stufe is None
     zustand, stufe = ab.bewerten(
-        zustand, m(ab, leistung=25.0), T0 + timedelta(minutes=25), logwin=False
+        zustand, m(ab, leistung=25.0), T0 + timedelta(minutes=25), ohne_leistung=False
     )
     assert stufe is None
 
 
 def test_logwin_ohne_leistung_nach_30_minuten(ab):
-    zustand, _ = ab.bewerten({}, m(ab, leistung=None), T0, logwin=True)
+    zustand, _ = ab.bewerten({}, m(ab, leistung=None), T0, ohne_leistung=True)
     zustand, stufe = ab.bewerten(
-        zustand, m(ab, leistung=None), T0 + timedelta(minutes=20), logwin=True
+        zustand, m(ab, leistung=None), T0 + timedelta(minutes=20), ohne_leistung=True
     )
     assert stufe is None
-    _, stufe = ab.bewerten(zustand, m(ab, leistung=None), T0 + timedelta(minutes=30), logwin=True)
+    _, stufe = ab.bewerten(
+        zustand, m(ab, leistung=None), T0 + timedelta(minutes=30), ohne_leistung=True
+    )
     assert stufe == "m"
 
 
 def test_fehlender_wert_ist_ungueltig(ab):
-    zustand, _ = ab.bewerten({}, m(ab), T0, logwin=False)
-    _, stufe = ab.bewerten(zustand, m(ab, abgas=None), T0 + timedelta(minutes=20), logwin=False)
+    zustand, _ = ab.bewerten({}, m(ab), T0, ohne_leistung=False)
+    _, stufe = ab.bewerten(
+        zustand, m(ab, abgas=None), T0 + timedelta(minutes=20), ohne_leistung=False
+    )
     assert stufe is None
 
 
@@ -160,7 +166,7 @@ def test_vergleich_zeigt_anstieg_seit_reinigung(ab):
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
     jetzt = tage(ab, date(2026, 11, 23), 7, 62.0)
     dt, verlust = ab.vergleich(
-        bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        bezug | jetzt, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
     )
     assert dt.wert == pytest.approx(22.0)
     assert dt.status == "hinweis"
@@ -177,7 +183,7 @@ def test_vergleich_unauffaellig_und_belastbar_mit_zwei_stufen(ab):
         for quelle in (bezug, jetzt):
             for tag, je_stufe in quelle.items():
                 daten.setdefault(tag, {}).update(je_stufe)
-    dt, _ = ab.vergleich(daten, "2026-10-01", heute, logwin=False, brennstoff_="pellets")
+    dt, _ = ab.vergleich(daten, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets")
     assert dt.wert == pytest.approx(5.0)
     assert dt.status == "unauffaellig"
     assert dt.stufe == "belastbar"
@@ -188,7 +194,7 @@ def test_ohne_gemeinsame_stufe_sammelt(ab):
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0, stufe="50")
     jetzt = tage(ab, date(2026, 11, 23), 7, 62.0, stufe="90")
     dt, verlust = ab.vergleich(
-        bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        bezug | jetzt, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
     )
     assert dt.status == "sammelt"
     assert verlust.status == "sammelt"
@@ -198,7 +204,7 @@ def test_bezug_ohne_reinigungsdatum_vermerkt(ab):
     heute = date(2026, 11, 30)
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
     jetzt = tage(ab, date(2026, 11, 23), 7, 42.0)
-    dt, _ = ab.vergleich(bezug | jetzt, None, heute, logwin=False, brennstoff_="pellets")
+    dt, _ = ab.vergleich(bezug | jetzt, None, heute, ohne_leistung=False, brennstoff_="pellets")
     assert dt.angaben["ohne_reinigungsdatum"] is True
     assert dt.angaben["bezug_seit"] == "2026-10-01"
 
@@ -209,7 +215,7 @@ def test_neuer_bezug_nach_reinigung(ab):
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
     jetzt = tage(ab, date(2026, 11, 23), 7, 41.0)
     dt, _ = ab.vergleich(
-        alt | bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        alt | bezug | jetzt, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
     )
     assert dt.wert == pytest.approx(1.0)
 
@@ -219,7 +225,7 @@ def test_ohne_o2_kein_verlust(ab):
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0, o2=None)
     jetzt = tage(ab, date(2026, 11, 23), 7, 62.0, o2=None)
     dt, verlust = ab.vergleich(
-        bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        bezug | jetzt, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
     )
     assert dt.wert == pytest.approx(22.0)
     assert verlust.status == "braucht_daten"
@@ -232,7 +238,11 @@ def test_der_reinigungstag_zaehlt_nicht_zum_bezug(ab):
     bezug = tage(ab, date(2026, 10, 2), 14, 40.0)
     jetzt = tage(ab, date(2026, 11, 23), 7, 41.0)
     dt, _ = ab.vergleich(
-        reinigungstag | bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        reinigungstag | bezug | jetzt,
+        "2026-10-01",
+        heute,
+        ohne_leistung=False,
+        brennstoff_="pellets",
     )
     assert dt.wert == pytest.approx(1.0)
     assert dt.angaben["bezug_seit"] == "2026-10-02"
@@ -248,7 +258,7 @@ def test_o2_null_gilt_als_fehlendes_signal(ab):
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0, o2=0.0)
     jetzt = tage(ab, date(2026, 11, 23), 7, 62.0, o2=0.0)
     dt, verlust = ab.vergleich(
-        bezug | jetzt, "2026-10-01", heute, logwin=False, brennstoff_="pellets"
+        bezug | jetzt, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
     )
     assert dt.wert == pytest.approx(22.0)
     assert verlust.status == "braucht_daten"
@@ -267,7 +277,9 @@ def test_logwin_belastbar_ab_36_messungen(ab):
     heute = date(2026, 11, 30)
     bezug = tage(ab, date(2026, 10, 1), 14, 40.0, n=3, stufe="m")
     jetzt = tage(ab, date(2026, 11, 23), 7, 45.0, n=6, stufe="m")
-    dt, _ = ab.vergleich(bezug | jetzt, "2026-10-01", heute, logwin=True, brennstoff_="scheitholz")
+    dt, _ = ab.vergleich(
+        bezug | jetzt, "2026-10-01", heute, ohne_leistung=True, brennstoff_="scheitholz"
+    )
     assert dt.stufe == "belastbar"
 
 

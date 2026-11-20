@@ -15,12 +15,15 @@ ABGASWAECHTER: dict[int, dict] = {fct: b["abgas"] for fct, b in BEFUND.items() i
 
 @dataclass(frozen=True)
 class AbgasZiel:
-    """Ein Kessel mit Abgasfühler; `bezug_art` ist die Pflege, nach der der Bezug neu beginnt."""
+    """Ein Kessel mit Abgasfühler; `bezug_art` ist die Pflege, nach der der Bezug neu beginnt.
+
+    `ohne_leistung`: Die Steuerung meldet keine Leistung; die Auswertung kommt ohne sie aus.
+    """
 
     prefix: str
     device_id: str
     fct_type: int
-    logwin: bool
+    ohne_leistung: bool
     bezug_art: str
 
 
