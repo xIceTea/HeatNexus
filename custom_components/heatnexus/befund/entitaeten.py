@@ -149,6 +149,11 @@ def _anmelden(
                 bekannt.add(kennung)
                 neu.append(erzeugen())
         if neu:
+            # Erst den Stand um neu erkannte Geräte ergänzen, dann anlegen:
+            # Sonst fehlt den neuen Entitäten der Wert bis zur nächsten vollen Stunde.
+            for sammler in befund_holen(hass).sammler.values():
+                if sammler.entry.entry_id == entry.entry_id:
+                    sammler.nachziehen()
             add(neu)
 
     _anlegen()

@@ -138,16 +138,21 @@ def kennungen(entry: ConfigEntry, hass: HomeAssistant | None = None) -> dict[str
     def archiv(coordinator: Any) -> Archiv | None:
         return next((s.archiv for s in sammler if s.coordinator is coordinator), None)
 
+    gefunden: dict[str, str] = {}
+    for coordinator in coordinators.values():
+        gefunden |= _kennungen_der_anlage(coordinator, archiv(coordinator))
+    return gefunden
+
+
+def _kennungen_der_anlage(coordinator: Any, archiv: Any = None) -> dict[str, str]:
+    """Kennung -> Domäne der Befund-Entitäten einer Anlage."""
     gefunden = {
         unique_id(device_id, art): "sensor"
-        for coordinator in coordinators.values()
-        for _, device_id, arten in geraete_der_anlage(coordinator, archiv(coordinator))
+        for _, device_id, arten in geraete_der_anlage(coordinator, archiv)
         for art in arten
     }
-    for coordinator in coordinators.values():
-        gefunden |= pflegelauf.kennungen(coordinator) | brennstofflauf.kennungen(coordinator)
-        gefunden |= waermepumpelauf.kennungen(coordinator)
-    return gefunden
+    gefunden |= pflegelauf.kennungen(coordinator) | brennstofflauf.kennungen(coordinator)
+    return gefunden | waermepumpelauf.kennungen(coordinator)
 
 
 def unique_id(device_id: str, art: str) -> str:
@@ -183,6 +188,8 @@ class Sammler:
         self.anlage_id = anlage_id
         self.archiv = Archiv()
         self.letzter: dict[str, Any] | None = None
+        # Die Befund-Entitäten, für die `letzter` gerechnet ist.
+        self._gerechnet_fuer: frozenset[str] | None = None
         # Je Heizkreis die Befunde, deren Hinweis zuletzt in der Seitenleiste stand.
         self._gemeldet: dict[str, frozenset[str]] = {}
         # Die übrigen Sammler desselben Eintrags; die Verwaltung setzt sie.
@@ -203,7 +210,6 @@ class Sammler:
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
             )
-        self.aktualisieren()
 
     async def _laden_oder_umziehen(self) -> Any:
         """Das eigene Archiv; nach einem Adresswechsel das der alten Adresse."""
@@ -504,11 +510,24 @@ class Sammler:
     def aktualisieren(self) -> None:
         """Den Stand für die Sensoren neu rechnen; sie lesen ihn über das Signal."""
         try:
+            gerechnet_fuer = self._entitaeten()
             self.letzter = self.stand()
         except Exception:  # die Sensoren behalten den letzten Stand
             _LOGGER.debug("Befund %s: Auswertung fehlgeschlagen", self.anlage_id, exc_info=True)
             return
+        self._gerechnet_fuer = gerechnet_fuer
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
+
+    def nachziehen(self) -> None:
+        """Neu rechnen, wenn die Anlage seit dem letzten Stand andere Befund-Entitäten hat.
+
+        Ein später erkanntes Gerät fehlt sonst im Stand, bis die nächste Stunde schließt.
+        """
+        if self._entitaeten() != self._gerechnet_fuer:
+            self.aktualisieren()
+
+    def _entitaeten(self) -> frozenset[str]:
+        return frozenset(_kennungen_der_anlage(self.coordinator, self.archiv))
 
     def melden(self) -> None:
         """Hinweise je Heizkreis in die Seitenleiste, wenn er es will; nur bei geänderten Hinweisen."""
@@ -581,6 +600,7 @@ class BefundVerwaltung:
 
     async def eintrag_starten(self, entry: ConfigEntry) -> None:
         coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
+        neu: list[Sammler] = []
         for coordinator in coordinators.values():
             sammler = Sammler(self.hass, entry, coordinator, self._anlage_id(entry, coordinator))
             sammler.nachbarn = self._nachbarn(sammler)
@@ -591,6 +611,11 @@ class BefundVerwaltung:
                     "Befund %s: Speicher nicht lesbar", sammler.anlage_id, exc_info=True
                 )
             self.sammler[sammler.anlage_id] = sammler
+            neu.append(sammler)
+        # Erst rechnen, wenn alle Sammler eingetragen sind: Dann zählen die Nachbarn mit,
+        # und bestehende Sensoren lesen den Stand über ihren Sammler.
+        for sammler in neu:
+            sammler.aktualisieren()
         async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
         if entry.entry_id not in self._abmelden:
             self._abmelden[entry.entry_id] = async_track_time_interval(self.hass, self._takt, TAKT)

@@ -57,8 +57,7 @@ class Coordinator:
         return lambda: None
 
 
-@pytest.fixture
-async def anlage(hass):
+async def _starten(hass, koordinator):
     from homeassistant.config_entries import ConfigEntryState
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -67,9 +66,15 @@ async def anlage(hass):
 
     eintrag = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)
     eintrag.add_to_hass(hass)
-    eintrag.runtime_data = {"coordinators": {"192.0.2.10": Coordinator()}}
+    eintrag.runtime_data = {"coordinators": {"192.0.2.10": koordinator}}
     verwaltung = befund_holen(hass)
     await verwaltung.eintrag_starten(eintrag)
+    return verwaltung, eintrag
+
+
+@pytest.fixture
+async def anlage(hass):
+    verwaltung, eintrag = await _starten(hass, Coordinator())
     yield verwaltung, eintrag
     await verwaltung.eintrag_stoppen(eintrag)
 
@@ -222,6 +227,81 @@ async def test_ein_spaeter_bekannter_kessel_bekommt_seine_sensoren(hass, anlage)
     koordinator.data["devices"].append(kessel)
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id))
     assert "SN1-1-0-befund-starts" in {s.unique_id for s in angelegt}
+
+
+def _plattform(hass):
+    """Legt Sensoren wie Home Assistant an; ihr Zustand steht danach in `hass.states`."""
+    from homeassistant.core import callback
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+
+    plattform = MockEntityPlatform(hass, domain="sensor", platform_name="heatnexus")
+
+    @callback
+    def anlegen(neu):
+        hass.async_create_task(plattform.async_add_entities(neu))
+
+    return anlegen
+
+
+def _wert_je_ziel(monkeypatch):
+    """Jeder Heizkreis und Kessel, den die Auswertung kennt, bekommt einen Befund mit Wert."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    def anlage(_archiv, kontext):
+        ziele = [(k.kennung, "heizgrenze") for k in kontext.heizkreise]
+        ziele += [(k.kennung, "laufzeit") for k in kontext.kessel]
+        abschnitte = [{"kennung": z, "befunde": [{"art": art, "wert": 3.5}]} for z, art in ziele]
+        return {"lage": {}, "abschnitte": abschnitte}
+
+    monkeypatch.setattr(laufzeit.auswertung, "anlage", anlage)
+
+
+def _zustand(hass, kennung):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    return hass.states.get(er.async_get(hass).async_get_entity_id("sensor", DOMAIN, kennung)).state
+
+
+async def test_spaet_bekannter_kessel_zeigt_gleich_seinen_befund(hass, monkeypatch):
+    """Ist der Kessel beim Laden noch unbekannt, tragen seine Sensoren beim Anlegen den Stand."""
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+    from custom_components.heatnexus.const import SIGNAL_NEUE_ENTITAETEN
+
+    _wert_je_ziel(monkeypatch)
+    koordinator = Coordinator()
+    daten = koordinator.data
+    kessel = daten["devices"].pop()
+    zaehler = {k: daten["oids"].pop(k) for k in list(daten["oids"]) if k.startswith(KESSEL)}
+    verwaltung, eintrag = await _starten(hass, koordinator)
+    try:
+        anmelden(hass, eintrag, _plattform(hass))
+        daten["devices"].append(kessel)
+        daten["oids"] |= zaehler
+        async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id))
+        await hass.async_block_till_done()
+        assert _zustand(hass, f"{HEIZKREIS}-befund-heizgrenze") == "3.5"
+        assert _zustand(hass, "SN1-1-0-befund-laufzeit") == "3.5"
+    finally:
+        await verwaltung.eintrag_stoppen(eintrag)
+
+
+async def test_sensoren_finden_ihren_stand_nach_neustart_des_befunds(hass, anlage, monkeypatch):
+    """Startet der Befund neu, während seine Sensoren stehen, zeigen sie gleich den Stand."""
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    _wert_je_ziel(monkeypatch)
+    anmelden(hass, eintrag, _plattform(hass))
+    await hass.async_block_till_done()
+    await verwaltung.eintrag_stoppen(eintrag)
+    await verwaltung.eintrag_starten(eintrag)
+    await hass.async_block_till_done()
+    assert _zustand(hass, f"{HEIZKREIS}-befund-heizgrenze") == "3.5"
+    assert _zustand(hass, "SN1-1-0-befund-laufzeit") == "3.5"
 
 
 async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):

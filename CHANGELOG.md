@@ -39,6 +39,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Unbenannte Datenpunkte zeigen keinen internen Gruppenschlüssel mehr.
 - Eingetragene Steuerungen erscheinen nach dem Abschalten des Eintrags nicht mehr als neu entdeckt.
 - Nach einem Update bleiben Entitäten aktiv, auch wenn ein Abruf während des Einlesens scheitert.
+- Nach einem Neustart erscheinen die Kennwerte der Auswertung sofort in den Sensoren.
 - Dashboard-Karten übernehmen eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Entität „Betriebsart“ am Puffermodul mit Kesselumschaltung erscheint wieder ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Die Puffer-Kachel zeigt die Ladepumpe als „läuft“ oder „aus“ statt „on“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
