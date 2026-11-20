@@ -52,6 +52,9 @@ import { GemeinsamMixin } from "./teile/gemeinsam.js";
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
+/** Wo Reiter und Anlage für die Browsersitzung liegen. */
+const LAGE_SPEICHER = "heatnexus.lage";
+
 const Grundlage = GemeinsamMixin(WaermepumpeMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
@@ -91,6 +94,7 @@ class HeatNexusPanel extends Grundlage {
     // die erste. Bei nur einer Anlage gibt es die Wahl gar nicht.
     this._anlageIndex = -1;
     this._reiter = "uebersicht";
+    this._lageHolen();
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
     // Sollwerte, die nach einer Betriebswahl noch nachgerechnet werden.
@@ -124,6 +128,25 @@ class HeatNexusPanel extends Grundlage {
       this._gebaut = false;
     }
     this._zeichnen();
+  }
+
+  /** Reiter und Anlage von vorher: Home Assistant baut das Element nach jedem Seitenwechsel neu. */
+  _lageHolen() {
+    try {
+      const lage = JSON.parse(window.sessionStorage.getItem(LAGE_SPEICHER) || "null");
+      if (lage && typeof lage.reiter === "string") this._reiter = lage.reiter;
+      if (lage && Number.isInteger(lage.anlage)) this._anlageIndex = lage.anlage;
+    } catch (err) {
+      // Ohne Sitzungsspeicher beginnt die Oberfläche in der Übersicht.
+    }
+  }
+
+  _lageMerken() {
+    try {
+      window.sessionStorage.setItem(LAGE_SPEICHER, JSON.stringify({ reiter: this._reiter, anlage: this._anlageIndex }));
+    } catch (err) {
+      // Ein gesperrter Speicher hält die Lage nur bis zum Seitenwechsel.
+    }
   }
 
   connectedCallback() {
@@ -431,10 +454,11 @@ class HeatNexusPanel extends Grundlage {
       if (taste) taste.focus();
     }
     this._verlaufKarteLaden();
+    this._lageMerken();
   }
 
   /**
-   * Nach einem Dialog und nach der Rückkehr der App die Fläche für zwei Bilder auf eine eigene Ebene heben.
+   * Nach dem Aufbau, einem Dialog und der Rückkehr der App die Fläche für zwei Bilder auf eine eigene Ebene heben.
    * Mobile Browser zeichnen verdeckte und klebende Bereiche sonst erst beim Scrollen wieder.
    */
   _nachUnterbrechungNeuZeichnen() {
@@ -451,6 +475,8 @@ class HeatNexusPanel extends Grundlage {
       () => document.visibilityState === "visible" && anheben(),
       optionen
     );
+    // Auch nach dem Zurückkehren von einer anderen Seite: Dann entsteht ein neues Element, und kein Ereignis folgt.
+    requestAnimationFrame(anheben);
   }
 
   /** Kopfleiste mit Menütaste, Marke und Anlagenwahl. */
@@ -672,10 +698,12 @@ class HeatNexusPanel extends Grundlage {
    * Am Telefon passen nicht alle Reiter in die Leiste. Der Neuaufbau behält ihre Position;
    * nur ein verdeckter gewählter Reiter rückt so weit nach, dass er ganz zu sehen ist.
    */
-  _reiterZeigen(inhalt, vorher) {
+  _reiterZeigen(inhalt, vorher, nochmal = true) {
     const leiste = inhalt.querySelector(".reiter");
     if (!leiste) return;
     leiste.scrollLeft = vorher;
+    // Im ersten Aufbau sind Tasten und Symbole oft noch nicht vermessen; ein Bild später stimmt die Breite.
+    if (nochmal) requestAnimationFrame(() => this.isConnected && this._reiterZeigen(inhalt, leiste.scrollLeft, false));
     const taste = leiste.querySelector('[aria-selected="true"]');
     if (!taste || !(leiste.scrollWidth > leiste.clientWidth) || !taste.getBoundingClientRect) return;
     const rand = leiste.getBoundingClientRect();

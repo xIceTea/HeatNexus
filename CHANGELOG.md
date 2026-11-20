@@ -31,6 +31,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Nach dem Zurückgehen im Browser zeigt das Panel Reiter und Anlage von vorher.
+- Auf Mobilgeräten bleibt das Panel nach dem Zurückgehen im Browser nicht schwarz.
 - Das Mausrad scrollt in einem Fenster nicht mehr die Seite dahinter.
 - Störung 107 erscheint mit Klartext statt als unbekannter Code.
 - Das Thermostat zeigt eine noch nicht gelesene Restzeit der Vorgabe als unbekannt statt 0.

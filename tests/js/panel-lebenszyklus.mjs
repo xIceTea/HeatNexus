@@ -230,4 +230,35 @@ const befund = {};
   befund.anlagenNamen = knoepfe;
 }
 
+// --- Ein neues Element nach dem Seitenwechsel: Lage und Neuzeichnen ----------
+// Home Assistant baut beim Zurückkehren auf die Seite ein neues Element.
+{
+  const alt = bauen({ reiter: "befund" }).flaeche;
+  alt._anlageIndex = 1;
+  alt._gebaut = false;
+  alt._zeichnen();
+  zeit.zeitLaufenLassen();
+  const neu = new klasse();
+  befund.lageNachSeitenwechsel = { reiter: neu._reiter, anlage: neu._anlageIndex };
+
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  const ergebnis = { gleichNachAufbau: umriss() };
+  zeit.einBild();
+  ergebnis.erstesBild = umriss();
+  zeit.bilderLaufenLassen();
+  ergebnis.danach = umriss();
+  befund.nachErstemAufbau = ergebnis;
+
+  const gemerkt = globalThis.sessionStorage;
+  const sperre = () => {
+    throw new Error("gesperrt");
+  };
+  globalThis.sessionStorage = { getItem: sperre, setItem: sperre };
+  const gesperrt = bauen({ reiter: "befund" }).flaeche;
+  befund.gesperrterSpeicher = { reiter: new klasse()._reiter, gebaut: Boolean(inhalt(gesperrt)) };
+  globalThis.sessionStorage = gemerkt;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

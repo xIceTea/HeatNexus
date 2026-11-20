@@ -386,6 +386,13 @@ export function browserAttrappe() {
     setItem: (schluessel, wert) => speicher.set(schluessel, String(wert)),
     removeItem: (schluessel) => speicher.delete(schluessel),
   };
+  // Der Speicher der Sitzung im Browserfenster; er überdauert den Wechsel zu einer anderen Seite.
+  const sitzung = new Map();
+  globalThis.sessionStorage = {
+    getItem: (schluessel) => (sitzung.has(schluessel) ? sitzung.get(schluessel) : null),
+    setItem: (schluessel, wert) => sitzung.set(schluessel, String(wert)),
+    removeItem: (schluessel) => sitzung.delete(schluessel),
+  };
   const austragen = (liste, kennung) => {
     const stelle = liste.findIndex((eintrag) => eintrag.kennung === kennung);
     if (stelle >= 0) liste.splice(stelle, 1);
@@ -423,6 +430,10 @@ export function browserAttrappe() {
     /** Nur die vorgemerkten Bilder zeichnen. */
     bilderLaufenLassen() {
       while (bilder.length) bilder.shift().ruf(0);
+    },
+    /** Genau ein Bild zeichnen: nur die Aufträge, die jetzt schon warten. */
+    einBild() {
+      bilder.splice(0).forEach((bild) => bild.ruf(0));
     },
     offeneAuftraege: () => auftraege.length,
     offeneBilder: () => bilder.length,

@@ -118,6 +118,18 @@ def test_anlagennamen_bleiben_wie_sie_sind(befund):
     assert befund["anlagenNamen"][1:] == ["Heizhaus", "Wohnhaus"]
 
 
+def test_ein_neues_element_beginnt_auf_reiter_und_anlage_von_vorher(befund):
+    assert befund["lageNachSeitenwechsel"] == {"reiter": "befund", "anlage": 1}
+
+
+def test_nach_dem_aufbau_wird_die_flaeche_einmal_neu_gezeichnet(befund):
+    assert befund["nachErstemAufbau"] == {"gleichNachAufbau": "", "erstesBild": "translateZ(0)", "danach": ""}
+
+
+def test_ein_gesperrter_sitzungsspeicher_stoert_den_aufbau_nicht(befund):
+    assert befund["gesperrterSpeicher"] == {"reiter": "uebersicht", "gebaut": True}
+
+
 def test_nach_der_rueckkehr_der_app_wird_die_flaeche_neu_gezeichnet(befund):
     ergebnis = befund["nachRueckkehr"]
     assert ergebnis["beimVerstecken"] == ""
