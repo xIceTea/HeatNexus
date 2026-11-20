@@ -64,3 +64,11 @@ def test_waermepumpenlauf_nennt_keine_eigenen_adressen():
     assert lauf.WAERME_27 == ("/60/18/0", "/52/59/0")
     assert lauf.STROM_27 == ("/52/81/0", "/52/120/0")
     assert lauf.KUEHLEN_27 == ("/60/19/0", "/52/63/0")
+
+
+def test_jede_waermepumpe_nennt_luft_und_leistung(geraete):
+    """Der Befund baut seine Tabellen beim Import; eine Lücke fiele erst beim Laden auf."""
+    funktionen = load_standalone("befund.waermepumpe").FUNKTIONSTYPEN
+    assert {7, 27} <= set(funktionen)
+    for fct in funktionen:
+        assert {"luft", "leistung"} <= set(geraete.BEFUND[fct]["waermepumpe"])
