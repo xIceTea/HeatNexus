@@ -261,4 +261,32 @@ const befund = {};
   globalThis.sessionStorage = gemerkt;
 }
 
+// --- Nur der erste Aufbau hebt an; eine fremde Lage wird geprüft; Reiter zweimal ausgerichtet ---
+{
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  zeit.bilderLaufenLassen();
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  zeit.einBild();
+  befund.zweiterAufbauHebtAn = umriss();
+  zeit.bilderLaufenLassen();
+
+  globalThis.sessionStorage.setItem("heatnexus.lage", JSON.stringify({ reiter: "hilfe", anlage: 7 }));
+  befund.anlageNachZuGrosserLage = bauen().flaeche._anlageIndex;
+
+  const ausrichten = klasse.prototype._reiterZeigen;
+  let aufrufe = 0;
+  klasse.prototype._reiterZeigen = function (...werte) {
+    aufrufe++;
+    return ausrichten.apply(this, werte);
+  };
+  const gezaehlt = bauen().flaeche;
+  gezaehlt.isConnected = true;
+  zeit.bilderLaufenLassen();
+  klasse.prototype._reiterZeigen = ausrichten;
+  befund.reiterAusrichtungen = aufrufe;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

@@ -154,6 +154,7 @@ class HeatNexusPanel extends Grundlage {
     // Nach dem Abbau sind Hörer und Zeitgeber weg; die Oberfläche entsteht neu.
     this._abgebaut = false;
     this._gebaut = false;
+    this._einmalAngehoben = false;
     this._zeichnen();
   }
 
@@ -405,6 +406,8 @@ class HeatNexusPanel extends Grundlage {
     this._bindungen = [];
     this._verlaufskarten = [];
     this._wartend = [];
+    // Eine gemerkte Anlage, die es nicht mehr gibt, fällt auf „Alle“ zurück.
+    if (this._anlageIndex >= this._anlagen().length) this._anlageIndex = -1;
     const anlage = this._aktuelleAnlage();
     const stil = this._stilEinsetzen();
     this._paletteAnwenden();
@@ -458,7 +461,7 @@ class HeatNexusPanel extends Grundlage {
   }
 
   /**
-   * Nach dem Aufbau, einem Dialog und der Rückkehr der App die Fläche für zwei Bilder auf eine eigene Ebene heben.
+   * Nach dem ersten Aufbau, einem Dialog und der Rückkehr der App die Fläche für zwei Bilder auf eine eigene Ebene heben.
    * Mobile Browser zeichnen verdeckte und klebende Bereiche sonst erst beim Scrollen wieder.
    */
   _nachUnterbrechungNeuZeichnen() {
@@ -475,8 +478,14 @@ class HeatNexusPanel extends Grundlage {
       () => document.visibilityState === "visible" && anheben(),
       optionen
     );
-    // Auch nach dem Zurückkehren von einer anderen Seite: Dann entsteht ein neues Element, und kein Ereignis folgt.
-    requestAnimationFrame(anheben);
+    // Nach dem Zurückkehren von einer anderen Seite entsteht ein neues Element, und kein Ereignis folgt.
+    if (!this._einmalAngehoben) {
+      requestAnimationFrame(() => {
+        if (!this.isConnected) return;
+        this._einmalAngehoben = true;
+        anheben();
+      });
+    }
   }
 
   /** Kopfleiste mit Menütaste, Marke und Anlagenwahl. */

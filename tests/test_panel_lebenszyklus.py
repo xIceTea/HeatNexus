@@ -141,3 +141,15 @@ def test_nach_der_rueckkehr_der_app_wird_die_flaeche_neu_gezeichnet(befund):
     assert ergebnis["zweiBilderSpaeter"] == ""
     assert ergebnis["nachPageshow"] == "translateZ(0)"
     assert ergebnis["hoererNachAbbau"] == 1
+
+
+def test_ein_weiterer_aufbau_hebt_die_flaeche_nicht_an(befund):
+    assert befund["zweiterAufbauHebtAn"] == ""
+
+
+def test_eine_gemerkte_anlage_ausserhalb_der_liste_gilt_als_alle(befund):
+    assert befund["anlageNachZuGrosserLage"] == -1
+
+
+def test_die_reiterleiste_richtet_sich_ein_bild_spaeter_noch_einmal_aus(befund):
+    assert befund["reiterAusrichtungen"] == 2
