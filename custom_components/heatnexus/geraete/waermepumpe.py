@@ -61,3 +61,6 @@ NUR_ANZEIGE: tuple[str, ...] = (
     "52/62",  # Wärmemenge Warmwasser heute
 )
 ENTITAETEN: list[dict] = []
+
+# Was der Befund für den Gütegrad liest; Phase 4 und 7 sind Heizbetrieb.
+BEFUND = {"waermepumpe": {"vorlauf": "/52/15/0", "phase": "/50/6/0", "phasen_heizen": (4, 7)}}

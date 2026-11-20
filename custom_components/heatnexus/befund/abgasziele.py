@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .pflege import LOGWIN_KLASSE
+from ..geraete import BEFUND
 from .pflegeziele import praefix
 
 ABGAS = "/0/11/0"
 BRENNSTOFF_PUROWIN = "/38/127/0"
-# Gas-Brennwertgeräte kondensieren; ihre Abgastemperatur sagt nichts über Belag am Tauscher.
-FUNKTIONSTYPEN = (9, 25, 10)
+# Je Funktionstyp der Abgaswächter: Bezugspflege, Geräteklassen, Auswertung ohne Leistung.
+ABGASWAECHTER: dict[int, dict] = {fct: b["abgas"] for fct, b in BEFUND.items() if b.get("abgas")}
 
 
 @dataclass(frozen=True)
@@ -25,16 +25,18 @@ class AbgasZiel:
 
 
 def ziele(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[AbgasZiel]:
-    """BioWIN und PuroWIN nach Funktionstyp, LogWIN nach Geräteklasse; geordnet nach Adresse."""
+    """Nach Funktionstyp, wo der Eintrag es verlangt nach Geräteklasse; geordnet nach Adresse."""
     gefunden: dict[str, AbgasZiel] = {}
     for b in beschreibungen:
         oid, fct, device_id = b.get("oid") or "", b.get("fct_type"), b.get("device_id")
         prefix = praefix(oid)
-        if fct not in FUNKTIONSTYPEN or not device_id or not prefix or oid != prefix + ABGAS:
+        eintrag = ABGASWAECHTER.get(fct)
+        if eintrag is None or not device_id or not prefix or oid != prefix + ABGAS:
             continue
-        logwin = fct == 10
-        if logwin and geraeteklasse.get(prefix.split("/")[2]) != LOGWIN_KLASSE:
+        klassen = eintrag.get("klassen")
+        if klassen and geraeteklasse.get(prefix.split("/")[2]) not in klassen:
             continue
-        art = "jahresreinigung" if logwin else "hauptreinigung"
-        gefunden.setdefault(prefix, AbgasZiel(prefix, device_id, fct, logwin, art))
+        ohne_leistung = bool(eintrag.get("ohne_leistung"))
+        ziel = AbgasZiel(prefix, device_id, fct, ohne_leistung, eintrag["bezug"])
+        gefunden.setdefault(prefix, ziel)
     return [gefunden[p] for p in sorted(gefunden)]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .pflege import LOGWIN, LOGWIN_KLASSE, PFLEGE, Pflege
+from .pflege import KALENDERPFLEGE, PFLEGE, Pflege
 
 
 @dataclass(frozen=True)
@@ -34,18 +34,19 @@ def _zaehler(beschreibungen: list[dict]) -> list[Ziel]:
     return gefunden
 
 
-def _logwin(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[Ziel]:
-    geraete: dict[str, str] = {}
+def _kalender(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[Ziel]:
+    geraete: dict[str, tuple[str, tuple[Pflege, ...]]] = {}
     for b in beschreibungen:
         prefix = praefix(b.get("oid") or "")
-        if b.get("fct_type") != 10 or not b.get("device_id") or prefix is None:
+        if not b.get("device_id") or prefix is None:
             continue
-        if geraeteklasse.get(prefix.split("/")[2]) == LOGWIN_KLASSE:
-            geraete.setdefault(prefix, b["device_id"])
-    return [Ziel(p, device_id, pflege) for p, device_id in geraete.items() for pflege in LOGWIN]
+        klasse = geraeteklasse.get(prefix.split("/")[2])
+        if pflegen := KALENDERPFLEGE.get((b.get("fct_type"), klasse)):
+            geraete.setdefault(prefix, (b["device_id"], pflegen))
+    return [Ziel(p, d, pflege) for p, (d, pflegen) in geraete.items() for pflege in pflegen]
 
 
 def ziele(beschreibungen: list[dict], geraeteklasse: dict[str, str]) -> list[Ziel]:
-    """Zählerpflege nach Funktionstyp, Kalenderpflege am LogWIN; geordnet nach Adresse."""
-    gefunden = _zaehler(beschreibungen) + _logwin(beschreibungen, geraeteklasse)
+    """Zählerpflege nach Funktionstyp, Kalenderpflege nach Geräteklasse; geordnet nach Adresse."""
+    gefunden = _zaehler(beschreibungen) + _kalender(beschreibungen, geraeteklasse)
     return sorted(gefunden, key=lambda z: (z.prefix, z.pflege.adresse or "", z.pflege.art))

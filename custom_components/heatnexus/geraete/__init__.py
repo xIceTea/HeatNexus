@@ -60,6 +60,7 @@ KANNFELDER = (
     "BEDINGUNGEN",
     "TABELLEN",
     "SPIEGEL",
+    "BEFUND",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -171,6 +172,9 @@ BEHAELTER: dict[int, str] = {
 FUELLGRAD: dict[int, str] = {
     m.FCT_TYPE: m.FUELLGRAD for m in MODULE if getattr(m, "FUELLGRAD", None)
 }
+
+# Was der Befund je Baureihe auswertet: Pflege, Abgaswächter, Brennstoff, Wärmepumpe.
+BEFUND: dict[int, dict] = {m.FCT_TYPE: m.BEFUND for m in MODULE if getattr(m, "BEFUND", None)}
 
 # Wo der Funktionstyp die Bauart des Wärmeerzeugers schon festlegt.
 KESSELARTEN: dict[int, str] = {m.FCT_TYPE: m.KESSELART for m in MODULE if m.KESSELART}

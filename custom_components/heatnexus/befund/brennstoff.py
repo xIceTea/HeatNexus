@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from itertools import pairwise
 from typing import Any
 
+from ..geraete import BEFUND
 from . import abgas, form
 from .pflege import JAHR_MIN_TAGE, VORSCHAU_TAGE, datum_vorschau
 
@@ -21,9 +22,9 @@ MITTEL_TAGE = 14
 BALD_TAGE = 7
 # Mehr Zuwachs an einem Tag ist kein Verbrauch, sondern ein Sprung im Zähler.
 MAX_JE_TAG = {"zaehler": 1.0, "anheizen": 20.0}
-# Ab Werk liegen 23/103 (Brennstoffverbrauch gesamt, t) an der BioWIN und 20/112
-# (Anheizvorgänge) am LogWIN; die PuroWIN zählt keinen Brennstoff.
-ZAEHLER = {9: "/23/103/0", 10: "/20/112/0"}
+# Je Funktionstyp der Zähler der Steuerung und was er zählt (Verbrauch oder Anheizvorgänge).
+ZAEHLER = {fct: b["brennstoff"]["zaehler"] for fct, b in BEFUND.items() if b.get("brennstoff")}
+_ZAEHLWEISE = {fct: b["brennstoff"]["weise"] for fct, b in BEFUND.items() if b.get("brennstoff")}
 
 
 def art_von(fct_type: int | None, brennstoff_code: float | None) -> str:
@@ -33,9 +34,10 @@ def art_von(fct_type: int | None, brennstoff_code: float | None) -> str:
 
 def weise_von(fct_type: int | None, hat_zaehler: bool) -> str:
     """Woraus der Verbrauch kommt: Zähler der Steuerung, Anheizvorgänge oder erzeugte Wärme."""
-    if fct_type == 10:
-        return "anheizen"
-    return "zaehler" if fct_type == 9 and hat_zaehler else "waerme"
+    weise = _ZAEHLWEISE.get(fct_type)
+    if weise == "anheizen":
+        return weise
+    return "zaehler" if weise == "zaehler" and hat_zaehler else "waerme"
 
 
 def fuellmenge(nennleistung: float | None) -> float:

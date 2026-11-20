@@ -8,6 +8,7 @@ from itertools import pairwise
 import math
 from typing import Any
 
+from ..geraete import BEFUND
 from . import form
 
 ZAEHLER = "zaehler"
@@ -41,27 +42,15 @@ class Pflege:
     frist_monate: int | None = None
 
 
-# Die Intervalle der Zähler hängen von Kesselgröße und Ausführung ab; sie stehen nicht im Code.
-# Nach der Meldung „Wartung“ nennen die Windhager-Anleitungen drei Monate Frist.
 PFLEGE: dict[int, tuple[Pflege, ...]] = {
-    9: (
-        Pflege("reinigung", ZAEHLER, "/20/61/0"),
-        Pflege("hauptreinigung", ZAEHLER, "/20/62/0"),
-        Pflege("wartung", ZAEHLER, "/20/63/0", frist_monate=3),
-    ),
-    25: (
-        Pflege("asche", ZAEHLER, "/39/91/0"),
-        Pflege("hauptreinigung", ZAEHLER, "/39/92/0"),
-        Pflege("wartung", ZAEHLER, "/39/93/0", frist_monate=3),
-    ),
-    6: (Pflege("wartung", SEIT_SERVICE, "/60/29/0", intervall_tage=365),),
+    fct: tuple(Pflege(**e) for e in b["pflege"]) for fct, b in BEFUND.items() if b.get("pflege")
 }
-# Der LogWIN zählt keine Pflege; seine Anleitung nennt wöchentlich und jährlich.
-LOGWIN = (
-    Pflege("asche", KALENDER, intervall_tage=7),
-    Pflege("jahresreinigung", KALENDER, intervall_tage=365),
-)
-LOGWIN_KLASSE = "2009"
+# Pflege nach Kalender je Funktionstyp und Geräteklasse.
+KALENDERPFLEGE: dict[tuple[int, str], tuple[Pflege, ...]] = {
+    (fct, klasse): tuple(Pflege(**e) for e in eintraege)
+    for fct, b in BEFUND.items()
+    for klasse, eintraege in (b.get("kalenderpflege") or {}).items()
+}
 
 
 def befund_kennung(device_id: str, befund_art: str) -> str | None:

@@ -12,9 +12,11 @@ from itertools import pairwise
 import math
 from typing import Any
 
+from ..geraete import BEFUND
 from . import form
 
-FUNKTIONSTYPEN = (7, 27)
+_GUETEGRAD = {fct: b["waermepumpe"] for fct, b in BEFUND.items() if b.get("waermepumpe")}
+FUNKTIONSTYPEN = tuple(_GUETEGRAD)
 NULLPUNKT_K = 273.15
 # Unter diesem Hub wächst die Carnot-Zahl über alle Grenzen; solche Tage sagen nichts.
 MIN_HUB_K = 10.0
@@ -33,7 +35,9 @@ GRENZE_PROZENT = -10.0
 RUECKSETZ_KWH, RUECKSETZ_H = 0.05, 0.05
 VERLAUF_TAGE = 120
 # Heizen und Silentmode Heizen (`50/6`) bzw. Heizen (`50/70`); Abtauen und Warmwasser zählen nicht.
-PHASEN_HEIZEN = {7: frozenset({4, 7}), 27: frozenset({4})}
+PHASEN_HEIZEN = {fct: frozenset(w["phasen_heizen"]) for fct, w in _GUETEGRAD.items()}
+VORLAUF = {fct: w["vorlauf"] for fct, w in _GUETEGRAD.items()}
+PHASE = {fct: w["phase"] for fct, w in _GUETEGRAD.items()}
 FAKTOR_KWH = {"wh": 0.001, "kwh": 1.0, "mwh": 1000.0}
 
 

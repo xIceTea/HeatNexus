@@ -95,3 +95,16 @@ ENTITAETEN: list[dict] = [
         "icon": "mdi:calendar",
     },
 ]
+
+# Was der Befund je Geräteklasse auswertet. Der LogWIN zählt keine Pflege; seine Anleitung
+# nennt wöchentlich und jährlich. Er wertet keine Leistung aus und zählt Anheizvorgänge.
+BEFUND = {
+    "kalenderpflege": {
+        "2009": (
+            {"art": "asche", "weise": "kalender", "intervall_tage": 7},
+            {"art": "jahresreinigung", "weise": "kalender", "intervall_tage": 365},
+        ),
+    },
+    "abgas": {"bezug": "jahresreinigung", "klassen": ("2009",), "ohne_leistung": True},
+    "brennstoff": {"zaehler": "/20/112/0", "weise": "anheizen"},
+}

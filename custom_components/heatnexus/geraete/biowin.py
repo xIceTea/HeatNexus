@@ -157,3 +157,16 @@ ENTITAETEN: list[dict] = [
     },
     *quittung.TASTEN,
 ]
+
+# Was der Befund auswertet. Die Intervalle der Restzähler hängen von Kesselgröße und Ausführung
+# ab; nach der Meldung „Wartung“ nennen die Windhager-Anleitungen drei Monate Frist.
+BEFUND = {
+    "pflege": (
+        {"art": "reinigung", "weise": "zaehler", "adresse": "/20/61/0"},
+        {"art": "hauptreinigung", "weise": "zaehler", "adresse": "/20/62/0"},
+        {"art": "wartung", "weise": "zaehler", "adresse": "/20/63/0", "frist_monate": 3},
+    ),
+    "abgas": {"bezug": "hauptreinigung"},
+    # Ab Werk führt die BioWIN den Brennstoffverbrauch gesamt in Tonnen.
+    "brennstoff": {"zaehler": "/23/103/0", "weise": "zaehler"},
+}

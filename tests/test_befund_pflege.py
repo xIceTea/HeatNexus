@@ -32,8 +32,8 @@ def test_tabelle_deckt_biowin_purowin_gas_und_logwin(p):
     assert [x.adresse for x in p.PFLEGE[9]] == ["/20/61/0", "/20/62/0", "/20/63/0"]
     assert [x.adresse for x in p.PFLEGE[25]] == ["/39/91/0", "/39/92/0", "/39/93/0"]
     assert p.PFLEGE[6][0].weise == p.SEIT_SERVICE
-    assert {x.art for x in p.LOGWIN} == {"asche", "jahresreinigung"}
-    assert all(x.weise == p.KALENDER for x in p.LOGWIN)
+    assert {x.art for x in p.KALENDERPFLEGE[(10, "2009")]} == {"asche", "jahresreinigung"}
+    assert all(x.weise == p.KALENDER for x in p.KALENDERPFLEGE[(10, "2009")])
 
 
 def test_hoechst_nimmt_echtes_maximum_sonst_gesehenes(p):
@@ -180,12 +180,12 @@ def test_seit_service_jaehrlich(p):
 
 
 def test_kalender_ohne_zuletzt_braucht_datum(p):
-    asche = next(x for x in p.LOGWIN if x.art == "asche")
+    asche = next(x for x in p.KALENDERPFLEGE[(10, "2009")] if x.art == "asche")
     assert p.befund(asche, {}, HEUTE).grund == "zuletzt"
 
 
 def test_kalender_woechentlich_hinweis_erst_am_tag(p):
-    asche = next(x for x in p.LOGWIN if x.art == "asche")
+    asche = next(x for x in p.KALENDERPFLEGE[(10, "2009")] if x.art == "asche")
     assert p.befund(asche, {"zuletzt": "2026-11-15"}, HEUTE).status == "unauffaellig"
     assert p.befund(asche, {"zuletzt": "2026-11-13"}, HEUTE).status == "hinweis"
 

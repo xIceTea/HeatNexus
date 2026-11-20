@@ -23,3 +23,11 @@ NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
 ENTITAETEN: list[dict] = []
+
+# Was der Befund auswertet. Kein Abgaswächter: Brennwertgeräte kondensieren, ihre
+# Abgastemperatur sagt nichts über Belag am Tauscher.
+BEFUND = {
+    "pflege": (
+        {"art": "wartung", "weise": "seit_service", "adresse": "/60/29/0", "intervall_tage": 365},
+    ),
+}

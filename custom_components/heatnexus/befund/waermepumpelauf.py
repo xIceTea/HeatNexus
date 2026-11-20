@@ -17,8 +17,7 @@ LUFT, LEISTUNG, EHEIZUNG = "/52/12/0", "/50/26/0", "/56/5/0"
 TAGESZAEHLER = {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"}
 # Wärmemenge Warmwasser heute: steigt in 0,1 kWh und damit in jedem Takt der Bereitung.
 WW_HEUTE = "/52/62/0"
-VORLAUF = {7: "/52/15/0", 27: "/50/76/0"}
-PHASE = {7: "/50/6/0", 27: "/50/70/0"}
+VORLAUF, PHASE = waermepumpe.VORLAUF, waermepumpe.PHASE
 WAERME_27 = ("/60/18/0", "/52/59/0")
 STROM_27 = ("/52/81/0", "/52/120/0")
 KUEHLEN_27 = ("/60/19/0", "/52/63/0")
