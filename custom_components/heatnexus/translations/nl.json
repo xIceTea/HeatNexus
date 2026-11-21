@@ -28,7 +28,8 @@
           "count": "Aantal regelaars"
         },
         "data_description": {
-          "name": "Geldt voor de hele installatie. Een plaats past beter dan een ketelnaam, bijvoorbeeld \"Kelder\" of \"Schuur\"."
+          "name": "Geldt voor de hele installatie. Een plaats past beter dan een ketelnaam, bijvoorbeeld \"Kelder\" of \"Schuur\".",
+          "count": "Voor elke regelaar volgt een eigen stap met adres en wachtwoord."
         }
       },
       "system": {
@@ -42,7 +43,9 @@
         },
         "data_description": {
           "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd.",
-          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam."
+          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam.",
+          "host": "HeatNexus vraagt de regelaar op dit adres in het thuisnetwerk op. Een adres dat in de router vast is toegewezen, blijft na een herstart gelijk.",
+          "password": "Het wachtwoord hoort bij de gekozen toegang. HeatNexus stuurt het alleen naar deze regelaar."
         }
       },
       "scope": {
@@ -80,7 +83,9 @@
           "username": "Account"
         },
         "data_description": {
-          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd."
+          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd.",
+          "host": "Deze regelaar heeft de aanmelding geweigerd.",
+          "password": "HeatNexus meldt zich met dit wachtwoord opnieuw aan."
         }
       },
       "reconfigure": {
@@ -92,7 +97,9 @@
           "username": "Toegang"
         },
         "data_description": {
-          "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in."
+          "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in.",
+          "anlage": "Alleen het adres van deze regelaar verandert.",
+          "host": "Voor het opslaan controleert HeatNexus of op dit adres dezelfde regelaar antwoordt."
         }
       },
       "umzug": {
@@ -142,7 +149,8 @@
           "sprache": "Geldt voor alle installaties in HeatNexus: namen van datapunten, interface en dashboard. Bij “Automatisch” geldt de taal van Home Assistant. Een wijziging hier geldt voor alle installaties.",
           "sprache_anlage": "Stelt alleen voor deze installatie een eigen taal in: voor namen, toestanden, storingsteksten en de eigen pagina in de interface. “Zoals HeatNexus” gebruikt de taal van HeatNexus.",
           "stoerung_zuruecksetzen": "Schakelt in de meldingenlijst de knop „Storing aan de ketel resetten” vrij. Besturingen vanaf versie 2 heffen daarmee een storing aan de ketel op, ook een vergrendelende. Reset alleen als u de oorzaak kent en hebt verholpen.",
-          "heizraum": "Temperatuursensor in de stookruimte. De rookgasbewaking berekent het rookgasverlies daarmee in plaats van met geschatte 20 °C."
+          "heizraum": "Temperatuursensor in de stookruimte. De rookgasbewaking berekent het rookgasverlies daarmee in plaats van met geschatte 20 °C.",
+          "startwerte": "Bij het starten neemt HeatNexus de laatst gelezen waarden uit het geheugen van de regelaar over, als ze jonger zijn dan de gekozen grens. De waarden verschijnen zo sneller. Bij “uit” verschijnen ze pas bij de eerste opvraging."
         }
       },
       "system": {
@@ -188,6 +196,9 @@
         "description": "Vink de waarden aan die ingeschakeld moeten zijn.",
         "data": {
           "zusatzwerte": "Waarden"
+        },
+        "data_description": {
+          "zusatzwerte": "Aangevinkte waarden worden ingeschakeld aangemaakt, alle andere uitgeschakeld. Een uitgeschakelde entiteit kan later afzonderlijk worden ingeschakeld."
         }
       },
       "steuerung_neu": {
@@ -201,7 +212,9 @@
         },
         "data_description": {
           "username": "Standaard kent de installatie \"USER\" en \"Service\". \"Service\" levert ook de vakmanparameters.",
-          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam."
+          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam.",
+          "host": "HeatNexus vraagt de nieuwe regelaar op dit adres in het thuisnetwerk op.",
+          "password": "Het wachtwoord hoort bij de gekozen toegang. HeatNexus stuurt het alleen naar deze regelaar."
         }
       },
       "steuerung_entfernen": {
@@ -209,6 +222,9 @@
         "description": "Welke regelaar moet uit deze verwarmingsinstallatie worden verwijderd?",
         "data": {
           "host": "Regelaar"
+        },
+        "data_description": {
+          "host": "De volgende stap toont wat samen met deze regelaar wordt verwijderd."
         }
       },
       "steuerung_entfernen_bestaetigen": {
@@ -216,6 +232,9 @@
         "description": "**{anlage}** wordt verwijderd, samen met alles wat eraan hangt:\n\n- {geraete} apparaten met hun entiteiten en geschiedenis\n- Automatische regelingen: {automatiken}. Hun ingrepen op de regelaar worden teruggedraaid.\n- Warmtebronnen: {quellen}\n\nDit kan niet ongedaan worden gemaakt. Wordt de regelaar later opnieuw toegevoegd, dan wordt hij helemaal opnieuw ingelezen.",
         "data": {
           "verstanden": "Ik begrijp het en wil de regelaar verwijderen"
+        },
+        "data_description": {
+          "verstanden": "Zonder dit vinkje verwijdert HeatNexus niets."
         }
       }
     },
@@ -540,19 +559,19 @@
         }
       },
       "befund_pflege_reinigung": {
-        "name": "Reiniging gepland"
+        "name": "Reiniging nodig"
       },
       "befund_pflege_hauptreinigung": {
-        "name": "Hoofdreiniging gepland"
+        "name": "Hoofdreiniging nodig"
       },
       "befund_pflege_wartung": {
-        "name": "Onderhoud gepland"
+        "name": "Onderhoud nodig"
       },
       "befund_pflege_asche": {
-        "name": "As legen gepland"
+        "name": "As legen nodig"
       },
       "befund_pflege_jahresreinigung": {
-        "name": "Jaarlijkse reiniging gepland"
+        "name": "Jaarlijkse reiniging nodig"
       },
       "befund_abgas": {
         "name": "Rookgas boven ketel sinds reiniging"
@@ -564,7 +583,7 @@
         "name": "Brandstof volstaat tot"
       },
       "befund_arbeitszahl": {
-        "name": "Rendement t.o.v. referentie"
+        "name": "Kwaliteitsgraad t.o.v. referentie"
       },
       "verbindung": {
         "name": "Verbinding",
@@ -681,10 +700,10 @@
   "issues": {
     "verbindung_ueberlastet": {
       "title": "{anlage}: regelaar overbelast",
-      "description": "De regelaar van **{anlage}** haalt niet meer alle waarden binnen het pollinginterval. De responstijd was recent {median} ms.\n\nVerleng het pollinginterval in de opties van HeatNexus. Controleer ook of een tweede programma dezelfde regelaar opvraagt. Deze melding verdwijnt vanzelf zodra de regelaar weer alle waarden haalt."
+      "description": "De regelaar van **{anlage}** beantwoordt binnen het pollinginterval niet meer alle verzoeken. De responstijd was recent {median} ms.\n\nVerleng het pollinginterval in de opties van HeatNexus. Controleer ook of een tweede programma dezelfde regelaar opvraagt. Deze melding verdwijnt vanzelf zodra weer alle waarden binnenkomen."
     },
     "verbindung_gestoert": {
-      "title": "{anlage}: regelaar reageert verstoord",
+      "title": "{anlage}: verbinding met regelaar verstoord",
       "description": "{fehlerquote} % van de verzoeken aan de regelaar van **{anlage}** mislukt.\n\nControleer de netwerkverbinding met de regelaar. Helpt dat niet, herstart dan de regelaar. Deze melding verdwijnt vanzelf zodra de verzoeken weer lukken."
     },
     "nicht_erreichbar": {
@@ -764,6 +783,9 @@
           "description": "Bij welke installatie hoort de warmtebron?",
           "data": {
             "host": "Regelaar"
+          },
+          "data_description": {
+            "host": "De warmtebron verschijnt in het schema van deze regelaar."
           }
         },
         "quelle": {
@@ -778,7 +800,10 @@
           },
           "data_description": {
             "quelle": "De waarde die over de bron beslist.",
-            "pumpe": "Tekent een pompwaaier in de leiding van de bron zolang ze warmte levert."
+            "pumpe": "Tekent een pompwaaier in de leiding van de bron zolang ze warmte levert.",
+            "name": "Onder deze naam verschijnt de bron in HeatNexus.",
+            "art": "Bepaalt hoe de bron in het schema wordt getekend.",
+            "bedingung_art": "Bepaalt waaraan HeatNexus herkent dat de bron warmte levert: aan een toestand, een drempel of het verschil tussen twee sensoren. De waarden volgen in de volgende stap."
           }
         },
         "regel": {
@@ -863,6 +888,18 @@
     "zeitprogramm_geschuetzt": {
       "message": "Dit tijdprogramma is tegen schrijven beveiligd."
     },
+    "zeitprogramm_nicht_aenderbar": {
+      "message": "Dit tijdprogramma kan in HeatNexus niet worden gewijzigd."
+    },
+    "schaltwert_ungueltig": {
+      "message": "Een schakelprogramma kent alleen 0 (uit) en 1 (aan)."
+    },
+    "wert_ausserhalb": {
+      "message": "De waarde {wert} ligt buiten het bereik {min} tot {max}."
+    },
+    "schaltzeit_doppelt": {
+      "message": "Na afronden op 15 minuten staat {uhrzeit} dubbel."
+    },
     "schaltpunkte_fehlen": {
       "message": "Geef switch_points of blocks op."
     },
@@ -900,10 +937,10 @@
       "message": "De verbinding met {anlage} is gesloten."
     },
     "stoerspeicher_abgelehnt": {
-      "message": "De besturing heeft de actie in de meldingenlijst geweigerd. HTTP {status}."
+      "message": "De regelaar heeft de actie in de meldingenlijst geweigerd. HTTP {status}."
     },
     "kein_stoerspeicher": {
-      "message": "Deze besturing heeft geen meldingenlijst."
+      "message": "Deze regelaar heeft geen meldingenlijst."
     },
     "eintrag_fehlt": {
       "message": "Item {eintrag} bestaat niet meer in de meldingenlijst."
@@ -945,7 +982,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldingenlijst wissen",
-      "description": "Leegt de meldingenlijst van een apparaat. Als het bedieningspaneel een meldingenlijst heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant. Op de sensor „Meldingen” van de besturing verwijdert ze alle afgehandelde items."
+      "description": "Leegt de meldingenlijst van een apparaat. Als het bedieningspaneel een meldingenlijst heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant. Op de sensor „Meldingen” van de regelaar verwijdert ze alle afgehandelde items."
     },
     "set_vorgabe": {
       "name": "Tijdelijke instelwaarde zetten",
@@ -967,7 +1004,7 @@
       "fields": {
         "switch_points": {
           "name": "Schakelpunten",
-          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur, of 1 voor aan en 0 voor uit bij een schakelprogramma. Geldt voor het blok uit weekdays."
+          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur, of 1 voor aan en 0 voor uit bij een schakelprogramma. Geldt voor het blok uit weekdays. Maximaal zes schakelpunten per blok. De tijd wordt afgerond op 15 minuten, de waarde op 0,5. Toegestaan zijn ruimte en koelen 5–30 °C, aanvoer en buffer 0–90 °C, warm water 10–75 °C, buffer bij de hybridemanager 0–60 °C."
         },
         "weekdays": {
           "name": "Weekdagen",
@@ -1015,7 +1052,7 @@
     },
     "brennstoff_geliefert": {
       "name": "Brandstof bijgevuld",
-      "description": "Voegt een levering of een eigen vulling toe aan de brandstofvoorraad van de ketel. Met de rest daarvoor leert de berekening het werkelijke verbruik.",
+      "description": "Voegt een levering of een eigen vulling toe aan de brandstofvoorraad van de ketel. Met de rest daarvoor volgt het werkelijke verbruik.",
       "fields": {
         "menge": {
           "name": "Hoeveelheid",
@@ -1023,7 +1060,7 @@
         },
         "rest": {
           "name": "Rest daarvoor",
-          "description": "Wat daarvoor nog in de opslag lag; leeg betekent de berekende voorraad."
+          "description": "De rest in de opslag vóór de levering. Zonder opgave geldt de berekende voorraad."
         }
       }
     }

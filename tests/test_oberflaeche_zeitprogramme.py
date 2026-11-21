@@ -48,7 +48,7 @@ const mitSamstag = blockEinsetzen(woche, 0, {{ tage: ["Mo", "Tu", "We", "Th", "F
 const ganzeWoche = blockEinsetzen(woche, 0, {{ tage: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], punkte: p([[360, 21]]) }});
 const neuerBlock = blockEinsetzen([woche[0]], -1, {{ tage: ["Sa", "Su"], punkte: p([[480, 20]]) }});
 const ohneTage = blockEinsetzen(woche, 1, {{ tage: [], punkte: p([[450, 21]]) }});
-const englisch = (text) => ({{ "sonst": "otherwise" }})[text] || text;
+const englisch = (text) => ({{ "Übrige Zeit": "Rest of the day" }})[text] || text;
 
 console.log(JSON.stringify({{
   werktag: tabelle(tag(werktag), raum(werktag), {{ sprache: "de" }}),
@@ -96,14 +96,14 @@ def test_die_tabelle_nennt_jedes_fenster_und_die_uebrige_zeit(ansicht):
     assert _zeilen(ansicht["werktag"]) == [
         ("halb", "05:30 – 08:00", f"21{GESCHUETZT}°C"),
         ("voll", "16:00 – 22:00", f"21,5{GESCHUETZT}°C"),
-        (None, "sonst", f"18{GESCHUETZT}°C"),
+        (None, "Übrige Zeit", f"18{GESCHUETZT}°C"),
     ]
 
 
 def test_die_tabelle_folgt_sprache_und_zahlformat(ansicht):
     assert _zeilen(ansicht["werktag_englisch"])[-1] == (
         None,
-        "otherwise",
+        "Rest of the day",
         f"18{GESCHUETZT}°C",
     )
 
@@ -115,7 +115,7 @@ def test_ein_einziger_wert_gilt_ganztags(ansicht):
 def test_ein_fenster_ueber_mitternacht_steht_als_eines(ansicht):
     assert _zeilen(ansicht["ueber_mitternacht"]) == [
         ("voll", "22:00 – 06:00", f"22{GESCHUETZT}°C"),
-        (None, "sonst", f"18{GESCHUETZT}°C"),
+        (None, "Übrige Zeit", f"18{GESCHUETZT}°C"),
     ]
 
 
@@ -123,13 +123,13 @@ def test_schaltprogramm_nennt_ein_und_aus(ansicht):
     assert _zeilen(ansicht["zirkulation"]) == [
         ("voll", "06:00 – 07:30", "Ein"),
         ("voll", "18:00 – 19:00", "Ein"),
-        (None, "sonst", "Aus"),
+        (None, "Übrige Zeit", "Aus"),
     ]
     assert _zeilen(ansicht["nie_an"]) == [(None, "ganztags", "Aus")]
 
 
 def test_ein_tag_ohne_abschnitte_hat_keinen_plan(ansicht):
-    assert _zeilen(ansicht["leer"]) == [(None, "kein Zeitplan", "")]
+    assert _zeilen(ansicht["leer"]) == [(None, "Kein Zeitplan", "")]
 
 
 def test_ein_tag_mit_einem_wert_hat_kein_zeitfenster(ansicht):
@@ -205,3 +205,113 @@ def test_tage_ohne_block_bekommen_einen_neuen(ansicht):
 
 def test_das_programm_der_anlage_bleibt_unberuehrt(ansicht):
     assert ansicht["unveraendert"] is True
+
+
+# ---------------------------------------------------------------------------
+# Stromtarifprogramm `54/7`: Werte 0–4 heißen Tarif 1–5, es lässt sich nur ansehen
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def tarif(tmp_path_factory) -> dict:
+    """Skala, Klartext und Farben des Tarifprogramms in Node rechnen."""
+    skript = tmp_path_factory.mktemp("tarif") / "tarif.mjs"
+    modul = (FRONTEND / "zeitprogramm.js").resolve().as_uri()
+    seite = (FRONTEND / "zeitprogrammseite.js").resolve().as_uri()
+    skript.write_text(
+        f"""
+import {{ abschnitte, farbe, skala, wertText }} from "{modul}";
+import {{ nurLesen, spurteile, tabelle }} from "{seite}";
+
+const p = (paare) => paare.map(([zeit, wert]) => ({{ zeit, wert }}));
+const paare = [[360, 0], [1320, 1]];
+const grenzen = skala([{{ tage: ["Mo"], punkte: p(paare) }}], "tarif");
+const englisch = (text) => ({{ Tarif: "Tariff" }})[text] || text;
+
+console.log(JSON.stringify({{
+  grenzen,
+  tabelle: tabelle(abschnitte(p(paare)), grenzen, {{ sprache: "de" }}),
+  englisch: tabelle(abschnitte(p(paare)), grenzen, {{ sprache: "en", t: englisch }}),
+  spur: spurteile(abschnitte(p(paare)), grenzen, {{ beschriften: true, sprache: "de" }}),
+  wert: wertText(4, grenzen),
+  farben: [0, 1, 2, 3, 4].map((wert) => farbe(wert, grenzen)),
+  schalt_leer: skala([{{ tage: ["Mo"], punkte: [] }}], "schalt"),
+  wasser_null: skala([{{ tage: ["Mo"], punkte: p([[360, 0]]) }}], "wasser"),
+  wasser_null_text: tabelle(abschnitte(p([[360, 0]])), skala([{{ tage: ["Mo"], punkte: p([[360, 0]]) }}], "wasser"), {{ sprache: "de" }}),
+  ohne_art_null: skala([{{ tage: ["Mo"], punkte: p([[360, 0]]) }}]),
+  nur_lesen: nurLesen({{ art: "tarif" }}),
+  raum_bearbeitbar: nurLesen({{ art: "raum" }}),
+}}));
+""",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    return json.loads(ausgabe.stdout)
+
+
+def test_das_tarifprogramm_ist_kein_schaltprogramm(tarif):
+    """Nur aus 0 und 1 sieht es aus wie Aus und Ein; die Art „tarif“ entscheidet."""
+    assert tarif["grenzen"]["schalt"] is False
+    assert tarif["grenzen"]["art"] == "tarif"
+
+
+def test_das_tarifprogramm_nennt_tarife_ohne_grad(tarif):
+    assert _zeilen(tarif["tabelle"]) == [
+        ("voll", "22:00 – 06:00", "Tarif 2"),
+        (None, "Übrige Zeit", "Tarif 1"),
+    ]
+    assert _zeilen(tarif["englisch"])[-1] == (None, "Übrige Zeit", "Tariff 1")
+    assert tarif["wert"] == "Tarif 5"
+    assert all("°" not in teil["text"] and "°" not in teil["tipp"] for teil in tarif["spur"])
+    assert [teil["text"] for teil in tarif["spur"]] == ["Tarif 2", "Tarif 1", "Tarif 2"]
+
+
+def test_jeder_tarif_hat_seine_farbe(tarif):
+    assert len(set(tarif["farben"])) == 5
+
+
+def test_nur_das_tarifprogramm_ist_nur_lesbar(tarif):
+    assert tarif["nur_lesen"] is True
+    assert tarif["raum_bearbeitbar"] is False
+
+
+@pytest.fixture(scope="module")
+def tarifzeilen() -> dict:
+    """Die Tageszeilen eines Tarif- und eines Raumprogramms im Panel aufbauen und antippen."""
+    skript = Path(__file__).parent / "js" / "zeitprogramm-tarif.mjs"
+    ausgabe = subprocess.run(
+        ["node", str(skript), str(FRONTEND / "heatnexus-panel.js")],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    return json.loads(ausgabe.stdout)
+
+
+def test_die_zeile_des_tarifprogramms_oeffnet_keinen_editor(tarifzeilen):
+    tarif = tarifzeilen["tarif"]
+    assert tarif["zeilen"] == 1
+    assert tarif["rollen"] == [None]
+    assert tarif["getippt"] is False
+    assert tarif["taste"] is False
+    assert "Tarif 5" in tarif["text"][0]
+    assert "°" not in tarif["text"][0]
+
+
+def test_die_zeile_eines_raumprogramms_bleibt_bedienbar(tarifzeilen):
+    raum = tarifzeilen["raum"]
+    assert raum["rollen"] == ["button"]
+    assert raum["getippt"] is True
+    assert raum["taste"] is True
+
+
+def test_die_art_vom_server_geht_vor_den_werten(tarif):
+    """Ein Schaltprogramm ohne Schaltzeit bleibt eines; ein Wasserprogramm mit 0 zeigt 0 °C."""
+    assert tarif["schalt_leer"]["schalt"] is True
+    assert tarif["wasser_null"]["schalt"] is False
+    assert _zeilen(tarif["wasser_null_text"]) == [("voll", "ganztags", f"0{GESCHUETZT}°C")]
+
+
+def test_ohne_art_entscheiden_weiter_die_werte(tarif):
+    assert tarif["ohne_art_null"]["schalt"] is True

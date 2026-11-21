@@ -570,6 +570,91 @@ def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
     assert karte["art"] == "wasser"
 
 
+@pytest.mark.parametrize("fct_type", [21, 4])
+def test_pufferspeicher_und_kaskade_nennen_die_betriebswahl_des_pufferprogramms(panel, fct_type):
+    """Auch dort gilt `4/82` nur, wenn `20/15` auf „Auto mit Zeitprogramm“ steht."""
+    puffer = teil(
+        "Buffervat schuur",
+        fct_type,
+        [
+            entitaet("sensor.zeitprogramm", "Zeitprogramm", adresse="4/82"),
+            entitaet(
+                "select.betriebswahl",
+                "Betriebswahl",
+                adresse="20/15",
+                schluessel="buffer_mode_selection",
+                optionen={1: "Automatikbetrieb", 3: "Pufferbetrieb", 4: "Auto mit Zeitprogramm"},
+            ),
+        ],
+    )
+    (karte,) = panel.anlage_daten(anlage(puffer))["zeitprogramme"]
+
+    assert karte["wirkung"]["entity"] == "select.betriebswahl"
+    assert karte["wirkung"]["muster"] == "auto mit zeitprogramm"
+    assert karte["wirkung"]["ziel"] == "Auto mit Zeitprogramm"
+    assert karte["wirkung"]["wahl_name"] == "Betriebswahl"
+    assert karte["gruppe"] == "puffer"
+
+
+def test_das_stromtarifprogramm_fuehrt_tarife_statt_temperaturen(panel):
+    """`54/7` trägt die Art „tarif“; die Oberfläche zeigt es nur an."""
+    hybrid = teil(
+        "Hybridmanager",
+        26,
+        [entitaet("sensor.zeitprogramm_stromtarife", "Zeitprogramm Stromtarife", adresse="54/7")],
+    )
+    (karte,) = panel.anlage_daten(anlage(hybrid))["zeitprogramme"]
+
+    assert karte["art"] == "tarif"
+    assert "gruppe" not in karte
+    assert "wirkung" not in karte
+
+
+@pytest.mark.parametrize(
+    ("adresse", "art"),
+    [("50/14", "schalt"), ("59/95", "schalt"), ("54/15", "wasser"), ("54/7", "tarif")],
+)
+def test_die_art_eines_programms_folgt_seiner_adresse(panel, adresse, art):
+    """Ob Ein/Aus, Tarif oder Temperatur, sagt die Adresse; eine 0 kann alles drei sein."""
+    pumpe = teil(
+        "Wärmepumpe", 27, [entitaet("sensor.zeitprogramm", "Zeitprogramm", adresse=adresse)]
+    )
+    (karte,) = panel.anlage_daten(anlage(pumpe))["zeitprogramme"]
+
+    assert karte["art"] == art
+
+
+def test_gleich_benannte_anlagenteile_nennen_ihr_modell(panel):
+    """Drei Geräte „AeroWIN“ an einer Steuerung: Erst das Modell unterscheidet ihre Karten."""
+
+    def pumpe(kennung: str, modell: str | None):
+        programm = entitaet(f"sensor.{kennung}", "Zeitprogramm Silentmode", adresse="50/14")
+        return {**teil("AeroWIN", 7, [programm]), "id": kennung, "modell": modell}
+
+    kreis = {**teil("HK", 14, [entitaet("sensor.hk", "Zeitprogramm")]), "modell": "Heizkreis"}
+    programme = panel.anlage_daten(
+        anlage(pumpe("evo", "AeroWIN EVO Wärmepumpe"), pumpe("aw", "AeroWIN Wärmepumpe"), kreis)
+    )["zeitprogramme"]
+
+    assert {p["entity"]: p.get("geraet") for p in programme} == {
+        "sensor.evo": "AeroWIN EVO Wärmepumpe",
+        "sensor.aw": "AeroWIN Wärmepumpe",
+        "sensor.hk": None,
+    }
+
+
+def test_die_zeitsteuerung_der_zirkulation_ist_ein_schaltprogramm(panel):
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [entitaet("sensor.zirkulation", "WW-Zirkulationsprogramm", adresse="5/65")],
+    )
+    (karte,) = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
+
+    assert karte["gruppe"] == "zirkulation"
+    assert karte["art"] == "schalt"
+
+
 def _kreis_mit_allen_programmen():
     return teil(
         "UMLZ HEIZKREIS",
@@ -609,7 +694,7 @@ def test_zeitprogramme_tragen_gruppe_art_und_nummer(panel):
         "sensor.programm_3": ("heizen", "raum", 3),
         "sensor.vorlauf_2": ("heizen", "vorlauf", 2),
         "sensor.ww_programm": ("warmwasser", "wasser", None),
-        "sensor.zirkulation_zeit": ("zirkulation", None, None),
+        "sensor.zirkulation_zeit": ("zirkulation", "schalt", None),
         "sensor.zirkulation_temperatur": ("zirkulation", "wasser", None),
         "sensor.freigabezeit": (None, None, None),
     }

@@ -479,7 +479,7 @@ export const AUTOMATIK = `
   .automatik-protokoll .art { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .automatik-protokoll .art.geschrieben { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
   .automatik-protokoll .art.haette, .automatik-protokoll .art.empfohlen, .automatik-protokoll .art.verworfen { border: 1px dashed rgba(245, 196, 81, 0.6); color: var(--hn-sonne); }
-  .automatik-protokoll .art.abgelehnt { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+  .automatik-protokoll .art.abgelehnt { background: rgba(229, 57, 53, 0.15); color: var(--hn-fehler); }
   .automatik-protokoll .art.budget, .automatik-protokoll .art.eingriff { background: rgba(255, 171, 111, 0.15); color: #ffab6f; }
   .automatik-protokoll .art.geprueft, .automatik-protokoll .art.einstellung { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
   .automatik-protokoll .art.schreibt { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }

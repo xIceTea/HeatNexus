@@ -40,7 +40,7 @@ export const BausteineMixin = (Basis) =>
     /** Übersetzen und Platzhalter wie `{von}` einsetzen. */
     _tMit(text, werte) {
       return Object.entries(werte).reduce(
-        (satz, [schluessel, wert]) => satz.split(`{${schluessel}}`).join(String(wert)),
+        (satz, [schluessel, wert]) => satz.split(`{${schluessel}}`).join(this._dezimal(String(wert))),
         this._t(text)
       );
     }
@@ -63,6 +63,7 @@ export const BausteineMixin = (Basis) =>
         const sicht = new Proxy(this, {
           get(ziel, name) {
             if (name === "_texte") return texte;
+            if (name === "_sprache") return anlage.sprache;
             const amElement = AM_ELEMENT.has(name) || name in HTMLElement.prototype;
             const wert = Reflect.get(ziel, name, amElement ? ziel : sicht);
             return amElement && typeof wert === "function" ? wert.bind(ziel) : wert;

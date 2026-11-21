@@ -147,8 +147,8 @@ export const SchaubildMixin = (Basis) =>
       unten: this._text(eintrag.unten),
     };
     const titel = mitMitte
-      ? this._tMit("{titel} – oben {oben}, mitte {mitte}, unten {unten}", werte)
-      : this._tMit("{titel} – oben {oben}, unten {unten}", werte);
+      ? this._tMit("{titel}: oben {oben}, Mitte {mitte}, unten {unten}", werte)
+      : this._tMit("{titel}: oben {oben}, unten {unten}", werte);
     if (!eintrag.beladegrad || !this._hatWert(eintrag.beladegrad)) return titel;
     return `${titel}, ${this._tMit("Beladegrad {wert}", { wert: this._text(eintrag.beladegrad) })}`;
   }

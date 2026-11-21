@@ -228,7 +228,7 @@ export const StoerspeicherMixin = (Basis) =>
 
     /** Alle erledigten Einträge auf einmal; anliegende bleiben, die Steuerung lehnt sie ab. */
     async _stoerspeicherLeeren(entity) {
-      const frage = "Alle erledigten Einträge verschwinden aus der Meldungsliste des Bediengeräts. Anliegende Störungen bleiben stehen.";
+      const frage = "Alle erledigten Einträge verschwinden aus der Meldungsliste des Bediengeräts. Anliegende Störungen bleiben erhalten.";
       if (!(await this._bestaetigen(this._t("Erledigte löschen"), this._t(frage)))) return;
       try {
         await this._hass.callService("heatnexus", "meldungen_loeschen", { entity_id: entity });

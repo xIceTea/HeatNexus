@@ -22,17 +22,23 @@ const zeit = browserAttrappe();
 /** Text eines Knotens, ohne Rand. */
 const text = (knoten) => String((knoten && knoten.textContent) || "").trim();
 
+/** Der ganze Name eines Programms: Ein Reiter trägt nur, was nach dem gemeinsamen Vorsatz darüber steht. */
+const vollerName = (knoten) => {
+  const vorsatz = knoten && knoten.closest("[role=tab]") && knoten.closest(".zp-programm").querySelector(".zp-vorsatz");
+  return vorsatz ? `${text(vorsatz)} ${text(knoten)}` : text(knoten);
+};
+
 /** Namen der Zeitprogramme, groß wie klein, in der Reihenfolge auf der Seite. */
 const programmNamen = (wurzel) => [
   ...wurzel.querySelectorAll(".zp-programmname"),
   ...wurzel.querySelectorAll(".zp-mininame"),
-].map(text);
+].map(vollerName);
 
 /** Der Name des Programms, an dem eine Taste steht. */
 const programmVon = (taste) => {
   const gross = taste.closest(".zp-programm");
-  if (gross) return text(gross.querySelector(".zp-programmname"));
-  return text(taste.closest(".zp-mini").querySelector(".zp-mininame"));
+  if (gross) return vollerName(gross.querySelector(".zp-programmname"));
+  return vollerName(taste.closest(".zp-mini").querySelector(".zp-mininame"));
 };
 
 /** Kartentitel ohne die Marke „aktiv", die in derselben Überschrift steht. */
@@ -151,6 +157,18 @@ const STOERSPEICHER = [
 ];
 const ANLIEGEND = STOERSPEICHER[1];
 
+/** Die Texte aller Blätter eines Baums, ohne Stil. */
+const blaetter = (knoten, ablage = []) => {
+  if (knoten.tagName === "STYLE" || knoten.tagName === "SCRIPT") return ablage;
+  if (!knoten.children.length) {
+    const text = String(knoten.textContent || "").trim();
+    if (text) ablage.push(text);
+    return ablage;
+  }
+  knoten.children.forEach((kind) => blaetter(kind, ablage));
+  return ablage;
+};
+
 const bilanz = {};
 const REITER = ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"];
 REITER.forEach((reiter) => {
@@ -165,6 +183,8 @@ REITER.forEach((reiter) => {
       String(kopf.textContent || "").trim()
     ),
     bindungen: flaeche._bindungen.length,
+    // Zahlen vor einer Einheit, wie sie dastehen; das Dezimalzeichen folgt der Sprache der Anlage.
+    zahlen: blaetter(flaeche.shadowRoot).filter((t) => /^[-−+]?\d+([.,]\d+)? ?(°C|K|%|min|h)/.test(t)),
     // Die hervorgehobene Karte: das Programm, auf dem die Betriebswahl steht.
     // Einfache Wähler, keine zusammengesetzten – mehr kann die DOM-Attrappe nicht.
     aktiveKarten: [...flaeche.shadowRoot.querySelectorAll(".karte")]
@@ -187,9 +207,9 @@ REITER.forEach((reiter) => {
     // Zeitprogramme: das geltende groß, die übrigen klein, der Hinweis einmal im Fuß.
     aktiveProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programm")]
       .filter((programm) => programm.classList.contains("aktiv"))
-      .map((programm) => text(programm.querySelector(".zp-programmname"))),
-    grosseProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
-    kleineProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-mininame")].map(text),
+      .map((programm) => vollerName(programm.querySelector(".zp-programmname"))),
+    grosseProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(vollerName),
+    kleineProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-mininame")].map(vollerName),
     programmNamen: programmNamen(flaeche.shadowRoot),
     fuss: [...flaeche.shadowRoot.querySelectorAll(".zp-fuss")].map((fuss) => fuss.children.map(text)),
     schaltzeiten: flaeche.shadowRoot.querySelectorAll(".schaltzeit").length,
@@ -743,7 +763,9 @@ const dialogTaste = (betont) =>
     .find((taste) => taste.classList.contains("betont") === betont);
 // „Aktivieren“ steht am gezeigten Programm, das nicht gilt: erst den Reiter von Programm 2 wählen.
 const reiterVon = (anfang) =>
-  flaeche.shadowRoot.querySelectorAll("[role=tab]").find((taste) => text(taste).startsWith(anfang));
+  flaeche.shadowRoot
+    .querySelectorAll("[role=tab]")
+    .find((taste) => (taste.getAttribute("aria-label") || text(taste)).startsWith(anfang));
 const vorReiter = sichtbareAktivieren().length;
 reiterVon("Programm 2").ausloesen("click");
 const vorAktivieren = sichtbareAktivieren().length;
@@ -782,7 +804,7 @@ bilanz.aktivieren = {
   waehrendUmstellung,
   danach: mitAktivieren(),
   // Das neu geltende Programm rückt nach oben, das alte in die Minibalken.
-  grossDanach: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
+  grossDanach: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(vollerName),
 };
 
 // Eine nicht verfügbare Auswahl behält ihre Optionen, stellt aber nichts um.
@@ -847,7 +869,7 @@ bilanz.bezeichnung = bezeichnung;
   const zwei = () =>
     wurzel
       .querySelectorAll(".zp-programm")
-      .find((k) => k.querySelector(".zp-programmname") && text(k.querySelector(".zp-programmname")).startsWith("Programm 2"));
+      .find((k) => k.querySelector(".zp-programmname") && vollerName(k.querySelector(".zp-programmname")).startsWith("Programm 2"));
   const vorStift = !!zwei().querySelector(".zp-benennen");
   zwei().querySelector(".zp-stift").ausloesen("click");
   const form = zwei().querySelector(".zp-benennen");
@@ -958,7 +980,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   reiterVon("Programm 1").ausloesen("click");
   const wurzel = flaeche.shadowRoot;
   const gezeigt = () =>
-    wurzel.querySelectorAll(".zp-programm").find((k) => text(k.querySelector(".zp-programmname")) === "Programm 1");
+    wurzel.querySelectorAll(".zp-programm").find((k) => vollerName(k.querySelector(".zp-programmname")) === "Programm 1");
   const editor = () => gezeigt().querySelector(".zp-zeileneditor");
   const vorher = !!editor();
   gezeigt().querySelectorAll(".zp-zeile").find((z) => z.getAttribute("role") === "button").ausloesen("click");
@@ -1023,18 +1045,21 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         jetztLinien: gruppe.querySelectorAll(".jetzt-linie").length,
       })),
     gilt: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("gilt")).map((taste) => ({
-      name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      name: vollerName(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
       punkte: taste.querySelectorAll(".zp-punkt-gilt").length,
       marke: text(taste.querySelector(".zp-aktiv")),
     })),
     leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
-      name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      name: vollerName(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
       spuren: taste.querySelectorAll(".zp-spur").length,
       aktivieren: taste.querySelectorAll(".zp-aktivieren").length,
     })),
   };
   // Ein Programm mit einem Wert für den ganzen Tag: kein Zeitfenster statt einer leeren Spur.
-  zwei.attributes.blocks = [{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: [{ time: "00:00", value: 18 }] }];
+  zwei.attributes.blocks = [
+    { weekdays: ["Mo", "Tu", "We", "Th", "Fr"], switchPoints: [] },
+    { weekdays: ["Sa", "Su"], switchPoints: [{ time: "00:00", value: 18 }] },
+  ];
   flaeche._aktualisieren();
   reiterVon("Programm 2").ausloesen("click");
   heute.ohneFenster = [...wurzel.querySelectorAll(".zp-ohne-fenster")].map(text);

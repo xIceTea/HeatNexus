@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
-from ..const import FCT_BUFFER
+from ..const import FCT_BUFFER, PROGRAMMART, PROGRAMMGRENZEN
 from ..dashboard.anlagen import trifft
+from ..geraete import kaskade, pufferspeicher
 from ..helpers import mustername
 from ..schema import passt as _passt
 from .hilfe import hilfe
@@ -17,6 +19,10 @@ from .muster import (
     ZIRKULATIONSPUMPE,
 )
 from .suche import eintrag_suchen
+
+# An diesen Funktionen bietet die Betriebswahl `20/15` „Auto mit Zeitprogramm“ (4) an;
+# nur dann gilt das Pufferprogramm `4/82`.
+PUFFERPROGRAMM_FCT = frozenset({FCT_BUFFER, pufferspeicher.FCT_TYPE, kaskade.FCT_TYPE})
 
 
 def zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
@@ -33,7 +39,10 @@ def zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
     der Anlage nicht mit.
     """
     programme: list[dict[str, str]] = []
+    namen = Counter(teil["name"] for teil in anlage["teile"])
     for teil in anlage["teile"]:
+        # Tragen zwei Geräte denselben Namen, unterscheidet erst ihr Modell die Karten.
+        geraet = teil.get("modell") if namen[teil["name"]] > 1 else None
         for eintrag in teil["entitaeten"]:
             if eintrag["bereich"] != "sensor" or not _passt(mustername(eintrag), ZEITPROGRAMM):
                 continue
@@ -50,9 +59,13 @@ def zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
                 programm["hilfe"] = text
             if bezeichnung := eintrag.get("bezeichnung"):
                 programm["bezeichnung"] = bezeichnung
+            if geraet:
+                programm["geraet"] = geraet
             if (wirkung := _wirkt_nur_wenn(eintrag, teil)) is not None:
                 programm["wirkung"] = wirkung
             programm.update(_einordnung(eintrag, teil))
+            if (grenzen := PROGRAMMGRENZEN.get(eintrag.get("adresse"))) is not None:
+                programm["bereich"] = list(grenzen)
             programme.append(programm)
     return programme
 
@@ -70,14 +83,18 @@ def _einordnung(eintrag: dict[str, Any], teil: dict[str, Any]) -> dict[str, Any]
     if adresse in VORLAUFPROGRAMM_ADRESSEN:
         nummer = VORLAUFPROGRAMM_ADRESSEN.index(adresse) + 1
         return {**einordnung, "gruppe": "heizen", "art": "vorlauf", "nummer": nummer}
+    if adresse in PROGRAMMART:
+        einordnung["art"] = PROGRAMMART[adresse]
     if _ist_zirkulation(eintrag):
         # Nur das Temperaturprogramm führt Temperaturen; das Zeitprogramm schaltet ein und aus.
         if eintrag.get("schluessel") == "dhw_circulation_program_temperature":
             einordnung["art"] = "wasser"
         return {**einordnung, "gruppe": "zirkulation"}
+    if adresse in PROGRAMMART:
+        return einordnung
     if adresse == WW_PROGRAMM_ADRESSE or _passt(mustername(eintrag), WARMWASSER):
         return {**einordnung, "gruppe": "warmwasser", "art": "wasser"}
-    if teil.get("fct_type") == FCT_BUFFER:
+    if teil.get("fct_type") in PUFFERPROGRAMM_FCT:
         return {**einordnung, "gruppe": "puffer", "art": "wasser"}
     return einordnung
 
@@ -216,7 +233,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     if not _passt(mustername(programm), ZIRKULATIONSPROGRAMM):
         # Kein Zirkulationsprogramm – am Puffer entscheidet seine eigene
         # Betriebswahl, am Heizkreis die des Kreises.
-        if teil.get("fct_type") == FCT_BUFFER:
+        if teil.get("fct_type") in PUFFERPROGRAMM_FCT:
             return _puffer_wirkung(teil)
         return _heizkreis_wirkung(programm, teil)
     pumpe = next(

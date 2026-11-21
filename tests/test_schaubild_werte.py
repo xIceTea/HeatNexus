@@ -105,13 +105,13 @@ def test_mit_drei_pufferwerten_rueckt_das_wort_nach_oben(werte):
 
 def test_der_tooltip_nennt_mitte_und_beladegrad(werte):
     assert werte["puffer_zwei"]["titel"] == (
-        "Puffer – oben 60.5 °C, mitte 50.7 °C, unten 46.6 °C, Beladegrad 38 %"
+        "Puffer: oben 60.5 °C, Mitte 50.7 °C, unten 46.6 °C, Beladegrad 38 %"
     )
 
 
 def test_ohne_beladegrad_bleibt_der_tooltip_bei_den_fuehlern(werte):
     assert werte["puffer_ohne_beladegrad"]["titel"] == (
-        "Puffer – oben 60.5 °C, mitte 50.7 °C, unten 46.6 °C"
+        "Puffer: oben 60.5 °C, Mitte 50.7 °C, unten 46.6 °C"
     )
 
 

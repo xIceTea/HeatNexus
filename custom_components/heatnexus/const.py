@@ -400,6 +400,29 @@ UPDATE_INTERVAL = 30
 OID_SOFTWAREVERSION = "4/92"
 OID_HARDWAREVERSION = "4/93"
 
+# Zeitprogramme, deren Werte nicht Temperaturen sind oder nicht nach Ein/Aus aussehen dürfen.
+# „schalt“: 0 Aus, 1 Ein · „tarif“: 0–4 für Tarif 1–5 · „wasser“: 0–60 °C, auch 0 ist eine Temperatur.
+PROGRAMMART = {
+    "5/65": "schalt",
+    "50/14": "schalt",
+    "59/95": "schalt",
+    "54/7": "tarif",
+    "54/15": "wasser",
+}
+
+# Wertebereich je Zeitprogramm, wie ihn das Bediengerät der Anlage zulässt; die Anlage meldet keinen.
+# Ohne Eintrag gilt der Bereich des Speicherformats. Zeiten liegen im Raster von 15 min, Werte von 0,5.
+PROGRAMMGRENZEN = {
+    **dict.fromkeys(("3/61", "3/62", "3/63", "59/48"), (5.0, 30.0)),
+    **dict.fromkeys(("58/78", "58/79", "58/80", "4/82"), (0.0, 90.0)),
+    **dict.fromkeys(("5/61", "5/62", "5/63", "5/64"), (10.0, 75.0)),
+    "54/15": (0.0, 60.0),
+    **dict.fromkeys(("5/65", "50/14", "59/95"), (0.0, 1.0)),
+}
+PROGRAMMGRENZEN_FORMAT = (0.0, 127.5)
+ZEITRASTER_MINUTEN = 15
+WERTRASTER = 0.5
+
 # Ab wie vielen abgewiesenen Anfragen in Folge nach dem Passwort gefragt wird.
 #
 # Ein einzelner `401` heißt hier nichts: Die Steuerung vergibt ihre Nonce nur

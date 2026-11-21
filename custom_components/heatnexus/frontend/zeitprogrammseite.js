@@ -8,6 +8,8 @@ import {
   TAGE,
   TAG_MINUTEN,
   farbe,
+  tagesbereich,
+  tarifText,
   uhrzeit,
 } from "./zeitprogramm.js";
 
@@ -22,7 +24,12 @@ export function nachTeilen(programme) {
   (programme || []).forEach((programm) => {
     const schluessel = programm.teil || programm.anlagenteil || "";
     if (!teile.has(schluessel)) {
-      teile.set(schluessel, { teil: schluessel, anlagenteil: programm.anlagenteil || "", programme: [] });
+      teile.set(schluessel, {
+        teil: schluessel,
+        anlagenteil: programm.anlagenteil || "",
+        geraet: programm.geraet || "",
+        programme: [],
+      });
     }
     teile.get(schluessel).programme.push(programm);
   });
@@ -59,6 +66,25 @@ export function gruppieren(programme) {
   return [...gruppen.values()].sort((a, b) => rang(a) - rang(b));
 }
 
+/**
+ * Reiterbeschriftungen ohne die Wörter, mit denen alle Namen beginnen; diese stehen als `vorsatz` darüber.
+ * Bliebe einem Namen nichts Eigenes, bleiben alle ganz.
+ */
+export function reiterNamen(namen) {
+  const liste = [...(namen || [])];
+  const woerter = liste.map((name) => String(name).trim().split(/\s+/));
+  let gemeinsam = 0;
+  const weiter = () =>
+    woerter.every((worte) => worte.length > gemeinsam + 1 && worte[gemeinsam] === woerter[0][gemeinsam]);
+  while (woerter.length > 1 && weiter()) gemeinsam += 1;
+  if (!gemeinsam) return { vorsatz: "", namen: liste };
+  const gross = (text) => text.charAt(0).toLocaleUpperCase() + text.slice(1);
+  return {
+    vorsatz: woerter[0].slice(0, gemeinsam).join(" "),
+    namen: woerter.map((worte) => gross(worte.slice(gemeinsam).join(" "))),
+  };
+}
+
 // Zwischen Zahl und Einheit bricht keine Zeile.
 const GESCHUETZT = " ";
 
@@ -73,6 +99,11 @@ function zahlText(wert, sprache) {
 
 function temperatur(wert, sprache) {
   return `${zahlText(wert, sprache)}${GESCHUETZT}°C`;
+}
+
+/** Das Stromtarifprogramm lässt sich nur ansehen; der Dienst schreibt keine Tarife. */
+export function nurLesen(programm) {
+  return !!programm && programm.art === "tarif";
 }
 
 /** Die Abschnitte über dem Grundwert; ein Fenster über Mitternacht wird zu einem. */
@@ -102,9 +133,10 @@ export function farben(stuecke, grenzen) {
  * Zeilen: {stufe: "voll"|"halb"|null, farbe, zeit, wert}; `farbe` ist `null`, wo die Spur leer bleibt.
  */
 export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
-  if (!stuecke || !stuecke.length) return [{ stufe: null, zeit: t("kein Zeitplan"), wert: "" }];
+  if (!stuecke || !stuecke.length) return [{ stufe: null, zeit: t("Kein Zeitplan"), wert: "" }];
   const zeit = (s) => `${uhrzeit(s.von)} – ${bisText(s.bis)}`;
-  const text = (wert) => (grenzen.schalt ? t(wert >= 0.5 ? "Ein" : "Aus") : temperatur(wert, sprache));
+  const text = (wert) =>
+    grenzen.tarif ? tarifText(wert, t) : grenzen.schalt ? t(wert >= 0.5 ? "Ein" : "Aus") : temperatur(wert, sprache);
   const werte = stuecke.map((s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert));
   const grund = Math.min(...werte);
   const hoch = Math.max(...werte);
@@ -119,7 +151,7 @@ export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
     zeit: zeit(s),
     wert: text(s.wert),
   }));
-  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("sonst"), wert: text(grund) }];
+  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("Übrige Zeit"), wert: text(grund) }];
 }
 
 /** Ob ein Tag nur einen Wert oder keinen Plan hat; dann steht eine Zeile statt Spur und Tabelle. */
@@ -144,21 +176,69 @@ export function spurteile(stuecke, grenzen, { beschriften = false, t = OHNE, spr
     else flaechen.push({ von: stueck.von, bis: stueck.bis, wert: wertVon(stueck) });
   });
   const grund = grenzen.schalt ? 0 : Math.min(...flaechen.map((f) => f.wert));
-  const text = (wert) => (grenzen.schalt ? t(wert ? "Ein" : "Aus") : temperatur(wert, sprache));
+  // Ein Tag nur mit Aus wäre sonst eine leere Fläche; er trägt das Wort.
+  const ganzAus = grenzen.schalt && flaechen.length === 1 && flaechen[0].wert === 0;
+  const text = (wert) =>
+    grenzen.tarif ? tarifText(wert, t) : grenzen.schalt ? t(wert ? "Ein" : "Aus") : temperatur(wert, sprache);
   return flaechen.map(({ von, bis, wert }) => {
     const ruhe = wert === grund;
     const leer = grenzen.schalt && ruhe;
     const breit = bis - von >= BESCHRIFTUNG_AB_MINUTEN;
-    const kurz = grenzen.schalt ? text(wert) : `${zahlText(wert, sprache)}°`;
+    const kurz = grenzen.schalt || grenzen.tarif ? text(wert) : `${zahlText(wert, sprache)}°`;
     return {
       von,
       bis,
       ruhe,
       farbe: leer ? null : farbe(wert, grenzen),
-      text: beschriften && breit && !leer ? kurz : "",
+      text: ganzAus ? text(wert) : beschriften && breit && !leer ? kurz : "",
       tipp: `${uhrzeit(von)}–${bisText(bis)} · ${text(wert)}`,
     };
   });
+}
+
+const gleichePunkte = (eine, andere) =>
+  eine.length === andere.length && eine.every((punkt, n) => punkt.zeit === andere[n].zeit && punkt.wert === andere[n].wert);
+
+// Gleiche Schaltzeiten, aber ein anderer Wert vom Vortag ergeben einen anderen Morgen.
+const gleicherMorgen = (eine, andere) => (eine[0] || {}).wert === (andere[0] || {}).wert;
+
+const grenzenAn = (eine, andere) =>
+  eine.some((tag) => andere.some((nachbar) => Math.abs(TAGE.indexOf(tag) - TAGE.indexOf(nachbar)) === 1));
+
+/**
+ * Zeilen mit gleichen Schaltzeiten und aneinandergrenzenden Tagen in einer Zeile: Fünf gleiche Werktage stehen als „Mo–Fr“.
+ * Die Zeile behält die Stelle ihres ersten Blocks; gespeichert wird ein Block für alle ihre Tage.
+ */
+export function nachbarnZusammenfassen(zeilen, t = OHNE) {
+  const liste = (zeilen || []).map((zeile) => ({ ...zeile, tage: [...zeile.tage] }));
+  for (let n = 0; n < liste.length; n += 1) {
+    for (let m = n + 1; m < liste.length; m += 1) {
+      const [eine, andere] = [liste[n], liste[m]];
+      const passt =
+        eine.stelle >= 0 &&
+        andere.stelle >= 0 &&
+        gleichePunkte(eine.punkte, andere.punkte) &&
+        gleicherMorgen(eine.abschnitte || [], andere.abschnitte || []);
+      if (!passt || !grenzenAn(eine.tage, andere.tage)) continue;
+      eine.tage = TAGE.filter((tag) => eine.tage.includes(tag) || andere.tage.includes(tag));
+      eine.text = tagesbereich(eine.tage, t);
+      liste.splice(m, 1);
+      // Die Zeile ist gewachsen; eine schon geprüfte kann jetzt an sie grenzen.
+      m = n;
+    }
+  }
+  return liste;
+}
+
+/** Ob zwei Programme an jedem Wochentag dieselben Schaltzeiten haben, gleich wie sie in Blöcke geteilt sind. */
+export function tageGleich(einer, anderer) {
+  const plan = (bloecke, tag) => {
+    const block = (bloecke || []).find((eintrag) => eintrag.tage.includes(tag));
+    if (!block) return "";
+    const sortiert = [...block.punkte].sort((a, b) => a.zeit - b.zeit);
+    return JSON.stringify(sortiert.map((punkt) => [punkt.zeit, Math.round(punkt.wert * 10) / 10]));
+  };
+  return TAGE.every((tag) => plan(einer, tag) === plan(anderer, tag));
 }
 
 /**
@@ -179,6 +259,8 @@ export function blockEinsetzen(bloecke, stelle, neu) {
 export function achseKnoten() {
   const achse = document.createElement("div");
   achse.className = "zp-achse";
+  // Die Stundenmarken ordnen nur das Bild; vorgelesen werden Zeiten aus Tabelle und Tipp.
+  achse.setAttribute("aria-hidden", "true");
   [0, 6, 12, 18, 24].forEach((stunde) => {
     const marke = document.createElement("span");
     marke.style.left = `${(stunde / 24) * 100}%`;
@@ -200,7 +282,7 @@ export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null, beschrifte
   spurteile(stuecke, grenzen, { beschriften, t, sprache }).forEach((teil) => {
     const stueck = document.createElement("i");
     stueck.className = teil.ruhe ? "zp-stueck ruhe" : "zp-stueck";
-    if (teil.farbe) stueck.style.background = teil.farbe;
+    if (teil.farbe) stueck.style.setProperty("--zp-ton", teil.farbe);
     stueck.style.flexBasis = `calc(${((teil.bis - teil.von) / TAG_MINUTEN) * 100}% - 2px)`;
     stueck.textContent = teil.text;
     stueck.title = teil.tipp;
@@ -218,17 +300,42 @@ export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null, beschrifte
   return rahmen;
 }
 
+// Höchstens ein Tipp ist offen; Antippen daneben oder Escape schließt ihn.
+let offenerTipp = null;
+
+function tippSchliessen() {
+  if (!offenerTipp) return;
+  offenerTipp.halt.abort();
+  offenerTipp.knoten.remove();
+  offenerTipp = null;
+}
+
+/** Die Mitte des Tipps über seinem Stück, so weit verschoben, dass er ganz in der Spur bleibt. */
+function tippMitte(spur, stueck, tipp) {
+  const mitte = stueck.offsetLeft + stueck.offsetWidth / 2;
+  const halb = tipp.offsetWidth / 2;
+  const breite = spur.clientWidth;
+  if (!breite || !halb) return mitte;
+  if (halb * 2 >= breite) return breite / 2;
+  return Math.min(breite - halb, Math.max(halb, mitte));
+}
+
 /** Der Tipp unter einem Stück; ein zweiter Tipp auf dasselbe Stück schließt ihn. */
 function tippZeigen(spur, stueck, ereignis) {
   ereignis.stopPropagation();
-  const offen = spur.querySelector(".zp-tipp");
-  const gleich = offen && offen.dataset.zu === stueck.dataset.tipp;
-  if (offen) offen.remove();
+  const offen = offenerTipp && offenerTipp.knoten;
+  const gleich = offen && offen.parentElement === spur && offen.dataset.zu === stueck.dataset.tipp;
+  tippSchliessen();
   if (gleich) return;
   const tipp = document.createElement("span");
   tipp.className = "zp-tipp";
   tipp.textContent = stueck.dataset.tipp;
   tipp.dataset.zu = stueck.dataset.tipp;
-  tipp.style.left = `${stueck.offsetLeft + stueck.offsetWidth / 2}px`;
   spur.appendChild(tipp);
+  tipp.style.left = `${tippMitte(spur, stueck, tipp)}px`;
+  // Ein Klick auf ein Stück endet dort; was am Dokument ankommt, lag daneben.
+  const halt = new AbortController();
+  offenerTipp = { knoten: tipp, halt };
+  document.addEventListener("click", tippSchliessen, { signal: halt.signal });
+  document.addEventListener("keydown", (taste) => taste.key === "Escape" && tippSchliessen(), { signal: halt.signal });
 }

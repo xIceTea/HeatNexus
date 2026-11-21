@@ -224,7 +224,7 @@ def test_die_werte_stehen_in_einer_tabelle_unter_der_spur(durchlauf):
     zeitprogramme = durchlauf["zeitprogramme"]
     assert zeitprogramme["schaltzeiten"] == 0
     assert zeitprogramme["segmentWerte"] == []
-    assert any("sonst" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
+    assert any("Übrige Zeit" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
     assert zeitprogramme["spurwerte"] == []
 
 
@@ -286,6 +286,7 @@ def test_ein_tag_mit_einem_wert_zeigt_kein_zeitfenster_statt_einer_spur(durchlau
     assert any(
         zeile.startswith("Kein Zeitfenster") and "18" in zeile for zeile in heute["ohneFenster"]
     )
+    assert "Kein Zeitplan" in heute["ohneFenster"]
     assert heute["ohneFensterSpuren"] == 0
 
 
@@ -451,7 +452,7 @@ def test_nach_der_betriebswahl_laedt_der_sollwert(durchlauf):
     """Der alte Sollwert stünde sonst neben „übernommen ✓", bis die Steuerung nachrechnet."""
     sollwert = durchlauf["betriebswahl"]["sollwert"]
     assert sollwert["wartet"] == "lädt …"
-    assert sollwert["nachgezogen"] == "21.5 °C"
+    assert sollwert["nachgezogen"] == "21,5 °C"
     assert sollwert["danach"] == "20 °C"
 
 
@@ -1297,9 +1298,7 @@ def _in_sprachen(aufteilung, eigene: str, gemeinsame: str = "de") -> dict:
     return {**aufteilung, "anlagen": [a, b], "texte": gemeinsam.fuer_frontend}
 
 
-@pytest.fixture(scope="module")
-def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
-    nutzlast = _in_sprachen(aufteilung, "nl")
+def _sprachen_durchlauf(nutzlast: dict, tmp_path_factory) -> dict:
     datei = tmp_path_factory.mktemp("sprachen") / "daten.json"
     datei.write_text(json.dumps(nutzlast), encoding="utf-8")
     ergebnis = subprocess.run(
@@ -1309,7 +1308,13 @@ def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
         encoding="utf-8",
     )
     assert ergebnis.returncode == 0, ergebnis.stderr[:2000]
-    return nutzlast, json.loads(ergebnis.stdout)
+    return json.loads(ergebnis.stdout)
+
+
+@pytest.fixture(scope="module")
+def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
+    nutzlast = _in_sprachen(aufteilung, "nl")
+    return nutzlast, _sprachen_durchlauf(nutzlast, tmp_path_factory)
 
 
 def test_nur_eine_abweichende_anlage_bringt_ihr_woerterbuch_mit(aufteilung):
@@ -1630,7 +1635,7 @@ def test_das_fenster_darstellung_beginnt_oben(durchlauf):
 def test_die_helligkeit_ist_nur_bei_home_assistant_blass(durchlauf):
     assert durchlauf["darstellung"]["helligkeit"] == {
         "anfangs": {"aus": False, "grund": ""},
-        "homeAssistant": {"aus": True, "grund": "Folgt dem Thema von Home Assistant"},
+        "homeAssistant": {"aus": True, "grund": "Folgt dem Design von Home Assistant"},
         "terrakotta": {"aus": False, "grund": ""},
         "windhager": {"aus": False, "grund": ""},
     }
@@ -1876,3 +1881,59 @@ def test_speichern_schreibt_das_ganze_programm_mit_den_neuen_tagen(durchlauf):
         ],
     }
     assert editor["zu"] is True
+
+
+def test_die_automatik_einer_anlage_steht_in_ihrer_sprache(zwei_sprachen):
+    """Der Reiter Automatik folgt der Anlage wie jeder andere Reiter."""
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    texte = [t for bereich in ergebnis["automatik"].values() for t in bereich]
+    reste = sorted(t for t in texte if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert texte
+    assert not reste, f"Automatik der niederländischen Anlage noch deutsch: {reste}"
+
+
+def test_unter_alle_steht_jeder_automatik_kreis_in_der_sprache_seiner_anlage(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    texte = ergebnis["automatikAlle"]["anlage"]
+    reste = sorted(t for t in texte if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert texte, "kein Heizkreis der niederländischen Anlage in ihrer Sprache"
+    assert not reste, f"Automatik von Anlage B unter „Alle“ noch deutsch: {reste[:5]}"
+    assert any(DEUTSCH.search(t) for t in ergebnis["automatikAlle"]["rahmen"])
+
+
+@pytest.mark.parametrize("reiter", ["uebersicht", "steuerung"])
+def test_zahlen_vor_einer_einheit_stehen_mit_komma(durchlauf, reiter):
+    """Ist- und Sollwert des Heizkreises kommen roh aus den Attributen der Klima-Entität."""
+    # Die übrigen Zahlen formatiert Home Assistant; die Attrappe gibt sie roh zurück.
+    zahlen = durchlauf[reiter]["zahlen"]
+    assert "20,8 °C" in zahlen
+    assert "20.8 °C" not in zahlen
+
+
+def test_die_zahl_steht_mit_dem_dezimalzeichen_der_anlage(
+    zwei_sprachen, aufteilung, tmp_path_factory
+):
+    """Niederländisch schreibt ein Komma, Englisch einen Punkt."""
+    _, ergebnis = zwei_sprachen
+    assert "20,8 °C" in ergebnis["seite"]["anlage"]
+    englisch = _sprachen_durchlauf(_in_sprachen(aufteilung, "en"), tmp_path_factory)
+    assert "20.8 °C" in englisch["seite"]["anlage"]
+    assert "20,8 °C" not in englisch["seite"]["anlage"]
+
+
+def test_die_automatik_schreibt_zahlen_mit_dem_dezimalzeichen_der_anlage(
+    zwei_sprachen, aufteilung, tmp_path_factory
+):
+    """Kennwerte, Tagesbild und Marken der Automatik folgen derselben Regel wie der Server."""
+    _, ergebnis = zwei_sprachen
+    komma = re.compile(r"\d,\d")
+    niederlaendisch = [t for bereich in ergebnis["automatik"].values() for t in bereich]
+    assert any(komma.search(t) for t in niederlaendisch)
+    englisch = _sprachen_durchlauf(_in_sprachen(aufteilung, "en"), tmp_path_factory)
+    texte = [t for bereich in englisch["automatik"].values() for t in bereich]
+    # Gezeichnete Kurven stehen als SVG-Text da; ihre Koordinaten sind keine Zahlen zum Lesen.
+    reste = sorted(t for t in texte if komma.search(t) and not t.startswith("<"))
+    assert texte
+    assert not reste, f"Dezimalkomma in der englischen Automatik: {reste}"

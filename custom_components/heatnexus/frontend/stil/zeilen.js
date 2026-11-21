@@ -114,8 +114,8 @@ export const ZEILEN = `
     background: var(--hn-ton); color: var(--hn-farbe);
   }
   .stoerspeicher-symbol ha-icon { opacity: 1; }
-  .stoerspeicher-kachel.alarm, .stoerspeicher-symbol.alarm { --hn-ton: rgba(229, 57, 53, 0.14); --hn-farbe: #ff8a80; }
-  .stoerspeicher-kachel.fehler, .stoerspeicher-symbol.fehler { --hn-ton: rgba(255, 193, 7, 0.12); --hn-farbe: #ffd54f; }
+  .stoerspeicher-kachel.alarm, .stoerspeicher-symbol.alarm { --hn-ton: rgba(229, 57, 53, 0.14); --hn-farbe: var(--hn-fehler); }
+  .stoerspeicher-kachel.fehler, .stoerspeicher-symbol.fehler { --hn-ton: rgba(255, 193, 7, 0.12); --hn-farbe: var(--hn-warnung); }
   .stoerspeicher-kachel.info, .stoerspeicher-symbol.info { --hn-ton: rgba(66, 165, 245, 0.14); --hn-farbe: #64b5f6; }
   .stoerspeicher-symbol.erledigt { --hn-ton: var(--hn-flaeche); --hn-farbe: var(--hn-gedaempft); }
   .stoerspeicher-kachel .stoerspeicher-symbol { background: rgba(0, 0, 0, 0.18); }

@@ -285,7 +285,7 @@ export const DarstellungMixin = (Basis) =>
       const zeitprogramme = [
         [
           this._t("Schaltzeiten"),
-          this._t("Legt fest, ob Zeiten und Werte als Tabelle unter der Spur oder in der Spur stehen."),
+          this._t("Legt fest, ob Zeiten und Werte als Tabelle unter dem Balken oder im Balken stehen."),
           wahl(this._t("Schaltzeiten"), "zeitprogramme", "zeitprogramme"),
         ],
       ];
@@ -455,7 +455,7 @@ export const DarstellungMixin = (Basis) =>
     /** Hell, dunkel oder automatisch; blass bei „Home Assistant“, das dem eigenen Thema folgt. */
     _helligkeitWahl(wahl, wert, nachWahl) {
       const block = this._darstellungUnterwahl(
-        this._t("Folgt dem Thema von Home Assistant"),
+        this._t("Folgt dem Design von Home Assistant"),
         wahl(this._t("Helligkeit"), "helligkeit", "helligkeit")
       );
       const stellen = () => {

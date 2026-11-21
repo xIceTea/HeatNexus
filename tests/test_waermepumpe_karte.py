@@ -144,3 +144,39 @@ def test_zeitfenster_als_text(tmp_path, fall, bloecke, erwartet):
         check=True,
     )
     assert ausgabe.stdout.strip() == erwartet
+
+
+@requires_ha()
+def test_karte_reicht_die_art_des_programms_weiter():
+    """`50/14` schaltet ein und aus; ohne Schaltzeiten verrät das kein Wert."""
+    from custom_components.heatnexus.panel.steuerung import steuerung
+
+    programm = {**_e("sensor.silent_programm", "Zeitprogramm Silentmode"), "adresse": "50/14"}
+    anlage = {"teile": [_teil("AeroWIN", 7, _e("select.silent", "Silentmode"), programm)]}
+
+    karte = steuerung(anlage)["waermepumpen"][0]
+
+    assert karte["programm_art"] == "schalt"
+    assert karte["programm_bereich"] == [0, 1]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_der_dialog_des_silentmode_bekommt_die_art(tmp_path):
+    skript = tmp_path / "programm.mjs"
+    skript.write_text(
+        f'import {{ silentmodeProgramm }} from "{WAERMEPUMPE_JS.as_uri()}";\n'
+        'const karte = { programm: "sensor.p", programm_bezeichnung: "Nacht",'
+        ' programm_art: "schalt", programm_bereich: [0, 1] };\n'
+        "console.log(JSON.stringify(silentmodeProgramm(karte, (t) => t)));\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    assert json.loads(ausgabe.stdout) == {
+        "entity": "sensor.p",
+        "titel": "Zeitprogramm Silentmode",
+        "bezeichnung": "Nacht",
+        "art": "schalt",
+        "bereich": [0, 1],
+    }

@@ -83,7 +83,7 @@ export const BefundEingabeMixin = (Basis) =>
       const einheit = (b.angaben || {}).einheit || "";
       this._befundFenster(
         this._t("Befüllung eintragen"),
-        this._t("Eine Lieferung oder eine eigene Befüllung des Lagers. Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch. Ohne Rest gilt der gerechnete Vorrat."),
+        this._t("Eine Lieferung oder eine eigene Befüllung des Lagers. Mit dem Rest davor ergibt sich der tatsächliche Verbrauch. Ohne Rest gilt der gerechnete Vorrat."),
         [
           [this._t("Menge"), menge, einheit],
           [this._t("Rest davor (optional)"), rest, einheit],
@@ -105,7 +105,7 @@ export const BefundEingabeMixin = (Basis) =>
       if (bestand !== null && bestand !== undefined) vorrat.value = String(bestand);
       this._befundFenster(
         this._t("Bestand eintragen"),
-        this._t("Der Vorrat, der jetzt im Lager liegt. Mit dem vorigen Stand lernt die Rechnung den tatsächlichen Verbrauch."),
+        this._t("Der Vorrat, der jetzt im Lager liegt. Mit dem vorigen Stand ergibt sich der tatsächliche Verbrauch."),
         [[this._t("Vorrat"), vorrat, (b.angaben || {}).einheit || ""]],
         () => {
           const v = feldZahl(vorrat);

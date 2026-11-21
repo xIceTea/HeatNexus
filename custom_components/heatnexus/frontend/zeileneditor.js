@@ -5,14 +5,24 @@
  */
 
 import { SCHALTPUNKTE_MAX } from "./ordnung.js";
-import { TAGE, TAG_MINUTEN, abschnitte, minuten, tagText, uhrzeit } from "./zeitprogramm.js";
+import {
+  FORMATBEREICH,
+  TAGE,
+  WERTRASTER,
+  ZEITRASTER,
+  abschnitte,
+  aufWertraster,
+  aufZeitraster,
+  minuten,
+  neueSchaltzeit,
+  spaetesterWert,
+  tagText,
+  uhrzeit,
+} from "./zeitprogramm.js";
 import { tagesspur } from "./zeitprogrammseite.js";
 
 const OHNE = (text) => text;
 
-// Eine neue Schaltzeit liegt eine Stunde nach der letzten.
-const ABSTAND_MINUTEN = 60;
-const ERSTER_START = 6 * 60;
 const ERSTER_WERT = 20;
 
 function taste(text, klasse, aktion) {
@@ -41,14 +51,20 @@ function wertFeld(punkt, grenzen, t, geaendert) {
     auswahl.setAttribute("aria-label", t("Schaltzustand"));
     return auswahl;
   }
+  const bereich = grenzen.bereich || FORMATBEREICH;
   const feld = document.createElement("input");
   feld.type = "number";
-  feld.step = "0.5";
+  feld.step = String(WERTRASTER);
+  feld.min = String(bereich.min);
+  feld.max = String(bereich.max);
   feld.value = String(punkt.wert);
   feld.addEventListener("change", () => {
-    const gelesen = Number(feld.value);
-    if (Number.isFinite(gelesen)) geaendert(gelesen);
-    else feld.value = String(punkt.wert);
+    const gelesen = feld.value === "" ? NaN : Number(feld.value);
+    if (Number.isFinite(gelesen)) {
+      const gerastert = aufWertraster(gelesen, bereich);
+      feld.value = String(gerastert);
+      geaendert(gerastert);
+    } else feld.value = String(punkt.wert);
   });
   feld.setAttribute("aria-label", t("Solltemperatur"));
   return feld;
@@ -64,15 +80,18 @@ function punktZeile(modell, nummer, { grenzen, t, neu }) {
   const zeit = document.createElement("input");
   zeit.type = "time";
   zeit.className = "zp-ze-feld";
+  zeit.step = String(ZEITRASTER * 60);
   zeit.value = uhrzeit(punkt.zeit);
   zeit.setAttribute("aria-label", t("Schaltzeit"));
+  zeit.dataset.fokus = `zeit:${nummer}`;
   zeit.addEventListener("change", () => {
     const gelesen = minuten(zeit.value);
     if (gelesen === null) {
       zeit.value = uhrzeit(punkt.zeit);
       return;
     }
-    punkt.zeit = gelesen;
+    punkt.zeit = aufZeitraster(gelesen);
+    zeit.value = uhrzeit(punkt.zeit);
     neu(false);
   });
   const wert = wertFeld(punkt, grenzen, t, (gelesen) => {
@@ -80,6 +99,7 @@ function punktZeile(modell, nummer, { grenzen, t, neu }) {
     neu(false);
   });
   wert.classList.add("zp-ze-feld", "zp-wert");
+  wert.dataset.fokus = `wert:${nummer}`;
   const einheit = document.createElement("span");
   einheit.className = "zp-einheit";
   einheit.textContent = grenzen.schalt ? "" : "°C";
@@ -89,6 +109,7 @@ function punktZeile(modell, nummer, { grenzen, t, neu }) {
   });
   weg.title = t("Schaltzeit entfernen");
   weg.setAttribute("aria-label", t("Schaltzeit entfernen"));
+  weg.dataset.fokus = `weg:${nummer}`;
   zeile.append(ab, zeit, wert, einheit, weg);
   return zeile;
 }
@@ -104,10 +125,31 @@ function tagLeiste(modell, t, neu) {
       neu(true);
     });
     knopf.dataset.tag = tag;
+    knopf.dataset.fokus = `tag:${tag}`;
     knopf.setAttribute("aria-pressed", String(modell.tage.includes(tag)));
     leiste.appendChild(knopf);
   });
   return leiste;
+}
+
+/** Der Schlüssel des Bedienelements im Editor, das gerade den Fokus hat. */
+function fokusSchluessel(knoten) {
+  const wurzel = knoten.getRootNode ? knoten.getRootNode() : document;
+  const aktiv = wurzel.activeElement;
+  return aktiv && knoten.contains(aktiv) ? aktiv.dataset.fokus || null : null;
+}
+
+/** Den Fokus nach dem Neuaufbau zurückgeben; eine entfernte Schaltzeit gibt ihn an die vorige ab. */
+function fokusZurueck(knoten, schluessel) {
+  if (!schluessel) return;
+  const [art, stelle] = schluessel.split(":");
+  const kandidaten = [schluessel];
+  if (art === "weg") kandidaten.push(`weg:${Number(stelle) - 1}`);
+  kandidaten.push("mehr", "zeit:0");
+  const ziel = kandidaten
+    .map((eintrag) => knoten.querySelector(`[data-fokus="${eintrag}"]`))
+    .find((element) => element && !element.disabled);
+  if (ziel) ziel.focus({ preventScroll: true });
 }
 
 function ueberschrift(text) {
@@ -119,9 +161,10 @@ function ueberschrift(text) {
 
 /**
  * Den Editor bauen. `modell` ({tage, punkte}) ändert er selbst; `speichern` bekommt es sortiert zurück
- * und liefert Fehlertexte oder nichts.
+ * und liefert Fehlertexte oder nichts. `vortag` liefert zum Stand den Wert vor der ersten Schaltzeit.
+ * `hinweis` steht beim Öffnen in der Meldungszeile.
  */
-export function zeileneditorKnoten(modell, { grenzen, t = OHNE, speichern, abbrechen }) {
+export function zeileneditorKnoten(modell, { grenzen, t = OHNE, speichern, abbrechen, vortag = () => null, hinweis = "" }) {
   const knoten = document.createElement("div");
   knoten.className = "zp-zeileneditor";
   const vorschau = document.createElement("div");
@@ -129,22 +172,27 @@ export function zeileneditorKnoten(modell, { grenzen, t = OHNE, speichern, abbre
   const meldung = document.createElement("div");
   meldung.className = "zp-meldung";
   meldung.setAttribute("role", "status");
+  meldung.textContent = hinweis;
 
   const spurZeichnen = () => {
     const sortiert = [...modell.punkte].sort((a, b) => a.zeit - b.zeit);
-    vorschau.replaceChildren(tagesspur(abschnitte(sortiert), grenzen, { t }));
+    const morgen = vortag({ tage: [...modell.tage], punkte: sortiert });
+    vorschau.replaceChildren(tagesspur(abschnitte(sortiert, morgen), grenzen, { t }));
   };
   const zeichnen = () => {
+    const fokus = fokusSchluessel(knoten);
     const punkte = document.createElement("div");
     punkte.className = "zp-ze-punkte";
     modell.punkte.forEach((_, nummer) => punkte.appendChild(punktZeile(modell, nummer, { grenzen, t, neu })));
     const mehr = taste(t("+ Schaltzeit"), "zp-ze-mehr", () => {
-      const letzte = modell.punkte[modell.punkte.length - 1];
-      const zeit = letzte ? Math.min(TAG_MINUTEN - ABSTAND_MINUTEN, letzte.zeit + ABSTAND_MINUTEN) : ERSTER_START;
-      modell.punkte.push({ zeit, wert: letzte ? letzte.wert : grenzen.schalt ? 1 : ERSTER_WERT });
+      const zeit = neueSchaltzeit(modell.punkte);
+      if (zeit === null) return;
+      const wert = spaetesterWert(modell.punkte);
+      modell.punkte.push({ zeit, wert: wert !== null ? wert : grenzen.schalt ? 1 : ERSTER_WERT });
       neu(true);
     });
-    mehr.disabled = modell.punkte.length >= SCHALTPUNKTE_MAX;
+    mehr.disabled = modell.punkte.length >= SCHALTPUNKTE_MAX || neueSchaltzeit(modell.punkte) === null;
+    mehr.dataset.fokus = "mehr";
     const aktionen = document.createElement("div");
     aktionen.className = "zp-ze-aktionen";
     aktionen.append(
@@ -159,7 +207,7 @@ export function zeileneditorKnoten(modell, { grenzen, t = OHNE, speichern, abbre
       })
     );
     knoten.replaceChildren(
-      ueberschrift(t("Schaltzeiten · ab der Uhrzeit gilt der Wert bis zur nächsten")),
+      ueberschrift(t("Schaltzeiten · jeder Wert gilt ab seiner Uhrzeit bis zur nächsten")),
       punkte,
       mehr,
       ueberschrift(t("Gilt für")),
@@ -169,12 +217,19 @@ export function zeileneditorKnoten(modell, { grenzen, t = OHNE, speichern, abbre
       aktionen
     );
     spurZeichnen();
+    fokusZurueck(knoten, fokus);
   };
   // Neue oder entfernte Zeilen bauen den Editor neu; ein geänderter Wert zeichnet nur die Spur.
   function neu(ganz) {
     if (ganz) zeichnen();
     else spurZeichnen();
   }
+  knoten.addEventListener("keydown", (ereignis) => {
+    if (ereignis.key !== "Escape") return;
+    ereignis.preventDefault();
+    ereignis.stopPropagation();
+    abbrechen();
+  });
   zeichnen();
   return knoten;
 }

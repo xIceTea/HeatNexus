@@ -1,5 +1,9 @@
 /** Stil: Zeitprogramme: Wochenraster und Editor (teile/zeitprogramme.js). Zusammengesetzt in `stil.js`. */
 
+// Schwarz oder Weiß, je nachdem, was vor dem Grund mindestens 4,5:1 hält: Leuchtdichte nach WCAG, Grenze 0,18.
+const POL = "clamp(0, (0.18 - (0.2126 * r + 0.7152 * g + 0.0722 * b)) * 100000, 1)";
+const gegenpol = (grund) => `color(from ${grund} srgb-linear ${POL} ${POL} ${POL})`;
+
 export const ZEITPROGRAMME = `
   /* --- Zeitprogramme: Wochenraster und Editor -------------------------- */
   /* Die Balken sitzen in Prozent der Spur, nicht in Bildpunkten: Die Karte
@@ -94,6 +98,12 @@ export const ZEITPROGRAMME = `
     --zp-t21: color-mix(in oklab, oklch(0.76 0.13 66) 90%, var(--hn-grund));
     --zp-t23: color-mix(in oklab, oklch(0.68 0.17 44) 95%, var(--hn-grund));
     --zp-aus: color-mix(in srgb, var(--hn-text) 8%, var(--hn-grund));
+    /* Tarife tragen feste Töne ohne Rangfolge; ihre Helligkeit hält hell wie dunkel 3:1 zu jeder Fläche. */
+    --zp-tarif1: oklch(0.618 0.12 258);
+    --zp-tarif2: oklch(0.62 0.11 80);
+    --zp-tarif3: oklch(0.632 0.13 320);
+    --zp-tarif4: oklch(0.608 0.09 205);
+    --zp-tarif5: oklch(0.616 0.015 260);
     --zp-gilt: #f0882a;
   }
   .zp-kartensymbol { --mdc-icon-size: 20px; opacity: 0.8; }
@@ -117,7 +127,7 @@ export const ZEITPROGRAMME = `
   .zp-reiter button[aria-selected="true"] {
     background: var(--hn-karte); color: var(--hn-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
-  .zp-reiter button.leer { opacity: 0.5; }
+  .zp-reiter button.leer, .zp-reiter button.leer[aria-selected="true"] { color: var(--hn-gedaempft); }
   /* Das geltende Programm: oranger Punkt und Rahmen; „gewählt“ ist nur die angehobene Fläche. */
   .zp-reiter button.gilt { box-shadow: inset 0 0 0 1.5px var(--zp-gilt); }
   .zp-reiter button.gilt[aria-selected="true"] { box-shadow: inset 0 0 0 1.5px var(--zp-gilt), 0 1px 2px rgba(0, 0, 0, 0.25); }
@@ -133,15 +143,26 @@ export const ZEITPROGRAMME = `
   .zp-zeile:hover { background: color-mix(in srgb, var(--hn-flaeche) 60%, transparent); }
   .zp-zeile:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
   .zp-tagname { font-size: 13px; font-weight: 600; white-space: nowrap; }
-  .zp-rahmen { padding: 3px; border: 1px solid var(--hn-linie); border-radius: 12px; background: var(--hn-grund); }
+  .zp-rahmen {
+    --zp-unter: var(--hn-grund);
+    padding: 3px; border: 1px solid var(--hn-linie); border-radius: 12px; background: var(--zp-unter);
+  }
   .zp-spur { position: relative; display: flex; gap: 2px; height: 30px; }
+  /* Die Schrift im Stück ist Schwarz oder Weiß, je nach seiner Farbe; ohne relative Farben gilt die erste Angabe.
+     Der Ruhewert tritt zurück, indem seine Fläche mit dem Grund mischt; die Schrift bleibt voll deckend. */
   .zp-stueck {
-    flex: 0 0 auto; min-width: 0; height: 100%; border-radius: 8px; background: var(--zp-aus);
+    --zp-fond: var(--zp-ton, var(--zp-aus));
+    flex: 0 0 auto; min-width: 0; height: 100%; border-radius: 8px; background: var(--zp-fond);
     display: grid; place-items: center; overflow: hidden; white-space: nowrap;
     font-size: 11.5px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums;
     color: rgba(10, 15, 20, 0.82);
+    color: ${gegenpol("var(--zp-fond)")};
   }
-  .zp-stueck.ruhe { opacity: 0.6; color: var(--hn-text); }
+  .zp-stueck.ruhe {
+    --zp-fond: color-mix(in srgb, var(--zp-ton, var(--zp-aus)) 60%, var(--zp-unter));
+    color: var(--hn-text);
+    color: ${gegenpol("var(--zp-fond)")};
+  }
   .zp-spur .jetzt-linie {
     position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; border-radius: 1px;
     background: var(--hn-text); pointer-events: none;
@@ -155,6 +176,9 @@ export const ZEITPROGRAMME = `
     position: relative; height: 14px; margin: 0 3px; font-size: 11px; color: var(--hn-gedaempft);
     font-variant-numeric: tabular-nums;
   }
+  .zp-tipphinweis { font-size: 12px; color: var(--hn-gedaempft); }
+  /* Mit Maus zeigt schon das Überfahren Zeit und Wert; der Hinweis gilt dem Finger. */
+  @media (hover: hover) { .zp-tipphinweis { display: none; } }
   .zp-achse span { position: absolute; transform: translateX(-50%); }
   .zp-achse span:first-child { transform: none; }
   .zp-achse span:last-child { transform: translateX(-100%); }
@@ -173,6 +197,7 @@ export const ZEITPROGRAMME = `
   .zp-ohne-fenster b { color: var(--hn-text); font-weight: 600; }
   .zp-kopfzeile { display: flex; align-items: center; gap: 8px; }
   .zp-titel { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--hn-text); }
+  .zp-vorsatz { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--hn-text); }
   .zp-stift {
     flex: none; display: inline-flex; padding: 3px; border: 0; border-radius: 6px; background: transparent;
     color: var(--hn-gedaempft); cursor: pointer; --mdc-icon-size: 18px;
@@ -213,14 +238,19 @@ export const ZEITPROGRAMME = `
     background: color-mix(in srgb, var(--hn-akzent) 22%, transparent); border-color: var(--hn-akzent); font-weight: 600;
   }
   .zp-tagwahl:focus-visible, .zp-ze-feld:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
-  .zp-ze-vorschau .zp-rahmen { background: var(--hn-karte); }
+  .zp-ze-vorschau .zp-rahmen { --zp-unter: var(--hn-karte); }
   .zp-ze-aktionen { display: flex; justify-content: flex-end; gap: 8px; }
   .zp-zeileneditor .zp-meldung { margin-top: 0; min-height: 0; }
   .zp-zeileneditor .zp-meldung:empty { display: none; }
   .zp-abschnitt { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); }
   .zp-leer { font-size: 12px; font-style: italic; }
   .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }
-  .zp-warnung { font-size: 13px; color: var(--warning-color); margin-bottom: 2px; }
+  /* Das Orange von Home Assistant ist auf heller Karte zu schwach; es mischt deshalb mit dem Pol der Karte. */
+  .zp-warnung {
+    font-size: 13px; margin-bottom: 2px;
+    color: var(--warning-color);
+    color: color-mix(in oklab, var(--warning-color, #ffa600) 70%, ${gegenpol("var(--hn-karte)")});
+  }
   .zp-fuss {
     margin-top: auto; padding-top: 12px; font-size: 12px; opacity: 0.6;
     display: flex; flex-direction: column; gap: 3px;
@@ -304,8 +334,8 @@ export const ZEITPROGRAMME = `
     border: 1px solid var(--hn-linie);
   }
   .zp-weg ha-icon { --mdc-icon-size: 18px; }
-  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: #ff8a80; }
+  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: var(--hn-fehler); }
   .zp-blockleiste { display: flex; gap: 8px; margin-top: 10px; }
   .zp-meldung { font-size: 13px; margin-top: 10px; min-height: 18px; }
-  .zp-meldung.fehler { color: #ff8a80; }
+  .zp-meldung.fehler { color: var(--hn-fehler); }
 `;

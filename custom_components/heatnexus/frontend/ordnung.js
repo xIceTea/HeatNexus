@@ -163,10 +163,10 @@ export const VERBINDUNG_MS = [
   { schluessel: "aus", titel: "Aus", hinweis: "Nur der Zustand" },
 ];
 
-// Wo die Schaltzeiten eines Zeitprogramms stehen: als Tabelle unter der Spur oder als Werte in ihr.
+// Wo die Schaltzeiten eines Zeitprogramms stehen: als Tabelle unter dem Balken oder als Werte in ihm.
 export const ZP_SCHALTZEITEN = [
-  { schluessel: "tabelle", titel: "Tabelle", hinweis: "Zeiten und Werte unter der Spur" },
-  { schluessel: "spur", titel: "In der Spur", hinweis: "Werte in der Spur; ein Tipp nennt Zeit und Wert" },
+  { schluessel: "tabelle", titel: "Tabelle", hinweis: "Zeiten und Werte unter dem Balken" },
+  { schluessel: "spur", titel: "Im Balken", hinweis: "Werte im Balken; Antippen zeigt Zeit und Wert" },
 ];
 
 // Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
@@ -238,7 +238,7 @@ export const SCHAUBILD_SPEICHER = "heatnexus.schaubild";
 export const LINIEN_SPEICHER = "heatnexus.verlauf_linien";
 
 export const FARBSAETZE = [
-  { schluessel: "home_assistant", titel: "Home Assistant", hinweis: "Farben des Themas von Home Assistant", fassungen: [] },
+  { schluessel: "home_assistant", titel: "Home Assistant", hinweis: "Farben des Designs von Home Assistant", fassungen: [] },
   { schluessel: "heatnexus", titel: "HeatNexus", hinweis: "Graphit oder kühles Weiß mit blauem Akzent", fassungen: ["hell", "dunkel"] },
   { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warme Töne mit Terrakotta", fassungen: ["hell", "dunkel"] },
   { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhige Töne mit Petrolgrün", fassungen: ["hell", "dunkel"] },
@@ -389,7 +389,7 @@ export const PALETTEN = {
     "--hn-grund": "#f4f5f7",
     "--hn-karte": "#ffffff",
     "--hn-text": "#1c1f24",
-    "--hn-gedaempft": "#6b7480",
+    "--hn-gedaempft": "#626b77",
     "--hn-akzent": "#2e6de0",
     "--hn-akzent-text": "#ffffff",
     "--hn-linie": "#e0e3e8",

@@ -36,6 +36,6 @@ export const TASTEN = `
   .rueckmeldung { font-size: 11px; opacity: 0.5; min-height: 14px; }
   .rueckmeldung.laeuft { opacity: 0.9; color: var(--hn-akzent); }
   .rueckmeldung.erfolg { opacity: 1; color: #7bd88f; }
-  .rueckmeldung.fehler { opacity: 1; color: #ff8a80; }
+  .rueckmeldung.fehler { opacity: 1; color: var(--hn-fehler); }
   .rueckmeldung.wartet { opacity: 0.9; color: #ffab6f; }
 `;

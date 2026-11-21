@@ -144,6 +144,12 @@ class Knoten {
     }
     return false;
   }
+  /** Der oberste Knoten über diesem, wie am Schattenbaum die Wurzel. */
+  getRootNode() {
+    let knoten = this;
+    while (knoten.parentElement) knoten = knoten.parentElement;
+    return knoten;
+  }
   /** Das fokussierte Element, sofern es in diesem Teilbaum liegt. */
   get activeElement() {
     return fokus.element && fokus.element !== this && this.contains(fokus.element) ? fokus.element : null;

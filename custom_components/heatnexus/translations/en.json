@@ -28,7 +28,8 @@
           "count": "Number of controllers"
         },
         "data_description": {
-          "name": "Applies to the whole system. A place fits better than a boiler name, such as \"Basement\" or \"Barn\"."
+          "name": "Applies to the whole system. A place fits better than a boiler name, such as \"Basement\" or \"Barn\".",
+          "count": "A separate step with address and password follows for each controller."
         }
       },
       "system": {
@@ -42,7 +43,9 @@
         },
         "data_description": {
           "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered.",
-          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name."
+          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name.",
+          "host": "HeatNexus queries the controller at this address on the home network. An address reserved in the router stays the same after a restart.",
+          "password": "The password belongs to the selected account. HeatNexus sends it only to this controller."
         }
       },
       "scope": {
@@ -80,7 +83,9 @@
           "username": "Account"
         },
         "data_description": {
-          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered."
+          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered.",
+          "host": "This controller rejected the login.",
+          "password": "HeatNexus logs in again with this password."
         }
       },
       "reconfigure": {
@@ -92,7 +97,9 @@
           "username": "Access"
         },
         "data_description": {
-          "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant."
+          "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
+          "anlage": "Only the address of this controller changes.",
+          "host": "Before saving, HeatNexus checks that the same controller answers at this address."
         }
       },
       "umzug": {
@@ -142,7 +149,8 @@
           "sprache": "Applies to every system in HeatNexus: datapoint names, interface and dashboard. With “Automatic” the language of Home Assistant applies. A change here switches all systems.",
           "sprache_anlage": "Sets a separate language for this system only: for names, states, fault texts and its page in the interface. “Same as HeatNexus” uses the HeatNexus language.",
           "stoerung_zuruecksetzen": "Enables the “Reset fault at the boiler” button in the message list. Controllers from version 2 clear a fault at the boiler with it, including a locking one. Only reset when you know the cause and have fixed it.",
-          "heizraum": "Temperature sensor in the boiler room. The flue gas monitor uses it for the flue gas loss instead of an estimated 20 °C."
+          "heizraum": "Temperature sensor in the boiler room. The flue gas monitor uses it for the flue gas loss instead of an estimated 20 °C.",
+          "startwerte": "At startup HeatNexus takes the last read values from the memory of the controller if they are newer than the selected limit. The values then appear sooner. With “off” they appear with the first poll."
         }
       },
       "system": {
@@ -188,6 +196,9 @@
         "description": "Tick the values that should be enabled.",
         "data": {
           "zusatzwerte": "Values"
+        },
+        "data_description": {
+          "zusatzwerte": "Ticked values are created enabled, all others disabled. A disabled entity can be enabled individually later."
         }
       },
       "steuerung_neu": {
@@ -201,7 +212,9 @@
         },
         "data_description": {
           "username": "Out of the box the system knows \"USER\" and \"Service\". \"Service\" also delivers the specialist parameters.",
-          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name."
+          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name.",
+          "host": "HeatNexus queries the new controller at this address on the home network.",
+          "password": "The password belongs to the selected account. HeatNexus sends it only to this controller."
         }
       },
       "steuerung_entfernen": {
@@ -209,6 +222,9 @@
         "description": "Which controller should be removed from this heating system?",
         "data": {
           "host": "Controller"
+        },
+        "data_description": {
+          "host": "The next step shows what is removed together with this controller."
         }
       },
       "steuerung_entfernen_bestaetigen": {
@@ -216,6 +232,9 @@
         "description": "**{anlage}** is removed together with everything attached to it:\n\n- {geraete} devices with their entities and history\n- Automations: {automatiken}. Their interventions on the controller are reverted.\n- Heat sources: {quellen}\n\nThis cannot be undone. If the controller is added again later, it is read in from scratch.",
         "data": {
           "verstanden": "I understand and want to remove the controller"
+        },
+        "data_description": {
+          "verstanden": "Without this tick HeatNexus removes nothing."
         }
       }
     },
@@ -564,7 +583,7 @@
         "name": "Fuel lasts until"
       },
       "befund_arbeitszahl": {
-        "name": "Heat pump efficiency vs. reference"
+        "name": "Efficiency grade vs. reference"
       },
       "verbindung": {
         "name": "Connection",
@@ -681,10 +700,10 @@
   "issues": {
     "verbindung_ueberlastet": {
       "title": "{anlage}: controller overloaded",
-      "description": "The controller of **{anlage}** no longer manages all values within the polling interval. The response time was recently {median} ms.\n\nIncrease the polling interval in the HeatNexus options. Also check whether a second program polls the same controller. This notice disappears once the controller manages all values again."
+      "description": "The controller of **{anlage}** no longer answers all requests within the polling interval. The response time was recently {median} ms.\n\nIncrease the polling interval in the HeatNexus options. Also check whether a second program polls the same controller. This notice disappears once all values arrive again."
     },
     "verbindung_gestoert": {
-      "title": "{anlage}: controller responses disrupted",
+      "title": "{anlage}: connection to controller disrupted",
       "description": "{fehlerquote} % of the requests to the controller of **{anlage}** fail.\n\nCheck the network connection to the controller. If that does not help, restart the controller. This notice disappears once requests succeed again."
     },
     "nicht_erreichbar": {
@@ -764,6 +783,9 @@
           "description": "Which system does the heat source belong to?",
           "data": {
             "host": "Controller"
+          },
+          "data_description": {
+            "host": "The heat source appears in the diagram of this controller."
           }
         },
         "quelle": {
@@ -778,7 +800,10 @@
           },
           "data_description": {
             "quelle": "The value that decides about the source.",
-            "pumpe": "Draws an impeller in the pipe of the source while it delivers heat."
+            "pumpe": "Draws an impeller in the pipe of the source while it delivers heat.",
+            "name": "The source appears under this name in HeatNexus.",
+            "art": "Sets how the source is drawn in the diagram.",
+            "bedingung_art": "Sets how HeatNexus recognises that the source delivers heat: by a state, a threshold or the difference between two sensors. The values follow in the next step."
           }
         },
         "regel": {
@@ -862,6 +887,18 @@
     },
     "zeitprogramm_geschuetzt": {
       "message": "This schedule is write-protected."
+    },
+    "zeitprogramm_nicht_aenderbar": {
+      "message": "This schedule cannot be changed in HeatNexus."
+    },
+    "schaltwert_ungueltig": {
+      "message": "A switching schedule only takes 0 (off) and 1 (on)."
+    },
+    "wert_ausserhalb": {
+      "message": "The value {wert} is outside the range {min} to {max}."
+    },
+    "schaltzeit_doppelt": {
+      "message": "After rounding to 15 minutes, {uhrzeit} appears twice."
     },
     "schaltpunkte_fehlen": {
       "message": "Please give switch_points or blocks."
@@ -967,7 +1004,7 @@
       "fields": {
         "switch_points": {
           "name": "Switching points",
-          "description": "List of switching points with time and value. time as HH:MM, value = target temperature, or 1 for on and 0 for off in a switching program. Applies to the block from weekdays."
+          "description": "List of switching points with time and value. time as HH:MM, value = target temperature, or 1 for on and 0 for off in a switching program. Applies to the block from weekdays. At most six switching points per block. The time is rounded to 15 minutes, the value to 0.5. Allowed are room and cooling 5–30 °C, flow and buffer 0–90 °C, hot water 10–75 °C, buffer at the hybrid manager 0–60 °C."
         },
         "weekdays": {
           "name": "Weekdays",
@@ -1015,7 +1052,7 @@
     },
     "brennstoff_geliefert": {
       "name": "Fuel refilled",
-      "description": "Adds a delivery or your own refill to the boiler's fuel stock. With the remaining stock before it the calculation learns the actual consumption.",
+      "description": "Adds a delivery or your own refill to the boiler's fuel stock. The remaining stock before it yields the actual consumption.",
       "fields": {
         "menge": {
           "name": "Quantity",
@@ -1023,7 +1060,7 @@
         },
         "rest": {
           "name": "Remaining before",
-          "description": "What was left in the store before; if empty, the calculated stock applies."
+          "description": "The remainder in the store before the delivery. Without a value, the calculated stock applies."
         }
       }
     }
