@@ -163,6 +163,12 @@ export const VERBINDUNG_MS = [
   { schluessel: "aus", titel: "Aus", hinweis: "Nur der Zustand" },
 ];
 
+// Wo die Schaltzeiten eines Zeitprogramms stehen: als Tabelle unter der Spur oder als Werte in ihr.
+export const ZP_SCHALTZEITEN = [
+  { schluessel: "tabelle", titel: "Tabelle", hinweis: "Zeiten und Werte unter der Spur" },
+  { schluessel: "spur", titel: "In der Spur", hinweis: "Werte in der Spur; ein Tipp nennt Zeit und Wert" },
+];
+
 // Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
 export const PUFFERWERTE = [
   { schluessel: "zwei", titel: "Oben und unten", hinweis: "Zwei Temperaturen, dazwischen der Ladezustand" },
@@ -306,6 +312,7 @@ export const DARSTELLUNG = {
   puffer_werte: PUFFERWERTE,
   verbindung: VERBINDUNGSANZEIGEN,
   verbindung_ms: VERBINDUNG_MS,
+  zeitprogramme: ZP_SCHALTZEITEN,
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.

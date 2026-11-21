@@ -1,5 +1,5 @@
 /**
- * Bausteine des Reiters „Zeitprogramme“: Gruppen je Anlagenteil, Heute-Text, Legende.
+ * Bausteine des Reiters „Zeitprogramme“: Gruppen je Anlagenteil, Tabelle und Spur einer Tageszeile.
  *
  * Den Reiter selbst baut teile/zeitprogramme.js; hier steht, was ohne Panel prüfbar ist.
  */
@@ -7,13 +7,8 @@
 import {
   TAGE,
   TAG_MINUTEN,
-  einsetzen,
   farbe,
-  naechsterWechsel,
-  tagText,
   uhrzeit,
-  wertJetzt,
-  wertText,
 } from "./zeitprogramm.js";
 
 /** Reihenfolge der Gruppen in einer Karte; Programme ohne Gruppe folgen danach. */
@@ -64,20 +59,6 @@ export function gruppieren(programme) {
   return [...gruppen.values()].sort((a, b) => rang(a) - rang(b));
 }
 
-/** „jetzt 21 °C · ab 22:00 16 °C“; ein Wechsel an einem späteren Tag nennt den Wochentag. */
-export function heuteText(bloecke, zeit, grenzen, t = OHNE) {
-  const jetzt = wertJetzt(bloecke, zeit);
-  if (jetzt === null) return t("heute kein Zeitplan");
-  const teile = [einsetzen(t("jetzt {wert}"), { wert: wertText(jetzt, grenzen, t) })];
-  const wechsel = naechsterWechsel(bloecke, zeit);
-  if (wechsel) {
-    const um = uhrzeit(wechsel.minute);
-    const wann = wechsel.tage ? `${tagText(wechsel.tag, t)} ${um}` : um;
-    teile.push(einsetzen(t("ab {zeit} {wert}"), { zeit: wann, wert: wertText(wechsel.wert, grenzen, t) }));
-  }
-  return teile.join(" · ");
-}
-
 // Zwischen Zahl und Einheit bricht keine Zeile.
 const GESCHUETZT = " ";
 
@@ -85,12 +66,13 @@ function bisText(minute) {
   return minute >= TAG_MINUTEN ? "24:00" : uhrzeit(minute);
 }
 
+// „20 °C“ und „20,5 °C“: ein glatter Wert ohne „,0“.
+function zahlText(wert, sprache) {
+  return Number(wert).toLocaleString(sprache || undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+}
+
 function temperatur(wert, sprache) {
-  const zahl = Number(wert).toLocaleString(sprache || undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  return `${zahl}${GESCHUETZT}°C`;
+  return `${zahlText(wert, sprache)}${GESCHUETZT}°C`;
 }
 
 /** Die Abschnitte über dem Grundwert; ein Fenster über Mitternacht wird zu einem. */
@@ -103,9 +85,6 @@ function fenster(stuecke, grund) {
   }
   return liste;
 }
-
-// Zeitmarken an der Spur brauchen Abstand; auf dem Handy entspricht das etwa ihrer Breite.
-const MARKEN_ABSTAND_MINUTEN = 150;
 
 function fensterDesTages(stuecke, grenzen) {
   if (grenzen.schalt) return fenster(stuecke.map((s) => ({ ...s, wert: s.wert >= 0.5 ? 1 : 0 })), 0);
@@ -140,22 +119,46 @@ export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
     zeit: zeit(s),
     wert: text(s.wert),
   }));
-  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("übrige Zeit"), wert: text(grund) }];
+  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("sonst"), wert: text(grund) }];
 }
 
-/** Die Uhrzeiten, an denen ein Fenster beginnt oder endet; zu dichte fallen weg, die Tabelle nennt sie. */
-export function zeitmarken(stuecke, grenzen) {
+/** Ob ein Tag nur einen Wert oder keinen Plan hat; dann steht eine Zeile statt Spur und Tabelle. */
+export function ohneFenster(zeilen) {
+  return zeilen.length === 1;
+}
+
+// Ab dieser Länge trägt ein Abschnitt seinen Wert; schmaler passt die Zahl am Handy nicht hinein.
+const BESCHRIFTUNG_AB_MINUTEN = 120;
+
+/**
+ * Die Abschnitte der Spur: Farbe, Ruhewert, Beschriftung und der Text für den Tipp.
+ * Nachbarn gleichen Werts werden zu einem; der niedrigste Wert eines Tages ist der Ruhewert.
+ */
+export function spurteile(stuecke, grenzen, { beschriften = false, t = OHNE, sprache } = {}) {
   if (!stuecke || !stuecke.length) return [];
-  const grenzpunkte = fensterDesTages(stuecke, grenzen)
-    .flatMap((s) => [s.von, s.bis])
-    .filter((minute) => minute > 0 && minute < TAG_MINUTEN);
-  const marken = [];
-  [...new Set(grenzpunkte)]
-    .sort((a, b) => a - b)
-    .forEach((minute) => {
-      if (!marken.length || minute - marken[marken.length - 1] >= MARKEN_ABSTAND_MINUTEN) marken.push(minute);
-    });
-  return marken;
+  const wertVon = (s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert);
+  const flaechen = [];
+  stuecke.forEach((stueck) => {
+    const vorige = flaechen[flaechen.length - 1];
+    if (vorige && vorige.wert === wertVon(stueck) && vorige.bis === stueck.von) vorige.bis = stueck.bis;
+    else flaechen.push({ von: stueck.von, bis: stueck.bis, wert: wertVon(stueck) });
+  });
+  const grund = grenzen.schalt ? 0 : Math.min(...flaechen.map((f) => f.wert));
+  const text = (wert) => (grenzen.schalt ? t(wert ? "Ein" : "Aus") : temperatur(wert, sprache));
+  return flaechen.map(({ von, bis, wert }) => {
+    const ruhe = wert === grund;
+    const leer = grenzen.schalt && ruhe;
+    const breit = bis - von >= BESCHRIFTUNG_AB_MINUTEN;
+    const kurz = grenzen.schalt ? text(wert) : `${zahlText(wert, sprache)}°`;
+    return {
+      von,
+      bis,
+      ruhe,
+      farbe: leer ? null : farbe(wert, grenzen),
+      text: beschriften && breit && !leer ? kurz : "",
+      tipp: `${uhrzeit(von)}–${bisText(bis)} · ${text(wert)}`,
+    };
+  });
 }
 
 /**
@@ -172,36 +175,38 @@ export function blockEinsetzen(bloecke, stelle, neu) {
   return liste.filter((eintrag) => eintrag.tage.length);
 }
 
-/** Eine Tagesspur: je Abschnitt die Farbe seiner Temperatur, Stundenstriche, auf Wunsch die Jetzt-Linie. */
-export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
+/** Die feste Achse unter einer Spur: 0, 6, 12, 18 und 24 Uhr. */
+export function achseKnoten() {
+  const achse = document.createElement("div");
+  achse.className = "zp-achse";
+  [0, 6, 12, 18, 24].forEach((stunde) => {
+    const marke = document.createElement("span");
+    marke.style.left = `${(stunde / 24) * 100}%`;
+    marke.textContent = String(stunde);
+    achse.appendChild(marke);
+  });
+  return achse;
+}
+
+/**
+ * Eine Tagesspur im Rahmen: je Abschnitt ein Stück in der Farbe seiner Temperatur, auf Wunsch mit Wert,
+ * dazu die Jetzt-Linie. Mit `tippen` zeigt ein Tipp auf ein Stück Zeit und Wert, statt die Zeile zu öffnen.
+ */
+export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null, beschriften = false, tippen = false, sprache } = {}) {
+  const rahmen = document.createElement("div");
+  rahmen.className = "zp-rahmen";
   const spur = document.createElement("div");
   spur.className = "zp-spur";
-  [6, 12, 18].forEach((stunde) => {
-    const strich = document.createElement("i");
-    strich.className = "zp-stunde";
-    strich.style.left = `${(stunde / 24) * 100}%`;
-    spur.appendChild(strich);
-  });
-  const ton = farben(stuecke, grenzen);
-  // Nachbarn gleicher Farbe und gleichen Werts als eine Füllung, sonst stünde eine Fuge darin.
-  const flaechen = [];
-  stuecke.forEach((stueck, n) => {
-    const vorige = flaechen[flaechen.length - 1];
-    if (vorige && vorige.farbe === ton[n] && vorige.wert === stueck.wert && vorige.bis === stueck.von) {
-      vorige.bis = stueck.bis;
-    } else {
-      flaechen.push({ ...stueck, farbe: ton[n] });
-    }
-  });
-  flaechen.forEach((stueck) => {
-    if (!stueck.farbe) return;
-    const fuellung = document.createElement("i");
-    fuellung.className = "zp-fuellung";
-    fuellung.style.background = stueck.farbe;
-    fuellung.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
-    fuellung.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
-    fuellung.title = `${uhrzeit(stueck.von)}–${bisText(stueck.bis)} · ${wertText(stueck.wert, grenzen, t)}`;
-    spur.appendChild(fuellung);
+  spurteile(stuecke, grenzen, { beschriften, t, sprache }).forEach((teil) => {
+    const stueck = document.createElement("i");
+    stueck.className = teil.ruhe ? "zp-stueck ruhe" : "zp-stueck";
+    if (teil.farbe) stueck.style.background = teil.farbe;
+    stueck.style.flexBasis = `calc(${((teil.bis - teil.von) / TAG_MINUTEN) * 100}% - 2px)`;
+    stueck.textContent = teil.text;
+    stueck.title = teil.tipp;
+    stueck.dataset.tipp = teil.tipp;
+    if (tippen) stueck.addEventListener("click", (ereignis) => tippZeigen(spur, stueck, ereignis));
+    spur.appendChild(stueck);
   });
   if (Number.isFinite(jetzt)) {
     const linie = document.createElement("i");
@@ -209,5 +214,21 @@ export function tagesspur(stuecke, grenzen, { t = OHNE, jetzt = null } = {}) {
     linie.style.left = `${(jetzt / TAG_MINUTEN) * 100}%`;
     spur.appendChild(linie);
   }
-  return spur;
+  rahmen.appendChild(spur);
+  return rahmen;
+}
+
+/** Der Tipp unter einem Stück; ein zweiter Tipp auf dasselbe Stück schließt ihn. */
+function tippZeigen(spur, stueck, ereignis) {
+  ereignis.stopPropagation();
+  const offen = spur.querySelector(".zp-tipp");
+  const gleich = offen && offen.dataset.zu === stueck.dataset.tipp;
+  if (offen) offen.remove();
+  if (gleich) return;
+  const tipp = document.createElement("span");
+  tipp.className = "zp-tipp";
+  tipp.textContent = stueck.dataset.tipp;
+  tipp.dataset.zu = stueck.dataset.tipp;
+  tipp.style.left = `${stueck.offsetLeft + stueck.offsetWidth / 2}px`;
+  spur.appendChild(tipp);
 }

@@ -18,7 +18,9 @@ import {
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["helligkeit", "strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms"]);
+const KOMPAKT = new Set([
+  "helligkeit", "strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms", "zeitprogramme",
+]);
 
 // Satz und Helligkeit werden zusammen gespeichert; ein Satz allein gälte am Server als alter Wert.
 const FARBPAAR = ["farbsatz", "helligkeit"];
@@ -280,7 +282,15 @@ export const DarstellungMixin = (Basis) =>
       if (this._anlagen().length > 1) {
         uebersicht.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
       }
-      for (const [titel, zeilen] of [["Aussehen", aussehen], ["Schaubild", schaubild], ["Übersicht", uebersicht]]) {
+      const zeitprogramme = [
+        [
+          this._t("Schaltzeiten"),
+          this._t("Legt fest, ob Zeiten und Werte als Tabelle unter der Spur oder in der Spur stehen."),
+          wahl(this._t("Schaltzeiten"), "zeitprogramme", "zeitprogramme"),
+        ],
+      ];
+      const gruppen = [["Aussehen", aussehen], ["Schaubild", schaubild], ["Übersicht", uebersicht], ["Zeitprogramme", zeitprogramme]];
+      for (const [titel, zeilen] of gruppen) {
         const kopf = document.createElement("h3");
         kopf.className = "darstellung-gruppe";
         kopf.textContent = this._t(titel);

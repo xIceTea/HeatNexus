@@ -224,8 +224,15 @@ def test_die_werte_stehen_in_einer_tabelle_unter_der_spur(durchlauf):
     zeitprogramme = durchlauf["zeitprogramme"]
     assert zeitprogramme["schaltzeiten"] == 0
     assert zeitprogramme["segmentWerte"] == []
-    assert any("übrige Zeit" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
-    assert zeitprogramme["zeitmarken"] > 0
+    assert any("sonst" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
+    assert zeitprogramme["spurwerte"] == []
+
+
+def test_unter_der_spur_steht_eine_feste_achse_statt_zeitmarken(durchlauf):
+    """Marken an den Schaltzeiten lagen am Handy übereinander; die Tabelle nennt die Zeiten."""
+    zeitprogramme = durchlauf["zeitprogramme"]
+    assert zeitprogramme["zeitmarken"] == 0
+    assert zeitprogramme["achsen"] > 0
 
 
 def test_bearbeitet_wird_nur_ueber_die_tageszeile(durchlauf):
@@ -254,31 +261,40 @@ def test_das_geltende_programm_steht_gross_die_uebrigen_klein(durchlauf):
     assert zeitprogramme["kleineProgramme"] == ["Programm 2 – Übergangszeit"]
 
 
-def test_der_hinweis_steht_einmal_im_kartenfuss(durchlauf):
-    assert durchlauf["zeitprogramme"]["fuss"] == [
-        [
-            "Es wirkt nur das Programm, auf dem die Betriebswahl steht.",
-            "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
-        ]
-    ]
+def test_die_karte_traegt_keinen_fusstext(durchlauf):
+    """Der Punkt am Reiter zeigt, welches Programm gilt; ein Satz darunter wiederholte es."""
+    assert durchlauf["zeitprogramme"]["fuss"] == []
 
 
-def test_die_lagezeile_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
-    """Montag 10:00: Programm 1 hält 21 °C bis 22:00, dann 16 °C."""
+def test_ein_geltendes_programm_braucht_keine_lagezeile(durchlauf):
+    """Betriebswahl, „jetzt“ und der nächste Wechsel stehen in Reiter, Spur und Tabelle."""
     zeilen = durchlauf["heute"]["zeilen"]
     assert [z["gruppe"] for z in zeilen] == ["heizen", "warmwasser"]
-    assert "Programm 1 gilt" in zeilen[0]["lage"]
-    assert "jetzt 21 °C · ab 22:00 16 °C" in zeilen[0]["lage"]
+    assert [z["lage"] for z in zeilen] == ["", ""]
     assert all(z["jetztLinien"] == 1 for z in zeilen)
 
 
-def test_ein_einzelnes_programm_steht_als_titel_ueber_der_lagezeile(durchlauf):
-    """Mit Reitern nennt die Leiste das Programm; allein steht sein Name als eigene Zeile."""
+def test_ein_einzelnes_programm_nennt_nur_seinen_namen(durchlauf):
+    """Mit Reitern nennt die Leiste das Programm; allein steht sein Name über den Tagen."""
     heizen, warmwasser = durchlauf["heute"]["zeilen"]
     assert heizen["titel"] == ""
     assert warmwasser["titel"] == "WW-Programm"
-    assert "WW-Programm" not in warmwasser["lage"]
-    assert warmwasser["lage"].startswith("gilt")
+
+
+def test_ein_tag_mit_einem_wert_zeigt_kein_zeitfenster_statt_einer_spur(durchlauf):
+    heute = durchlauf["heute"]
+    assert any(
+        zeile.startswith("Kein Zeitfenster") and "18" in zeile for zeile in heute["ohneFenster"]
+    )
+    assert heute["ohneFensterSpuren"] == 0
+
+
+def test_in_der_spur_stehen_die_werte_statt_der_tabelle(durchlauf):
+    """Wahl unter „Darstellung“; ein Tipp auf einen Abschnitt nennt Zeit und Wert."""
+    in_der_spur = durchlauf["heute"]["inDerSpur"]
+    assert in_der_spur["tabellen"] == 0
+    assert in_der_spur["werte"] > 0, in_der_spur
+    assert in_der_spur["tipps"] >= in_der_spur["werte"]
 
 
 def test_es_gibt_keine_heute_karte_und_keine_legende(durchlauf):
@@ -287,9 +303,9 @@ def test_es_gibt_keine_heute_karte_und_keine_legende(durchlauf):
     assert durchlauf["zeitprogramme"]["legenden"] == 0
 
 
-def test_der_reiter_des_geltenden_programms_ist_ganz_eingefaerbt(durchlauf):
-    """Die ganze Taste trägt die Farbe; ein Punkt daneben ist nicht mehr nötig."""
-    assert durchlauf["heute"]["gilt"] == [{"name": "Programm 1", "punkte": 0}]
+def test_der_reiter_des_geltenden_programms_traegt_punkt_und_rahmen(durchlauf):
+    """Der Punkt sagt „gilt“ auch ohne Farbe; für Vorleser steht das Wort dabei."""
+    assert durchlauf["heute"]["gilt"] == [{"name": "Programm 1", "punkte": 1, "marke": "gilt"}]
 
 
 def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):
@@ -407,8 +423,8 @@ def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
 
 
 def test_das_aktive_zeitprogramm_traegt_eine_textmarke(durchlauf):
-    """Farbe allein trägt keine Aussage; die Marke steht bei jeder aktiven Karte."""
-    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["gilt", "gilt"]
+    """Farbe allein trägt keine Aussage; der Reiter des geltenden Programms nennt es."""
+    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["gilt"]
 
 
 def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):
@@ -542,7 +558,7 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 3, 4, 2, 2, 3, 3, 3, 2, 2, 2]
+    assert darstellung["kacheln"] == [6, 3, 4, 2, 2, 3, 3, 3, 2, 2, 2, 2]
     assert darstellung["anfangs"][1:] == [
         ["dunkel"],
         ["standard"],
@@ -554,6 +570,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["zwei"],
         ["immer"],
         ["an"],
+        ["tabelle"],
     ]
     assert darstellung["nachKlick"][1:] == [
         ["dunkel"],
@@ -566,6 +583,7 @@ def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
         ["zwei"],
         ["immer"],
         ["an"],
+        ["tabelle"],
     ]
     assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
@@ -1663,11 +1681,9 @@ def test_der_vorlauf_hat_eine_eigene_rueckmeldung(durchlauf):
     assert durchlauf["vorlaufRueckmeldung"] == "sensor.vorlauf_1"
 
 
-def test_der_minutentakt_bewegt_lagezeile_und_jetzt_linie(durchlauf):
-    """Montag 22:30: 16 °C bis Dienstag 06:00. Das große Programm bleibt derselbe Knoten."""
+def test_der_minutentakt_bewegt_die_jetzt_linie(durchlauf):
+    """Montag 22:30: Das große Programm bleibt derselbe Knoten, nur die Linie rückt."""
     uhr = durchlauf["uhr"]
-    assert uhr["vorher"].endswith("jetzt 21 °C · ab 22:00 16 °C")
-    assert uhr["nachher"].endswith("jetzt 16 °C · ab Di 06:00 21 °C")
     assert uhr["gleicherKnoten"] is True
     assert uhr["linie"] == "93.75%"
 
@@ -1818,7 +1834,7 @@ def test_die_antwortzeit_laesst_sich_ausblenden(durchlauf):
 
 def test_das_fenster_darstellung_ordnet_die_wahlen_in_gruppen(durchlauf):
     darstellung = durchlauf["darstellung"]
-    assert darstellung["ueberschriften"] == ["Aussehen", "Schaubild", "Übersicht"]
+    assert darstellung["ueberschriften"] == ["Aussehen", "Schaubild", "Übersicht", "Zeitprogramme"]
     assert darstellung["zeilen"][:7] == [
         "Farbsatz",
         "Kopfzeile",

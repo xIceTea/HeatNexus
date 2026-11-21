@@ -41,12 +41,17 @@ WOCHENTAGE.forEach(([code, text]) => {
   TAG_CODE.set(text.toLowerCase(), code);
 });
 
-// Farben der Balken. Dieselben Werte wie im Anlagenschaubild (`schema.py`),
-// damit kalt und warm überall dasselbe bedeuten.
-const FARBE_KALT = [37, 80, 143];
-const FARBE_WARM = [226, 84, 58];
-const FARBE_AUS = "rgba(255, 255, 255, 0.06)";
-const FARBE_EIN = "var(--hn-akzent, rgb(226, 84, 58))";
+// Farbstufen der Spur von Schiefer über Sand zu Orange; die Werte stehen hell und dunkel in stil/zeitprogramme.js.
+// Gemischt wird in oklab, damit zwischen zwei Stufen kein fremder Ton entsteht.
+const STUFEN = [
+  [14, "--zp-t14"],
+  [17, "--zp-t17"],
+  [19, "--zp-t19"],
+  [21, "--zp-t21"],
+  [23, "--zp-t23"],
+];
+const FARBE_AUS = "var(--zp-aus)";
+const FARBE_EIN = "var(--hn-akzent)";
 
 /** Ohne Wörterbuch bleibt der deutsche Text stehen. */
 const OHNE = (text) => text;
@@ -311,14 +316,26 @@ export function skala(bloecke, art) {
   return { ...SKALEN[name], schalt: false, art: name };
 }
 
-/** Farbe eines Abschnitts: kalt nach warm, bzw. Ein und Aus. */
+// Warmwasser 40–60 °C liegt auf denselben Stufen wie ein Raum von 17 bis 23 °C.
+const WASSER = { von: 40, bis: 60, unten: 17, oben: 23 };
+
+/** Farbe eines Abschnitts als CSS-Wert: die Stufe seiner Temperatur, bzw. Ein und Aus. */
 export function farbe(wert, grenzen) {
   if (grenzen.schalt) return wert >= 0.5 ? FARBE_EIN : FARBE_AUS;
-  const spanne = grenzen.max - grenzen.min || 1;
-  const anteil = Math.max(0, Math.min(1, (wert - grenzen.min) / spanne));
-  const kanal = (stelle) =>
-    Math.round(FARBE_KALT[stelle] + (FARBE_WARM[stelle] - FARBE_KALT[stelle]) * anteil);
-  return `rgb(${kanal(0)}, ${kanal(1)}, ${kanal(2)})`;
+  const stufe =
+    grenzen.art === "wasser"
+      ? WASSER.unten + ((wert - WASSER.von) / (WASSER.bis - WASSER.von)) * (WASSER.oben - WASSER.unten)
+      : wert;
+  if (stufe <= STUFEN[0][0]) return `var(${STUFEN[0][1]})`;
+  for (let n = 1; n < STUFEN.length; n += 1) {
+    const [oben, obenFarbe] = STUFEN[n];
+    const [unten, untenFarbe] = STUFEN[n - 1];
+    if (stufe < oben) {
+      const anteil = Math.round(((stufe - unten) / (oben - unten)) * 100);
+      return anteil ? `color-mix(in oklab, var(${obenFarbe}) ${anteil}%, var(${untenFarbe}))` : `var(${untenFarbe})`;
+    }
+  }
+  return `var(${STUFEN[STUFEN.length - 1][1]})`;
 }
 
 /** Ein Wert, wie er am Balken und in der Tabelle steht; `t` übersetzt Ein und Aus. */

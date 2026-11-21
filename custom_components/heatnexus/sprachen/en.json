@@ -127,8 +127,6 @@
   "Erst anfordern, dann warten, bis „freigegeben“ angezeigt wird. Vorher darf nur bis etwa einen Meter Schütthöhe befüllt werden, sonst kann das Rührwerk Schaden nehmen.": "Request first, then wait until it says „released“. Before that, fill only to about one metre of fill height, otherwise the agitator can be damaged.",
   "Erst beenden, wenn die Befüllung abgeschlossen ist. Das Rührwerk steht danach still.": "End it only once the filling is complete. The agitator stands still afterwards.",
   "Erweitert": "Advanced",
-  "Es wirkt nur das Programm der Steuerungsart, auf der die Zirkulationspumpe steht.": "Only the program matching the circulation pump's control mode takes effect.",
-  "Es wirkt nur das Programm, auf dem die Betriebswahl steht.": "Only the program selected in the operating mode takes effect.",
   "Farbsatz": "Colour set",
   "Fenster aus Temperatursturz erkennen": "Detect open windows from a temperature drop",
   "Fenster offen": "Window open",
@@ -363,7 +361,6 @@
   "gedämpfte AT": "damped outdoor temp.",
   "geprüft": "checked",
   "geschrieben": "written",
-  "heute kein Zeitplan": "no schedule today",
   "hätte geschrieben": "would have written",
   "empfohlen": "recommended",
   "jetzt {wert}": "now {wert}",
@@ -1377,5 +1374,13 @@
   "Schaltzeiten · ab der Uhrzeit gilt der Wert bis zur nächsten": "Switching times · each value applies from its time until the next one",
   "übrige Zeit": "rest of the day",
   "ganztags": "all day",
-  "Bezeichnung ändern": "Change name"
+  "Bezeichnung ändern": "Change name",
+  "sonst": "otherwise",
+  "Kein Zeitfenster": "No time window",
+  "Schaltzeiten": "Switching times",
+  "Legt fest, ob Zeiten und Werte als Tabelle unter der Spur oder in der Spur stehen.": "Sets whether times and values appear as a table below the bar or inside it.",
+  "Tabelle": "Table",
+  "In der Spur": "In the bar",
+  "Zeiten und Werte unter der Spur": "Times and values below the bar",
+  "Werte in der Spur; ein Tipp nennt Zeit und Wert": "Values inside the bar; a tap shows time and value"
 }

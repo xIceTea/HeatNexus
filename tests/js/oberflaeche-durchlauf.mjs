@@ -196,6 +196,8 @@ REITER.forEach((reiter) => {
     segmentWerte: [...flaeche.shadowRoot.querySelectorAll(".zp-segmentwert")].map(text),
     klartext: [...flaeche.shadowRoot.querySelectorAll(".zp-tabelle")].map(text),
     zeitmarken: flaeche.shadowRoot.querySelectorAll(".zp-marken").length,
+    achsen: flaeche.shadowRoot.querySelectorAll(".zp-achse").length,
+    spurwerte: [...flaeche.shadowRoot.querySelectorAll(".zp-stueck")].map(text).filter(Boolean),
     oeffnenTasten: [...flaeche.shadowRoot.querySelectorAll(".zp-taste")].filter((taste) => text(taste) === "Öffnen").length,
     heuteKarten: flaeche.shadowRoot.querySelectorAll(".zp-heute").length,
     legenden: flaeche.shadowRoot.querySelectorAll(".zp-legende").length,
@@ -1023,6 +1025,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     gilt: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("gilt")).map((taste) => ({
       name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
       punkte: taste.querySelectorAll(".zp-punkt-gilt").length,
+      marke: text(taste.querySelector(".zp-aktiv")),
     })),
     leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
       name: text(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
@@ -1030,7 +1033,27 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       aktivieren: taste.querySelectorAll(".zp-aktivieren").length,
     })),
   };
+  // Ein Programm mit einem Wert für den ganzen Tag: kein Zeitfenster statt einer leeren Spur.
+  zwei.attributes.blocks = [{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: [{ time: "00:00", value: 18 }] }];
+  flaeche._aktualisieren();
+  reiterVon("Programm 2").ausloesen("click");
+  heute.ohneFenster = [...wurzel.querySelectorAll(".zp-ohne-fenster")].map(text);
+  heute.ohneFensterSpuren = wurzel.querySelectorAll(".zp-programm .zp-spur").length;
+  reiterVon("Programm 1").ausloesen("click");
   zwei.attributes.blocks = zweiBloecke;
+
+  // „Darstellung“: Schaltzeiten in der Spur statt als Tabelle.
+  flaeche._vorschau = { zeitprogramme: "spur" };
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  heute.inDerSpur = {
+    tabellen: wurzel.querySelectorAll(".zp-tabelle").length,
+    werte: [...wurzel.querySelectorAll(".zp-stueck")].map(text).filter(Boolean).length,
+    tipps: [...wurzel.querySelectorAll(".zp-stueck")].filter((stueck) => stueck.dataset.tipp).length,
+  };
+  flaeche._vorschau = null;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
 
   const vorherDaten = flaeche._daten;
   const vorherIndex = flaeche._anlageIndex;
