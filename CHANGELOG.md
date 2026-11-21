@@ -6,104 +6,48 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.16.0] - 2026-11-20
+## [1.16.0] - 2026-11-21
 
 ### Highlight: Pflege, Abgas und Brennstoff im Blick
 
-Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind. Sie meldet wärmeres Abgas seit der letzten Reinigung und sagt, bis wann der Brennstoff im Lager reicht. An der AeroWIN vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
+Die Auswertung zeigt fällige Pflege, wärmeres Abgas seit der Reinigung und wie lange der Brennstoff reicht. An der AeroWIN vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
 
 ### Neu
 
-- Der Farbsatz „Windhager-Stil“ färbt Oberfläche und Schaubild wie die Bediengeräte, hell oder dunkel.
-- Die Farbsätze Terrakotta, Petrol und Pflaume gibt es auch in einer hellen Fassung.
-- Im Reiter „Zeitprogramme“ öffnet ein Tipp auf eine Tageszeile Schaltzeiten und Wochentage zum Bearbeiten.
-- Eine Taste in der Karte „Meldungen“ löscht alle erledigten Einträge auf einmal.
+- Sensoren und eine Plakette im Panel zeigen Verbindung und Antwortzeit jeder Steuerung.
+- Neu ist der Farbsatz „Windhager-Stil“; jeder Satz steht hell und dunkel zur Wahl.
+- Erledigte Meldungen lassen sich gesammelt löschen.
+- Unter „Darstellung“ stehen Schaltzeiten wahlweise als Tabelle oder in der Spur.
 - Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
+- Die Sonde fragt nur Adresse und Passwort und liefert einen geschwärzten Abzug.
 
 **Auswertung**
 - Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
-- Die Auswertung meldet, wenn das Abgas seit der letzten Reinigung wärmer wird.
-- Mit O2-Signal zeigt die Auswertung den Mehrverlust durch den Kamin.
-- In den Optionen lässt sich ein Fühler im Heizraum für den Abgasverlust wählen.
-- Ein Brennstoffvorrat je Kessel zeigt, bis wann der Brennstoff im Lager reicht.
-- Der Dienst „Brennstoff nachgefüllt“ trägt Lieferungen ein und ermittelt daraus den Verbrauch.
-- In der Auswertung lassen sich letzte Pflege, Befüllung und Bestand eintragen.
-- AeroWIN: Die Auswertung vergleicht den Gütegrad mit dem Stand nach der Verdampferreinigung.
-- LogWIN: Tasten tragen das Entleeren der Asche und die Jahresreinigung ein.
-
-**Verbindung**
-- Die Sensoren „Verbindung“ und „Antwortzeit“ zeigen, wie gut jede Steuerung antwortet.
-- Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
-- Eine Plakette im Panel zeigt Verbindung und Antwortzeit, auf Wunsch nur bei Problemen.
-
-**Puffer**
-- Am Puffer lässt sich unter „Darstellung“ die mittlere Temperatur einblenden ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Systemstatus, Tooltip und Puffer-Kachel zeigen den Beladegrad des Puffers ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Das Puffermodul zeigt Betriebsart, Anforderung an den Kessel, Pufferladung und Drehzahl der Ladepumpe.
+- Ein Abgaswächter meldet steigende Abgastemperatur, mit O2-Signal auch den Mehrverlust.
+- Ein Brennstoffvorrat je Kessel zeigt die Reichweite; ein Dienst trägt Lieferungen ein.
+- AeroWIN, LogWIN: Tasten tragen Verdampferreinigung, Ascheentleerung und Jahresreinigung ein.
 
 **Anlagenteile**
-- An Kaskade und Umschaltung erscheinen Pumpen, Ventile und Zusatzkessel einzeln.
-- Solar zeigt, ob und wohin die Anlage gerade lädt.
-- Betriebszustand, PV-Überschuss, Einfluss des Energy Pilot und Aktorentest-Freigabe erscheinen als Werte.
-- Automatik- und Zusatzkessel zeigen die Istdrehzahl des Saugzuggebläses.
-- LogWIN: Mit elektrischer Zündung lässt sich der Kessel sofort, automatisch oder zeitgesperrt zünden.
-
-**Sonde**
-- Die Sonde fragt nur IP-Adresse und Passwort und liest dann alles aus.
-- Die Sonde schwärzt Kennungen im Abzug, auch nachträglich, und legt ein fertiges ZIP an.
-- Die Sonde zeigt Texte in der Systemsprache und den Fortschritt in einer Statuszeile.
-- Fehlt Python, bietet die Sonde die Installation über winget an.
-- Die Sonde liest auch Adressen außerhalb der Menüs; der Bericht nennt abgebrochene Schritte.
+- Am Puffer erscheinen mittlere Temperatur und Beladegrad ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Kaskade, Umschaltung und Solar zeigen Pumpen, Ventile und Zusatzkessel einzeln.
+- Betriebszustand, PV-Überschuss, Energy Pilot und Saugzugdrehzahl erscheinen als Werte.
+- LogWIN: Mit elektrischer Zündung lässt sich der Zündzeitpunkt wählen.
 
 ### Geändert
 
-- Im Fenster „Darstellung“ sind Farbsatz und Helligkeit getrennt wählbar; die bisherige Wahl bleibt erhalten.
-- Das Fenster „Darstellung“ ordnet die Einstellungen in drei Gruppen.
-- Die Kaskade erscheint nicht mehr als eigener Kasten im Schaubild.
-- Zirkulationswerte erscheinen nur, wenn die Betriebsart der Zirkulationspumpe sie nutzt.
-
-**Zeitprogramme**
-- Eine Reiterleiste wählt das Zeitprogramm; ein einzelnes Programm steht als Titel darüber.
-- Jede Tageszeile zeigt eine Spur in Temperaturfarben und eine Tabelle der Werte.
-- Jede Programmkarte nennt den aktuellen Wert und den nächsten Wechsel; die Karte „Heute“ entfällt.
-- Mit dem Stift neben der Lagezeile lässt sich ein Zeitprogramm benennen.
-
-**Puffer**
-- Puffertemperaturen und Beladegrad erscheinen nur am Puffermodul, nicht zusätzlich am Kessel ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Im Systemstatus zeigt das Puffermodul „Puffer oben“ statt der Kesseltemperatur ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Die Pufferladepumpe des Puffermoduls mit Kesselumschaltung ist ab Werk deaktiviert ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Umschaltventile erscheinen am Puffermodul nur noch mit Automatikkessel.
-- Werte am Puffermodul tragen die Namen des Herstellers, etwa „Anforderung an den Kessel“.
-
-**Geräte**
-- Die Geräteseite nennt das Modell auch für BioWIN 2, AeroWIN, LogWIN und Infinity PLUS.
-- Am Infinity-Heizkreis erscheinen Heiz- oder Vorlaufprogramme passend zur Regelart.
-- Mischermotor und Mischerlaufzeit am Infinity-Heizkreis lassen sich nur noch ablesen.
+- Der Reiter „Zeitprogramme“ ist neu gestaltet; ein Tipp auf eine Tageszeile öffnet die Schaltzeiten.
+- Im Fenster „Darstellung“ sind Farbsatz und Helligkeit getrennt wählbar.
+- Pufferwerte erscheinen nur am Puffermodul, mit den Namen des Herstellers ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Zirkulation und Infinity-Heizkreis zeigen nur Werte, die zur Betriebsart passen.
 
 ### Behoben
 
-- Störung 107 erscheint mit Klartext statt als unbekannter Code.
-- Das Thermostat zeigt eine noch nicht gelesene Restzeit der Vorgabe als unbekannt statt 0.
-- Unbenannte Datenpunkte zeigen keinen internen Gruppenschlüssel mehr.
-- Eingetragene Steuerungen erscheinen nach dem Abschalten des Eintrags nicht mehr als neu entdeckt.
-- Nach einem Update bleiben Entitäten aktiv, auch wenn ein Abruf während des Einlesens scheitert.
-- Neuladen und Entladen der Integration melden keine Warnung und keinen Ausfall der Anlage.
-- Mit mehreren Anlagen werden die Automations-Vorlagen beim Update vollständig erneuert.
-- Die Sonde bricht bei einer unvollständigen Antwort der Steuerung nicht mehr ab.
-
-**Panel**
-- Nach dem Zurückgehen im Browser bleiben Reiter und Anlage im Panel gewählt.
-- Die Kopfleiste des Panels erscheint nach der Rückkehr in die App sofort.
-- Die Diagramme im Verlauf erscheinen auch beim ersten Öffnen des Panels.
-- Das Mausrad scrollt in einem Fenster nicht mehr die Seite dahinter.
-- Dashboard-Karten übernehmen eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-
-**Puffer**
-- Die Entität „Betriebsart“ am Puffermodul mit Kesselumschaltung erscheint wieder ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Das Schaubild zeigt das Puffermodul mit Kesselumschaltung als Puffer mit Ladung und Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Die Schaubild-Karte im Dashboard folgt der Einstellung unter „Darstellung“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Am Puffer erscheint der Tooltip wieder, und ein Klick öffnet die Details ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Die Puffer-Kachel zeigt die Ladepumpe als „läuft“ oder „aus“ statt „on“ ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Das Panel behält beim Zurückgehen Reiter und Anlage und zeigt Kopfleiste und Verlauf sofort.
+- Dashboard-Karten laden eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Schaubild und Kachel zeigen am Puffermodul mit Kesselumschaltung Ladung und Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Nach einem Update bleiben Entitäten aktiv, auch wenn ein Abruf beim Einlesen scheitert.
+- Abgeschaltete Einträge erscheinen nicht mehr als neu entdeckt.
+- Störung 107 erscheint im Klartext.
 
 ## [1.16.0-beta.3] - 2026-11-15
 
