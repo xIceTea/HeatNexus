@@ -35,10 +35,11 @@ NAMEN: dict[str, str] = {
 NUR_BUS: tuple[str, ...] = ()
 
 # Zirkulation nach Betriebsart der Zirkulationspumpe `5/6`; aus (0) braucht keinen ihrer Werte.
+# Die Herstellerebene regelt nur 0–3; bei 4 „EIN“ und Unbekanntem bleibt alles stehen.
 # Die Programme `5/64` und `5/65` bleiben immer: Über sie wird die Steuerungsart aktiviert.
 BEDINGUNGEN: dict[str, list[dict]] = {
-    "0/118": [{"oid": "5/6", "values": ["1", "2", "3"]}],
-    "1/118": [{"oid": "5/6", "values": ["1", "2", "3"]}],
-    "59/18": [{"oid": "5/6", "values": ["2"]}],
+    "0/118": [{"oid": "5/6", "ausser": ["0"]}],
+    "1/118": [{"oid": "5/6", "ausser": ["0"]}],
+    "59/18": [{"oid": "5/6", "ausser": ["0", "1", "3"]}],
 }
 ENTITAETEN: list[dict] = []

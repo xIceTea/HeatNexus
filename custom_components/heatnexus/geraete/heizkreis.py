@@ -83,7 +83,8 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
 
 # Beide Zirkulationsprogramme (`5/64`, `5/65`) bleiben bei jeder Betriebsart der Pumpe:
 # Unter „Zeitprogramme“ aktiviert man die andere Steuerungsart über ihr Programm.
-BEDINGUNGEN: dict[str, list[dict]] = {}
+# Das Kühlprogramm entfällt nur bei der Konfiguration „Heizen“ (`51/115` = 1).
+BEDINGUNGEN: dict[str, list[dict]] = {"51/108": [{"oid": "51/115", "ausser": ["1"]}]}
 
 ENTITAETEN: list[dict] = [
     # --- Infoebene Heizkreis / Warmwasser (read only) ---

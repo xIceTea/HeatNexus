@@ -79,7 +79,7 @@ SPIEGEL: dict[int, tuple[str, ...]] = {10: ("0/15", "0/16", "0/17", "23/87")}
 # `20/2` Pufferspeicher und `20/0` Automatikkessel legen fest, was das Modul führt:
 # ohne Puffer keine Ladung, ohne Automatikkessel keine Umschaltventile.
 BEDINGUNGEN: dict[str, list[dict]] = {
-    "2/9:pufferladung": [{"oid": "20/2", "values": ["1"]}],
-    "2/2:umschaltventil_1": [{"oid": "20/0", "values": ["1"]}],
-    "2/2:umschaltventil_2": [{"oid": "20/0", "values": ["1"]}],
+    "2/9:pufferladung": [{"oid": "20/2", "ausser": ["0"]}],
+    "2/2:umschaltventil_1": [{"oid": "20/0", "ausser": ["0"]}],
+    "2/2:umschaltventil_2": [{"oid": "20/0", "ausser": ["0"]}],
 }

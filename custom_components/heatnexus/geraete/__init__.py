@@ -136,6 +136,14 @@ BEDINGUNGEN: dict[int, dict[str, list[dict]]] = {
     m.FCT_TYPE: m.BEDINGUNGEN for m in MODULE if getattr(m, "BEDINGUNGEN", None)
 }
 
+
+def satz_trifft(wert: str, satz: dict) -> bool:
+    """Gilt der Satz beim Wert? `values` nennt die Werte der Adresse, `ausser` ihre Gegenwerte."""
+    if "ausser" in satz:
+        return wert not in satz["ausser"]
+    return wert in satz["values"]
+
+
 # Zustandstexte für Adressen ohne Tabelle in der Herstellerdatei, deutsch.
 TABELLEN: dict[str, dict[int, str]] = {
     adresse: tabelle

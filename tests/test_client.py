@@ -800,6 +800,84 @@ def test_ohne_pufferspeicher_entfaellt_die_pufferladung(client_module):
     assert "/1/17/0/2/9/0" not in client.oids
 
 
+def test_unbekannter_wert_am_umschaltmodul_nimmt_nichts_weg(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=7, pufferspeicher=7)
+    client._rollen_filter(meta)
+
+    assert len(client.devices) == 3
+
+
+def _gefiltert(client_module, fct_type, adressen, werte):
+    """Namen der Adressen, die nach dem Rollenfilter an einem Gerät stehen bleiben."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/20/0/{a}/0", fct_type=fct_type, name=a, type="sensor"
+        )
+        for a in adressen
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    client._rollen_filter({f"/1/20/0/{a}/0": {"value": w} for a, w in werte.items()})
+    return {d["name"] for d in client.devices}
+
+
+_INFINITY_PROGRAMME = ("3/61", "3/62", "3/63", "58/78", "58/79", "58/80")
+
+
+@pytest.mark.parametrize(
+    ("regelart", "bleibt"),
+    [
+        ("1", {"3/61", "3/62", "3/63"}),
+        ("2", {"3/61", "3/62", "3/63"}),
+        ("4", {"58/78", "58/79", "58/80"}),
+        ("0", set(_INFINITY_PROGRAMME)),
+        ("3", set(_INFINITY_PROGRAMME)),
+        ("5", set(_INFINITY_PROGRAMME)),
+        ("9", set(_INFINITY_PROGRAMME)),
+    ],
+)
+def test_infinity_programme_entfallen_nur_beim_belegten_gegenwert(client_module, regelart, bleibt):
+    """Pumpenkreis, Fan Coil und unbekannte Regelarten behalten Heiz- und Vorlaufprogramme."""
+    namen = _gefiltert(client_module, 1, _INFINITY_PROGRAMME, {"7/76": regelart})
+    assert namen == bleibt
+
+
+@pytest.mark.parametrize(
+    ("betriebsart", "bleibt"),
+    [
+        ("0", set()),
+        ("1", {"0/118", "1/118"}),
+        ("2", {"0/118", "1/118", "59/18"}),
+        ("3", {"0/118", "1/118"}),
+        ("4", {"0/118", "1/118", "59/18"}),
+    ],
+)
+def test_zirkulationswerte_entfallen_nur_beim_belegten_gegenwert(
+    client_module, betriebsart, bleibt
+):
+    """`5/6` = 4 „EIN“ nennt die Herstellerebene nicht; dort bleibt alles stehen."""
+    namen = _gefiltert(client_module, 2, ("0/118", "1/118", "59/18"), {"5/6": betriebsart})
+    assert namen == bleibt
+
+
+@pytest.mark.parametrize(("kuehlen", "bleibt"), [("0", False), ("1", True), ("2", True)])
+def test_kuehlprogramm_entfaellt_nur_ohne_kuehlen(client_module, kuehlen, bleibt):
+    namen = _gefiltert(client_module, 1, ("59/48",), {"58/102": kuehlen})
+    assert ("59/48" in namen) is bleibt
+
+
+def test_kuehlprogramm_bleibt_ohne_lesbares_kuehlen(client_module):
+    assert _gefiltert(client_module, 1, ("59/48",), {}) == {"59/48"}
+
+
+@pytest.mark.parametrize(
+    ("konfiguration", "bleibt"), [("0", True), ("1", False), ("2", True), ("4", True)]
+)
+def test_kuehlzeitprogramm_entfaellt_nur_bei_reinem_heizen(client_module, konfiguration, bleibt):
+    namen = _gefiltert(client_module, 14, ("51/108",), {"51/115": konfiguration})
+    assert ("51/108" in namen) is bleibt
+
+
 def _logwin_mit_spiegel(client_module, mit_modul: bool):
     """LogWIN (fct 10) mit gespiegeltem Puffer, auf Wunsch neben dem Puffermodul (fct 15)."""
     client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")

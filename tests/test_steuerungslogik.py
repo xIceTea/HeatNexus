@@ -16,8 +16,8 @@ def geraete():
     return load_standalone("geraete")
 
 
-def _erfuellt(saetze: list[dict], werte: dict[str, str]) -> bool:
-    return any(werte.get(s["oid"]) in s["values"] for s in saetze)
+def _erfuellt(geraete, saetze: list[dict], werte: dict[str, str]) -> bool:
+    return any(geraete.satz_trifft(werte[s["oid"]], s) for s in saetze)
 
 
 @pytest.mark.parametrize("fct", [2, 14])
@@ -31,21 +31,31 @@ def test_beide_zirkulationsprogramme_bleiben_bei_jeder_betriebsart(geraete, fct)
 def test_ohne_zirkulation_entfallen_ihre_werte_am_warmwasser(geraete):
     regeln = geraete.BEDINGUNGEN[2]
     for adresse in ("0/118", "1/118", "59/18"):
-        assert not _erfuellt(regeln[adresse], {"5/6": "0"}), adresse
+        assert not _erfuellt(geraete, regeln[adresse], {"5/6": "0"}), adresse
 
 
 @pytest.mark.parametrize(("art", "heizprogramme"), [("1", True), ("2", True), ("4", False)])
 def test_infinity_programme_folgen_der_regelart(geraete, art, heizprogramme):
     regeln = geraete.BEDINGUNGEN[1]
-    assert _erfuellt(regeln["3/61"], {"7/76": art}) is heizprogramme
-    assert _erfuellt(regeln["58/78"], {"7/76": art}) is not heizprogramme
+    assert _erfuellt(geraete, regeln["3/61"], {"7/76": art}) is heizprogramme
+    assert _erfuellt(geraete, regeln["58/78"], {"7/76": art}) is not heizprogramme
+
+
+@pytest.mark.parametrize("art", ["0", "3", "5"])
+def test_infinity_ohne_belegte_regelart_behaelt_beide_programmsaetze(geraete, art):
+    regeln = geraete.BEDINGUNGEN[1]
+    assert _erfuellt(geraete, regeln["3/61"], {"7/76": art})
+    assert _erfuellt(geraete, regeln["58/78"], {"7/76": art})
 
 
 def test_jede_bedingung_hat_saetze_mit_werten(geraete):
     for fct, regeln in geraete.BEDINGUNGEN.items():
         for adresse, saetze in regeln.items():
             assert saetze, (fct, adresse)
-            assert all(s["oid"] and s["values"] for s in saetze), (fct, adresse)
+            assert all(s["oid"] and (s.get("values") or s.get("ausser")) for s in saetze), (
+                fct,
+                adresse,
+            )
 
 
 @pytest.mark.parametrize(

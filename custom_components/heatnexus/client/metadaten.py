@@ -451,11 +451,11 @@ class MetadatenMixin:
                 # freischaltet. Trifft kein Satz zu, ist sie ohne Aufgabe.
                 for adresse, saetze in bedingungen.items():
                     geprueft = [
-                        (str(wert(praefix, s["oid"])), s["values"])
+                        (str(wert(praefix, s["oid"])), s)
                         for s in saetze
                         if wert(praefix, s["oid"]) is not None
                     ]
-                    if geprueft and not any(ist in erlaubt for ist, erlaubt in geprueft):
+                    if geprueft and not any(geraete.satz_trifft(ist, s) for ist, s in geprueft):
                         weg.add(adresse)
                 if not regel:
                     continue

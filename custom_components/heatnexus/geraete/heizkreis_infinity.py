@@ -54,9 +54,12 @@ TABELLEN: dict[str, dict[int, str]] = {"58/46": {0: "Nein", 1: "Ja"}}
 # Mischermotor und Mischerlaufzeit führt die Herstellerdatei als nicht änderbar.
 NUR_ANZEIGE: tuple[str, ...] = ("58/83", "58/84")
 
-# Heizprogramme nur bei Raumregelung (Radiatoren, Fußboden), Vorlaufprogramme nur bei Vorlaufregelung.
+# Heizprogramme gehören zur Raumregelung (1, 2), Vorlaufprogramme zur Vorlaufregelung (4).
+# Weg fällt nur der Satz der Gegenseite; Pumpenkreis, Fan Coil und Unbekanntes behalten beide.
 BEDINGUNGEN: dict[str, list[dict]] = {
-    **{a: [{"oid": "7/76", "values": ["1", "2"]}] for a in ("3/61", "3/62", "3/63")},
-    **{a: [{"oid": "7/76", "values": ["4"]}] for a in ("58/78", "58/79", "58/80")},
+    **{a: [{"oid": "7/76", "ausser": ["4"]}] for a in ("3/61", "3/62", "3/63")},
+    **{a: [{"oid": "7/76", "ausser": ["1", "2"]}] for a in ("58/78", "58/79", "58/80")},
+    # Das Kühlprogramm gilt nur mit Kühlen am Kreis.
+    "59/48": [{"oid": "58/102", "ausser": ["0"]}],
 }
 ENTITAETEN: list[dict] = []
