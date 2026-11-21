@@ -12,7 +12,7 @@ import logging
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
@@ -126,6 +126,16 @@ def _einlesen_abgeschlossen(
     )
 
 
+def _meldung_planen(hass: HomeAssistant, entry: ConfigEntry, host: str, vollstaendig: bool) -> None:
+    """Das Ergebnis nach der Verzögerung melden; der Zeitgeber endet mit dem Eintrag."""
+
+    @callback
+    def _melden(_jetzt) -> None:
+        _einlesen_abgeschlossen(hass, entry, host, vollstaendig)
+
+    entry.async_on_unload(async_call_later(hass, MELDUNG_VERZOEGERUNG, _melden))
+
+
 async def vollabzug(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -164,11 +174,7 @@ async def vollabzug(
     # Die nachgemeldeten Entitäten werden erst angelegt, nachdem dieser Ablauf
     # den Dispatcher verlassen hat – die Erfolgsmeldung wartet das ab, sonst
     # nennt sie eine zu kleine Zahl.
-    async_call_later(
-        hass,
-        MELDUNG_VERZOEGERUNG,
-        lambda _jetzt: _einlesen_abgeschlossen(hass, entry, host, vollstaendig),
-    )
+    _meldung_planen(hass, entry, host, vollstaendig)
     # Ein Stand mit Lücken bleibt im Speicher; der nächste Start liest neu ein.
     if not vollstaendig:
         return

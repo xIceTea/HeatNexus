@@ -615,6 +615,54 @@ async def test_der_vollabzug_legt_den_erkennungsstand_ab(hass, eintrag):
     assert len(stand["devices"]) == len(ZUSAETZLICH)
 
 
+def _einlese_meldung(hass, eintrag):
+    from homeassistant.components import persistent_notification
+
+    from custom_components.heatnexus.einlesen import meldungs_id
+
+    meldungen = persistent_notification._async_get_or_create_notifications(hass)
+    return meldungen.get(meldungs_id(eintrag))
+
+
+async def test_nach_dem_vollabzug_erscheint_die_erfolgsmeldung(hass, eintrag):
+    """Die Erfolgsmeldung ersetzt die Ankündigung, sobald die Verzögerung abgelaufen ist."""
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.heatnexus.einlesen import MELDUNG_VERZOEGERUNG
+
+    hass.config_entries.async_update_entry(eintrag, options={"meldung_einlesen": True})
+    assert await _einrichten(hass, eintrag) is True
+    assert _einlese_meldung(hass, eintrag)["title"] == "HeatNexus is reading the system"
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=MELDUNG_VERZOEGERUNG + 1))
+    await hass.async_block_till_done()
+
+    meldung = _einlese_meldung(hass, eintrag)
+    assert meldung["title"] == "HeatNexus is ready"
+    assert eintrag.runtime_data["einlesen_offen"] == set()
+
+
+async def test_nach_dem_entladen_erscheint_keine_erfolgsmeldung(hass, eintrag, monkeypatch):
+    """Der Zeitgeber der Erfolgsmeldung endet mit dem Eintrag."""
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.heatnexus import einlesen
+
+    aufrufe: list = []
+    monkeypatch.setattr(einlesen, "_einlesen_abgeschlossen", lambda *a, **k: aufrufe.append(a))
+    assert await _einrichten(hass, eintrag) is True
+    assert await hass.config_entries.async_unload(eintrag.entry_id)
+    await hass.async_block_till_done()
+
+    verzoegerung = timedelta(seconds=einlesen.MELDUNG_VERZOEGERUNG + 1)
+    async_fire_time_changed(hass, dt_util.utcnow() + verzoegerung)
+    await hass.async_block_till_done()
+
+    assert not aufrufe
+
+
 async def test_ein_gescheiterter_vollabzug_laesst_die_anlage_laufen(hass, eintrag):
     """Was schon eingelesen ist, bleibt nutzbar.
 
