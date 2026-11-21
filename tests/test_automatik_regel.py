@@ -632,6 +632,82 @@ def test_im_absenkbetrieb_beginnt_kein_sonnentag(m, w):
     assert all(a.art != "absenken" for a in e.aktionen)
 
 
+# --- Befristete Vorgabe, die nicht von der Automatik stammt -------------------
+# App, Bediengerät oder Klima-Karte schreiben `3/4` + `2/10`; `2/9` zeigt dann 4.
+FREMD = {"betriebsart": 4, "soll": 24.0, "raeume": ((22.0, 21.5),)}
+
+
+@pytest.mark.parametrize("felder", [{}, {"restzeit": 120.0}, {"betriebsart": 1, "restzeit": 120.0}])
+def test_fremde_vorgabe_wird_nicht_abgesenkt(m, w, felder):
+    e = m.entscheiden(lage(m, **{**FREMD, **felder}), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.PAUSIERT
+    assert e.aktionen == ()
+    assert "Vorgabe" in e.begruendung
+
+
+def test_fremde_vorgabe_nennt_sollwert_und_ende(m, w):
+    e = m.entscheiden(lage(m, **FREMD, restzeit=120.0), m.Gedaechtnis(), w)
+    assert e.begruendung == "Vorgabe 24,0 °C an der Steuerung bis 09:00 – keine Eingriffe."
+
+
+def test_fremde_vorgabe_verhindert_die_heizpause(m, w):
+    stand = lage(m, **{**FREMD, **TRUEB, "soll": 24.0, "raeume": ((23.0, 21.5),)}, restzeit=300.0)
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
+def test_fremde_vorgabe_verhindert_nur_ww_und_abwesenheit(m, w):
+    warm = lage(m, at=17.5, at_gedaempft=18.2, mittel_heute=None, restzeit=60.0, betriebsart=4)
+    assert m.entscheiden(warm, m.Gedaechtnis(), w).aktionen == ()
+    weg = lage(m, abwesend=True, restzeit=60.0, betriebsart=4)
+    assert m.entscheiden(weg, m.Gedaechtnis(), w).aktionen == ()
+
+
+def test_abgelaufene_vorgabe_gibt_die_regel_frei(m, w):
+    e = m.entscheiden(lage(m, **FREMD, restzeit=0.0), m.Gedaechtnis(), w)
+    assert [a.art for a in e.aktionen] == ["absenken"]
+
+
+def test_ueberschriebene_eigene_absenkung_wird_nicht_beendet(m, w):
+    """Die Restzeit passt nicht zur eigenen Absenkung: Die Vorgabe gilt als fremd."""
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=19.0, restzeit=300.0, betriebsart=4)
+    e = m.entscheiden(stand, sonnentag(m, absenkung_soll=19.5), w)
+    assert e.aktionen == ()
+    assert e.zustand == m.Zustand.PAUSIERT
+
+
+def test_kalter_raum_beendet_keine_fremde_vorgabe(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=15.5, restzeit=300.0, betriebsart=4)
+    e = m.entscheiden(stand, sonnentag(m, absenkung_soll=19.5), w)
+    assert e.zustand == m.Zustand.SICHERHEIT
+    assert e.aktionen == ()
+
+
+@pytest.mark.parametrize("restzeit", [None, 0.0, 3.0])
+def test_eigene_absenkung_mit_vorgabe_an_der_steuerung_verlaengert_weiter(m, w, restzeit):
+    alt = sonnentag(m, absenkung_ziel=UNTERGANG - timedelta(hours=2), absenkung_soll=19.5)
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=3, minutes=1), betriebsart=4, restzeit=restzeit)
+    assert [a.art for a in m.entscheiden(stand, alt, w).aktionen] == ["absenken"]
+
+
+def test_eigene_absenkung_endet_trotz_vorgabe_an_der_steuerung(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=19.0, restzeit=118.0, betriebsart=4)
+    e = m.entscheiden(stand, sonnentag(m, absenkung_soll=19.5), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+
+
+def test_fremde_vorgabe_nach_abgelaufener_eigener_wird_nicht_verlaengert(m, w):
+    alt = sonnentag(m, absenkung_ziel=UNTERGANG - timedelta(hours=2), absenkung_soll=19.5)
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=3, minutes=1), betriebsart=4, restzeit=90.0)
+    assert m.entscheiden(stand, alt, w).aktionen == ()
+
+
+def test_nur_ww_endet_bei_fremder_vorgabe_ohne_heizpause(m, w):
+    g = replace(nur_ww(m, timedelta(hours=1)), stark_bis=MORGEN + timedelta(hours=8))
+    jetzt = MORGEN + timedelta(hours=9)
+    stand = lage(m, **MILD, jetzt=jetzt, betriebswahl=6, betriebsart=4, restzeit=60.0)
+    assert [a.art for a in m.entscheiden(stand, g, w).aktionen] == ["zurueck"]
+
+
 # --- Wärmequellen mit Vorrang vor dem Kessel -----------------------------------
 def lange_absenkung(m):
     return replace(sonnentag(m), absenkung_bis=MORGEN + timedelta(hours=6))

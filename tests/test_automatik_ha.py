@@ -583,6 +583,23 @@ async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(hass, sze
     assert sz.protokoll[0]["text"] == deutsch
 
 
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+async def test_lesen_folgt_der_sprache_der_anlage(hass, szenario, sprache):
+    """Eine Anlage mit eigener Sprache bekommt Begründung und Protokoll in dieser Sprache."""
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    sz = await szenario(takte=True)
+    hass.config.language = "de"
+    optionen = {"sprache": "de", "sprache_anlage": sprache}
+    hass.config_entries.async_update_entry(sz.eintrag, options=optionen)
+
+    kreis = await sz.kreis()
+
+    satz = Woerterbuch(sprache).satz
+    assert kreis["begruendung"] == satz(sz.laufzeit.begruendung) != sz.laufzeit.begruendung
+    assert kreis["protokoll"][0]["text"] == satz(sz.protokoll[0]["text"])
+
+
 async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(hass, szenario):
     from custom_components.heatnexus.texte import Woerterbuch
 
@@ -698,6 +715,20 @@ async def test_schalten_schreibt_nach_drei_takten(szenario):
     await sz.takte(1)
 
     assert sz.geschrieben == ABSENKUNG
+
+
+async def test_fremde_vorgabe_an_der_steuerung_bleibt_unberuehrt(szenario):
+    """App oder Bediengerät haben `3/4` + `2/10` gesetzt; die Automatik schreibt nichts."""
+    sz = await szenario(modus="schalten")
+    sz.oids[f"{PREFIX}/2/9/0"] = "4"
+    sz.oids[f"{PREFIX}/2/10/0"] = "120"
+    sz.laufzeit._merken()
+
+    await sz.takte()
+
+    assert sz.geschrieben == []
+    assert sz.laufzeit.zustand.value == "pausiert"
+    assert sz.laufzeit.begruendung.startswith("Vorgabe 21,0 °C an der Steuerung bis 10:")
 
 
 async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(szenario):

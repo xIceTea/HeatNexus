@@ -738,7 +738,7 @@ async def async_remove_config_entry_device(
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
-    await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)
+    await verwaltung_holen(hass).eintrag_entfernt(entry)
     await befund_entfernen(hass, entry)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)

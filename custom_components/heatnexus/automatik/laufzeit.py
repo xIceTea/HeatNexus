@@ -49,9 +49,11 @@ from .steller import (
     GEPRUEFT,
     OID_DAUER,
     SCHONFRIST,
+    WW_LADUNG,
     Stand,
     Steller,
     braucht_bestaetigung,
+    gealtert,
     nur_ww_wert,
 )
 from .vorausschau import LERNZEIT, VorausschauMixin
@@ -291,6 +293,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         return {
             "gedaechtnis": regel.gedaechtnis_als_dict(self.gedaechtnis),
             "stand": self.steller.stand.als_dict(),
+            # Wohin eine Rücknahme schreibt, wenn der Eintrag ohne laufende Verbindung entfernt wird.
+            "host": getattr(self.coordinator, "host", None),
+            "prefix": self.prefix,
             "stufen": list(self.stufen) if self.stufen else None,
             "stufen_zeit": self.stufen_zeit.isoformat() if self.stufen_zeit else None,
             "stufen_start": self.stufen_start.isoformat() if self.stufen_start else None,
@@ -333,6 +338,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         # Ein Neustart der Laufzeit (jede Einstellung) lernt und trägt nur einmal am Tag nach.
         self._gelernt_am: date | None = None
         self._nachgetragen_am: date | None = None
+        # Der erste Lauf nach dem Laden aus dem Store; ein Neustart mit neuen Einstellungen zählt nicht.
+        self._erster_lauf = True
 
     def _aufgabe(self, ablauf: Coroutine[Any, Any, Any], hintergrund: bool = False) -> None:
         """Eine Aufgabe, die `stoppen` abbricht; ein laufender Lauf endet vorher regulär."""
@@ -541,6 +548,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.lage = lage
         if not self.aktiv:
             self.empfehlung = None
+            # `3/50` läuft an der Steuerung nicht ab; ohne Automatik bliebe der Heizkreis aus.
+            if self.gedaechtnis.saison == regel.NUR_WW and not self._steuerung_fehlt(jetzt):
+                await self._zuruecknehmen()
             self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
             return
         self._wartet = self._steuerung_fehlt(jetzt)
@@ -551,7 +561,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         kandidat = regel.entscheiden(lage, self.gedaechtnis, self.werte)
         bestaetigt = self._bestaetigt(bestaetigung, kandidat)
         halten_vorher = self.stabil.halten_bis
-        entscheidung = self._stabilisieren(kandidat, lage, takt, bestaetigt)
+        sofort = bestaetigt or self._rueckkehr_nach_dem_start(kandidat)
+        entscheidung = self._stabilisieren(kandidat, lage, takt, sofort)
         entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
         angenommen = await self._ausfuehren(entscheidung, lage, jetzt, bestaetigt)
         if not angenommen:
@@ -566,6 +577,11 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         ueberholt = self._empfehlung_ueberholt(kandidat, takt)
         self._empfehlung_pruefen(jetzt, entscheidung, ueberholt, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
+
+    def _rueckkehr_nach_dem_start(self, kandidat: regel.Entscheidung) -> bool:
+        """Im ersten Lauf nach dem Start gilt die Rückkehr aus nur Warmwasser sofort, ohne Takte zu zählen."""
+        erster, self._erster_lauf = self._erster_lauf, False
+        return erster and any(aktion.art == "zurueck" for aktion in kandidat.aktionen)
 
     def _stabilisieren(
         self, kandidat: regel.Entscheidung, lage: regel.Lage, takt: bool, bestaetigt: bool
@@ -909,7 +925,12 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         jetzt = dt_util.now()
         aktionen: list[regel.Aktion] = []
         if self.gedaechtnis.saison == regel.NUR_WW:
-            aktionen.append(regel.Aktion("zurueck", sicherheit=True))
+            if (fremd := self._fremde_betriebswahl()) is None:
+                aktionen.append(regel.Aktion("zurueck", sicherheit=True))
+            else:
+                self.steller.vermerken(
+                    jetzt, "eingriff", f"Betriebswahl von Hand auf {fremd} gestellt."
+                )
         if regel.absenkung_laeuft(self.gedaechtnis, jetzt):
             aktionen.append(regel.Aktion("absenkung_ende", sicherheit=True))
         kennung = f"automatik_ruecknahme_{self.device_id}"
@@ -941,6 +962,16 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.gedaechtnis = regel.Gedaechtnis()
         self.steller.freigeben()
         self._speichern()
+
+    def _fremde_betriebswahl(self) -> int | None:
+        """Die Betriebswahl, wenn jemand sie nach dem eigenen Schreiben umgestellt hat; sonst `None`."""
+        aktuell = _ganzzahl(self._wert("/3/50/0"))
+        erwartet = self.steller.stand.erwartet
+        # Während der Warmwasserladung stellt die Steuerung `3/50` selbst um.
+        ladung = _ganzzahl(self._wert("/2/9/0")) in WW_LADUNG
+        if aktuell is None or erwartet is None or aktuell == erwartet or ladung:
+            return None
+        return aktuell
 
     async def heizgrenzen_setzen(self, werte: dict[str, float]) -> None:
         """Heizgrenzen der Steuerung von Hand setzen: kein Budget, kein Eingriff der Automatik."""
@@ -1077,6 +1108,12 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             return basis
         self._soll_ersatz = None
         return soll
+
+    def _restzeit_jetzt(self, jetzt: datetime) -> float | None:
+        """Die Restzeit `2/10` aus dem letzten Abruf, auf `jetzt` fortgeschrieben."""
+        rest = self._wert(OID_DAUER)
+        wert, seit = self._restzeit
+        return gealtert(rest, seit if wert == rest else None, jetzt)
 
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
@@ -1375,6 +1412,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             at_prognose=self._at_prognose(stundenwerte, jetzt),
             grenze_absenk=self.grenze_absenk(),
             absenkung_moeglich=self._wert("/2/10/0") is not None,
+            restzeit=self._restzeit_jetzt(jetzt),
             at_steuerung=self._wert("/0/0/0"),
             vl_soll=self._wert("/1/2/0"),
             beobachten=self.beobachten,

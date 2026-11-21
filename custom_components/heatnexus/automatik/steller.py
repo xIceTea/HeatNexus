@@ -116,7 +116,7 @@ def _ganzzahl(wert: Any) -> int | None:
     return None if wert is None else int(wert)
 
 
-def _gealtert(rest_min: float | None, gelesen: datetime | None, jetzt: datetime) -> float | None:
+def gealtert(rest_min: float | None, gelesen: datetime | None, jetzt: datetime) -> float | None:
     """Die Restzeit auf `jetzt` fortgeschrieben; sie stammt aus dem letzten Abruf."""
     if rest_min is None or gelesen is None or rest_min <= 0:
         return rest_min
@@ -394,7 +394,7 @@ class Steller:
         if erwartet is not None and betriebswahl is not None and betriebswahl != erwartet:
             return f"Betriebswahl von Hand auf {betriebswahl} gestellt."
         if absenkung_laeuft(g, jetzt):
-            return _absenkung_von_hand(g, jetzt, _gealtert(rest_min, gelesen, jetzt), raumsoll)
+            return _absenkung_von_hand(g, jetzt, gealtert(rest_min, gelesen, jetzt), raumsoll)
         return None
 
     def _nach_eigenem_schreiben(self, abgerufen: datetime | None) -> bool:

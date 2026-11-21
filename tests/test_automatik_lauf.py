@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -546,7 +547,7 @@ async def test_fremde_eintraege_im_store_fallen_weg(hass, monkeypatch):
     assert verwaltung._daten == {"heizkreise": {"d": {"konfig": {"entry_id": "e1"}, "zustand": {}}}}
     assert verwaltung.eingerichtet("e1") == ["d"]
     assert verwaltung.kennungen("e2") == {}
-    await verwaltung.eintrag_entfernt("e2")
+    await verwaltung.eintrag_entfernt(SimpleNamespace(entry_id="e2", data={}))
 
 
 async def test_gespeicherter_restwert_sensor_wird_beim_laden_verworfen(hass, hass_storage):

@@ -38,8 +38,9 @@ from ..registrierung import (
 )
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
-from . import lernablage, prognoseablage
+from . import lernablage, prognoseablage, ruecknahme
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
+from .regel import NUR_WW
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -457,7 +458,7 @@ class Verwaltung:
         )
 
     async def eintrag_stoppen(self, entry: ConfigEntry) -> None:
-        """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store.
+        """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store, beim Deaktivieren ohne nur Warmwasser.
 
         Ein laufender Lauf endet vorher; danach schreibt keine Automatik des Eintrags mehr.
         """
@@ -466,6 +467,9 @@ class Verwaltung:
             laufzeit.stoppen()
         for laufzeit in gestoppt:
             await laufzeit.abwarten()
+            # Ein deaktivierter Eintrag startet nicht von selbst wieder; `3/50` liefe sonst nie ab.
+            if entry.disabled_by is not None and laufzeit.gedaechtnis.saison == NUR_WW:
+                await laufzeit.zuruecknehmen()
         self._abzug()
         for laufzeit in gestoppt:
             self.laufzeiten.pop(laufzeit.device_id, None)
@@ -482,11 +486,16 @@ class Verwaltung:
         for device_id in self.eingerichtet(entry.entry_id):
             await self.entfernen(device_id)
 
-    async def eintrag_entfernt(self, entry_id: str) -> None:
-        """Einstellungen eines gelöschten Eintrags verwerfen."""
+    async def eintrag_entfernt(self, entry: ConfigEntry) -> None:
+        """Einstellungen eines gelöschten Eintrags verwerfen; eigenes nur Warmwasser vorher zurücknehmen."""
         await self.laden()
         kreise = self._daten["heizkreise"]
-        weg = [k for k, e in kreise.items() if (e.get("konfig") or {}).get("entry_id") == entry_id]
+        weg = [
+            k
+            for k, e in kreise.items()
+            if (e.get("konfig") or {}).get("entry_id") == entry.entry_id
+        ]
+        await ruecknahme.nach_dem_entfernen(entry, [kreise[k].get("zustand") for k in weg])
         self._daten["heizkreise"] = {k: e for k, e in kreise.items() if k not in weg}
         for device_id in weg:
             await lernablage.entfernen(self.hass, device_id)

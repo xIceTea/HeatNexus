@@ -225,9 +225,10 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
     verwaltung = verwaltung_holen(hass)
     await verwaltung.laden()
     register = er.async_get(hass)
-    woerterbuch = texte.woerterbuch(hass)
     heizkreise = []
     for entry in _geladene(hass):
+        # Jede Anlage kann eine eigene Sprache haben; die Beschriftungen folgen ihr ebenso.
+        woerterbuch = texte.woerterbuch_des_eintrags(hass, entry)
         for coordinator, beschreibung in Verwaltung.heizkreise(entry):
             klima = register.async_get_entity_id("climate", DOMAIN, beschreibung.get("id", ""))
             # Ohne Klima-Entität gibt es nichts zu prüfen und nichts zu bedienen.
@@ -251,7 +252,7 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
 
 
 def _uebersetzt(eintrag: dict[str, Any], woerterbuch: texte.Woerterbuch) -> dict[str, Any]:
-    """Begründung, Vorschau und Protokoll in der Sprache der Oberfläche; gespeichert bleibt Deutsch."""
+    """Begründung, Vorschau und Protokoll in der Sprache der Anlage; gespeichert bleibt Deutsch."""
     if not woerterbuch:
         return eintrag
 
