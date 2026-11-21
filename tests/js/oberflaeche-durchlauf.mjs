@@ -1146,6 +1146,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   states["select.betriebswahl"].state = "Standby";
   flaeche._aktualisieren();
   bilanz.fokus = { neuGezeichnet: gross() !== vorUmstellung, behalten: wurzel.activeElement === taste };
+  bilanz.ohneProgramm = [...wurzel.querySelectorAll(".zp-lage")].map(text);
   states["select.betriebswahl"].state = "Programm 1";
   flaeche._aktualisieren();
   delete flaeche.isConnected;

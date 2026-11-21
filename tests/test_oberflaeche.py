@@ -1688,6 +1688,14 @@ def test_der_minutentakt_bewegt_die_jetzt_linie(durchlauf):
     assert uhr["linie"] == "93.75%"
 
 
+def test_ohne_geltendes_programm_steht_ein_satz_mit_der_betriebswahl(durchlauf):
+    """Betriebswahl „Standby“: weder ein Heizprogramm noch das WW-Programm ist aktiv."""
+    assert durchlauf["ohneProgramm"] == [
+        "Kein Programm aktiv · Betriebswahl: Standby",
+        "Nicht aktiv · Betriebswahl: Standby",
+    ]
+
+
 def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
     assert durchlauf["fokus"] == {"neuGezeichnet": True, "behalten": True}
 

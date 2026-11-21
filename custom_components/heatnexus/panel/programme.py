@@ -186,6 +186,7 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
             "entity": wahl["entity_id"],
             "muster_nicht": _auswahltext(wahl, 0, "standby"),
             "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
+            "wahl_name": wahl.get("name") or "",
         }
     nummern = (
         HEIZPROGRAMM_ADRESSEN if adresse in HEIZPROGRAMM_ADRESSEN else VORLAUFPROGRAMM_ADRESSEN

@@ -318,11 +318,11 @@ export const ZeitprogrammeMixin = (Basis) =>
     return knoten;
   }
 
-  /** Nur wenn kein Programm wirkt, ein Satz dazu: „kein Programm · Betriebswahl: Standby“. Sonst nichts. */
+  /** Nur wenn kein Programm aktiv ist, ein Satz dazu: „Kein Programm aktiv · Betriebswahl: Standby“. */
   _lageZeile(gruppe, { sichtbar, aktiv, gezeigt }) {
     if (aktiv) return null;
     const allein = sichtbar.length === 1;
-    const stuecke = [this._t(allein && gezeigt.programm.wirkung ? "wirkt nicht" : "kein Programm")];
+    const stuecke = [this._t(allein && gezeigt.programm.wirkung ? "Nicht aktiv" : "Kein Programm aktiv")];
     const wahl = this._wahlText(gruppe);
     if (wahl) stuecke.push(wahl);
     const zeile = document.createElement("div");

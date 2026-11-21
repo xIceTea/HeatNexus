@@ -408,7 +408,6 @@
   "unter dem Wert": "onder de waarde",
   "wird ausgeführt …": "wordt uitgevoerd …",
   "wird übertragen …": "wordt verzonden …",
-  "wirkt nicht": "werkt niet",
   "z. B. Übergangszeit": "bijv. tussenseizoen",
   "{titel}: {text} Angenommen ist ein Raum am Sollwert.": "{titel}: {text} Uitgaande van een ruimte op de instelwaarde.",
   "{wahl} von „{von}“ auf „{nach}“ umstellen?": "{wahl} van „{von}“ naar „{nach}“ omzetten?",
@@ -1387,5 +1386,7 @@
   "Tabelle": "Tabel",
   "In der Spur": "In de balk",
   "Zeiten und Werte unter der Spur": "Tijden en waarden onder de balk",
-  "Werte in der Spur; ein Tipp nennt Zeit und Wert": "Waarden in de balk; tikken toont tijd en waarde"
+  "Werte in der Spur; ein Tipp nennt Zeit und Wert": "Waarden in de balk; tikken toont tijd en waarde",
+  "Nicht aktiv": "Niet actief",
+  "Kein Programm aktiv": "Geen programma actief"
 }

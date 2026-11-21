@@ -494,6 +494,8 @@ def test_das_ww_programm_gilt_ausserhalb_von_standby(panel):
     assert karte["wirkung"]["entity"] == "select.betriebswahl"
     assert karte["wirkung"]["muster_nicht"] == "standby"
     assert "Standby" in karte["wirkung"]["hinweis"]
+    # Ohne Namen stünde unter „Zeitprogramme“ nur „Nicht aktiv · Standby“.
+    assert karte["wirkung"]["wahl_name"] == "Betriebswahl"
 
 
 ENGLISCHE_BETRIEBSWAHL = {0: "Stand-by", 1: "Program 1", 2: "Program 2", 3: "Program 3"}
