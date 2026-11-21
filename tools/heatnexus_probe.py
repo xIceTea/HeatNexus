@@ -1850,9 +1850,19 @@ KENNUNGEN = {"39/112": "<mac>", "39/115": "<seriennummer>"}
 KENNUNG_MIN_LAENGE = 6
 
 
-# Felder der Geräteauskunft (`info/deviceinfo`, `config/network`) mit denselben Kennungen.
-AUSKUNFT = {"serialnumber": "<seriennummer>", "checknumber": "<pruefnummer>", "mac": "<mac>"}
-_AUSKUNFT_FELD = re.compile(rb'"(serialnumber|checknumber|mac)"\s*:\s*"([^"<]+)"', re.IGNORECASE)
+# Felder der Geräteauskunft (`info/deviceinfo`, `config/network`) mit Kennungen und Netzangaben.
+AUSKUNFT = {
+    "serialnumber": "<seriennummer>",
+    "checknumber": "<pruefnummer>",
+    "mac": "<mac>",
+    "ip": "<ip>",
+    "subnetmask": "<netzmaske>",
+    "gateway": "<gateway>",
+    "dns": "<dns>",
+}
+_AUSKUNFT_FELD = re.compile(
+    rb'"(' + b"|".join(f.encode() for f in AUSKUNFT) + rb')"\s*:\s*"([^"<]+)"', re.IGNORECASE
+)
 
 
 def auskunft_kennungen(dateien: list[Path]) -> dict[str, str]:
@@ -1870,6 +1880,8 @@ def auskunft_kennungen(dateien: list[Path]) -> dict[str, str]:
 def kennungen_ersatz(structure: list, menus: dict | None) -> dict[str, str]:
     """Kennung -> Platzhalter, in Groß- und Kleinschreibung, MAC auch ohne Trenner."""
     ersatz: dict[str, str] = {}
+    if len(host := str((menus or {}).get("host") or "")) >= KENNUNG_MIN_LAENGE:
+        ersatz[host] = "<ip>"
     neurons = sorted({str(n.get("neuronId")) for n in structure if n.get("neuronId")})
     for lfd, neuron in enumerate(neurons, start=1):
         ersatz[neuron] = f"SN1-{lfd}"
@@ -1900,16 +1912,18 @@ def _ersatzpaare(
 
 def _ersetzen(dateien: list[Path], paare: list[tuple[bytes, bytes]]) -> list[Path]:
     """Jede Kennung in den Dateien durch ihren Platzhalter ersetzen; liefert die geänderten."""
+    # Adressen ebenfalls nur als ganzes Wort: `192.0.2.1` steckt sonst in `192.0.2.15`.
+    nur_wort = {k for k, _ in paare if len(k) < KENNUNG_WORT_BIS or b"." in k}
     muster = [
         (re.compile(rb"(?<![0-9A-Za-z])" + re.escape(k) + rb"(?![0-9A-Za-z])"), p)
         for k, p in paare
-        if len(k) < KENNUNG_WORT_BIS
+        if k in nur_wort
     ]
     geaendert = []
     for datei in dateien:
         vorher = inhalt = datei.read_bytes()
         for bekannt, platzhalter in paare:
-            if len(bekannt) >= KENNUNG_WORT_BIS:
+            if bekannt not in nur_wort:
                 inhalt = inhalt.replace(bekannt, platzhalter)
         for regel, platzhalter in muster:
             inhalt = regel.sub(platzhalter, inhalt)
@@ -1920,7 +1934,7 @@ def _ersetzen(dateien: list[Path], paare: list[tuple[bytes, bytes]]) -> list[Pat
 
 
 def schwaerzen(dateien: list[Path], structure: list, menus: dict | None) -> list[Path]:
-    """Seriennummer, MAC-Adresse und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
+    """Seriennummer, Netzangaben und Knotenkennungen ersetzen; liefert die geänderten Dateien."""
     return _ersetzen(dateien, _ersatzpaare(dateien, structure, menus))
 
 
@@ -1935,7 +1949,7 @@ def schwaerzen_befehl(ordner: Path) -> int:
     geaendert = schwaerzen_ordner(ordner)
     if geaendert:
         sage(f"  ✓ {_t('{} Dateien geschwärzt.', len(geaendert))}")
-        sage(f"    {_t('Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.')}")
+        sage(f"    {_t('Seriennummer, Netzangaben und Knotenkennungen sind ersetzt.')}")
     else:
         sage(f"  ✓ {_t('Der Abzug ist bereits geschwärzt.')}")
     return 0
@@ -2024,8 +2038,8 @@ EN = {
     ),
     "keine Verbindung: {}": "no connection: {}",
     "Port 80 antwortet nicht": "port 80 does not respond",
-    "Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.": (
-        "Serial number, MAC address and node IDs are redacted."
+    "Seriennummer, Netzangaben und Knotenkennungen sind geschwärzt.": (
+        "Serial number, network details and node IDs are redacted."
     ),
     "Fertig.": "Done.",
     "Die Datei liegt bereit:": "The file is ready:",
@@ -2038,8 +2052,8 @@ EN = {
     "Den Ordner gibt es nicht: {}": "The folder does not exist: {}",
     "In {} liegt kein Abzug der Sonde.": "{} contains no probe dump.",
     "{} Dateien geschwärzt.": "{} files redacted.",
-    "Seriennummer, MAC-Adresse und Knotenkennungen sind ersetzt.": (
-        "Serial number, MAC address and node IDs are replaced."
+    "Seriennummer, Netzangaben und Knotenkennungen sind ersetzt.": (
+        "Serial number, network details and node IDs are replaced."
     ),
     "Der Abzug ist bereits geschwärzt.": "The dump is already redacted.",
     "läuft noch, seit {} min": "still running, for {} min",
@@ -2442,7 +2456,7 @@ def _host_lauf(
     _ersetzen(written, ersatz)
     total = sum(len(f["datapoints"]) for f in menus["functions"]) if menus else 0
     print(f"    fertig: {total} Datenpunkte, {probe.requests} Requests, {seconds:.1f} s")
-    sage(f"    {_t('Seriennummer, MAC-Adresse und Knotenkennungen sind geschwärzt.')}")
+    sage(f"    {_t('Seriennummer, Netzangaben und Knotenkennungen sind geschwärzt.')}")
     for path in written:
         print(f"      -> {path}")
 
@@ -2586,13 +2600,22 @@ def _empfehlung_zeigen() -> None:
     sage(f"  {_t('Der Lauf dauert je nach Anlage 15 bis 40 Minuten, manchmal länger.')}")
 
 
-def _abzug_packen(out_dir: Path, dateien: list[Path]) -> Path:
-    """Die Dateien dieses Laufs als ZIP neben den Zielordner legen."""
+def _abzug_packen(
+    out_dir: Path, dateien: list[Path], staemme: dict[str, str] | None = None
+) -> Path:
+    """Die Dateien dieses Laufs als ZIP neben den Zielordner legen.
+
+    `staemme` benennt Dateien im Archiv um, damit die Adresse der Anlage nicht im Namen steht.
+    """
     ziel = out_dir.absolute().parent / f"heatnexus-abzug-{dt.datetime.now():%Y-%m-%d-%H%M}.zip"
     with zipfile.ZipFile(ziel, "w", zipfile.ZIP_DEFLATED) as zip_datei:
         for datei in dateien:
             if datei.is_file():
-                zip_datei.write(datei, f"{out_dir.name}/{datei.name}")
+                name = datei.name
+                for alt, neu in (staemme or {}).items():
+                    if name.startswith(f"{alt}_"):
+                        name = neu + name[len(alt) :]
+                zip_datei.write(datei, f"{out_dir.name}/{name}")
     return ziel
 
 
@@ -2623,7 +2646,8 @@ def _abschluss(results: list[dict], out_dir: Path, log: Path) -> int:
     # Das Protokoll nennt Antworten der Anlage; es bekommt den Ersatz aller Anlagen.
     _ersetzen([log], [paar for r in gut for paar in r.get("ersatz", [])])
     dateien = [Path(f) for r in gut for f in r.get("files", [])] + [log]
-    zip_datei = _abzug_packen(out_dir, dateien)
+    staemme = {safe_name(r["host"]): f"anlage{n}" for n, r in enumerate(gut, start=1)}
+    zip_datei = _abzug_packen(out_dir, dateien, staemme)
     sage(f"\n  ✓ {_t('Fertig.')} {_t('Die Datei liegt bereit:')}")
     sage(f"    {zip_datei}")
     sage(f"  {_t('Hänge sie an dein Issue auf GitHub an.')}")

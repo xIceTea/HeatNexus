@@ -79,7 +79,7 @@ def test_abschluss_packt_die_dateien_des_laufs(probe_modul, tmp_path):
     zip_datei = next(tmp_path.glob("heatnexus-abzug-*.zip"))
     assert rueckgabe == 0
     with zipfile.ZipFile(zip_datei) as inhalt:
-        assert sorted(inhalt.namelist()) == ["probe/192.0.2.10_menus.json", "probe/sonde.log"]
+        assert sorted(inhalt.namelist()) == ["probe/anlage1_menus.json", "probe/sonde.log"]
 
 
 def test_abschluss_ohne_erfolg_packt_nichts(probe_modul, tmp_path):
