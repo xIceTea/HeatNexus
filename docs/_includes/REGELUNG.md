@@ -139,7 +139,7 @@ der Solaranlage kein Beitrag zu erwarten ist.
 
 1. Betriebswahl `16/20/15` auf **4 — Auto mit Zeitprogramm** setzen
 2. Im Zeitprogramm des Puffers die gewünschte Temperatur eintragen, über den
-   Dienst `heatnexus.set_time_program`
+   Aktion `heatnexus.set_time_program`
 3. Am nächsten Morgen zurück auf **1 — Automatikbetrieb**
 
 Damit richtet sich die Ladung nach dem Plan statt nach dem Bedarf. Für eine

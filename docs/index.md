@@ -275,7 +275,7 @@ mitgelieferten Datenbank und wird erkannt, eine Rückmeldung fehlt noch.
         <a href="{{ anleitung }}#oberflaeche">Die Oberfläche<span>Jeder Reiter und was er zeigt</span></a>
         <a href="{{ anleitung }}#karte">Schaubild als Karte<span>Einrichtung und Einstellungen</span></a>
         <a href="{{ anleitung }}#automatik">Automatik<span>Wie sie entscheidet</span></a>
-        <a href="{{ anleitung }}#vorlagen">Vorlagen und Dienste<span>Mit Beispielaufruf</span></a>
+        <a href="{{ anleitung }}#vorlagen">Vorlagen und Aktionen<span>Mit Beispielaufruf</span></a>
       </div>
       <div>
         <h3>Referenz</h3>

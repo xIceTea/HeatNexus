@@ -41,7 +41,7 @@ auseinander: Zwei führten `level` und `enabled_default`, die dritte nicht.
 
 1. **Cache** – RAM (Reload) → Platte (`Store`, Neustart) → vollständige Discovery.
    Verworfen wird der Stand bei geändertem Umfang (Bedienebenen, Zugang,
-   Schalter), bei einem Alter über 30 Tagen oder durch den Dienst
+   Schalter), bei einem Alter über 30 Tagen oder durch die Aktion
    `heatnexus.rediscover`. Eine **neue Fassung der Integration verwirft ihn
    bewusst nicht**: Das kostete nach jeder Aktualisierung einen vollen Neuabzug
    von 30 bis 120 Sekunden. Der gespeicherte Stand wird sofort hergestellt, ein
@@ -290,7 +290,7 @@ von Hand gepflegt.
 | `erkennungsstand.py` | gespeicherte Erkennung je Anlage: Ablage, Umfang, Gültigkeit; Laufzeitdaten |
 | `einlesen.py` | Vollabzug im Hintergrund und die Meldungen dazu |
 | `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
-| `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
+| `dienste.py` | die Aktionen `rediscover` und `dashboard_ausgeben` |
 | `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `badges` (Badges der Kopfzeile), `kesselzustand` (Sonderzustände des Kessels für Kopf und Kopfzeile), `uebersicht` (Reiter Übersicht), `kacheln` (Karten der Übersicht je Anlagenteil nach Rolle), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Statistik), Zusammenbau und Anmeldung in `__init__` |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, `daten` (Aufteilung je Anlage), je Reiter `uebersicht`, `steuerung`, `programme`, `wartung`; `suche` (Entitäten nach Muster), `muster`, `hilfe`, `marken` |
 | `frontend/` | die Oberfläche selbst (siehe unten) |

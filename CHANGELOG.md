@@ -14,17 +14,20 @@ Die Auswertung zeigt fällige Pflege, wärmeres Abgas seit der Reinigung und wie
 
 ### Neu
 
-- Sensoren und eine Plakette im Panel zeigen Verbindung und Antwortzeit jeder Steuerung.
-- Neu ist der Farbsatz „Windhager-Stil“; jeder Satz steht hell und dunkel zur Wahl.
+- Sensoren und eine Plakette zeigen Verbindung und Antwortzeit jeder Steuerung.
+- Ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
+- Farbsatz und Helligkeit sind getrennt wählbar.
+- Der Farbsatz „Windhager-Stil“ kommt hinzu.
 - Erledigte Meldungen lassen sich gesammelt löschen.
-- Unter „Darstellung“ stehen Schaltzeiten wahlweise als Tabelle oder in der Spur.
 - Der Diagnose-Export enthält den Verlauf der letzten 24 Stunden.
-- Die Sonde fragt nur Adresse und Passwort und liefert einen geschwärzten Abzug.
+- Für die Sonde genügen Adresse und Passwort.
+- Kennungen und Netzangaben im Sondenabzug sind geschwärzt.
 
 **Auswertung**
 - Die Auswertung zeigt, wann Reinigung, Hauptreinigung und Wartung fällig sind.
 - Ein Abgaswächter meldet steigende Abgastemperatur, mit O2-Signal auch den Mehrverlust.
-- Ein Brennstoffvorrat je Kessel zeigt die Reichweite; ein Dienst trägt Lieferungen ein.
+- Ein Brennstoffvorrat je Kessel zeigt die Reichweite.
+- Die Aktion „Brennstoff nachgefüllt“ trägt Lieferungen ein.
 - AeroWIN, LogWIN: Tasten tragen Verdampferreinigung, Ascheentleerung und Jahresreinigung ein.
 
 **Anlagenteile**
@@ -35,19 +38,47 @@ Die Auswertung zeigt fällige Pflege, wärmeres Abgas seit der Reinigung und wie
 
 ### Geändert
 
-- Der Reiter „Zeitprogramme“ ist neu gestaltet; ein Tipp auf eine Tageszeile öffnet die Schaltzeiten.
-- Im Fenster „Darstellung“ sind Farbsatz und Helligkeit getrennt wählbar.
+- Der Reiter „Zeitprogramme“ ist neu gestaltet; Schaltzeiten stehen als Tabelle oder im Balken.
+- Die Aktion „Zeitprogramm setzen“ rundet Zeiten auf 15 Minuten und Werte auf 0,5.
+- Die Aktion lehnt doppelte Schaltzeiten und Werte außerhalb der Grenzen ab.
+- Kühlprogramme erscheinen nur, wenn die Kühlung eingestellt ist.
+- Der Zustand eines Zeitprogramms fasst Tage zusammen und nennt Temperaturen mit Einheit.
+- Gleich benannte Geräte tragen in Zeitprogrammen das Modell im Titel.
+- Der Kopf des Panels ist am Handy eine Zeile kürzer.
+- Jedes Feld der Einrichtung und der Optionen trägt eine Erklärung.
+- Die Kaskade erscheint nicht mehr als eigener Kasten im Schaubild.
 - Pufferwerte erscheinen nur am Puffermodul, mit den Namen des Herstellers ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Umschaltventile erscheinen am Puffermodul nur noch mit Automatikkessel.
+- Der LON-Wert „Pufferladung“ heißt „Beladegrad (Bus)“.
 - Zirkulation und Infinity-Heizkreis zeigen nur Werte, die zur Betriebsart passen.
+- Mischermotor und Mischerlaufzeit am Infinity-Heizkreis lassen sich nur noch ablesen.
+- Ein Reparatureintrag nennt Entitäten, die nach dem Update keinen Datenpunkt mehr haben.
+- Die Thermostat-Attribute zur Vorgabe bleiben leer, solange die Steuerung keine Restzeit meldet.
+- AeroWIN, BioWIN, LogWIN: Die Geräteseite nennt das Modell, auch für Infinity PLUS.
 
 ### Behoben
 
-- Das Panel behält beim Zurückgehen Reiter und Anlage und zeigt Kopfleiste und Verlauf sofort.
-- Dashboard-Karten laden eine neue Version ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
-- Schaubild und Kachel zeigen am Puffermodul mit Kesselumschaltung Ladung und Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Im Panel bleiben beim Zurückgehen Reiter und Anlage erhalten.
+- Nach einem Update zeigen Dashboard-Karten die neue Fassung ohne Neuladen der Seite ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
+- Am Puffermodul mit Kesselumschaltung zeigen Schaubild und Kachel Ladung und Ladepumpe ([#58](https://github.com/xIceTea/HeatNexus/issues/58)).
 - Nach einem Update bleiben Entitäten aktiv, auch wenn ein Abruf beim Einlesen scheitert.
-- Abgeschaltete Einträge erscheinen nicht mehr als neu entdeckt.
+- Deaktivierte Einträge der Integration erscheinen nicht mehr als neu entdeckt.
+- Beim Neuladen oder Entladen der Integration erscheinen keine falschen Warnungen mehr.
+- Mit mehreren Anlagen erneuert ein Update die Automations-Vorlagen vollständig.
+- An Pufferspeicher und Kaskade lässt sich das Pufferprogramm über die Betriebswahl aktivieren.
+- Schaltprogramme nehmen über die Aktion nur 0 und 1 an.
+- Der aktuelle Wert vor der ersten Schaltzeit eines Tages folgt dem Vortag.
+- Nach dem Einlesen erscheint die Meldung „HeatNexus ist bereit“ ohne Fehler im Protokoll.
+- Fehler- und Warntexte sind auf hellem Grund lesbar.
+- Die Automatik lässt eine befristete Vorgabe aus App oder Bediengerät unverändert.
+- „Nur Warmwasser“ endet nach Neustart, Ausschalten, Deaktivieren und Entfernen des Eintrags.
+- Der Reiter Automatik zeigt Texte und Zahlen in der Sprache der Anlage.
+- Temperaturen in Übersicht und Steuerung stehen mit dem Dezimalzeichen der Sprache.
+- Am Handy rollt die Hilfe unter „Alle“ nicht mehr waagerecht.
 - Störung 107 erscheint im Klartext.
+- AeroWIN: Zeitprogramme mit Zeitfenstern zeigen die Fenster und sind nur lesbar.
+- AeroWIN: Der Silentmode-Dialog bietet nur Ein und Aus an.
+- BioWIN: Die Stromtarife am Hybridmanager zeigen Tarif 1 bis 5 und sind nur lesbar.
 
 ## [1.16.0-beta.3] - 2026-11-15
 

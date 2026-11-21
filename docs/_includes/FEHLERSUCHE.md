@@ -36,8 +36,8 @@ setzt in den Optionen den Haken *Fortgeschrittene Werte aktivieren*.
 Ebene der mitgelieferten Datenbank steht, gilt als Werksebene und erscheint nur
 mit dieser Auswahl.
 
-**Nach einem Umbau an der Heizung** — neuer Heizkreis, neues Modul — den Dienst
-`heatnexus.rediscover` aufrufen. Er verwirft den gespeicherten Stand und liest
+**Nach einem Umbau an der Heizung** — neuer Heizkreis, neues Modul — die Aktion
+`heatnexus.rediscover` aufrufen. Sie verwirft den gespeicherten Stand und liest
 alles neu.
 
 **Nach einer Aktualisierung ist nichts zu tun.** Der gespeicherte Stand wird
@@ -102,7 +102,7 @@ fällt die Anzeige nach kurzer Zeit auf den echten Stand zurück.
 
 Beide sind Schalter in den Optionen. Das mitgelieferte Dashboard wird bei jedem
 Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten. Wer ein eigenes will,
-ruft den Dienst `heatnexus.dashboard_ausgeben` auf, legt ein neues Dashboard an
+ruft die Aktion `heatnexus.dashboard_ausgeben` auf, legt ein neues Dashboard an
 und fügt den Text im Rohkonfigurations-Editor ein.
 
 ## Meldungen stehen noch da
@@ -110,7 +110,7 @@ und fügt den Text im Rohkonfigurations-Editor ein.
 Die Anzeige einer Störung wird **gelesen, nicht zurückgesetzt**. Verschwindet die
 Meldung an der Anlage, verschwindet auch die Anzeige. Führt das Bediengerät eine
 Meldungsliste, löscht `heatnexus.meldungen_loeschen` dort die erledigten Einträge.
-Sonst leert der Dienst nur die von HeatNexus geführte Liste in Home Assistant.
+Sonst leert die Aktion nur die von HeatNexus geführte Liste in Home Assistant.
 
 ## Etwas melden
 
@@ -135,7 +135,8 @@ python tools/heatnexus_probe.py all 192.0.2.10
 Ohne Argument startet es geführt; unter Windows genügt ein Doppelklick auf
 `tools/probe.cmd`. Die Sonde fragt IP-Adresse und Passwort, liest die Anlage aus
 und legt am Ende eine ZIP-Datei an, die sich direkt an ein Issue hängen lässt.
-Seriennummer, MAC-Adresse und Kennungen der Regler sind darin geschwärzt. Einen
+Seriennummer, Netzangaben wie IP- und MAC-Adresse und die Kennungen der Regler
+sind darin geschwärzt. Einen
 älteren Abzug schwärzt sie nachträglich, wenn man den Ordner `probe` auf
 `probe.cmd` zieht. Die Ausgabe folgt der Systemsprache, Deutsch oder Englisch.
 

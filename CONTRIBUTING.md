@@ -39,7 +39,7 @@ einzelne Test schon beim Anlegen der Ereignisschleife scheitert.
 ## Änderungen an der Erkennung
 
 Nach Änderungen an `const.py`, `device_db.json` oder der Discovery muss der
-gespeicherte Erkennungsstand verworfen werden – über den Dienst
+gespeicherte Erkennungsstand verworfen werden – über die Aktion
 `heatnexus.rediscover`. Eine höhere Version im `manifest.json` genügt **nicht**:
 Sie verwirft den Stand bewusst nicht, sonst kostete jede Aktualisierung beim
 Nutzer einen vollen Neuabzug.

@@ -85,7 +85,7 @@ Alles Weitere steht in der **[Anleitung](https://xicetea.github.io/HeatNexus/ANL
 [Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) ·
 [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) ·
 [Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) ·
-[Vorlagen und Dienste](https://xicetea.github.io/HeatNexus/ANLEITUNG#vorlagen) ·
+[Vorlagen und Aktionen](https://xicetea.github.io/HeatNexus/ANLEITUNG#vorlagen) ·
 [Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
 [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) ·
 [Änderungen](CHANGELOG.md)
