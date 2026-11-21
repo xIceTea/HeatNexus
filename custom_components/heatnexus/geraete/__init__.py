@@ -57,6 +57,10 @@ KANNFELDER = (
     "STATUSZEILEN",
     "BEHAELTER",
     "FUELLGRAD",
+    "BEDINGUNGEN",
+    "TABELLEN",
+    "SPIEGEL",
+    "BEFUND",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -127,6 +131,31 @@ ENTITAETEN: dict[int, list[dict]] = {m.FCT_TYPE: m.ENTITAETEN for m in MODULE if
 # Adressen, die in keiner Menü-Ebene stehen und einzeln gelesen werden.
 EXTRA_OIDS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.EXTRA_OIDS for m in MODULE if m.EXTRA_OIDS}
 
+# Sichtbarkeit nach Einstellung, wo die Herstellerdatei sie nicht führt: Adresse -> Bedingungssätze.
+BEDINGUNGEN: dict[int, dict[str, list[dict]]] = {
+    m.FCT_TYPE: m.BEDINGUNGEN for m in MODULE if getattr(m, "BEDINGUNGEN", None)
+}
+
+
+def satz_trifft(wert: str, satz: dict) -> bool:
+    """Gilt der Satz beim Wert? `values` nennt die Werte der Adresse, `ausser` ihre Gegenwerte."""
+    if "ausser" in satz:
+        return wert not in satz["ausser"]
+    return wert in satz["values"]
+
+
+# Zustandstexte für Adressen ohne Tabelle in der Herstellerdatei, deutsch.
+TABELLEN: dict[str, dict[int, str]] = {
+    adresse: tabelle
+    for m in MODULE
+    for adresse, tabelle in (getattr(m, "TABELLEN", None) or {}).items()
+}
+
+# Adressen, die ein anderer Funktionstyp nur spiegelt: Modul -> {gespiegelt an: Adressen}.
+SPIEGEL: dict[int, dict[int, tuple[str, ...]]] = {
+    m.FCT_TYPE: m.SPIEGEL for m in MODULE if getattr(m, "SPIEGEL", None)
+}
+
 # Begriffe, die eine Baureihe nur über den LON-Bus hergibt.
 NUR_BUS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.NUR_BUS for m in MODULE if m.NUR_BUS}
 
@@ -152,17 +181,20 @@ FUELLGRAD: dict[int, str] = {
     m.FCT_TYPE: m.FUELLGRAD for m in MODULE if getattr(m, "FUELLGRAD", None)
 }
 
+# Was der Befund je Baureihe auswertet: Pflege, Abgaswächter, Brennstoff, Wärmepumpe.
+BEFUND: dict[int, dict] = {m.FCT_TYPE: m.BEFUND for m in MODULE if getattr(m, "BEFUND", None)}
+
 # Wo der Funktionstyp die Bauart des Wärmeerzeugers schon festlegt.
 KESSELARTEN: dict[int, str] = {m.FCT_TYPE: m.KESSELART for m in MODULE if m.KESSELART}
 
 # Bauart je Geräteklasse, wie die Kesselwahl der Steuerung sie zuordnet. Sie
 # gilt für den Kessel selbst; ein PuroWIN verbrennt Hackgut oder Pellets.
 KESSELART_JE_KLASSE: dict[str, str] = {
-    **dict.fromkeys(("1403", "1407", "140a", "140b", "140c", "1415", "1416", "2015"), "pellets"),
+    **dict.fromkeys(("1403", "1407", "140a", "140b", "140c", "1415", "2015"), "pellets"),
     **dict.fromkeys(("1414", "2014"), "hackgut"),
     **dict.fromkeys(("1404", "1409", "2009"), "scheitholz"),
     "1203": "gas_oel",
-    "2016": "waermepumpe",
+    **dict.fromkeys(("1416", "1417", "2016"), "waermepumpe"),
 }
 
 SCHALTPUNKTE: tuple[dict[str, object], ...] = tuple(

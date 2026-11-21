@@ -7,18 +7,28 @@ import {
   BESCHRIFTUNG,
   BESCHRIFTUNG_FARBEN,
   DARSTELLUNG,
-  DARSTELLUNG_STANDARD,
   ERZEUGER_MAX,
+  FARBSAETZE,
   KOPFSTILE,
   PALETTEN,
-  beschriftungGueltig,
   beschriftungLesbar,
   darstellungSpeicher,
+  darstellungWahl,
 } from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
 
 // Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
-const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse"]);
+const KOMPAKT = new Set([
+  "helligkeit", "strang_groesse", "werte_lage", "werte_groesse", "puffer_werte", "verbindung", "verbindung_ms", "zeitprogramme",
+]);
+
+// Satz und Helligkeit werden zusammen gespeichert; ein Satz allein gälte am Server als alter Wert.
+const FARBPAAR = ["farbsatz", "helligkeit"];
+
+/** Die geänderten Schlüssel; ist einer des Farbpaars dabei, kommt der andere mit. */
+function mitFarbpaar(schluessel) {
+  return schluessel.some((s) => FARBPAAR.includes(s)) ? [...new Set([...schluessel, ...FARBPAAR])] : schluessel;
+}
 
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
@@ -32,19 +42,7 @@ export const DarstellungMixin = (Basis) =>
 
     /** Die gespeicherte Wahl, ohne die Vorschau des offenen Fensters. */
     _stilGespeichert(schluessel) {
-      const wert = this._einstellungen()[schluessel] || this._gemerkt(darstellungSpeicher(schluessel));
-      if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
-      const stile = DARSTELLUNG[schluessel];
-      if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
-      return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
-    }
-
-    _gemerkt(speicher) {
-      try {
-        return window.localStorage.getItem(speicher) || "";
-      } catch (err) {
-        return "";
-      }
+      return darstellungWahl(this._einstellungen(), schluessel);
     }
 
     /** Die Darstellung im Browser ablegen; ein gesperrter Speicher darf nichts umwerfen. */
@@ -64,6 +62,11 @@ export const DarstellungMixin = (Basis) =>
     /** Der Farbsatz von Oberfläche und Schaubild. */
     _farbsatz() {
       return this._stilwahl("farbsatz");
+    }
+
+    /** Hell, dunkel oder automatisch nach Home Assistant. */
+    _helligkeit() {
+      return this._stilwahl("helligkeit");
     }
 
     /** Die Marke in der Kopfzeile. */
@@ -200,7 +203,8 @@ export const DarstellungMixin = (Basis) =>
 
       const entwurf = {};
       const wert = (schluessel) => (schluessel in entwurf ? entwurf[schluessel] : this._stilGespeichert(schluessel));
-      const geaendert = () => Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel));
+      const geaendert = () =>
+        mitFarbpaar(Object.keys(entwurf).filter((schluessel) => entwurf[schluessel] !== this._stilGespeichert(schluessel)));
 
       const leiste = document.createElement("div");
       leiste.className = "dialog-leiste";
@@ -223,6 +227,7 @@ export const DarstellungMixin = (Basis) =>
       const nachWahl = [leisteStellen, () => this._vorschauZeigen(entwurf)];
       const wahl = (name, art, schluessel) => {
         const waehlen = (stil) => {
+          if (FARBPAAR.includes(schluessel)) FARBPAAR.forEach((s) => (entwurf[s] = wert(s)));
           entwurf[schluessel] = stil;
           nachWahl.forEach((stellen) => stellen());
         };
@@ -236,14 +241,21 @@ export const DarstellungMixin = (Basis) =>
       nachWahl.push(groesseStellen);
       groesseStellen();
 
-      const zeilen = [
-        [this._t("Farbsatz"), this._t("Gilt für Oberfläche und Schaubild."), wahl(this._t("Farbsatz"), "farben", "farbsatz")],
+      const aussehen = [
+        [
+          this._t("Farbsatz"),
+          this._t("Gilt für Oberfläche und Schaubild."),
+          wahl(this._t("Farbsatz"), "farben", "farbsatz"),
+          this._helligkeitWahl(wahl, wert, nachWahl),
+        ],
         [this._t("Kopfzeile"), this._t("Legt Zeichen und Namen oben links fest."), wahl(this._t("Kopfzeile"), "kopf", "kopf")],
         [this._t("Seitenleiste"), this._t("Legt fest, wie sich die Seitenleiste öffnet."), wahl(this._t("Seitenleiste"), "menue", "menue")],
+      ];
+      const schaubild = [
         [
-          this._t("Schaubild"),
+          this._t("Anordnung"),
           this._t("Legt fest, wie die Anlagenteile bei wenig Platz stehen."),
-          wahl(this._t("Schaubild"), "strang", "strang"),
+          wahl(this._t("Anordnung"), "strang", "strang"),
           groesse,
         ],
         [
@@ -260,10 +272,31 @@ export const DarstellungMixin = (Basis) =>
           }),
         ],
       ];
+      const uebersicht = [
+        [
+          this._t("Verbindung"),
+          this._t("Legt fest, wann die Plakette der Verbindung in der Heizungsübersicht steht."),
+          ...this._verbindungWahl(wahl),
+        ],
+      ];
       if (this._anlagen().length > 1) {
-        zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
+        uebersicht.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
       }
-      zeilen.forEach(([name, text, ...inhalt]) => dialog.appendChild(this._darstellungZeile(name, text, inhalt)));
+      const zeitprogramme = [
+        [
+          this._t("Schaltzeiten"),
+          this._t("Legt fest, ob Zeiten und Werte als Tabelle unter dem Balken oder im Balken stehen."),
+          wahl(this._t("Schaltzeiten"), "zeitprogramme", "zeitprogramme"),
+        ],
+      ];
+      const gruppen = [["Aussehen", aussehen], ["Schaubild", schaubild], ["Übersicht", uebersicht], ["Zeitprogramme", zeitprogramme]];
+      for (const [titel, zeilen] of gruppen) {
+        const kopf = document.createElement("h3");
+        kopf.className = "darstellung-gruppe";
+        kopf.textContent = this._t(titel);
+        dialog.appendChild(kopf);
+        zeilen.forEach(([name, text, ...inhalt]) => dialog.appendChild(this._darstellungZeile(name, text, inhalt)));
+      }
       dialog.appendChild(leiste);
 
       schleier.appendChild(dialog);
@@ -393,16 +426,45 @@ export const DarstellungMixin = (Basis) =>
       return { zeile, zeigen };
     }
 
-    /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */
+    /** Lage und Größe der Werte und die Zahl der Pufferwerte, je mit eigenem Namen. */
     _werteWahl(wahl) {
-      return [
+      return this._unterwahlen(wahl, [
         [this._t("Lage"), "werte_lage"],
         [this._t("Größe"), "werte_groesse"],
-      ].map(([name, schluessel]) => {
+        [this._t("Puffer"), "puffer_werte"],
+      ]);
+    }
+
+    /** Wann die Plakette der Verbindung steht und ob die Antwortzeit dahinter steht. */
+    _verbindungWahl(wahl) {
+      return this._unterwahlen(wahl, [
+        [this._t("Plakette"), "verbindung"],
+        [this._t("Antwortzeit"), "verbindung_ms"],
+      ]);
+    }
+
+    /** Je Paar aus Name und Schlüssel ein Block mit eigener Wahl. */
+    _unterwahlen(wahl, paare) {
+      return paare.map(([name, schluessel]) => {
         const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
         this._unterwahlStellen(block, true);
         return block;
       });
+    }
+
+    /** Hell, dunkel oder automatisch; blass bei „Home Assistant“, das dem eigenen Thema folgt. */
+    _helligkeitWahl(wahl, wert, nachWahl) {
+      const block = this._darstellungUnterwahl(
+        this._t("Folgt dem Design von Home Assistant"),
+        wahl(this._t("Helligkeit"), "helligkeit", "helligkeit")
+      );
+      const stellen = () => {
+        const satz = FARBSAETZE.find((s) => s.schluessel === wert("farbsatz")) || FARBSAETZE[0];
+        this._unterwahlStellen(block, satz.fassungen.length > 1);
+      };
+      nachWahl.push(stellen);
+      stellen();
+      return block;
     }
 
     /** Eine Zeile im Fenster: Name und Erklärung links, die Wahl rechts; schmal untereinander. */
@@ -517,9 +579,12 @@ export const DarstellungMixin = (Basis) =>
       bild.dataset.roh = "";
       if (art === "farben") {
         bild.className = "farb-vorschau";
-        const satz = PALETTEN[schluessel];
+        const { fassungen = [] } = FARBSAETZE.find((s) => s.schluessel === schluessel) || {};
+        const satz = PALETTEN[`${schluessel}_${fassungen.includes("dunkel") ? "dunkel" : fassungen[0]}`];
         if (satz) {
-          bild.style.background = satz["--hn-grund"];
+          // Ein Satz mit beiden Fassungen zeigt sie diagonal geteilt.
+          const hell = fassungen.length > 1 && PALETTEN[`${schluessel}_hell`]["--hn-grund"];
+          bild.style.background = hell ? `linear-gradient(135deg, ${satz["--hn-grund"]} 50%, ${hell} 50%)` : satz["--hn-grund"];
           for (const [klasse, farbe] of [["balken", satz["--hn-akzent"]], ["flaeche", satz["--hn-karte"]]]) {
             const teil = document.createElement("i");
             teil.className = klasse;
@@ -527,8 +592,8 @@ export const DarstellungMixin = (Basis) =>
             bild.appendChild(teil);
           }
         } else {
-          const dunkel = PALETTEN.dunkel["--hn-grund"];
-          const hell = PALETTEN.hell["--hn-grund"];
+          const dunkel = PALETTEN.heatnexus_dunkel["--hn-grund"];
+          const hell = PALETTEN.heatnexus_hell["--hn-grund"];
           bild.style.background = `linear-gradient(135deg, ${dunkel} 50%, ${hell} 50%)`;
         }
         return bild;

@@ -324,15 +324,23 @@ export const AutomatikMixin = (Basis) =>
       const mitAnlage = !anlage && this._anlagen().length > 1;
       return kreise.flatMap((roh) => {
         const kreis = mitAnlage && roh.anlage ? { ...roh, name: `${roh.anlage} · ${roh.name}` } : roh;
-        const titel = kreis.name;
-        if (!kreis.eingerichtet) {
-          return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
-        }
-        return [
-          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 3 },
-          { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
-        ];
+        // Unter „Alle“ steht jeder Kreis in der Sprache seiner Anlage, wie die übrigen Reiter.
+        const eigene = mitAnlage && this._anlagen().find((a) => a.id && a.id === kreis.anlage_id);
+        if (!eigene) return this._automatikKreisKarten(kreis, daten);
+        return this._kartenInSprache(eigene, (sicht) => sicht._automatikKreisKarten(kreis, daten));
       });
+    }
+
+    /** Die Karten eines Heizkreises: Einladung, oder Bereich und Protokoll. */
+    _automatikKreisKarten(kreis, daten) {
+      const titel = kreis.name;
+      if (!kreis.eingerichtet) {
+        return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
+      }
+      return [
+        { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 3 },
+        { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
+      ];
     }
 
     /** Alle Anlagen in einem Raster: Die Automatik arbeitet je Heizkreis, nicht je Anlage. */

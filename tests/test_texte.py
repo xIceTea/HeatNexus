@@ -521,6 +521,28 @@ def test_jeder_dienst_ist_in_jeder_sprache_beschrieben():
         assert vorhanden == erwartet, datei.name
 
 
+def _formularschritte(daten: dict):
+    yield from (("config", s, v) for s, v in daten.get("config", {}).get("step", {}).items())
+    yield from (("options", s, v) for s, v in daten.get("options", {}).get("step", {}).items())
+    for art, unter in daten.get("config_subentries", {}).items():
+        yield from ((art, s, v) for s, v in unter.get("step", {}).items())
+
+
+def test_jedes_formularfeld_ist_in_jeder_sprache_beschrieben():
+    """Jedes Feld eines Einrichtungs-, Options- oder Unterschritts trägt eine Feldbeschreibung."""
+    komponente = ORDNER.parent
+    fehlend = [
+        f"{datei.name}: {bereich}.{schritt}.{feld}"
+        for datei in [komponente / "strings.json", *(komponente / "translations").glob("*.json")]
+        for bereich, schritt, inhalt in _formularschritte(
+            json.loads(datei.read_text(encoding="utf-8"))
+        )
+        for feld in inhalt.get("data", {})
+        if not (inhalt.get("data_description", {}).get(feld) or "").strip()
+    ]
+    assert not fehlend, fehlend
+
+
 def _blaetter(daten: dict, pfad: str = ""):
     for schluessel, wert in daten.items():
         voll = f"{pfad}.{schluessel}" if pfad else schluessel

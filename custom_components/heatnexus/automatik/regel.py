@@ -65,6 +65,10 @@ SONDERBETRIEB = {
     10: "Testbetrieb",
     11: "Kaminkehrer",
 }
+# `2/9` während einer befristeten Vorgabe (`3/4` + `2/10`), gleich wer sie gesetzt hat.
+VORGABE = 4
+# So weit darf die Restzeit an der Steuerung über der eigenen liegen; die Steuerung zählt in ganzen Minuten.
+VORGABE_TOLERANZ_MIN = 5.0
 
 HEIZEN = "heizen"
 NUR_WW = "nur_ww"
@@ -116,6 +120,8 @@ class Lage:
     sonnenuntergang: datetime | None = None
     betriebswahl: int | None = None
     betriebsart: int | None = None
+    # Restzeit `2/10` in Minuten, auf `jetzt` fortgeschrieben; `None` ohne lesbaren Wert.
+    restzeit: float | None = None
     grenze_steuerung: float | None = None
     daten_ok: bool = True
     # Ob eine Wettervorhersage vorliegt, die jünger als sechs Stunden ist.
@@ -291,6 +297,25 @@ def absenkung_laeuft(g: Gedaechtnis, jetzt: datetime) -> bool:
     )
 
 
+def _eigene_vorgabe(lage: Lage, g: Gedaechtnis) -> bool:
+    """Ob die Vorgabe an der Steuerung zur eigenen Absenkung im Gedächtnis passt."""
+    if g.absenkung_art is None or g.absenkung_bis is None:
+        return False
+    if lage.restzeit is None:
+        return True
+    rest = max(dauer(lage.jetzt, g.absenkung_bis).total_seconds() / 60, 0.0)
+    return lage.restzeit <= rest + VORGABE_TOLERANZ_MIN
+
+
+def fremde_vorgabe(lage: Lage, g: Gedaechtnis) -> bool:
+    """Ob an der Steuerung eine befristete Vorgabe läuft, die nicht von der Automatik stammt.
+
+    Ohne lesbare Restzeit zählt die Betriebsart; was nicht zum Gedächtnis passt, gilt als fremd.
+    """
+    laeuft = lage.restzeit > 0 if lage.restzeit is not None else lage.betriebsart == VORGABE
+    return laeuft and not _eigene_vorgabe(lage, g)
+
+
 ZUSTAND_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
 
 
@@ -447,7 +472,7 @@ def _sicherheit(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Ent
     aktionen: list[Aktion] = []
     if g.saison == NUR_WW:
         aktionen.append(Aktion("zurueck", sicherheit=True))
-    if absenkung_laeuft(g, lage.jetzt):
+    if absenkung_laeuft(g, lage.jetzt) and not fremde_vorgabe(lage, g):
         aktionen.append(Aktion("absenkung_ende", sicherheit=True))
     folge = "zurück ins Programm." if aktionen else "die Automatik greift nicht ein."
     seit = lage.jetzt if g.saison == NUR_WW else g.saison_seit
@@ -472,6 +497,20 @@ def _sonderbetrieb(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> 
     if (name := SONDERBETRIEB.get(lage.betriebsart)) is None:
         return None
     return Entscheidung(Zustand.PAUSIERT, (), f"{name} an der Steuerung – keine Eingriffe.", g)
+
+
+def _fremde_vorgabe(
+    lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte
+) -> Entscheidung | None:
+    """Eine fremde Vorgabe läuft ab, ohne dass die Automatik sie ändert; nur Warmwasser endet in `_saison`."""
+    if g.saison == NUR_WW or not fremde_vorgabe(lage, g):
+        return None
+    if lage.restzeit and lage.soll is not None:
+        bis = _uhr(nach_minuten(lage.jetzt, lage.restzeit))
+        text = f"Vorgabe {_zahl(lage.soll)} °C an der Steuerung bis {bis} – keine Eingriffe."
+    else:
+        text = "Vorgabe an der Steuerung – keine Eingriffe."
+    return Entscheidung(Zustand.PAUSIERT, (), text, g)
 
 
 def _fenster(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
@@ -593,7 +632,7 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
     """Der Ausstieg aus nur Warmwasser geht in die Heizpause, wenn sie heute noch passt."""
     if [a.art for a in e.aktionen] != ["zurueck"] or any(a.sicherheit for a in e.aktionen):
         return e
-    if lage.modell_steuert:
+    if lage.modell_steuert or fremde_vorgabe(lage, e.gedaechtnis):
         return e
     # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
     nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
@@ -1122,10 +1161,10 @@ def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
 
 
 def entscheiden(lage: Lage, alt: Gedaechtnis, werte: Werte) -> Entscheidung:
-    """Nach Vorrang: Sicherheit, Pause, Sonderbetrieb, Fenster, Daten, Saison, Vorausschau, Heizpause, Abwesenheit, Sonne."""
+    """Nach Vorrang: Sicherheit, Pause, Sonderbetrieb, fremde Vorgabe, Fenster, Daten, dann die Eingriffe."""
     g = _raeumen(lage, alt)
     soll = soll_bezug(lage, g)
-    for pruefung in (_sicherheit, _pause, _sonderbetrieb, _fenster, _daten):
+    for pruefung in (_sicherheit, _pause, _sonderbetrieb, _fremde_vorgabe, _fenster, _daten):
         if (ergebnis := pruefung(lage, g, soll, werte)) is not None:
             return ergebnis
     for pruefung in (_saison, _vorausschau, _heizpause, _abwesenheit):

@@ -1,6 +1,6 @@
 ![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png?v=2)
 
-[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5)](https://hacs.xyz) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![Lizenz: GPL-3.0](https://img.shields.io/badge/Lizenz-GPL--3.0-blue)](LICENSE)
+[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) [![Marketplace](https://img.shields.io/badge/Marketplace-gelistet-41BDF5)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Installationen](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.heatnexus.total&label=Installationen)](https://analytics.home-assistant.io/) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![Lizenz: GPL-3.0](https://img.shields.io/badge/Lizenz-GPL--3.0-blue)](LICENSE)
 
 **Deutsch** · [English](README.en.md)
 
@@ -22,11 +22,14 @@ zeigt die Anlage als Schaubild.
 - **Automatische Erkennung** aller Funktionen der Anlage, mit Wertebereichen und Auswahlwerten vom Gerät.
 - **Eigene Oberfläche** mit Schaubild, Systemstatus, Steuerung, Wartung, Verlauf und Zeitprogrammen.
 - **Anlagenschaubild** aus den erkannten Teilen, auch als Karte für eigene Dashboards.
-- **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready und Kostenvergleich.
+- **Wärmepumpe und Hybrid**: AeroWIN und Hybridmanager mit Leistung, COP, SG Ready, Silentmode und Kostenvergleich.
 - **Thermostat je Heizkreis** mit befristeter Vorgabe, wie in der Windhager-App.
 - **Automatik je Heizkreis**: Heizpause an milden Tagen, Absenkung bei Sonne, gelerntes Hausmodell.
+- **Pflege, Abgas, Brennstoff und Wärmepumpe**: Die Auswertung zeigt Pflegetermine, meldet wärmeres Abgas seit der Reinigung und sagt, bis wann der Brennstoff reicht. An der Wärmepumpe vergleicht sie den Gütegrad mit dem Stand nach der Verdampferreinigung.
 - **Störungen im Klartext** mit Abhilfe, dazu die Meldungsliste des Bediengeräts.
 - **Anlagenzustand je Steuerung** als Sensor für Benachrichtigungen.
+- **Verbindung und Antwortzeit je Steuerung** als diagnostische Sensoren; ein Reparatureintrag meldet eine überlastete oder gestörte Steuerung.
+- **Reparaturen** in Home Assistant nennen eine nicht erreichbare Steuerung und Anlagenteile, die keine Werte liefern.
 - **Dashboard und sieben Automations-Vorlagen** entstehen aus dem, was die Anlage liefert.
 - **Deutsch, Englisch und Niederländisch** in Oberfläche, Datenpunkten und Störungstexten.
 
@@ -50,6 +53,8 @@ Voraussetzung ist ein Bediengerät mit Netzwerkanschluss im eigenen Netz. Öffne
 | 🧩 | **UML/UMLZ**, B-PLMi, ZSP | Heizkreis, Pufferladung, Pumpen und Relais | 🟢 geprüft |
 | 🧩 | **Infinity PLUS**, Infinity PLUS Wall, Puffer am Kessel | Heizkreis, Warmwasser, Puffer | 🔵 bei Nutzern im Einsatz |
 | 🔥 | **BioWIN Alpha** | Pellets | ⚪ ohne Rückmeldung |
+| 🔥 | **FireWIN**, SilvaWIN, BioWIN XL | Pellets, Scheitholz | ⚪ ohne Rückmeldung |
+| 🔥 | **MinoWIN**, MultiWIN 2 Plus | Gas-Brennwert | ⚪ ohne Rückmeldung |
 | 🧩 | **Solar ES**, Kaskade, Umschaltung, IO5500 | Solar, mehrere Kessel, Energiezähler | ⚪ ohne Rückmeldung |
 | ➕ | Andere Wärmepumpen, Gas- und Ölkessel, E-Heizung | | ⚪ ohne Rückmeldung |
 
@@ -80,7 +85,7 @@ Alles Weitere steht in der **[Anleitung](https://xicetea.github.io/HeatNexus/ANL
 [Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) ·
 [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) ·
 [Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) ·
-[Vorlagen und Dienste](https://xicetea.github.io/HeatNexus/ANLEITUNG#vorlagen) ·
+[Vorlagen und Aktionen](https://xicetea.github.io/HeatNexus/ANLEITUNG#vorlagen) ·
 [Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
 [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) ·
 [Änderungen](CHANGELOG.md)

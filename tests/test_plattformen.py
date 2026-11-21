@@ -241,6 +241,15 @@ def test_number_schreibt_ganze_zahlen_ohne_komma(number_klasse):
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "180")]
 
 
+def test_number_kennt_keine_brennstofflieferung(number_klasse):
+    """Eine Zahl der Anlage trägt das Merkmal Lieferung nicht und keinen Lieferdienst."""
+    from custom_components.heatnexus.befund.brennstoff_entitaeten import VorratMerkmal
+
+    entity, _ = _entitaet(number_klasse, {}, type="number", min=0, max=400, step=1)
+    assert not (entity.supported_features or 0) & VorratMerkmal.LIEFERUNG
+    assert not hasattr(entity, "async_geliefert")
+
+
 def test_number_haelt_die_nachkommastelle_bei_feiner_schrittweite(number_klasse):
     """Behaglichkeit geht in 0,1 K – da darf nicht gerundet werden."""
     entity, koordinator = _entitaet(
@@ -370,6 +379,117 @@ def test_eine_taste_liest_sofort_nach_was_sie_veraendert(oid, press_value, endun
     asyncio.run(entity.async_press())
 
     assert koordinator.nachgefasst == [folgen]
+
+
+_ZUENDOPTION = "/1/65/0/46/100/0"
+_ZUENDBEREIT = {"12/105": ("1",), "2/1": ("3", "6", "13")}
+
+
+def _zuendtaste(werte: dict[str, str]):
+    from custom_components.heatnexus.button import WindhagerButton
+
+    return _entitaet(
+        WindhagerButton,
+        werte,
+        type="button",
+        oid=_ZUENDOPTION,
+        press_value="2",
+        freigabe=_ZUENDBEREIT,
+    )
+
+
+def test_eine_gesperrte_taste_ist_nicht_verfuegbar_und_schreibt_nichts():
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    entity, koordinator = _zuendtaste({"/1/65/0/12/105/0": "0", "/1/65/0/2/1/0": "3"})
+    assert entity.available is False
+    with pytest.raises(WindhagerWriteError):
+        asyncio.run(entity.async_press())
+    assert koordinator.client.geschrieben == []
+
+
+def test_eine_freigegebene_taste_schreibt_ihren_wert():
+    entity, koordinator = _zuendtaste({"/1/65/0/12/105/0": "1", "/1/65/0/2/1/0": "13"})
+    asyncio.run(entity.async_press())
+    assert koordinator.client.geschrieben == [(_ZUENDOPTION, "2")]
+
+
+def test_die_freigabe_meldet_ihre_adressen_zum_abruf_an():
+    entity, _ = _zuendtaste({})
+    assert entity._freigabe_adressen == ["/1/65/0/12/105/0", "/1/65/0/2/1/0"]
+
+
+@pytest.mark.parametrize(
+    ("wert", "an"), [("4096", True), ("8192", False), ("12288", True), ("0", False)]
+)
+def test_ein_bit_der_aktorenmaske_zeigt_seinen_aktor(wert, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor, {"/1/60/0/9/75/0": wert}, type="binary_sensor", bit=12
+    )
+    assert entity.is_on is an
+
+
+@pytest.mark.parametrize(("wert", "an"), [("14", True), ("15", True), ("16", False), ("0", False)])
+def test_ein_ein_aus_wert_auf_einer_aufzaehlung_folgt_seinen_werten(wert, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor, {"/1/60/0/9/75/0": wert}, type="binary_sensor", an_bei=[14, 15]
+    )
+    assert entity.is_on is an
+
+
+@pytest.mark.parametrize(
+    ("werte", "an"),
+    [
+        ({"/1/60/0/2/9/0": "16"}, False),
+        ({"/1/60/0/2/9/0": "16", "/1/60/0/2/2/0": "2"}, True),
+        ({"/1/60/0/2/9/0": "16", "/1/60/0/22/50/0": "40"}, True),
+        ({"/1/60/0/2/9/0": "15", "/1/60/0/22/50/0": "0"}, True),
+        ({"/1/60/0/2/2/0": "0"}, False),
+        ({}, None),
+    ],
+)
+def test_weitere_quellen_schalten_den_ein_aus_wert_zusaetzlich_ein(werte, an):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    entity, _ = _entitaet(
+        WindhagerBinarySensor,
+        werte,
+        type="binary_sensor",
+        oid="/1/60/0/2/9/0",
+        an_bei=[14, 15],
+        oder=[{"adresse": "2/2", "bit": 1}, {"adresse": "22/50"}],
+    )
+    assert entity.is_on is an
+
+
+def _pufferladung(werte):
+    from custom_components.heatnexus.binary_sensor import WindhagerBinarySensor
+
+    return _entitaet(
+        WindhagerBinarySensor,
+        werte,
+        type="binary_sensor",
+        oid="/1/60/0/2/9/0",
+        an_bei=[14, 15],
+        oder=[{"adresse": "2/2", "bit": 1}, {"adresse": "22/50"}],
+    )
+
+
+def test_ohne_eigenen_wert_bleibt_die_entitaet_mit_weiteren_quellen_verfuegbar():
+    entity, koordinator = _pufferladung({"/1/60/0/22/50/0": "40"})
+    koordinator.last_update_success = True
+    assert entity.available is True
+    assert entity.is_on is True
+
+
+def test_nur_adressen_der_anlage_werden_zum_abruf_angemeldet():
+    entity, koordinator = _pufferladung({})
+    koordinator.client.oids = {"/1/60/0/2/9/0", "/1/60/0/2/2/0"}
+    assert entity._oder_im_abruf == ["/1/60/0/2/2/0"]
 
 
 def test_button_ohne_angabe_schreibt_eins():

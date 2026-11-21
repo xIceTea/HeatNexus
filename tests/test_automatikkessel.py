@@ -73,7 +73,7 @@ def client_module():
     return client
 
 
-async def _erkennen(client_module, monkeypatch):
+async def _erkennen(client_module, monkeypatch, program_id: str | None = None):
     from custom_components.heatnexus import geraetetexte
 
     c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
@@ -86,6 +86,7 @@ async def _erkennen(client_module, monkeypatch):
                 "nodeId": 65,
                 "neuronId": "0000LOGWIN01",
                 "name": "LogWIN",
+                **({"programId": program_id} if program_id else {}),
                 "functions": [{"fctId": 0, "fctType": 10, "lock": False, "name": "LogWIN"}],
             }
         ]
@@ -134,3 +135,20 @@ async def test_die_arten_gleichen_denen_der_anderen_kessel(client_module, monkey
     art = c._resolve_auto_type(beschreibungen[BETRIEBSART], MENUE[BETRIEBSART])
     assert art == "enum_sensor"
     assert beschreibungen[BETRIEBSART]["enum"] == "2/59"
+
+
+ZUENDOPTION = f"{PRAEFIX}/46/100/0"
+
+
+@requires_ha()
+async def test_der_logwin_2025_bekommt_die_zuendtasten(client_module, monkeypatch):
+    _, c = await _erkennen(client_module, monkeypatch, "90010020090a0501")
+    tasten = [d for d in c.devices if d.get("oid") == ZUENDOPTION and d["type"] == "button"]
+    assert sorted(d["press_value"] for d in tasten) == ["0", "2", "3", "4"]
+    assert all(d["freigabe"]["12/105"] == ("1",) for d in tasten)
+
+
+@requires_ha()
+async def test_ein_anderer_automatikkessel_bekommt_keine_zuendtasten(client_module, monkeypatch):
+    _, c = await _erkennen(client_module, monkeypatch)
+    assert not [d for d in c.devices if d.get("oid") == ZUENDOPTION]

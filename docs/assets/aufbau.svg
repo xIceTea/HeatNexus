@@ -43,7 +43,7 @@
 <!-- Reihe 2: Koordinator -->
 <rect class="kasten" x="298" y="220" width="654" height="92" rx="12"/>
 <text class="mono" x="322" y="252" style="font-size:15px">__init__.py · coordinator.py</text>
-<text class="klein" x="322" y="274">Einrichtung · Abruf · Erkennungsstand · Dienste</text>
+<text class="klein" x="322" y="274">Einrichtung · Abruf · Erkennungsstand · Aktionen</text>
 <text class="klein" x="322" y="294">verteilt einen Abzug an alle Plattformen</text>
 <text class="marke" x="928" y="248" text-anchor="end">TAKT</text>
 

@@ -327,4 +327,20 @@ bilanz.eigeneSprache = {
   titel: niederlaendisch.shadowRoot.querySelectorAll("h2").map((titel) => titel.textContent),
 };
 
+// Die Wahlen aus „Darstellung“ in der Seitenleiste gelten auch in der Karte.
+const mitDarstellung = new Klasse();
+mitDarstellung.setConfig({ anlage: anlagen[0].id });
+mitDarstellung.hass = {
+  states: {},
+  themes: { darkMode: true },
+  callWS: async (anfrage) =>
+    anfrage.type === "heatnexus/anordnung" ? { einstellungen: { puffer_werte: "drei", werte_lage: "unter" } } : anlagen,
+};
+await mitDarstellung._laden;
+bilanz.darstellung = {
+  puffer: mitDarstellung._stilwahl("puffer_werte"),
+  lage: mitDarstellung._stilwahl("werte_lage"),
+  ohne: karte._stilwahl("puffer_werte"),
+};
+
 console.log(JSON.stringify(bilanz));

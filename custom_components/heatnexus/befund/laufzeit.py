@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -15,25 +15,29 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
-from ..const import BEFUND_UMZUG, DOMAIN
+from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN, POLL_BEFUND
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from ..texte import woerterbuch
-from . import auswertung
+from . import abgaslauf, auswertung, brennstofflauf, pflegelauf, waermepumpelauf
 from .archiv import STUNDE, Archiv
 
 _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 2
+# Je Teil die Fassung seiner Nachrechnung; eine höhere rechnet nur diesen Teil neu.
+NACHRECHNEN = {"stunden": 5, "pflege": 5, "abgas": 5}
+# Statistikarten der Stundenreihen von Heizkreis und Kessel.
+STUNDEN_ARTEN = frozenset({"mean", "state"})
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"
@@ -64,7 +68,13 @@ TITEL = {
 # Zustände der Automatik, in denen sie an der Steuerung etwas verändert hat.
 EINGRIFFE = frozenset({"sonnentag", "nur_ww", "heizpause", "abwesend"})
 # Der Sensor hinter dem Bild eines Befunds; Heizkreis oder Kessel.
-QUELLE = {"vorlauf": HEIZKREIS["vi"], "laufzeit": BH, "energie": LEISTUNG}
+QUELLE = {
+    "vorlauf": HEIZKREIS["vi"],
+    "laufzeit": BH,
+    "energie": LEISTUNG,
+    "abgas": abgaslauf.ABGAS,
+    "arbeitszahl": waermepumpelauf.TAGESZAEHLER["cop"],
+}
 
 
 def befund_holen(hass: HomeAssistant) -> BefundVerwaltung:
@@ -104,7 +114,9 @@ def kessel_geraet(coordinator: Any, prefix: str) -> str | None:
     return next((d["device_id"] for d in geraete if d.get("oid") == oid), None)
 
 
-def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]]]:
+def geraete_der_anlage(
+    coordinator: Any, archiv: Any = None
+) -> list[tuple[str, str, tuple[str, ...]]]:
     """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
     liste = [
         (b["device_id"], b["device_id"], ARTEN_KREIS)
@@ -114,18 +126,33 @@ def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]
     for p in kessel_praefixe(coordinator):
         if (device_id := kessel_geraet(coordinator, p)) is not None:
             liste.append((p, device_id, ARTEN_KESSEL))
-    return liste
+    return liste + abgaslauf.arten(coordinator, archiv) + waermepumpelauf.arten(coordinator)
 
 
-def kennungen(entry: ConfigEntry) -> dict[str, str]:
-    """Kennung -> Domäne aller Befund-Sensoren; ohne sie gälten sie beim Aufräumen als verwaist."""
+def kennungen(entry: ConfigEntry, hass: HomeAssistant | None = None) -> dict[str, str]:
+    """Kennung -> Domäne aller Befund-Entitäten; ohne sie gälten sie beim Aufräumen als verwaist."""
     coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
-    return {
+    verwaltung = hass.data.get(SCHLUESSEL) if hass is not None else None
+    sammler = list(verwaltung.sammler.values()) if verwaltung is not None else []
+
+    def archiv(coordinator: Any) -> Archiv | None:
+        return next((s.archiv for s in sammler if s.coordinator is coordinator), None)
+
+    gefunden: dict[str, str] = {}
+    for coordinator in coordinators.values():
+        gefunden |= _kennungen_der_anlage(coordinator, archiv(coordinator))
+    return gefunden
+
+
+def _kennungen_der_anlage(coordinator: Any, archiv: Any = None) -> dict[str, str]:
+    """Kennung -> Domäne der Befund-Entitäten einer Anlage."""
+    gefunden = {
         unique_id(device_id, art): "sensor"
-        for coordinator in coordinators.values()
-        for _, device_id, arten in geraete_der_anlage(coordinator)
+        for _, device_id, arten in geraete_der_anlage(coordinator, archiv)
         for art in arten
     }
+    gefunden |= pflegelauf.kennungen(coordinator) | brennstofflauf.kennungen(coordinator)
+    return gefunden | waermepumpelauf.kennungen(coordinator)
 
 
 def unique_id(device_id: str, art: str) -> str:
@@ -161,6 +188,8 @@ class Sammler:
         self.anlage_id = anlage_id
         self.archiv = Archiv()
         self.letzter: dict[str, Any] | None = None
+        # Für diese Befund-Entitäten ist `letzter` berechnet.
+        self._gerechnet_fuer: frozenset[str] | None = None
         # Je Heizkreis die Befunde, deren Hinweis zuletzt in der Seitenleiste stand.
         self._gemeldet: dict[str, frozenset[str]] = {}
         # Die übrigen Sammler desselben Eintrags; die Verwaltung setzt sie.
@@ -168,15 +197,19 @@ class Sammler:
         self._host = str(getattr(coordinator, "host", "") or anlage_id)
         self._store = speicher(hass, entry.entry_id, self._host)
         self._aufgabe: Any = None
+        # Seit wann je Kessel Modulation läuft; nur im Speicher, ein Neustart beginnt von vorn.
+        self._abgas_lauf: dict[str, dict[str, Any]] = {}
+        self._wp_lauf: dict[str, float | None] = {}
+        # Adressen, die der Befund selbst zum Lesen angemeldet hat; `beenden` meldet sie ab.
+        self._abruf: set[str] = set()
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
         self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
-        if self.archiv.nachgerechnet < NACHRECHNEN_FASSUNG:
+        if self._veraltet():
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
             )
-        self.aktualisieren()
 
     async def _laden_oder_umziehen(self) -> Any:
         """Das eigene Archiv; nach einem Adresswechsel das der alten Adresse."""
@@ -196,6 +229,10 @@ class Sammler:
     async def beenden(self) -> None:
         if self._aufgabe is not None and not self._aufgabe.done():
             self._aufgabe.cancel()
+        if abmelden := getattr(self._client(), "unregister_poll_oid", None):
+            for oid in self._abruf:
+                abmelden(oid, POLL_BEFUND)
+        self._abruf = set()
         await self._store.async_save(self.archiv.als_dict())
 
     # --- Quellen ------------------------------------------------------------
@@ -204,7 +241,32 @@ class Sammler:
         return [b for c, b in Verwaltung.heizkreise(self.entry) if c is self.coordinator]
 
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
-        return geraete_der_anlage(self.coordinator)
+        return geraete_der_anlage(self.coordinator, self.archiv)
+
+    def _client(self) -> Any:
+        return getattr(self.coordinator, "client", None)
+
+    def _abruf_anmelden(self) -> None:
+        """Was Abgaswächter und Wärmepumpe brauchen, wird gelesen, auch ohne aktivierte Entität."""
+        if (anmelden := getattr(self._client(), "register_poll_oid", None)) is None:
+            return
+        noetig = abgaslauf.abruf(self.coordinator) | waermepumpelauf.abruf(self.coordinator)
+        for oid in sorted(noetig - self._abruf):
+            anmelden(oid, POLL_BEFUND)
+            self._abruf.add(oid)
+
+    def _heizraum(self) -> float | None:
+        """Die Raumluft am Kessel aus dem gewählten Fühler; ohne Wahl oder Wert `None`."""
+        entity_id = (self.entry.options or {}).get(CONF_HEIZRAUM)
+        zustand = self.hass.states.get(entity_id) if entity_id else None
+        if zustand is None:
+            return None
+        messung = raum_messung(entity_id, zustand.state, zustand.attributes)
+        einheit = zustand.attributes.get("unit_of_measurement")
+        if messung is None or einheit not in TemperatureConverter.VALID_UNITS:
+            return messung.ist if messung else None
+        # Siegert rechnet in °C; ein Fühler in °F oder K wird umgerechnet.
+        return TemperatureConverter.convert(messung.ist, einheit, UnitOfTemperature.CELSIUS)
 
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)
@@ -250,6 +312,13 @@ class Sammler:
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
+        pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
+        brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
+        self._abruf_anmelden()
+        self._abgas_lauf = abgaslauf.messen(
+            self.coordinator, self.archiv, self._abgas_lauf, zeit, self._heizraum()
+        )
+        self._wp_lauf = waermepumpelauf.messen(self.coordinator, self.archiv, self._wp_lauf, zeit)
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
@@ -269,7 +338,9 @@ class Sammler:
                 reihen[("k", p)] = {n: e for n, e in felder.items() if e}
         return reihen
 
-    async def _statistik(self, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    async def _statistik(
+        self, ids: set[str], arten: set[str] | None = None
+    ) -> dict[str, list[dict[str, Any]]]:
         from homeassistant.components.recorder import get_instance
         from homeassistant.components.recorder.statistics import (
             statistics_during_period,
@@ -278,7 +349,14 @@ class Sammler:
         ende = dt_util.start_of_local_day()
         anfang = ende - timedelta(days=NACHRECHNEN_TAGE)
         return await get_instance(self.hass).async_add_executor_job(
-            statistics_during_period, self.hass, anfang, ende, ids, "hour", None, {"mean", "state"}
+            statistics_during_period,
+            self.hass,
+            anfang,
+            ende,
+            ids,
+            "hour",
+            None,
+            arten or {"mean", "state"},
         )
 
     def _stunden_aus(
@@ -300,13 +378,48 @@ class Sammler:
             leistung = stunde.pop("leistung", None)
             stunde["kwh"] = leistung / 100 * nenn if leistung is not None and nenn else None
 
+    def _veraltet(self) -> list[str]:
+        """Die Teile, deren Nachrechnung älter ist als ihre aktuelle Fassung."""
+        stand = self.archiv.nachgerechnet
+        return [teil for teil, fassung in NACHRECHNEN.items() if stand.get(teil, 0) < fassung]
+
     async def nachrechnen(self) -> int:
         """Vergangene Stunden aus der Langzeitstatistik; vorhandene bleiben, Räume füllen sich live."""
         if "recorder" not in self.hass.config.components:
             return 0
-        reihen = self._reihen()
-        ids = {e for felder in reihen.values() for e in felder.values()}
-        statistik = await self._statistik(ids) if ids else {}
+        teile = self._veraltet()
+        register = er.async_get(self.hass)
+
+        def entitaet_von(device_id: str, adresse: str) -> str | None:
+            return _entitaet(register, device_id, adresse)
+
+        reihen = self._reihen() if "stunden" in teile else {}
+        pflege = (
+            pflegelauf.offen(self.coordinator, self.archiv, entitaet_von)
+            if "pflege" in teile
+            else []
+        )
+        abgas = abgaslauf.reihen_von(self.coordinator, entitaet_von) if "abgas" in teile else {}
+        ids = {e for felder in (*reihen.values(), *abgas.values()) for e in felder.values()}
+        ids |= {e for _, e in pflege}
+        arten = STUNDEN_ARTEN | (abgaslauf.ARTEN if abgas else frozenset())
+        statistik = await self._statistik(ids, set(arten)) if ids else {}
+        neu = self._stunden_eintragen(reihen, statistik)
+        neu += pflegelauf.eintragen(pflege, self.archiv, statistik, _stunde)
+        neu += abgaslauf.eintragen(
+            abgas, self.archiv, statistik, _stunde, dt_util.now().date().isoformat()
+        )
+        self.archiv.nachgerechnet = self.archiv.nachgerechnet | {t: NACHRECHNEN[t] for t in teile}
+        self.archiv.kuerzen(dt_util.now().date())
+        self.speichern()
+        self.aktualisieren()
+        return neu
+
+    def _stunden_eintragen(
+        self,
+        reihen: dict[tuple[str, str], dict[str, str]],
+        statistik: dict[str, list[dict[str, Any]]],
+    ) -> int:
         neu = 0
         for (art, kennung), felder in reihen.items():
             stunden = self._stunden_aus(art, felder, statistik)
@@ -315,10 +428,6 @@ class Sammler:
             else:
                 self._kessel_stunden(kennung, stunden)
                 neu += self.archiv.nachtragen_kessel(kennung, stunden)
-        self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
-        self.archiv.kuerzen(dt_util.now().date())
-        self.speichern()
-        self.aktualisieren()
         return neu
 
     # --- Auswerten ------------------------------------------------------------
@@ -376,6 +485,11 @@ class Sammler:
             waermequelle_extern=not kessel,
             versorgte_heiztage=versorgt,
             versorgte_eingriffe=self._versorgte_eingriffe() if kessel else {},
+            pflege=pflegelauf.geraete(self.coordinator),
+            abgas=abgaslauf.geraete(self.coordinator, self.archiv),
+            brennstoff=brennstofflauf.geraete(self.coordinator),
+            waermepumpe=waermepumpelauf.geraete(self.coordinator, self.archiv),
+            heute=dt_util.now().date(),
         )
 
     def _versorgte_eingriffe(self) -> dict[str, bool | None]:
@@ -400,7 +514,25 @@ class Sammler:
         except Exception:  # die Sensoren behalten den letzten Stand
             _LOGGER.debug("Befund %s: Auswertung fehlgeschlagen", self.anlage_id, exc_info=True)
             return
+        self._gerechnet_fuer = self._entitaeten()
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
+
+    def nachziehen(self) -> None:
+        """Rechnet neu, wenn die Anlage seit dem letzten Stand andere Befund-Entitäten hat.
+
+        Ein später erkanntes Gerät fehlt sonst im Stand, bis die nächste Stunde schließt.
+        """
+        jetzt = self._entitaeten()
+        if jetzt is not None and jetzt != self._gerechnet_fuer:
+            self.aktualisieren()
+
+    def _entitaeten(self) -> frozenset[str] | None:
+        """Die Kennungen der Befund-Entitäten; None, wenn sie sich nicht ermitteln lassen."""
+        try:
+            return frozenset(_kennungen_der_anlage(self.coordinator, self.archiv))
+        except Exception:  # das Anlegen der Entitäten darf daran nicht scheitern
+            _LOGGER.debug("Befund %s: Kennungen nicht ermittelbar", self.anlage_id, exc_info=True)
+            return None
 
     def melden(self) -> None:
         """Hinweise je Heizkreis in die Seitenleiste, wenn er es will; nur bei geänderten Hinweisen."""
@@ -473,6 +605,7 @@ class BefundVerwaltung:
 
     async def eintrag_starten(self, entry: ConfigEntry) -> None:
         coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
+        neu: list[Sammler] = []
         for coordinator in coordinators.values():
             sammler = Sammler(self.hass, entry, coordinator, self._anlage_id(entry, coordinator))
             sammler.nachbarn = self._nachbarn(sammler)
@@ -483,6 +616,11 @@ class BefundVerwaltung:
                     "Befund %s: Speicher nicht lesbar", sammler.anlage_id, exc_info=True
                 )
             self.sammler[sammler.anlage_id] = sammler
+            neu.append(sammler)
+        # Erst rechnen, wenn alle Sammler eingetragen sind: Dann zählen die Nachbarn mit,
+        # und bestehende Sensoren lesen den Stand über ihren Sammler.
+        for sammler in neu:
+            sammler.aktualisieren()
         async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
         if entry.entry_id not in self._abmelden:
             self._abmelden[entry.entry_id] = async_track_time_interval(self.hass, self._takt, TAKT)

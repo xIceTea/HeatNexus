@@ -24,6 +24,7 @@ from .const import (
     ZAEHLER_WOERTER,
 )
 from .device_db import get_enum
+from .geraete import TABELLEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def enum_texte(beschreibung: dict[str, Any]) -> dict[int, str]:
     if geraet := beschreibung.get("enum_texte"):
         return {int(wert): text for wert, text in geraet.items()}
     schluessel = beschreibung.get("enum") or ""
-    return ENUMS.get(schluessel) or get_enum(schluessel) or {}
+    return ENUMS.get(schluessel) or TABELLEN.get(schluessel) or get_enum(schluessel) or {}
 
 
 def reihenfolge_mischen(basis: list[str], rest: list[str]) -> list[str]:

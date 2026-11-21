@@ -148,4 +148,62 @@ ergebnis.schrift = ["klein", "mittel", "gross", undefined].map((groesse) =>
   panel(groesse ? { werte_groesse: groesse } : {})._schriftmass()
 );
 
+// Die Fläche über dem Bild: Tooltip, Klick und Platz direkt hinter der Zeichnung.
+const zielAngaben = (element, ziel) => {
+  if (!ziel) return null;
+  let geoeffnet = null;
+  const huelle = ziel.parentElement;
+  element.addEventListener("hass-more-info", (ereignis) => {
+    geoeffnet = ereignis.detail.entityId;
+  });
+  ziel.ausloesen("click");
+  const geschwister = huelle.children;
+  return {
+    titel: ziel.title,
+    klickbar: ziel.classList.contains("klickbar"),
+    nachBild: geschwister[geschwister.indexOf(ziel) - 1]?.tagName?.toLowerCase() === "img",
+    geoeffnet,
+  };
+};
+
+// Ein Puffer mit mittlerem Fühler und Beladegrad: zwei oder drei Zahlen nach der Darstellung.
+const puffer = (einstellungen, beladegrad = "38") => {
+  const element = panel(einstellungen);
+  Object.assign(element._hass.states, {
+    "sensor.oben": zustand("60.5", "°C"),
+    "sensor.mitte": zustand("50.7", "°C"),
+    "sensor.unten": zustand("46.6", "°C"),
+    "sensor.bg": zustand(beladegrad, "%"),
+  });
+  const lage = { left: "50%", top: "50%", breite: "20%", hoehe: "40%", ecke: "1%" };
+  const karte = element._schaubild({
+    schema_svg: anlage.schema_svg,
+    schema_breite: 448,
+    schema_werte: [
+      { entity: "sensor.oben", left: "50%", top: "40%", beschriftung: null, name: "oben" },
+      { entity: "sensor.unten", left: "50%", top: "60%", beschriftung: null, name: "unten" },
+    ],
+    schema_werte_mitte: [{ entity: "sensor.mitte", left: "50%", top: "50%", beschriftung: null, name: "mitte" }],
+    schema_schichtung: [
+      { ...lage, oben: "sensor.oben", mitte: "sensor.mitte", unten: "sensor.unten", beladegrad: "sensor.bg",
+        kalt: 25, heiss: 80, grund: "grau", titel: "Puffer" },
+    ],
+    schema_speicher: [
+      { left: "50%", top: "50%", top_drei: "30%", mitte: "sensor.mitte", oben: "sensor.oben",
+        unten: "sensor.unten", laden: null, quellen: [], entnahme: [], kessel: null, toleranz: 0.5, titel: "Puffer" },
+    ],
+  });
+  beobachter.at(-1).melden(448);
+  element._bindungen.forEach((binden) => binden());
+  return {
+    marken: marken(karte),
+    wort: karte.querySelector(".speicher").style.top,
+    titel: karte.querySelector(".schichtung").title,
+    ziel: zielAngaben(element, karte.querySelector(".schichtung-ziel")),
+  };
+};
+ergebnis.puffer_zwei = puffer({ werte_lage: "bild" });
+ergebnis.puffer_drei = puffer({ werte_lage: "bild", puffer_werte: "drei" });
+ergebnis.puffer_ohne_beladegrad = puffer({ werte_lage: "bild" }, "unavailable");
+
 console.log(JSON.stringify(ergebnis));

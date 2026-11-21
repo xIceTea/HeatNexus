@@ -8,9 +8,6 @@
  "custom_components/heatnexus/client/netzwerkvariablen.py::NetzwerkvariablenMixin._nv_deskriptor": {
   "zeilen": 82
  },
- "custom_components/heatnexus/config_flow.py::WindhagerOptionsFlow.async_step_allgemein": {
-  "zeilen": 81
- },
  "custom_components/heatnexus/formulare.py::level_schema": {
   "zeilen": 119
  }

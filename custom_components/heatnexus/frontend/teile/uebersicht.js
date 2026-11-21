@@ -46,6 +46,17 @@ const STUFEN = {
   },
 };
 
+// Plakette der Verbindung; „stabil“ und „sammelt“ nur, wenn „Darstellung“ sie immer zeigt (Standard).
+const VERBINDUNG_IMMER = {
+  stabil: { text: "Stabil", symbol: "mdi:lan-connect", stufe: "" },
+  sammelt: { text: "Sammelt Daten", symbol: "mdi:lan-pending", stufe: "info" },
+};
+const VERBINDUNG = {
+  traege: { text: "Träge", symbol: "mdi:speedometer-slow", stufe: "info" },
+  ueberlastet: { text: "Überlastet", symbol: "mdi:timer-sand", stufe: "fehler" },
+  gestoert: { text: "Gestört", symbol: "mdi:lan-disconnect", stufe: "fehler" },
+};
+
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
   // -------------------------------------------------------------------
@@ -134,7 +145,7 @@ export const UebersichtMixin = (Basis) =>
     // Beide öffnen den Sensor „Anlagenzustand“ mit seinem Verlauf.
     this._klickbar(abzeichen, anlage.anlagenzustand);
     this._klickbar(sonder, anlage.anlagenzustand);
-    karte.append(abzeichen, sonder);
+    karte.append(abzeichen, sonder, this._verbindungAbzeichen(anlage));
     this._bindungen.push(() => {
       const stufe = this._stoerungsstufe(anlage);
       const zustand = kesselzustand(anlage.kesselzustand, (kennung) => this._zustand(kennung));
@@ -169,6 +180,30 @@ export const UebersichtMixin = (Basis) =>
     });
     karte.appendChild(liste);
     return karte;
+  }
+
+  /** Plakette der Verbindung bei Problemen oder, nach Wahl in „Darstellung“, immer; öffnet den Sensor. */
+  _verbindungAbzeichen(anlage) {
+    const knoten = this._abzeichenKnoten("mdi:lan-connect");
+    knoten.classList.add("verbindung");
+    knoten.style.display = "none";
+    if (!anlage.verbindung) return knoten;
+    this._klickbar(knoten, anlage.verbindung);
+    this._bindungen.push(() => {
+      const zustand = this._zustand(anlage.verbindung);
+      const immer = this._stilwahl("verbindung") === "immer";
+      const art = VERBINDUNG[zustand?.state] || (immer ? VERBINDUNG_IMMER[zustand?.state] : null);
+      knoten.style.display = art ? "" : "none";
+      if (!art) return;
+      knoten.classList.toggle("info", art.stufe === "info");
+      knoten.classList.toggle("fehler", art.stufe === "fehler");
+      const ms = zustand.attributes?.abruf_ms;
+      const mitZeit = this._stilwahl("verbindung_ms") !== "aus";
+      const zusatz = mitZeit && ms != null ? ` · ${ms} ms` : "";
+      knoten.lastChild.textContent = `${this._t("Verbindung")}: ${this._t(art.text)}${zusatz}`;
+      knoten.firstChild.setAttribute("icon", art.symbol);
+    });
+    return knoten;
   }
 
 
@@ -253,9 +288,9 @@ export const UebersichtMixin = (Basis) =>
       }
       const ist = zustand.attributes.current_temperature;
       const soll = zustand.attributes.temperature;
-      wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
+      wert.textContent = ist !== undefined && ist !== null ? `${this._zahlText(ist)} °C` : "–";
       sollzeile.textContent =
-        soll !== undefined && soll !== null ? `${soll} °C` : this._t("Raumtemperatur");
+        soll !== undefined && soll !== null ? `${this._zahlText(soll)} °C` : this._t("Raumtemperatur");
 
       const art = zustand.attributes.preset_mode ? this._presetName(zustand) : "";
       const rest = this._restzeit(zustand);

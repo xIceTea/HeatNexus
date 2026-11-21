@@ -17,6 +17,7 @@ from . import verwaiste
 from .automatik.diagnose import auszug
 from .automatik.kennzahlen import schwerster, status
 from .automatik.verwaltung import DATEN_SCHLUESSEL
+from .diagnose_verlauf import tagesverlauf
 from .erkennungsstand import laufzeitdaten
 
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
@@ -104,6 +105,7 @@ async def async_get_config_entry_diagnostics(
         "registrierung": _registrierung(hass, entry, eintrag),
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
         "automatik": automatik_auszug(hass, entry),
+        "verlauf": await tagesverlauf(hass, entry, eintrag["coordinators"]),
     }
     ersatz = {**_kennungen(eintrag), **_seriennummern(eintrag), **nummer_je_host}
     return _anonymisieren(daten, ersatz)
@@ -207,17 +209,24 @@ def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
 
     Auch in zusammengesetzten Kennungen wie ``12345678-0-7-0``.
     """
+    # Längere zuerst: Ein Hostname kann eine kürzere Kennung enthalten. Einmal sortiert,
+    # denn der Tagesverlauf bringt Zehntausende Zeichenketten mit.
+    reihenfolge = [(bekannt, ersatz[bekannt]) for bekannt in sorted(ersatz, key=len, reverse=True)]
+    return _ersetzen(wert, reihenfolge)
+
+
+def _ersetzen(wert: Any, reihenfolge: list[tuple[str, str]]) -> Any:
     if isinstance(wert, dict):
         return {
-            _anonymisieren(schluessel, ersatz): _anonymisieren(inhalt, ersatz)
+            _ersetzen(schluessel, reihenfolge): _ersetzen(inhalt, reihenfolge)
             for schluessel, inhalt in wert.items()
         }
     if isinstance(wert, list):
-        return [_anonymisieren(eintrag, ersatz) for eintrag in wert]
+        return [_ersetzen(eintrag, reihenfolge) for eintrag in wert]
     if isinstance(wert, str):
-        # Längere zuerst: Ein Hostname kann eine kürzere Kennung enthalten.
-        for bekannt in sorted(ersatz, key=len, reverse=True):
-            wert = wert.replace(bekannt, ersatz[bekannt])
+        for bekannt, platzhalter in reihenfolge:
+            if bekannt in wert:
+                wert = wert.replace(bekannt, platzhalter)
         return _MAC_IM_TEXT.sub("<mac>", _ADRESSE_IM_TEXT.sub("<adresse>", wert))
     return wert
 
@@ -271,7 +280,7 @@ def _anlage(coordinator) -> dict[str, Any]:
     beschreibungen = [
         {
             **b,
-            "poll_klasse": client.poll_class.get(b.get("oid")),
+            "poll_klasse": client.abrufklasse(b["oid"]) if b.get("oid") else None,
             # `None` heißt „gehört nicht in den Abrufplan": Zeitprogramme
             # kommen über den object-Endpunkt, eine Taste zeigt nichts an.
             "im_abruf": (
@@ -284,7 +293,7 @@ def _anlage(coordinator) -> dict[str, Any]:
     nach_ebene: dict[str, int] = {}
     nach_klasse: dict[str, int] = {}
     for oid in plan:
-        klasse = client.poll_class.get(oid) or "unbekannt"
+        klasse = client.abrufklasse(oid) or "unbekannt"
         nach_klasse[klasse] = nach_klasse.get(klasse, 0) + 1
     for beschreibung in beschreibungen:
         typ = beschreibung.get("type", "unbekannt")
@@ -324,6 +333,7 @@ def _anlage(coordinator) -> dict[str, Any]:
         # Ohne diese Zahlen ist jede Aussage über das Abrufverhalten geschätzt.
         "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
         "abruf": _abrufzustand(coordinator),
+        "verbindung": coordinator.verbindung.diagnose(),
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
         # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllen die

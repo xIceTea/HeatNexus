@@ -51,8 +51,8 @@ class _Anlage:
         self._pruefen = climate.WindhagerBaseThermostat._ruecksprung_pruefen.__get__(self)
 
     # --- was die echte Entität liefert -------------------------------------
-    def raw_custom_temp_remaining_time(self) -> int:
-        return self._restzeit or 0
+    def raw_custom_temp_remaining_time(self) -> int | None:
+        return self._restzeit
 
     def get_oid_value(self, oid: str):
         if oid == "/2/10/0":

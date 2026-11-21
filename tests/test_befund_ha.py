@@ -57,8 +57,7 @@ class Coordinator:
         return lambda: None
 
 
-@pytest.fixture
-async def anlage(hass):
+async def _starten(hass, koordinator):
     from homeassistant.config_entries import ConfigEntryState
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -67,9 +66,15 @@ async def anlage(hass):
 
     eintrag = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)
     eintrag.add_to_hass(hass)
-    eintrag.runtime_data = {"coordinators": {"192.0.2.10": Coordinator()}}
+    eintrag.runtime_data = {"coordinators": {"192.0.2.10": koordinator}}
     verwaltung = befund_holen(hass)
     await verwaltung.eintrag_starten(eintrag)
+    return verwaltung, eintrag
+
+
+@pytest.fixture
+async def anlage(hass):
+    verwaltung, eintrag = await _starten(hass, Coordinator())
     yield verwaltung, eintrag
     await verwaltung.eintrag_stoppen(eintrag)
 
@@ -108,6 +113,53 @@ async def test_nachrechnen_ohne_recorder_ist_leer(hass, anlage):
     verwaltung, _ = anlage
     sammler = next(iter(verwaltung.sammler.values()))
     assert await sammler.nachrechnen() == 0
+
+
+def _statistik_mitschreiben(hass, sammler, monkeypatch):
+    """Der Sammler sieht einen Recorder und je Adresse eine Entität; jede Abfrage wird notiert."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    hass.config.components.add("recorder")
+    monkeypatch.setattr(laufzeit, "_entitaet", lambda _r, d, a: f"sensor.{d}{a}")
+    abfragen = []
+
+    async def statistik(ids, arten=None):
+        abfragen.append((set(ids), set(arten or ())))
+        return {}
+
+    monkeypatch.setattr(sammler, "_statistik", statistik)
+    return abfragen
+
+
+async def test_nachrechnen_fragt_die_statistik_einmal(hass, anlage, monkeypatch):
+    """Stunden, Pflege und Abgas teilen sich eine Abfrage der Langzeitstatistik."""
+    from custom_components.heatnexus.befund.laufzeit import NACHRECHNEN
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    abfragen = _statistik_mitschreiben(hass, sammler, monkeypatch)
+    await sammler.nachrechnen()
+    assert len(abfragen) == 1
+    ids, arten = abfragen[0]
+    assert "sensor.SN1-1-0/0/42/0" in ids
+    assert {"mean", "min", "max"} <= arten
+    assert sammler.archiv.nachgerechnet == NACHRECHNEN
+
+
+async def test_nachrechnen_nur_fuer_veraltete_teile(hass, anlage, monkeypatch):
+    """Ist nur der Stand des Abgasteils veraltet, fragt die Statistik nur dessen Reihen ab."""
+    from custom_components.heatnexus.befund.laufzeit import NACHRECHNEN
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.nachgerechnet = NACHRECHNEN | {"abgas": 0}
+    abfragen = _statistik_mitschreiben(hass, sammler, monkeypatch)
+    await sammler.nachrechnen()
+    ids, _ = abfragen[0]
+    assert ids == {f"sensor.SN1-1-0/0/{gm}/0" for gm in ("9", "11", "7", "42")}
+    assert sammler.archiv.nachgerechnet == NACHRECHNEN
 
 
 async def test_stoppen_speichert_und_entfernt(hass, anlage):
@@ -177,6 +229,83 @@ async def test_ein_spaeter_bekannter_kessel_bekommt_seine_sensoren(hass, anlage)
     assert "SN1-1-0-befund-starts" in {s.unique_id for s in angelegt}
 
 
+def _plattform(hass, eintrag):
+    """Legt Sensoren wie Home Assistant an; ihr Zustand steht danach in `hass.states`."""
+    from homeassistant.core import callback
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+
+    plattform = MockEntityPlatform(hass, domain="sensor", platform_name="heatnexus")
+    # Ein Gerät hängt nur an einer Entität, deren Plattform einen Config-Eintrag hat.
+    plattform.config_entry = eintrag
+
+    @callback
+    def anlegen(neu):
+        hass.async_create_task(plattform.async_add_entities(neu))
+
+    return anlegen
+
+
+def _wert_je_ziel(monkeypatch):
+    """Jeder Heizkreis und Kessel, den die Auswertung kennt, bekommt einen Befund mit Wert."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    def anlage(_archiv, kontext):
+        ziele = [(k.kennung, "heizgrenze") for k in kontext.heizkreise]
+        ziele += [(k.kennung, "laufzeit") for k in kontext.kessel]
+        abschnitte = [{"kennung": z, "befunde": [{"art": art, "wert": 3.5}]} for z, art in ziele]
+        return {"lage": {}, "abschnitte": abschnitte}
+
+    monkeypatch.setattr(laufzeit.auswertung, "anlage", anlage)
+
+
+def _zustand(hass, kennung):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    return hass.states.get(er.async_get(hass).async_get_entity_id("sensor", DOMAIN, kennung)).state
+
+
+async def test_spaet_bekannter_kessel_zeigt_gleich_seinen_befund(hass, monkeypatch):
+    """Ist der Kessel beim Laden noch unbekannt, zeigen seine Sensoren beim Anlegen den Stand."""
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+    from custom_components.heatnexus.const import SIGNAL_NEUE_ENTITAETEN
+
+    _wert_je_ziel(monkeypatch)
+    koordinator = Coordinator()
+    daten = koordinator.data
+    kessel = daten["devices"].pop()
+    zaehler = {k: daten["oids"].pop(k) for k in list(daten["oids"]) if k.startswith(KESSEL)}
+    verwaltung, eintrag = await _starten(hass, koordinator)
+    try:
+        anmelden(hass, eintrag, _plattform(hass, eintrag))
+        daten["devices"].append(kessel)
+        daten["oids"] |= zaehler
+        async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id))
+        await hass.async_block_till_done()
+        assert _zustand(hass, f"{HEIZKREIS}-befund-heizgrenze") == "3.5"
+        assert _zustand(hass, "SN1-1-0-befund-laufzeit") == "3.5"
+    finally:
+        await verwaltung.eintrag_stoppen(eintrag)
+
+
+async def test_sensoren_finden_ihren_stand_nach_neustart_des_befunds(hass, anlage, monkeypatch):
+    """Startet der Befund neu, während seine Sensoren schon angelegt sind, zeigen sie sofort den Stand."""
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    _wert_je_ziel(monkeypatch)
+    anmelden(hass, eintrag, _plattform(hass, eintrag))
+    await hass.async_block_till_done()
+    await verwaltung.eintrag_stoppen(eintrag)
+    await verwaltung.eintrag_starten(eintrag)
+    await hass.async_block_till_done()
+    assert _zustand(hass, f"{HEIZKREIS}-befund-heizgrenze") == "3.5"
+    assert _zustand(hass, "SN1-1-0-befund-laufzeit") == "3.5"
+
+
 async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):
     from custom_components.heatnexus import verwaiste
 
@@ -207,3 +336,682 @@ async def test_hinweis_erscheint_in_der_seitenleiste_wenn_gewuenscht(hass, anlag
     hinweis["status"] = "unauffaellig"
     sammler.melden()
     assert persistent_notification._async_get_or_create_notifications(hass) == {}
+
+
+def purowin_zaehler(sammler, rest="140"):
+    """Die Fixture-Anlage bekommt am Kessel einen PuroWIN-Restzähler für die Hauptreinigung."""
+    daten = sammler.coordinator.data
+    daten["devices"].append(
+        {
+            "type": "sensor",
+            "id": "SN1-1-1-39-92-0",
+            "device_id": "SN1-1-0",
+            "prefix": KESSEL,
+            "oid": f"{KESSEL}/39/92/0",
+            "fct_type": 25,
+            "device_name": "PuroWIN",
+        }
+    )
+    daten["oids"][f"{KESSEL}/39/92/0"] = rest
+
+
+async def test_pflege_wird_fortgeschrieben_und_erscheint(hass, anlage):
+    """Ein Restwert im Takt landet im Archiv und als Abschnitt der Auswertung."""
+    from datetime import date
+
+    from custom_components.heatnexus.befund import pflegelauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_zaehler(sammler)
+    pflegelauf.messen(sammler.coordinator, sammler.archiv, date(2026, 11, 20))
+    assert sammler.archiv.pflege_eintrag(KESSEL, "hauptreinigung")["rest"] == 140.0
+    assert any(a["art"] == "pflege" for a in sammler.stand()["abschnitte"])
+
+
+async def test_pflege_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
+    from custom_components.heatnexus import verwaiste
+
+    verwaltung, eintrag = anlage
+    purowin_zaehler(next(iter(verwaltung.sammler.values())))
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-1-0-befund-pflege-hauptreinigung"] == "sensor"
+    assert domaenen["SN1-1-0-pflege-hauptreinigung-zuletzt"] == "date"
+
+
+def logwin(sammler):
+    """Die Fixture-Anlage bekommt einen LogWIN (Funktionstyp 10, Geräteklasse 2009)."""
+    sammler.coordinator.data["devices"].append(
+        {
+            "type": "sensor",
+            "id": "SN1-65-0-0-11-0",
+            "device_id": "SN1-65-0",
+            "prefix": "/1/65/0",
+            "oid": "/1/65/0/0/11/0",
+            "fct_type": 10,
+            "device_name": "LogWIN",
+        }
+    )
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1", geraeteklasse={"65": "2009"}
+    )
+
+
+async def test_logwin_taste_traegt_heute_ein(hass, anlage):
+    """Am LogWIN entstehen Termin, Datum und Taste; die Taste trägt heute ein."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import pflege_entitaeten as pe
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    logwin(sammler)
+    tasten, daten, termine = [], [], []
+    pe.anmelden_taste(hass, eintrag, tasten.extend)
+    pe.anmelden_datum(hass, eintrag, daten.extend)
+    pe.anmelden_sensor(hass, eintrag, termine.extend)
+    assert {t.unique_id for t in tasten} == {
+        "SN1-65-0-pflege-asche-erledigt",
+        "SN1-65-0-pflege-jahresreinigung-erledigt",
+    }
+    asche = next(t for t in tasten if "asche" in t.unique_id)
+    asche.hass = hass
+    await asche.async_press()
+    datum = next(d for d in daten if d.unique_id == "SN1-65-0-pflege-asche-zuletzt")
+    datum.hass = hass
+    assert datum.native_value == dt_util.now().date()
+    termin = next(s for s in termine if s.unique_id == "SN1-65-0-befund-pflege-asche")
+    termin.hass = hass
+    assert termin.native_value is not None
+
+
+async def test_purowin_bekommt_keine_taste(hass, anlage):
+    from custom_components.heatnexus.befund import pflege_entitaeten as pe
+
+    verwaltung, eintrag = anlage
+    purowin_zaehler(next(iter(verwaltung.sammler.values())))
+    tasten = []
+    pe.anmelden_taste(hass, eintrag, tasten.extend)
+    assert tasten == []
+
+
+def purowin_abgas(sammler, phase="8"):
+    """Die Fixture-Anlage bekommt am Kessel Abgas, Phase und O2 einer PuroWIN."""
+    daten = sammler.coordinator.data
+    for gnmn in ("0/11", "0/42"):
+        daten["devices"].append(
+            {
+                "type": "sensor",
+                "id": f"SN1-1-1-{gnmn.replace('/', '-')}-0",
+                "device_id": "SN1-1-0",
+                "oid": f"{KESSEL}/{gnmn}/0",
+                "fct_type": 25,
+                "device_name": "PuroWIN",
+            }
+        )
+    daten["oids"] |= {
+        f"{KESSEL}/0/11/0": "120",
+        f"{KESSEL}/0/7/0": "70",
+        f"{KESSEL}/2/1/0": phase,
+        f"{KESSEL}/0/42/0": "7",
+    }
+
+
+async def test_abgas_sammelt_im_ruhigen_betrieb(hass, anlage):
+    """Nach 15 Minuten Modulation landet je Takt eine Messung in den Tagessummen."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in range(0, 25, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    summe = next(iter(tage.values()))["50"]
+    assert summe[1] == 2
+    assert summe[0] == 100.0
+    teil = next(a for a in sammler.stand()["abschnitte"] if a["art"] == "abgas")
+    assert [b["art"] for b in teil["befunde"]] == ["abgas", "abgasverlust"]
+
+
+async def test_abgas_sensoren_entstehen(hass, anlage):
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    purowin_abgas(next(iter(verwaltung.sammler.values())))
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    kennungen = {s.unique_id for s in angelegt}
+    assert {"SN1-1-0-befund-abgas", "SN1-1-0-befund-abgasverlust"} <= kennungen
+
+
+async def test_brennstoff_vorrat_lieferung_und_reichweite(hass, anlage):
+    """Vorrat setzen, Lieferung mit Rest eintragen; die Reichweite folgt aus dem Verbrauch."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    heute = dt_util.now().date()
+    sammler.archiv.tage_k[KESSEL] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    zahlen, sensoren = [], []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    be.anmelden_sensor(hass, eintrag, sensoren.extend)
+    assert {z.unique_id for z in zahlen} == {
+        "SN1-1-0-brennstoffvorrat",
+        "SN1-1-0-brennstoff-heizwert",
+    }
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
+    vorrat.hass = hass
+    await vorrat.async_set_native_value(10.0)
+    assert vorrat.native_unit_of_measurement == "Srm"
+    assert vorrat.native_value == 10.0
+    reichweite = sensoren[0]
+    reichweite.hass = hass
+    assert reichweite.native_value == heute + timedelta(days=56)
+    await vorrat.async_geliefert(menge=20.0, rest=5.0)
+    assert vorrat.native_value == 25.0
+
+
+def test_lieferung_speichert_nur_eigene_werte():
+    """Werte der Anlage bleiben Vorgabe; nur eingetragene Werte stehen im Lager."""
+    from datetime import date
+
+    from custom_components.heatnexus.befund.archiv import Archiv
+    from custom_components.heatnexus.befund.brennstofflauf import liefern
+
+    archiv = Archiv()
+    archiv.lager_setzen(KESSEL, {"fuellmenge": 55.0})
+    vorgabe = {"art": "pellets", "weise": "waerme", "heizwert": 4800.0, "wirkungsgrad": 0.9}
+    liefern(archiv, KESSEL, vorgabe | {"fuellmenge": 50.0}, 5.0, None, date(2026, 11, 20))
+    lager = archiv.lager(KESSEL)
+    assert lager["bestand"] == 5.0
+    assert lager["fuellmenge"] == 55.0
+    assert not {"art", "weise", "heizwert", "wirkungsgrad"} & set(lager)
+
+
+@pytest.fixture
+async def brennstoffzahlen(hass, anlage):
+    """Vorrat und Heizwert auf einer Zahlenplattform von HeatNexus, der Dienst angemeldet."""
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    zahlen = []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    plattform = MockEntityPlatform(hass, domain="number", platform_name="heatnexus")
+    plattform.config_entry = eintrag
+    await plattform.async_add_entities(zahlen)
+    be.dienst_anmelden(plattform)
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
+    heizwert = next(z for z in zahlen if z.unique_id.endswith("heizwert"))
+    return sammler, vorrat, heizwert
+
+
+async def _liefern(hass, ziel: str, **daten) -> None:
+    await hass.services.async_call(
+        "heatnexus", "brennstoff_geliefert", daten, target={"entity_id": ziel}, blocking=True
+    )
+
+
+async def test_nur_der_vorrat_traegt_das_merkmal_lieferung(hass, brennstoffzahlen):
+    from custom_components.heatnexus.befund.brennstoff_entitaeten import VorratMerkmal
+
+    _, vorrat, heizwert = brennstoffzahlen
+    assert vorrat.supported_features & VorratMerkmal.LIEFERUNG
+    assert not (heizwert.supported_features or 0) & VorratMerkmal.LIEFERUNG
+    assert hass.states.get(vorrat.entity_id).attributes["supported_features"] == 1
+
+
+async def test_dienst_traegt_die_lieferung_in_den_vorrat_ein(hass, brennstoffzahlen):
+    sammler, vorrat, _ = brennstoffzahlen
+    await _liefern(hass, vorrat.entity_id, menge=20.0, rest=5.0)
+    assert sammler.archiv.lager(KESSEL)["bestand"] == 25.0
+
+
+async def test_dienst_lehnt_eine_andere_zahl_ab(hass, brennstoffzahlen):
+    """Eine ausdrücklich genannte Zahl ohne Merkmal bricht ab, ohne etwas einzutragen."""
+    from homeassistant.exceptions import ServiceNotSupported
+
+    sammler, _, heizwert = brennstoffzahlen
+    with pytest.raises(ServiceNotSupported):
+        await _liefern(hass, heizwert.entity_id, menge=5.0)
+    assert sammler.archiv.lager(KESSEL) == {}
+
+
+async def test_dienst_an_alle_trifft_nur_den_vorrat(hass, brennstoffzahlen):
+    """Ein breites Ziel überspringt Zahlen ohne Merkmal, statt abzubrechen."""
+    sammler, _, _ = brennstoffzahlen
+    await _liefern(hass, "all", menge=10.0, rest=0.0)
+    assert sammler.archiv.lager(KESSEL)["bestand"] == 10.0
+
+
+async def test_gezaehlter_bestand_korrigiert_die_rechnung(hass, anlage):
+    """Ein gezählter Stand wirkt wie eine Befüllung ohne Menge: Der Rest lernt die Korrektur."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import brennstoff_entitaeten as be
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    heute = dt_util.now().date()
+    sammler.archiv.tage_k[KESSEL] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    seit = (heute - timedelta(days=14)).isoformat()
+    sammler.archiv.lager_setzen(KESSEL, {"bestand": 20.0, "seit": seit})
+    zahlen = []
+    be.anmelden_number(hass, eintrag, zahlen.extend)
+    vorrat = next(z for z in zahlen if z.unique_id.endswith("vorrat"))
+    vorrat.hass = hass
+
+    await vorrat.async_set_native_value(5.0)
+
+    lager = sammler.archiv.lager(KESSEL)
+    assert lager["bestand"] == 5.0
+    assert lager["seit"] == heute.isoformat()
+    assert lager["korrekturen"] == [2.0]
+
+
+async def test_karten_tragen_ihre_eingabe(hass, anlage):
+    """Pflege, Abgas und Wärmepumpe zeigen auf ihr Datum, der Brennstoff auf den Vorrat."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.befund.websocket import _eingabe
+    from custom_components.heatnexus.const import DOMAIN
+
+    register = er.async_get(hass)
+    for domaene, kennung in (
+        ("number", "G1-brennstoffvorrat"),
+        ("date", "G1-pflege-hauptreinigung-zuletzt"),
+        ("date", "G2-pflege-jahresreinigung-zuletzt"),
+        ("date", "G3-verdampfer-zuletzt"),
+    ):
+        register.async_get_or_create(domaene, DOMAIN, kennung)
+    eid = lambda d, k: register.async_get_entity_id(d, DOMAIN, k)  # noqa: E731
+
+    assert _eingabe(register, "G1", "brennstoff") == {
+        "art": "vorrat",
+        "entity": eid("number", "G1-brennstoffvorrat"),
+    }
+    assert _eingabe(register, "G1", "pflege_hauptreinigung")["pflege"] == "hauptreinigung"
+    assert _eingabe(register, "G1", "abgas")["entity"] == eid(
+        "date", "G1-pflege-hauptreinigung-zuletzt"
+    )
+    assert _eingabe(register, "G2", "abgas")["pflege"] == "jahresreinigung"
+    assert _eingabe(register, "G3", "arbeitszahl")["entity"] == eid("date", "G3-verdampfer-zuletzt")
+    assert _eingabe(register, "G1", "abgasverlust") is None
+    assert _eingabe(register, "G9", "pflege_wartung") is None
+
+
+async def test_brennstoff_entitaeten_gelten_nicht_als_verwaist(hass, anlage):
+    from custom_components.heatnexus import verwaiste
+
+    verwaltung, eintrag = anlage
+    purowin_abgas(next(iter(verwaltung.sammler.values())))
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-1-0-brennstoffvorrat"] == "number"
+    assert domaenen["SN1-1-0-befund-brennstoff"] == "sensor"
+
+
+AEROWIN = "/1/60/1"
+
+
+def aerowin(sammler, phase="4"):
+    """Die Fixture-Anlage bekommt eine AeroWIN (fctType 7) mit Tageszählern und Temperaturen.
+
+    Die Außentemperatur `52/12` liegt nur auf der Serviceebene und hat deshalb keine Entität.
+    """
+    daten = sammler.coordinator.data
+    for gnmn in ("52/15", "52/60", "52/87", "52/51", "52/62", "50/26", "50/6"):
+        daten["devices"].append(
+            {
+                "type": "sensor",
+                "id": f"SN1-60-1-{gnmn.replace('/', '-')}-0",
+                "device_id": "SN1-60-1",
+                "oid": f"{AEROWIN}/{gnmn}/0",
+                "fct_type": 7,
+                "device_name": "AeroWIN",
+            }
+        )
+    daten["oids"] |= {
+        f"{AEROWIN}/52/12/0": "2.0",
+        f"{AEROWIN}/52/15/0": "35.0",
+        f"{AEROWIN}/52/60/0": "40.0",
+        f"{AEROWIN}/52/87/0": "4.0",
+        f"{AEROWIN}/52/51/0": "6.0",
+        f"{AEROWIN}/52/62/0": "0.5",
+        f"{AEROWIN}/50/26/0": "60",
+        f"{AEROWIN}/50/6/0": phase,
+    }
+
+
+async def test_waermepumpe_sammelt_im_heizbetrieb(hass, anlage):
+    """Im Heizbetrieb landen Temperaturen und Tageszähler im Archiv, der Abschnitt erscheint."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    for minute in range(0, 15, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    tag = sammler.archiv.wp_tage(AEROWIN)[jetzt.date().isoformat()]
+    assert tag["n"] == 3
+    assert tag["luft"] == 6.0
+    assert tag["vl"] == 105.0
+    assert tag["q"] == 40.0
+    teil = next(a for a in sammler.stand()["abschnitte"] if a["art"] == "waermepumpe")
+    assert teil["befunde"][0]["art"] == "arbeitszahl"
+    assert teil["befunde"][0]["status"] == "sammelt"
+
+
+async def test_waermepumpe_meldet_ihre_adressen_zum_abruf(hass, anlage):
+    """Luft und Vorlauf werden gelesen, auch wenn ihre Entität fehlt oder deaktiviert ist."""
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    angemeldet: list[str] = []
+    abgemeldet: list[str] = []
+    klassen: set[str] = set()
+
+    def anmelden(oid, klasse=None):
+        angemeldet.append(oid)
+        klassen.add(klasse)
+
+    def abmelden(oid, klasse=None):
+        abgemeldet.append(oid)
+        klassen.add(klasse)
+
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1",
+        register_poll_oid=anmelden,
+        unregister_poll_oid=abmelden,
+    )
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    await sammler.messen(jetzt)
+    await sammler.messen(jetzt + timedelta(minutes=5))
+    erwartet = {f"{AEROWIN}{a}" for a in ("/52/12/0", "/52/15/0", "/50/6/0", "/50/26/0")}
+    assert erwartet | {f"{AEROWIN}/52/62/0"} == set(angemeldet)
+    assert len(angemeldet) == 5
+    assert klassen == {"befund"}
+    await sammler.beenden()
+    assert sorted(abgemeldet) == sorted(angemeldet)
+    assert klassen == {"befund"}
+
+
+async def test_waermepumpe_abtauen_zaehlt_nicht(hass, anlage):
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler, phase="6")
+    jetzt = dt_util.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    await sammler.messen(jetzt)
+    assert sammler.archiv.wp_tage(AEROWIN)[jetzt.date().isoformat()]["n"] == 0
+
+
+async def test_waermepumpe_entitaeten(hass, anlage):
+    """Sensor, Datum und Taste entstehen; die Taste setzt den Bezug auf heute."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus import verwaiste
+    from custom_components.heatnexus.befund import waermepumpe_entitaeten as we
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    aerowin(sammler)
+    sensoren, daten, tasten = [], [], []
+    anmelden(hass, eintrag, sensoren.extend)
+    we.anmelden_datum(hass, eintrag, daten.extend)
+    we.anmelden_taste(hass, eintrag, tasten.extend)
+    assert "SN1-60-1-befund-arbeitszahl" in {s.unique_id for s in sensoren}
+    assert [d.unique_id for d in daten] == ["SN1-60-1-verdampfer-zuletzt"]
+    taste = tasten[0]
+    taste.hass = hass
+    await taste.async_press()
+    datum = daten[0]
+    datum.hass = hass
+    assert datum.native_value == dt_util.now().date()
+    domaenen = verwaiste.erwartete_domaenen(eintrag, eintrag.runtime_data["coordinators"])
+    assert domaenen["SN1-60-1-verdampfer-erledigt"] == "button"
+    assert domaenen["SN1-60-1-befund-arbeitszahl"] == "sensor"
+
+
+async def test_heizraum_fuehler_geht_in_den_abgaswaechter(hass, anlage):
+    """Mit gewähltem Fühler Heizraum trägt jeder gültige Takt die Raumluft ein."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.const import CONF_HEIZRAUM
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    hass.config_entries.async_update_entry(
+        eintrag, options={**eintrag.options, CONF_HEIZRAUM: "sensor.heizraum"}
+    )
+    hass.states.async_set("sensor.heizraum", "14.5", {"unit_of_measurement": "°C"})
+    assert sammler._heizraum() == 14.5
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in range(0, 25, 5):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+    summe = next(iter(sammler.archiv.abgas_tage(KESSEL).values()))["50"]
+    assert summe[5:] == [29.0, 2]
+    hass.states.async_set("sensor.heizraum", "59", {"unit_of_measurement": "°F"})
+    assert sammler._heizraum() == pytest.approx(15.0)
+
+
+async def test_abgas_aus_langzeitstatistik_nachgerechnet(hass, anlage):
+    """Stunden mit durchgehender Modulation werden zu Abgastagen; ein vorhandener Tag bleibt."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.abgas_setzen(KESSEL, {"2026-10-02": {"50": [10.0, 1, 0.0, 0, 80.0]}})
+
+    def zeile(stunde, mean, lo=None, hi=None):
+        return {"start": stunde, "mean": mean, "min": lo, "max": hi}
+
+    stunden = ["2026-10-01 10", "2026-10-01 11", "2026-10-02 10"]
+    statistik = {
+        "e.leistung": [zeile(s, 55.0, 50.0, 58.0) for s in stunden],
+        "e.abgas": [zeile(s, 120.0) for s in stunden],
+        "e.kessel": [zeile(s, 70.0) for s in stunden],
+        "e.o2": [zeile(s, 7.0, 6.5, 7.5) for s in stunden],
+    }
+
+    async def holen(ids, arten):
+        assert arten == {"mean", "min", "max"}
+        return statistik
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel", "/0/42/0": "e.o2"}
+    neu = await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    assert neu == 2
+    assert tage["2026-10-01"]["50"][:2] == [1200.0, 24]
+    assert tage["2026-10-02"]["50"][:2] == [10.0, 1]
+    assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {"bis": "2026-10-01"}
+
+
+async def test_nachgerechnete_abgastage_entstehen_neu(hass, anlage):
+    """Ein früher nachgerechneter Tag wird verworfen und aus der Statistik neu gebildet."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    sammler.archiv.abgas_setzen(
+        KESSEL,
+        {
+            "2026-10-01": {"90": [5.0, 12, 0.0, 0, 70.0]},
+            "2026-10-05": {"50": [40.0, 1, 0.0, 0, 110.0]},
+        },
+    )
+    sammler.archiv.pflege_setzen(KESSEL, abgaslauf.NACHGERECHNET, {"bis": "2026-10-01"})
+    statistik = {
+        "e.leistung": [{"start": "2026-10-01 10", "mean": 55.0, "min": 50.0, "max": 58.0}],
+        "e.abgas": [{"start": "2026-10-01 10", "mean": 120.0}],
+        "e.kessel": [{"start": "2026-10-01 10", "mean": 70.0}],
+        "e.o2": [{"start": "2026-10-01 10", "mean": 7.0, "max": 7.5}],
+    }
+
+    async def holen(ids, arten):
+        return statistik
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel", "/0/42/0": "e.o2"}
+    await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    tage = sammler.archiv.abgas_tage(KESSEL)
+    assert set(tage["2026-10-01"]) == {"50"}
+    assert tage["2026-10-01"]["50"][:2] == [600.0, 12]
+    assert tage["2026-10-05"]["50"][:2] == [40.0, 1]
+
+
+def test_waermepumpe_27_waehlt_zaehler_der_ebenen():
+    """Bei fctType 27 gehen Wärme `60/18`, Strom `52/81` und Kühlen `60/19` vor Modbus."""
+    from custom_components.heatnexus.befund import waermepumpelauf
+
+    def d(gnmn: str, unit: str | None = None) -> dict:
+        return {
+            "type": "sensor",
+            "oid": f"/1/61/0/{gnmn}/0",
+            "device_id": "SN1-61-0",
+            "fct_type": 27,
+            "unit": unit,
+        }
+
+    adressen = [("60/18", "MWh"), ("52/59", "MWh"), ("52/81", "kWh"), ("52/50", "h")]
+    adressen += [("60/19", "MWh"), ("52/63", "MWh"), ("50/76", "°C"), ("50/70", None)]
+    koordinator = SimpleNamespace(data={"devices": [d(*a) for a in adressen], "oids": {}})
+    (ziel,) = waermepumpelauf.ziele_von(koordinator)
+    assert (ziel.waerme, ziel.strom, ziel.kuehlen) == ("/60/18/0", "/52/81/0", "/60/19/0")
+    assert ziel.einheit == {"/60/18/0": "MWh", "/52/81/0": "kWh", "/60/19/0": "MWh"}
+    assert "/1/61/0/56/5/0" in waermepumpelauf.abruf(koordinator)
+
+
+async def test_abgas_o2_ohne_entitaet_wird_gelesen(hass, anlage):
+    """O2 liegt nur auf der Serviceebene; der Wächter meldet sie zum Abruf an und rechnet mit ihr."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    daten = sammler.coordinator.data
+    daten["devices"] = [b for b in daten["devices"] if b.get("oid") != f"{KESSEL}/0/42/0"]
+    assert f"{KESSEL}/0/42/0" in abgaslauf.abruf(sammler.coordinator)
+    assert abgaslauf.mit_o2(sammler.coordinator, KESSEL)
+    del daten["oids"][f"{KESSEL}/0/42/0"]
+    assert not abgaslauf.mit_o2(sammler.coordinator, KESSEL)
+
+
+async def test_abgas_o2_ohne_entitaet_bleibt_nach_neustart_bekannt(hass, anlage):
+    """Vor dem ersten Abruf fehlt der O2-Wert; der Mehrverlust gilt aus dem Archiv als bekannt."""
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.befund.archiv import Archiv
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, eintrag = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    daten = sammler.coordinator.data
+    daten["devices"] = [b for b in daten["devices"] if b.get("oid") != f"{KESSEL}/0/42/0"]
+    await sammler.messen(dt_util.now())
+    # Neustart: Das Archiv kommt aus dem Speicher, der O2-Wert ist noch nicht gelesen.
+    sammler.archiv = Archiv.aus_dict(sammler.archiv.als_dict())
+    del daten["oids"][f"{KESSEL}/0/42/0"]
+    sammler.coordinator.client = SimpleNamespace(
+        steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True
+    )
+    registry = er.async_get(hass)
+    verlust = registry.async_get_or_create(
+        "sensor", DOMAIN, "SN1-1-0-befund-abgasverlust", config_entry=eintrag
+    )
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": sammler.coordinator})
+
+    assert registry.async_get(verlust.entity_id).disabled_by is None
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    assert "SN1-1-0-befund-abgasverlust" in {s.unique_id for s in angelegt}
+
+
+async def test_abgas_ohne_o2_statistik_wird_nicht_nachgerechnet(hass, anlage):
+    """Ohne O2 trennt die Statistik Anheizen nicht von Modulation; der Bezug entsteht im Takt."""
+    from custom_components.heatnexus.befund import abgaslauf
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    purowin_abgas(sammler)
+    stunden = ["2026-10-01 10", "2026-10-01 11"]
+    statistik = {
+        "e.leistung": [{"start": s, "mean": 100.0, "min": 100.0, "max": 100.0} for s in stunden],
+        "e.abgas": [{"start": s, "mean": 60.0} for s in stunden],
+        "e.kessel": [{"start": s, "mean": 62.0} for s in stunden],
+    }
+
+    async def holen(ids, arten):
+        return {e: statistik[e] for e in ids if e in statistik}
+
+    namen = {"/0/9/0": "e.leistung", "/0/11/0": "e.abgas", "/0/7/0": "e.kessel"}
+    neu = await abgaslauf.nachrechnen(
+        sammler.coordinator,
+        sammler.archiv,
+        lambda device_id, adresse: namen.get(adresse),
+        holen,
+        lambda z: z["start"],
+        "2026-11-30",
+    )
+    assert neu == 0
+    assert sammler.archiv.abgas_tage(KESSEL) == {}
+    assert sammler.archiv.pflege_eintrag(KESSEL, abgaslauf.NACHGERECHNET) == {}
+
+
+async def test_ein_fehler_bei_den_kennungen_haelt_den_stand_nicht_auf(hass, anlage, monkeypatch):
+    """Auch wenn sich die Befund-Entitäten nicht ermitteln lassen, entsteht der Stand."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+
+    def kaputt(*_args):
+        raise ValueError("Beschreibung unlesbar")
+
+    monkeypatch.setattr(laufzeit, "_kennungen_der_anlage", kaputt)
+    sammler.letzter = None
+    sammler.aktualisieren()
+    assert sammler.letzter is not None
+    sammler.nachziehen()

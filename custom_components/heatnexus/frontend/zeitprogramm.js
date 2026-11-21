@@ -41,12 +41,17 @@ WOCHENTAGE.forEach(([code, text]) => {
   TAG_CODE.set(text.toLowerCase(), code);
 });
 
-// Farben der Balken. Dieselben Werte wie im Anlagenschaubild (`schema.py`),
-// damit kalt und warm überall dasselbe bedeuten.
-const FARBE_KALT = [37, 80, 143];
-const FARBE_WARM = [226, 84, 58];
-const FARBE_AUS = "rgba(255, 255, 255, 0.06)";
-const FARBE_EIN = "var(--hn-akzent, rgb(226, 84, 58))";
+// Farbstufen der Spur von Schiefer über Sand zu Orange; die Werte stehen hell und dunkel in stil/zeitprogramme.js.
+// Gemischt wird in oklab, damit zwischen zwei Stufen kein fremder Ton entsteht.
+const STUFEN = [
+  [14, "--zp-t14"],
+  [17, "--zp-t17"],
+  [19, "--zp-t19"],
+  [21, "--zp-t21"],
+  [23, "--zp-t23"],
+];
+const FARBE_AUS = "var(--zp-aus)";
+const FARBE_EIN = "var(--hn-akzent)";
 
 /** Ohne Wörterbuch bleibt der deutsche Text stehen. */
 const OHNE = (text) => text;
@@ -69,6 +74,31 @@ export function minuten(zeit) {
   const minute = Number(treffer[2]);
   if (stunde > 23 || minute > 59) return null;
   return stunde * 60 + minute;
+}
+
+/** Raster der Anlage: Schaltzeiten in Viertelstunden, Werte in halben Schritten. */
+export const ZEITRASTER = 15;
+export const WERTRASTER = 0.5;
+
+/** Ohne bekannte Grenzen gilt der Bereich des Speicherformats der Anlage. */
+export const FORMATBEREICH = { min: 0, max: 127.5 };
+
+/** Minuten auf die nächste Viertelstunde; die letzte des Tages ist 23:45. */
+export function aufZeitraster(minute) {
+  const gerundet = Math.round(Number(minute) / ZEITRASTER) * ZEITRASTER;
+  return Math.min(TAG_MINUTEN - ZEITRASTER, Math.max(0, gerundet));
+}
+
+/** Ein Wert auf 0,5 gerundet und in den Bereich gesetzt. */
+export function aufWertraster(wert, bereich = FORMATBEREICH) {
+  const gerundet = Math.round(Number(wert) / WERTRASTER) * WERTRASTER;
+  return Math.min(bereich.max, Math.max(bereich.min, gerundet));
+}
+
+/** Der Wertebereich eines Programms aus den Daten des Panels; ohne Angabe der des Formats. */
+export function wertebereich(programm) {
+  const bereich = programm && programm.bereich;
+  return Array.isArray(bereich) && bereich.length === 2 ? { min: bereich[0], max: bereich[1] } : { ...FORMATBEREICH };
 }
 
 /** Minuten seit Mitternacht als "06:30". */
@@ -97,6 +127,8 @@ export function bloeckeLesen(roh) {
         const code = tagCode(tag);
         if (code && !tage.includes(code)) tage.push(code);
       });
+      const auswahl = TAGE.filter((code) => tage.includes(code));
+      if (Array.isArray(block.values)) return { tage: auswahl, punkte: fensterPunkte(block.values), fenster: true };
       const punkte = (block.switchPoints || [])
         .map((punkt) => ({
           zeit: minuten(punkt && punkt.time),
@@ -104,25 +136,77 @@ export function bloeckeLesen(roh) {
         }))
         .filter((punkt) => punkt.zeit !== null && Number.isFinite(punkt.wert))
         .sort((a, b) => a.zeit - b.zeit);
-      return { tage: TAGE.filter((code) => tage.includes(code)), punkte };
+      return { tage: auswahl, punkte };
     });
+}
+
+/**
+ * Die Fenster eines Programms mit Untertyp 7 als Schaltpunkte: Ein im Fenster, sonst Aus.
+ * 00:00–00:00 ist ein unbenutztes Fenster, ein Ende um 00:00 heißt Mitternacht. Der Tag beginnt mit eigenem Wert.
+ */
+export function fensterPunkte(werte) {
+  const spannen = (werte || [])
+    .map((fenster) => ({ von: minuten(fenster && fenster.start), bis: minuten(fenster && fenster.stop) }))
+    .filter(({ von, bis }) => von !== null && bis !== null && von !== bis)
+    .map(({ von, bis }) => ({ von, bis: bis === 0 ? TAG_MINUTEN : bis }))
+    .filter(({ von, bis }) => bis > von)
+    .sort((a, b) => a.von - b.von);
+  const vereint = [];
+  spannen.forEach((spanne) => {
+    const letzte = vereint[vereint.length - 1];
+    if (letzte && spanne.von <= letzte.bis) letzte.bis = Math.max(letzte.bis, spanne.bis);
+    else vereint.push({ ...spanne });
+  });
+  const punkte = [];
+  if (!vereint.length || vereint[0].von > 0) punkte.push({ zeit: 0, wert: 0 });
+  vereint.forEach(({ von, bis }) => {
+    punkte.push({ zeit: von, wert: 1 });
+    if (bis < TAG_MINUTEN) punkte.push({ zeit: bis, wert: 0 });
+  });
+  return punkte;
+}
+
+/** Ein Programm aus Zeitfenstern; es lässt sich nur ansehen. */
+export function istFensterprogramm(bloecke) {
+  return (bloecke || []).some((block) => !!block.fenster);
+}
+
+/**
+ * Die Zeit einer neuen Schaltzeit: eine Stunde nach der spätesten, höchstens 23:45.
+ * Ist sie vergeben, die nächste freie Viertelstunde davor; ohne Schaltzeit 06:00.
+ */
+export function neueSchaltzeit(punkte, start = 6 * 60) {
+  const zeiten = new Set((punkte || []).map((punkt) => punkt.zeit));
+  if (!zeiten.size) return start;
+  const letzte = TAG_MINUTEN - ZEITRASTER;
+  let zeit = Math.min(letzte, Math.max(...zeiten) + 60);
+  for (let schritt = 0; schritt < TAG_MINUTEN / ZEITRASTER; schritt += 1) {
+    if (!zeiten.has(zeit)) return zeit;
+    zeit = zeit >= ZEITRASTER ? zeit - ZEITRASTER : letzte;
+  }
+  return null;
+}
+
+/** Der Wert der spätesten Schaltzeit; 'null' ohne Schaltzeit. */
+export function spaetesterWert(punkte) {
+  const sortiert = [...(punkte || [])].sort((a, b) => a.zeit - b.zeit);
+  return sortiert.length ? sortiert[sortiert.length - 1].wert : null;
 }
 
 /**
  * Aus Schaltpunkten die Abschnitte eines Tages.
  *
  * Ein Schaltpunkt gilt, bis der nächste kommt. **Vor dem ersten gilt der
- * letzte des Tages weiter** – die Anlage schaltet um Mitternacht nicht ab,
- * sondern behält den Wert. Ohne diesen Umlauf stünde jeder Tag bis zur ersten
- * Schaltzeit leer da, obwohl geheizt wird.
+ * letzte Wert des Vortags** – die Anlage schaltet um Mitternacht nicht um.
+ * Ohne Vortagswert gilt der letzte Wert desselben Tags.
  */
-export function abschnitte(punkte) {
+export function abschnitte(punkte, vortag = null) {
   if (!punkte || !punkte.length) return [];
   const sortiert = [...punkte].sort((a, b) => a.zeit - b.zeit);
   const stuecke = [];
   const letzter = sortiert[sortiert.length - 1];
   if (sortiert[0].zeit > 0) {
-    stuecke.push({ von: 0, bis: sortiert[0].zeit, wert: letzter.wert });
+    stuecke.push({ von: 0, bis: sortiert[0].zeit, wert: Number.isFinite(vortag) ? vortag : letzter.wert });
   }
   sortiert.forEach((punkt, stelle) => {
     const bis = stelle + 1 < sortiert.length ? sortiert[stelle + 1].zeit : TAG_MINUTEN;
@@ -131,12 +215,47 @@ export function abschnitte(punkte) {
   return stuecke;
 }
 
+/** Der Block, der einen Wochentag führt; 'undefined' ohne Block. */
+function blockDes(bloecke, tag) {
+  return (bloecke || []).find((eintrag) => eintrag.tage.includes(tag));
+}
+
+/** Der Wert der letzten Schaltzeit eines Tags; 'null' ohne Block oder Schaltzeit. */
+function letzterWert(bloecke, tag) {
+  const block = blockDes(bloecke, tag);
+  if (!block || !block.punkte.length) return null;
+  return [...block.punkte].sort((a, b) => a.zeit - b.zeit)[block.punkte.length - 1].wert;
+}
+
+/** Der letzte Wert des Vortags; 'null', wenn der Vortag keinen Block mit Schaltzeit hat. */
+export function vortagswert(bloecke, tag) {
+  const stelle = TAGE.indexOf(tag);
+  return stelle < 0 ? null : letzterWert(bloecke, TAGE[(stelle + TAGE.length - 1) % TAGE.length]);
+}
+
+/**
+ * Der Vortagswert einer Zeile mit mehreren Tagen; 'null', wenn er nicht an allen Tagen gleich ist.
+ * Ein Tag ohne Vortagswert zählt mit dem letzten Wert seines eigenen Blocks.
+ */
+export function zeilenvortag(bloecke, tage) {
+  const werte = new Set(
+    (tage || []).map((tag) => {
+      const wert = vortagswert(bloecke, tag);
+      return wert !== null ? wert : letzterWert(bloecke, tag);
+    })
+  );
+  return werte.size === 1 ? [...werte][0] : null;
+}
+
+/** Die Abschnitte eines Wochentags mit dem Wert des Vortags vor der ersten Schaltzeit. */
+function tagAbschnitte(bloecke, tag) {
+  const block = blockDes(bloecke, tag);
+  return block ? abschnitte(block.punkte, vortagswert(bloecke, tag)) : [];
+}
+
 /** Zu jedem Wochentag seine Abschnitte – auch zu Tagen ohne Block. */
 export function wochenraster(bloecke) {
-  return TAGE.map((tag) => {
-    const block = (bloecke || []).find((eintrag) => eintrag.tage.includes(tag));
-    return { tag, text: tagText(tag), abschnitte: block ? abschnitte(block.punkte) : [] };
-  });
+  return TAGE.map((tag) => ({ tag, text: tagText(tag), abschnitte: tagAbschnitte(bloecke, tag) }));
 }
 
 // Ein Formatter je Zone: Sein Aufbau kostet, und die Oberfläche fragt bei jeder Aktualisierung.
@@ -178,7 +297,7 @@ export function jetztStelle(bloecke, zeit) {
   if (!zeit || !zeit.tag) return null;
   const block = (bloecke || []).findIndex((eintrag) => eintrag.tage.includes(zeit.tag));
   if (block < 0) return null;
-  const stueck = abschnitte(bloecke[block].punkte).find(
+  const stueck = tagAbschnitte(bloecke, zeit.tag).find(
     (eintrag) => eintrag.von <= zeit.minute && zeit.minute < eintrag.bis
   );
   return stueck ? { block, von: stueck.von } : null;
@@ -186,8 +305,7 @@ export function jetztStelle(bloecke, zeit) {
 
 /** Die Abschnitte des Tages, der zu dieser Zeit gilt; leer, wenn der Tag keinen Block hat. */
 export function tagesabschnitte(bloecke, tag) {
-  const block = (bloecke || []).find((eintrag) => eintrag.tage.includes(tag));
-  return block ? abschnitte(block.punkte) : [];
+  return tagAbschnitte(bloecke, tag);
 }
 
 /** Der Wert, der zu dieser Zeit gilt; 'null' ohne Block für den Tag. */
@@ -255,17 +373,19 @@ export function tagesbereich(tage, t = OHNE) {
  */
 export function blockraster(bloecke, t = OHNE) {
   const zeilen = (bloecke || [])
-    .filter((block) => block.tage.length)
-    .map((block) => ({
+    .map((block, stelle) => ({ block, stelle }))
+    .filter(({ block }) => block.tage.length)
+    .map(({ block, stelle }) => ({
+      stelle,
       text: tagesbereich(block.tage, t),
       tage: [...block.tage],
-      abschnitte: abschnitte(block.punkte),
+      abschnitte: abschnitte(block.punkte, zeilenvortag(bloecke, block.tage)),
       punkte: [...block.punkte].sort((a, b) => a.zeit - b.zeit),
     }));
   const belegt = new Set(zeilen.flatMap((zeile) => zeile.tage));
   const offen = TAGE.filter((tag) => !belegt.has(tag));
   if (offen.length) {
-    zeilen.push({ text: tagesbereich(offen, t), tage: offen, abschnitte: [], punkte: [] });
+    zeilen.push({ stelle: -1, text: tagesbereich(offen, t), tage: offen, abschnitte: [], punkte: [] });
   }
   return zeilen;
 }
@@ -298,9 +418,15 @@ export const SKALEN = {
 // Ohne Angabe des Servers entscheidet der Wert: eine Raumtemperatur über 30 °C gibt es nicht.
 const RAUM_HOECHSTENS = 30;
 
-/** Die Skala eines Programms; Vorlauf ist Wassertemperatur und liegt auf der Wasserskala. */
+/**
+ * Die Skala eines Programms; Vorlauf ist Wassertemperatur und liegt auf der Wasserskala.
+ * Eine bekannte Art geht vor; nur ohne sie entscheiden die Werte, ob es Ein/Aus schaltet.
+ */
 export function skala(bloecke, art) {
-  if (istSchaltprogramm(bloecke)) return { min: 0, max: 1, schalt: true, art: "schalt" };
+  if (art === "tarif") return { ...TARIFSKALA };
+  const bekannt = art === "schalt" || art === "vorlauf" || !!SKALEN[art];
+  const schaltet = art === "schalt" || istFensterprogramm(bloecke) || (!bekannt && istSchaltprogramm(bloecke));
+  if (schaltet) return { min: 0, max: 1, schalt: true, art: "schalt" };
   let name = art === "vorlauf" ? "wasser" : art;
   if (!SKALEN[name]) {
     const werte = (bloecke || []).flatMap((block) => block.punkte.map((punkt) => punkt.wert));
@@ -309,19 +435,44 @@ export function skala(bloecke, art) {
   return { ...SKALEN[name], schalt: false, art: name };
 }
 
-/** Farbe eines Abschnitts: kalt nach warm, bzw. Ein und Aus. */
+// Das Stromtarifprogramm führt 0–4 für Tarif 1–5; aus 0 und 1 allein ist es kein Schaltprogramm.
+const TARIFSKALA = { min: 0, max: 4, schalt: false, tarif: true, art: "tarif" };
+
+// Fünf Tarife, jeder mit eigenem Ton aus stil/zeitprogramme.js.
+const TARIFE = 5;
+
+/** „Tarif 1“ bis „Tarif 5“ für die Werte 0–4 des Stromtarifprogramms. */
+export function tarifText(wert, t = OHNE) {
+  return `${t("Tarif")} ${Math.round(wert) + 1}`;
+}
+
+// Warmwasser 40–60 °C liegt auf denselben Stufen wie ein Raum von 17 bis 23 °C.
+const WASSER = { von: 40, bis: 60, unten: 17, oben: 23 };
+
+/** Farbe eines Abschnitts als CSS-Wert: die Stufe seiner Temperatur, der Ton seines Tarifs, bzw. Ein und Aus. */
 export function farbe(wert, grenzen) {
   if (grenzen.schalt) return wert >= 0.5 ? FARBE_EIN : FARBE_AUS;
-  const spanne = grenzen.max - grenzen.min || 1;
-  const anteil = Math.max(0, Math.min(1, (wert - grenzen.min) / spanne));
-  const kanal = (stelle) =>
-    Math.round(FARBE_KALT[stelle] + (FARBE_WARM[stelle] - FARBE_KALT[stelle]) * anteil);
-  return `rgb(${kanal(0)}, ${kanal(1)}, ${kanal(2)})`;
+  if (grenzen.tarif) return `var(--zp-tarif${Math.min(Math.max(Math.round(wert), 0), TARIFE - 1) + 1})`;
+  const stufe =
+    grenzen.art === "wasser"
+      ? WASSER.unten + ((wert - WASSER.von) / (WASSER.bis - WASSER.von)) * (WASSER.oben - WASSER.unten)
+      : wert;
+  if (stufe <= STUFEN[0][0]) return `var(${STUFEN[0][1]})`;
+  for (let n = 1; n < STUFEN.length; n += 1) {
+    const [oben, obenFarbe] = STUFEN[n];
+    const [unten, untenFarbe] = STUFEN[n - 1];
+    if (stufe < oben) {
+      const anteil = Math.round(((stufe - unten) / (oben - unten)) * 100);
+      return anteil ? `color-mix(in oklab, var(${obenFarbe}) ${anteil}%, var(${untenFarbe}))` : `var(${untenFarbe})`;
+    }
+  }
+  return `var(${STUFEN[STUFEN.length - 1][1]})`;
 }
 
 /** Ein Wert, wie er am Balken und in der Tabelle steht; `t` übersetzt Ein und Aus. */
 export function wertText(wert, grenzen, t = OHNE) {
   if (grenzen.schalt) return wert >= 0.5 ? t("Ein") : t("Aus");
+  if (grenzen.tarif) return tarifText(wert, t);
   const gerundet = Math.round(wert * 10) / 10;
   return `${gerundet} °C`;
 }
@@ -561,7 +712,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
 
     const liste = document.createElement("div");
     liste.className = "zp-spannen";
-    abschnitte(block.punkte).forEach((stueck) => {
+    abschnitte(block.punkte, zeilenvortag(bloecke, block.tage)).forEach((stueck) => {
       const zeile = document.createElement("div");
       zeile.className = "zp-spanne";
       const punktfarbe = document.createElement("i");
@@ -701,11 +852,12 @@ export function editorKnoten(bloecke, optionen = {}) {
     mehr.type = "button";
     mehr.className = "zp-taste";
     mehr.textContent = t("+ Schaltzeit");
-    mehr.disabled = block.punkte.length >= SCHALTPUNKTE_MAX;
+    mehr.disabled = block.punkte.length >= SCHALTPUNKTE_MAX || neueSchaltzeit(block.punkte) === null;
     mehr.addEventListener("click", () => {
-      const letzte = block.punkte[block.punkte.length - 1];
-      const zeit = letzte ? Math.min(TAG_MINUTEN - 60, letzte.zeit + 60) : 6 * 60;
-      block.punkte.push({ zeit, wert: letzte ? letzte.wert : grenzen.schalt ? 1 : 20 });
+      const zeit = neueSchaltzeit(block.punkte);
+      if (zeit === null) return;
+      const wert = spaetesterWert(block.punkte);
+      block.punkte.push({ zeit, wert: wert !== null ? wert : grenzen.schalt ? 1 : 20 });
       zeichnen();
     });
 
@@ -733,12 +885,13 @@ export function editorKnoten(bloecke, optionen = {}) {
 
     const zeit = document.createElement("input");
     zeit.type = "time";
+    zeit.step = String(ZEITRASTER * 60);
     zeit.value = uhrzeit(punkt.zeit);
     zeit.setAttribute("aria-label", t("Schaltzeit"));
     zeit.addEventListener("change", () => {
       const gelesen = minuten(zeit.value);
-      if (gelesen !== null) punkt.zeit = gelesen;
-      else zeit.value = uhrzeit(punkt.zeit);
+      if (gelesen !== null) punkt.zeit = aufZeitraster(gelesen);
+      zeit.value = uhrzeit(punkt.zeit);
     });
 
     // Die Einheit hinter der Uhrzeit. Ohne sie steht im Editor eine nackte
@@ -765,16 +918,17 @@ export function editorKnoten(bloecke, optionen = {}) {
         punkt.wert = Number(wert.value);
       });
     } else {
+      const bereich = grenzen.bereich || FORMATBEREICH;
       wert = document.createElement("input");
       wert.type = "number";
-      wert.step = "0.5";
-      wert.min = "5";
-      wert.max = "40";
+      wert.step = String(WERTRASTER);
+      wert.min = String(bereich.min);
+      wert.max = String(bereich.max);
       wert.value = String(punkt.wert);
       wert.addEventListener("change", () => {
-        const gelesen = Number(wert.value);
-        if (Number.isFinite(gelesen)) punkt.wert = gelesen;
-        else wert.value = String(punkt.wert);
+        const gelesen = wert.value === "" ? NaN : Number(wert.value);
+        if (Number.isFinite(gelesen)) punkt.wert = aufWertraster(gelesen, bereich);
+        wert.value = String(punkt.wert);
       });
     }
     wert.setAttribute("aria-label", t(grenzen.schalt ? "Schaltzustand" : "Solltemperatur"));

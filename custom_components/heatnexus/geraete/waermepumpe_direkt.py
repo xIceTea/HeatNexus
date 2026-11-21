@@ -11,6 +11,8 @@ from . import statuszeilen
 
 FCT_TYPE = 27
 MODELL = "Wärmepumpe"
+# Die Typenliste des Herstellers führt die Klasse 2016 als AeroWIN Deluxe.
+MODELLE_JE_KLASSE: dict[str, str] = {"2016": "AeroWIN Deluxe Wärmepumpe"}
 # Hinter den Kesseln: Am Hybridmanager kommt der Kessel von links, die Wärmepumpe von rechts.
 RANG = 11
 SYMBOL = "mdi:heat-pump"
@@ -32,12 +34,13 @@ EXTRA_OIDS: tuple[str, ...] = (
     "56/29",
     "59/45",
     "59/71",
+    "59/79",
 )
 STATUSZEILEN = statuszeilen.WAERMEPUMPE
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+NAMEN: dict[str, str] = {"59/79": "PV-Überschuss"}
 
 NUR_BUS: tuple[str, ...] = ()
 
@@ -53,3 +56,20 @@ NUR_ANZEIGE: tuple[str, ...] = (
     "59/71",  # Anzahl Starts
 )
 ENTITAETEN: list[dict] = []
+
+# Was der Befund für den Gütegrad liest; Phase 4 ist Heizbetrieb. Es gibt nur Gesamtzähler;
+# je Größe gilt die erste gemeldete Adresse.
+BEFUND = {
+    "waermepumpe": {
+        "vorlauf": "/50/76/0",
+        "phase": "/50/70/0",
+        "phasen_heizen": (4,),
+        "luft": "/52/12/0",
+        "leistung": "/50/26/0",
+        "eheizung": "/56/5/0",
+        "waerme": ("/60/18/0", "/52/59/0"),
+        "strom": ("/52/81/0", "/52/120/0"),
+        "kuehlen": ("/60/19/0", "/52/63/0"),
+        "bh": "/52/50/0",
+    }
+}

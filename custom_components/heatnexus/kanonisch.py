@@ -102,6 +102,7 @@ KANONISCH: dict[str, str] = {
     "0/16": "buffer_bottom",
     "0/17": "buffer_middle",
     "1/22": "buffer_charge_pump",
+    "23/87": "buffer_charge_level",
     # Solar
     "0/14": "collector_temperature",
     "58/56": "collector_temperature",
@@ -189,6 +190,7 @@ GESCHWISTER: dict[tuple[str, str | None], str] = {
     ("9/75", "kaminkehrer_aus"): "chimney_sweep_stop",
     ("9/75", "befuellen"): "storage_fill",
     ("9/75", "befuellen_aus"): "storage_fill_stop",
+    ("2/9", "pufferladung"): "buffer_charging",
 }
 
 

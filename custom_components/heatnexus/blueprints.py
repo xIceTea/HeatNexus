@@ -13,6 +13,7 @@ wird sie weder überschrieben noch entfernt.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import hashlib
 import json
@@ -28,6 +29,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 _QUELLE = Path(__file__).parent / "blueprints" / "automation" / DOMAIN
+_SPERRE = f"{DOMAIN}_vorlagen_sperre"
 _MARKE = ".heatnexus-version"
 # Hashes aller bisher ausgelieferten Vorlagen; gilt, solange die Marke noch keine Hashes trägt.
 _AUSGELIEFERT = Path(__file__).parent / "blueprints" / "ausgeliefert.json"
@@ -153,10 +155,13 @@ async def async_install_blueprints(
     ziel = Path(hass.config.path("blueprints", "automation", DOMAIN))
     automationen = Path(hass.config.path("automations.yaml"))
     wahl = None if gewaehlt is None else set(gewaehlt)
+    # Mehrere Einträge starten gleichzeitig; ohne Sperre läse einer die halb geschriebene Datei des anderen.
+    sperre = hass.data.setdefault(_SPERRE, asyncio.Lock())
     try:
-        geschrieben, entfernt, uebersprungen = await hass.async_add_executor_job(
-            _kopieren, ziel, version, wahl, automationen
-        )
+        async with sperre:
+            geschrieben, entfernt, uebersprungen = await hass.async_add_executor_job(
+                _kopieren, ziel, version, wahl, automationen
+            )
     except OSError as err:
         _LOGGER.warning("Automations-Vorlagen konnten nicht abgelegt werden: %s", err)
         return

@@ -29,7 +29,8 @@ type: custom:heatnexus-schaubild
 | Feld | Bedeutung | Vorgabe |
 |---|---|---|
 | `anlage` | Kennung oder Name der Anlage, `alle` für sämtliche | die erste gefundene |
-| `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume` | `auto` |
+| `farbsatz` | `home_assistant`, `heatnexus`, `terrakotta`, `petrol`, `pflaume`, `windhager` | `home_assistant` |
+| `helligkeit` | `auto`, `hell`, `dunkel`; ohne Wirkung bei `home_assistant` | `auto` |
 | `schrift` | `klein`, `normal`, `gross`, `sehr_gross` | `normal` |
 | `animation` | Pumpen und Leitungen bewegen sich | `true` |
 | `pumpen` | Pumpen stehen als Marke im Bild | `true` |
@@ -46,10 +47,11 @@ type: custom:heatnexus-schaubild
 `auto` folgt dem Erscheinungsbild von Home Assistant. Die Schrift der Marken
 wächst mit der Kartenbreite; `schrift` verschiebt das Maß nach oben oder unten.
 
-![Dieselbe Anlage in allen fünf Farbsätzen: Dunkel, Hell, Terrakotta, Petrol, Pflaume](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif?v=2)
+![Dieselbe Anlage in jedem Farbsatz, dunkel und hell: HeatNexus, Terrakotta, Petrol, Pflaume, Windhager-Stil](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif?v=3)
 
-Ein Farbsatz färbt Gehäuse, Rahmen und Schrift. Vor- und Rücklauf bleiben in
-jedem Satz rot und blau — das ist eine Auskunft, keine Gestaltung.
+Ein Farbsatz färbt Gehäuse, Rahmen und Schrift, die Helligkeit wählt seine
+dunkle oder helle Fassung. Vor- und Rücklauf bleiben in jedem Satz rot und
+blau — das ist eine Auskunft, keine Gestaltung.
 
 Alles davon lässt sich im Karteneditor einstellen, YAML ist nicht nötig.
 
@@ -144,8 +146,6 @@ nachgeladen wird.
 - **„Diese Anlage gibt es nicht mehr."** – Der Wert unter `anlage` passt zu
   keiner vorhandenen Anlage. Ohne Angabe nimmt die Karte die erste.
 
-Nach einer Aktualisierung von HeatNexus zeigt eine bereits offene Seite
-weiterhin die alte Fassung der Karte: Ein Browser nimmt einen Kartentyp je
-Seitensitzung nur einmal an, und der Typ heißt in jeder Fassung gleich – er
-steht so in den Dashboards der Nutzer. Ein Neuladen mit Strg+Umschalt+R
-(macOS: Cmd+Umschalt+R) holt die neue.
+Nach einer Aktualisierung von HeatNexus lädt eine bereits offene Seite die
+neue Fassung der Karten selbst nach. Gelingt das nicht, steht über jeder Karte
+der Hinweis „HeatNexus wurde aktualisiert.“ mit der Taste „Neu laden“.

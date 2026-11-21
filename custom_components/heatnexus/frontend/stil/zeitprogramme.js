@@ -1,5 +1,9 @@
 /** Stil: Zeitprogramme: Wochenraster und Editor (teile/zeitprogramme.js). Zusammengesetzt in `stil.js`. */
 
+// Schwarz oder Weiß, je nachdem, was vor dem Grund mindestens 4,5:1 hält: Leuchtdichte nach WCAG, Grenze 0,18.
+const POL = "clamp(0, (0.18 - (0.2126 * r + 0.7152 * g + 0.0722 * b)) * 100000, 1)";
+const gegenpol = (grund) => `color(from ${grund} srgb-linear ${POL} ${POL} ${POL})`;
+
 export const ZEITPROGRAMME = `
   /* --- Zeitprogramme: Wochenraster und Editor -------------------------- */
   /* Die Balken sitzen in Prozent der Spur, nicht in Bildpunkten: Die Karte
@@ -85,70 +89,168 @@ export const ZEITPROGRAMME = `
   .zeitraster-zeile.vorlauf .tag { font-weight: 400; opacity: 0.55; }
   .zeitraster-abschnitt { margin: 10px 0 2px; font-size: 12px; font-weight: 600; opacity: 0.6; }
 
-  /* Heute-Streifen: Name, Tagesbalken, Text in festen Spalten, damit die Balken untereinander stehen. */
-  .zp-heute-zeile {
-    display: grid; grid-template-columns: minmax(130px, 200px) 1fr minmax(170px, 230px);
-    align-items: center; gap: 4px 14px; padding: 6px 0;
+  /* Karte je Anlagenteil: ein Reiter je Programm, je Block eine Spur im Rahmen und darunter die Tabelle.
+     Die Farbstufen mischen einen festen Ton mit dem Grund; so passen sie hell und dunkel. */
+  :host {
+    --zp-t14: color-mix(in oklab, oklch(0.6 0.05 250) 65%, var(--hn-grund));
+    --zp-t17: color-mix(in oklab, oklch(0.66 0.02 250) 65%, var(--hn-grund));
+    --zp-t19: color-mix(in oklab, oklch(0.76 0.08 82) 82%, var(--hn-grund));
+    --zp-t21: color-mix(in oklab, oklch(0.76 0.13 66) 90%, var(--hn-grund));
+    --zp-t23: color-mix(in oklab, oklch(0.68 0.17 44) 95%, var(--hn-grund));
+    --zp-aus: color-mix(in srgb, var(--hn-text) 8%, var(--hn-grund));
+    /* Tarife tragen feste Töne ohne Rangfolge; ihre Helligkeit hält hell wie dunkel 3:1 zu jeder Fläche. */
+    --zp-tarif1: oklch(0.618 0.12 258);
+    --zp-tarif2: oklch(0.62 0.11 80);
+    --zp-tarif3: oklch(0.632 0.13 320);
+    --zp-tarif4: oklch(0.608 0.09 205);
+    --zp-tarif5: oklch(0.616 0.015 260);
+    --zp-gilt: #f0882a;
   }
-  .zp-heute-kopf { padding: 0; }
-  .zp-heute-kopf .zeitraster-skala { margin-left: 0; }
-  .zp-heute-anlagenname {
-    margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; opacity: 0.6;
-  }
-  .zp-heute-name { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; align-items: center; }
-  .zp-heute-name ha-icon { --mdc-icon-size: 18px; grid-row: span 2; opacity: 0.8; }
-  .zp-heute-titel { font-size: 13px; font-weight: 600; }
-  .zp-heute-programm { font-size: 12px; opacity: 0.6; }
-  .zp-heute-text { font-size: 13px; font-variant-numeric: tabular-nums; }
-  @media (max-width: 700px) {
-    .zp-heute-zeile { grid-template-columns: 1fr; }
-    .zp-heute-kopf > span { display: none; }
-  }
-  .zp-legende {
-    display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px;
-    padding-top: 10px; border-top: 1px solid var(--hn-flaeche); font-size: 12px; opacity: 0.8;
-  }
-  .zp-legende-eintrag { display: inline-flex; align-items: center; gap: 6px; }
-  .zp-legende-eintrag span:first-child { font-weight: 600; }
-  .zp-verlauf { display: inline-block; width: 72px; height: 8px; border-radius: 4px; }
-  .zp-ein { display: inline-block; width: 18px; height: 8px; border-radius: 4px; }
-
-  /* Karte je Anlagenteil: das geltende Programm groß, die übrigen als Minibalken. */
   .zp-kartensymbol { --mdc-icon-size: 20px; opacity: 0.8; }
-  .zp-gruppe + .zp-gruppe { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hn-flaeche); }
-  .zp-programm { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--hn-linie); }
-  .zp-programm.aktiv {
-    border-color: var(--hn-akzent);
-    background: color-mix(in srgb, var(--hn-akzent) 8%, transparent);
+  .zp-gruppe + .zp-gruppe { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hn-linie); }
+  .zp-programm { display: flex; flex-direction: column; gap: 10px; }
+  .zp-lage { font-size: 13px; color: var(--hn-gedaempft); text-wrap: pretty; }
+  .zp-programmname { font-weight: 600; color: var(--hn-text); }
+  /* Nur für Vorleser; sichtbar steht der Punkt. */
+  .zp-aktiv {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }
-  .zp-programmkopf { margin-bottom: 6px; font-size: 14px; }
-  .zp-programmname { font-weight: 600; }
-  .zp-programm .zp-karteleiste { padding-top: 10px; }
-  .zp-mini {
-    display: grid; grid-template-columns: minmax(110px, 180px) 1fr auto;
-    align-items: center; gap: 10px; padding: 6px 2px 0;
+  .zp-reiter {
+    flex: 1; min-width: 0; display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: var(--hn-flaeche);
   }
-  .zp-mini .rueckmeldung { grid-column: 1 / -1; }
-  .zp-mini .rueckmeldung:empty { display: none; }
-  @media (max-width: 700px) {
-    .zp-mini { grid-template-columns: 1fr auto; }
-    .zp-minispuren { grid-column: 1 / -1; grid-row: 2; }
+  .zp-reiter button {
+    position: relative; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--hn-gedaempft);
+    font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
   }
-  .zp-mini.leer { grid-template-columns: minmax(110px, 180px) 1fr; opacity: 0.6; }
-  .zp-mininame {
-    font: inherit; font-size: 13px; text-align: left; padding: 0; color: inherit;
-    background: none; border: none; cursor: pointer; text-decoration: underline dotted;
-    text-underline-offset: 3px;
+  .zp-reiter button:hover { color: var(--hn-text); }
+  .zp-reiter button[aria-selected="true"] {
+    background: var(--hn-karte); color: var(--hn-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
-  .zp-minispuren { gap: 2px; }
-  /* In der Spalte gilt flex:1 der Höhe, nicht der Breite; hier bleibt die Spur so hoch, wie sie ist. */
-  .zp-heute-spur .spur, .zp-minispuren .spur { flex: none; }
-  .zp-minispuren .spur:not(.duenn) { height: 10px; }
-  .zp-mini .zp-taste { padding: 4px 10px; font-size: 12px; }
+  .zp-reiter button.leer, .zp-reiter button.leer[aria-selected="true"] { color: var(--hn-gedaempft); }
+  /* Das geltende Programm: oranger Punkt und Rahmen; „gewählt“ ist nur die angehobene Fläche. */
+  .zp-reiter button.gilt { box-shadow: inset 0 0 0 1.5px var(--zp-gilt); }
+  .zp-reiter button.gilt[aria-selected="true"] { box-shadow: inset 0 0 0 1.5px var(--zp-gilt), 0 1px 2px rgba(0, 0, 0, 0.25); }
+  .zp-punkt-gilt { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--zp-gilt); }
+  .zp-reiter button:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-reiter .zp-programmname, .zp-reiter .zp-mininame { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 420px) {
+    .zp-reiter button { flex: 1 1 auto; padding: 7px 5px; gap: 5px; }
+  }
+  .zp-zeilen { display: flex; flex-direction: column; }
+  .zp-zeile { display: flex; flex-direction: column; gap: 6px; padding: 10px 6px; border-radius: 10px; cursor: pointer; }
+  .zp-zeile + .zp-zeile { border-top: 1px solid var(--hn-linie); }
+  .zp-zeile:hover { background: color-mix(in srgb, var(--hn-flaeche) 60%, transparent); }
+  .zp-zeile:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-tagname { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .zp-rahmen {
+    --zp-unter: var(--hn-grund);
+    padding: 3px; border: 1px solid var(--hn-linie); border-radius: 12px; background: var(--zp-unter);
+  }
+  .zp-spur { position: relative; display: flex; gap: 2px; height: 30px; }
+  /* Die Schrift im Stück ist Schwarz oder Weiß, je nach seiner Farbe; ohne relative Farben gilt die erste Angabe.
+     Der Ruhewert tritt zurück, indem seine Fläche mit dem Grund mischt; die Schrift bleibt voll deckend. */
+  .zp-stueck {
+    --zp-fond: var(--zp-ton, var(--zp-aus));
+    flex: 0 0 auto; min-width: 0; height: 100%; border-radius: 8px; background: var(--zp-fond);
+    display: grid; place-items: center; overflow: hidden; white-space: nowrap;
+    font-size: 11.5px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: rgba(10, 15, 20, 0.82);
+    color: ${gegenpol("var(--zp-fond)")};
+  }
+  .zp-stueck.ruhe {
+    --zp-fond: color-mix(in srgb, var(--zp-ton, var(--zp-aus)) 60%, var(--zp-unter));
+    color: var(--hn-text);
+    color: ${gegenpol("var(--zp-fond)")};
+  }
+  .zp-spur .jetzt-linie {
+    position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; border-radius: 1px;
+    background: var(--hn-text); pointer-events: none;
+  }
+  .zp-tipp {
+    position: absolute; top: calc(100% + 8px); z-index: 2; transform: translateX(-50%);
+    padding: 5px 9px; border-radius: 8px; background: var(--hn-text); color: var(--hn-grund);
+    font-size: 12.5px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none;
+  }
+  .zp-achse {
+    position: relative; height: 14px; margin: 0 3px; font-size: 11px; color: var(--hn-gedaempft);
+    font-variant-numeric: tabular-nums;
+  }
+  .zp-tipphinweis { font-size: 12px; color: var(--hn-gedaempft); }
+  /* Mit Maus zeigt schon das Überfahren Zeit und Wert; der Hinweis gilt dem Finger. */
+  @media (hover: hover) { .zp-tipphinweis { display: none; } }
+  .zp-achse span { position: absolute; transform: translateX(-50%); }
+  .zp-achse span:first-child { transform: none; }
+  .zp-achse span:last-child { transform: translateX(-100%); }
+  .zp-tabelle {
+    display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 4px;
+    align-items: center; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums;
+  }
+  .zp-feld { width: 10px; height: 10px; border-radius: 3px; background: var(--hn-akzent); }
+  .zp-feld.leer { background: transparent; }
+  .zp-twert { font-weight: 600; text-align: right; }
+  .zp-tzeit.rest, .zp-twert.rest { color: var(--hn-gedaempft); font-weight: 400; }
+  .zp-ohne-fenster {
+    display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px dashed var(--hn-linie);
+    border-radius: 12px; color: var(--hn-gedaempft); font-size: 13px;
+  }
+  .zp-ohne-fenster b { color: var(--hn-text); font-weight: 600; }
+  .zp-kopfzeile { display: flex; align-items: center; gap: 8px; }
+  .zp-titel { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--hn-text); }
+  .zp-vorsatz { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--hn-text); }
+  .zp-stift {
+    flex: none; display: inline-flex; padding: 3px; border: 0; border-radius: 6px; background: transparent;
+    color: var(--hn-gedaempft); cursor: pointer; --mdc-icon-size: 18px;
+  }
+  .zp-stift:hover { color: var(--hn-text); background: var(--hn-flaeche); }
+  .zp-stift:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-benennen { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--hn-flaeche); }
+  .zp-benennen .zp-bezeichnung-zeile { margin-bottom: 0; }
+  .zp-benennen .zp-meldung { margin-top: 0; min-height: 0; }
+  .zp-benennen .zp-meldung:empty { display: none; }
+  .zp-zeile.offen { background: var(--hn-flaeche); border-radius: 8px 8px 0 0; }
+  /* Der Editor hängt unter seiner Zeile und gehört sichtbar zu ihr. */
+  .zp-zeileneditor {
+    display: flex; flex-direction: column; gap: 8px; margin: 0 0 6px; padding: 10px 12px 12px;
+    border-radius: 0 0 10px 10px; background: var(--hn-flaeche);
+  }
+  .zp-ze-kopf { font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); text-wrap: pretty; }
+  .zp-ze-punkte { display: flex; flex-direction: column; gap: 6px; }
+  .zp-ze-punkt { display: grid; grid-template-columns: auto minmax(0, 7em) minmax(0, 6em) auto auto; gap: 6px 8px; align-items: center; }
+  .zp-ze-ab { font-size: 13px; color: var(--hn-gedaempft); }
+  .zp-ze-feld {
+    min-width: 0; padding: 5px 8px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600;
+    color: inherit; background: var(--hn-karte); border: 1px solid var(--hn-linie);
+  }
+  .zp-ze-weg, .zp-ze-mehr {
+    font: inherit; font-size: 13px; color: var(--hn-gedaempft); background: transparent; cursor: pointer;
+    border: 1px solid var(--hn-linie); border-radius: 999px; padding: 3px 10px;
+  }
+  .zp-ze-weg { border: 0; font-size: 15px; }
+  .zp-ze-mehr { align-self: flex-start; }
+  .zp-ze-mehr:disabled { opacity: 0.4; cursor: default; }
+  .zp-ze-tage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .zp-tagwahl {
+    padding: 4px 0; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; color: inherit;
+    background: transparent; border: 1px solid var(--hn-linie);
+  }
+  .zp-tagwahl[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--hn-akzent) 22%, transparent); border-color: var(--hn-akzent); font-weight: 600;
+  }
+  .zp-tagwahl:focus-visible, .zp-ze-feld:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  .zp-ze-vorschau .zp-rahmen { --zp-unter: var(--hn-karte); }
+  .zp-ze-aktionen { display: flex; justify-content: flex-end; gap: 8px; }
+  .zp-zeileneditor .zp-meldung { margin-top: 0; min-height: 0; }
+  .zp-zeileneditor .zp-meldung:empty { display: none; }
+  .zp-abschnitt { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--hn-gedaempft); }
   .zp-leer { font-size: 12px; font-style: italic; }
   .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }
-  .zp-warnung { font-size: 13px; color: var(--warning-color); margin-bottom: 2px; }
+  /* Das Orange von Home Assistant ist auf heller Karte zu schwach; es mischt deshalb mit dem Pol der Karte. */
+  .zp-warnung {
+    font-size: 13px; margin-bottom: 2px;
+    color: var(--warning-color);
+    color: color-mix(in oklab, var(--warning-color, #ffa600) 70%, ${gegenpol("var(--hn-karte)")});
+  }
   .zp-fuss {
     margin-top: auto; padding-top: 12px; font-size: 12px; opacity: 0.6;
     display: flex; flex-direction: column; gap: 3px;
@@ -232,8 +334,8 @@ export const ZEITPROGRAMME = `
     border: 1px solid var(--hn-linie);
   }
   .zp-weg ha-icon { --mdc-icon-size: 18px; }
-  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: #ff8a80; }
+  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: var(--hn-fehler); }
   .zp-blockleiste { display: flex; gap: 8px; margin-top: 10px; }
   .zp-meldung { font-size: 13px; margin-top: 10px; min-height: 18px; }
-  .zp-meldung.fehler { color: #ff8a80; }
+  .zp-meldung.fehler { color: var(--hn-fehler); }
 `;

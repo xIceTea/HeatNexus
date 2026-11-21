@@ -47,6 +47,7 @@ from .const import (
     CONF_AUSSENTEMPERATUR,
     CONF_COUNT,
     CONF_DASHBOARD,
+    CONF_HEIZRAUM,
     CONF_HILFE,
     CONF_IDS_ANPASSEN,
     CONF_LABEL,
@@ -245,9 +246,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if kennung:
             await self.async_set_unique_id(kennung)
             self._abort_if_unique_id_configured()
-        eintraege = self._aktive_eintraege()
-        if any(s.get(CONF_HOST) == host for e in eintraege for s in e.data.get(CONF_SYSTEMS, [])):
+        # Auch ein abgeschalteter Eintrag behält seine Adressen.
+        alle = self._async_current_entries(include_ignore=False)
+        if any(s.get(CONF_HOST) == host for e in alle for s in e.data.get(CONF_SYSTEMS, [])):
             return self.async_abort(reason="already_configured")
+        eintraege = self._aktive_eintraege()
         self._gefunden = host
         self.context["host"] = host
         self.context["title_placeholders"] = {"name": host}
@@ -604,6 +607,28 @@ ALLGEMEINE_SCHALTER = (
 )
 
 
+def _fuehlerfelder(options: dict[str, Any]) -> dict[Any, Any]:
+    """Außentemperatur der Kopfzeile und Fühler Heizraum; leer bleibt die Wahl der Anlage."""
+    return {
+        vol.Optional(
+            CONF_AUSSENTEMPERATUR,
+            description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
+        ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Optional(
+            CONF_HEIZRAUM,
+            description={"suggested_value": options.get(CONF_HEIZRAUM, "")},
+        ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="temperature")),
+    }
+
+
+def _fuehler_uebernehmen(options: dict[str, Any], user_input: dict[str, Any]) -> None:
+    for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
+        if gewaehlt := (user_input.get(feld) or "").strip():
+            options[feld] = gewaehlt
+        else:
+            options.pop(feld, None)
+
+
 class WindhagerOptionsFlow(OptionsFlow):
     """Umfang je Anlage und Abfrageintervall nachträglich ändern."""
 
@@ -766,11 +791,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                 options[schluessel] = bool(user_input.get(schluessel, vorgabe))
             self._sprache_uebernehmen(options, user_input)
             options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
-            gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
-            if gewaehlt:
-                options[CONF_AUSSENTEMPERATUR] = gewaehlt
-            else:
-                options.pop(CONF_AUSSENTEMPERATUR, None)
+            _fuehler_uebernehmen(options, user_input)
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -799,10 +820,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                             mode=SelectSelectorMode.LIST,
                         )
                     ),
-                    vol.Optional(
-                        CONF_AUSSENTEMPERATUR,
-                        description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
-                    ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+                    **_fuehlerfelder(options),
                     **self._sprachfelder(options),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
@@ -949,8 +967,9 @@ class WindhagerOptionsFlow(OptionsFlow):
             alt = vorher.get(CONF_LABEL) or host
             umbenannt = entity_ids_umbenennen(self.hass, self.config_entry, alt, self._bezeichnung)
             # Die gewählte Außentemperatur zieht mit, sonst zeigt sie ins Leere.
-            if (aussen := options.get(CONF_AUSSENTEMPERATUR)) in umbenannt:
-                options[CONF_AUSSENTEMPERATUR] = umbenannt[aussen]
+            for feld in (CONF_AUSSENTEMPERATUR, CONF_HEIZRAUM):
+                if (gewaehlt := options.get(feld)) in umbenannt:
+                    options[feld] = umbenannt[gewaehlt]
         if neu == vorher:
             return
         neue = [neu if s[CONF_HOST] == host else s for s in systeme]

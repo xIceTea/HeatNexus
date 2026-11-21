@@ -46,6 +46,8 @@ STIL_DATEI = KOMPONENTE / "frontend" / "stil.js"
 # dunkel – so hält es die Oberfläche auch, ihr Stylesheet kennt für sie nur
 # einen Satz Farben.
 UNTERGRUND = {"dunkel": "#151d26", "hell": "#f4f6f9"}
+# Die Paletten in `ordnung.js` heißen nach Satz und Fassung.
+THEMA = {"dunkel": "heatnexus_dunkel", "hell": "heatnexus_hell"}
 
 BREITE, HOEHE = 1048, 392
 # Auf diese Breite wird das GIF verkleinert. 1048 Bildpunkte mal sechzig
@@ -374,7 +376,7 @@ def seite(karte_daten: dict, nummern: list[int], farbsatz: str) -> str:
     """Mehrere Aufnahmen untereinander – eine Browseraufnahme reicht dann."""
     grund = UNTERGRUND[farbsatz]
     bloecke = "".join(aufnahme(karte_daten, n, n * BILD_DAUER_MS / 1000, farbsatz) for n in nummern)
-    werte = "".join(f"{name}:{wert};" for name, wert in paletten()[farbsatz].items())
+    werte = "".join(f"{name}:{wert};" for name, wert in paletten()[THEMA[farbsatz]].items())
     return (
         "<!doctype html><meta charset='utf-8'><style>"
         "body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}"

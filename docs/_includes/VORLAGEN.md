@@ -1,6 +1,6 @@
-# Vorlagen und Dienste
+# Vorlagen und Aktionen
 
-HeatNexus liefert sieben Automations-Vorlagen und neun Dienste mit. Die
+HeatNexus liefert sieben Automations-Vorlagen und elf Aktionen mit. Die
 Vorlagen landen bei der Einrichtung unter
 `blueprints/automation/heatnexus/` und werden mit jeder neuen Fassung
 aufgefrischt; welche mitkommen, steht in den Optionen.
@@ -82,20 +82,21 @@ der eingestellten Wartezeit, bleibt die Empfehlung offen. Sie lässt sich im
 Reiter Automatik oder mit den Tasten **Empfehlung übernehmen** und
 **Empfehlung verwerfen** beantworten.
 
-## Dienste
+## Aktionen
 
-| Dienst | Ziel | Wofür |
+| Aktion | Ziel | Wofür |
 |---|---|---|
 | `rediscover` | — | Verwirft den Erkennungsstand und liest die Anlage neu ein. Nach Umbauten. |
 | `set_vorgabe` | Thermostat | Befristete Raumtemperatur, dieselbe, die die Anlage „Eco / Comfort" nennt. |
 | `set_current_temp_compensation` | Thermostat | Verschiebt den Raumsollwert und damit die Heizkurve um einen festen Betrag. |
 | `set_time_program` | Zeitprogramm-Sensor | Schreibt ein Wochenprogramm. |
-| `meldungen_loeschen` | Sensor | Leert die Meldungsliste; am Bediengerät löscht er die erledigten Einträge. |
+| `meldungen_loeschen` | Sensor | Leert die Meldungsliste; am Bediengerät löscht sie die erledigten Einträge. |
 | `stoerung_quittieren` | Sensor | Setzt einen Eintrag der Meldungsliste zurück. |
 | `stoerung_loeschen` | Sensor | Löscht einen erledigten Eintrag aus der Meldungsliste. |
 | `stoerung_zuruecksetzen` | Sensor | Setzt eine anliegende Störung am Kessel zurück; nur mit eingeschalteter Option. |
 | `heizkreis_umbenennen` | Thermostat | Schreibt den Namen des Heizkreises in die Steuerung, höchstens 20 Byte. |
 | `dashboard_ausgeben` | — | Gibt das mitgelieferte Dashboard als YAML zurück. |
+| `brennstoff_geliefert` | Brennstoffvorrat | Trägt eine Lieferung oder Befüllung ein. Mit dem Rest davor ergibt sich der tatsächliche Verbrauch. |
 
 ### Befristete Vorgabe
 
@@ -161,7 +162,7 @@ Wert aus und lässt die Hülle der Anlage unangetastet.
 ### Dashboard ausgeben
 
 Das mitgelieferte Dashboard wird bei jedem Öffnen neu gebaut und ist deshalb
-nicht bearbeitbar. Der Dienst gibt es als YAML zurück — damit lässt sich ein
+nicht bearbeitbar. Die Aktion gibt es als YAML zurück — damit lässt sich ein
 eigenes Dashboard anlegen: neues Dashboard erstellen, Rohkonfigurations-Editor
 öffnen, Text einfügen. Ab da gehört es dir und ändert sich nicht mehr mit.
 Links und Zurück-Pfeile der Kopie führen weiter zu `/heatnexus/`. Liegt die

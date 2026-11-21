@@ -8,6 +8,7 @@ Zeichensatzkette in `_decode`.
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import logging
 import time
@@ -113,20 +114,31 @@ class TransportMixin:
         gleichzeitigen Anfragen und zweihundert Aufträgen nur noch die eigene
         Warteschlange und hält eine schnelle Anlage für langsam.
         """
-        await self._ensure_session()
         self.request_count += 1
         angefragt = time.monotonic()
         async with semaphore or self._semaphore:
+            # Erst nach dem Warten: Wer in der Zwischenzeit entlädt, bekommt `CannotConnect`.
+            await self._ensure_session()
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
+            status: int | None = None
+            abgebrochen = False
             try:
                 async with self._session.request("GET", url) as ret:
                     raw = await ret.read()
+                    status = ret.status
+            except asyncio.CancelledError:
+                # Ein Abbruch ist keine Antwort der Steuerung.
+                abgebrochen = True
+                raise
             except Exception:
                 self.request_errors += 1
                 raise
             finally:
-                self.request_seconds += time.monotonic() - begonnen
+                dauer = time.monotonic() - begonnen
+                self.request_seconds += dauer
+                if not abgebrochen:
+                    self._messen(dauer, status)
         # Ein `401`, der bis hierher durchkommt, ist die Auskunft der Anlage,
         # dass das Passwort nicht stimmt – die Aufforderung selbst hat aiohttp
         # schon beantwortet. Gezählt wird beides, damit ein einzelner
@@ -140,6 +152,21 @@ class TransportMixin:
         except ValueError:
             return None, ret.status
 
+    def _messen(self, dauer: float, status: int | None) -> None:
+        """Antwortzeit oder Fehlantwort für die Bewertung; Anmeldefehler zählen nicht."""
+        if status is None or status >= 500:
+            self.messreihe.fehler()
+        elif status not in (401, 403):
+            self.messreihe.antwort(dauer)
+
+    @asynccontextmanager
+    async def _anfrage(self, methode: str, url, **kwargs):
+        """Eine Anfrage in der Warteschlange; nach `close()` endet sie als `CannotConnect`."""
+        async with self._semaphore:
+            await self._ensure_session()
+            async with self._session.request(methode, url, **kwargs) as antwort:
+                yield antwort
+
     async def _ressource(self, pfad: str) -> str | None:
         """Eine Ressourcendatei der Anlage als Text lesen (`/res/<pfad>`).
 
@@ -147,11 +174,7 @@ class TransportMixin:
         sind eine Zugabe, kein Teil der Datenschnittstelle.
         """
         try:
-            await self._ensure_session()
-            async with (
-                self._semaphore,
-                self._session.request("GET", f"http://{self.host}/res/{pfad}") as ret,
-            ):
+            async with self._anfrage("GET", f"http://{self.host}/res/{pfad}") as ret:
                 if ret.status != 200:
                     return None
                 return self._decode(await ret.read())
@@ -258,11 +281,9 @@ class TransportMixin:
         """
         for versuch in range(SCHREIB_WIEDERHOLUNGEN + 1):
             try:
-                async with self._semaphore:
-                    await self._ensure_session()
-                    async with self._session.request("PUT", url, data=rumpf) as ret:
-                        status = ret.status
-                        body = self._decode(await ret.read()) if status >= 400 else ""
+                async with self._anfrage("PUT", url, data=rumpf) as ret:
+                    status = ret.status
+                    body = self._decode(await ret.read()) if status >= 400 else ""
             except (aiohttp.ClientError, TimeoutError) as fehler:
                 raise mit_text(
                     WindhagerWriteError, "schreiben_nicht_erreichbar", oid=oid, anlage=self.host
@@ -303,11 +324,7 @@ class TransportMixin:
         {"value": [{"weekdays": [...], "switchPoints": [{"time","value"}...]}]}.
         """
         try:
-            await self._ensure_session()
-            async with (
-                self._semaphore,
-                self._session.request("GET", self._object_url(full_oid)) as ret,
-            ):
+            async with self._anfrage("GET", self._object_url(full_oid)) as ret:
                 status = ret.status
                 try:
                     data = await ret.json()

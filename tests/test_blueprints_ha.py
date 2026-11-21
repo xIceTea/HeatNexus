@@ -96,3 +96,15 @@ def test_eine_automations_yaml_in_fremdem_zeichensatz_bricht_nichts_ab(tmp_path)
     assert blueprints._wird_benutzt(datei, "test") is True
     datei.write_bytes("- alias: Küche\n".encode("cp1252"))
     assert blueprints._wird_benutzt(datei, "test") is False
+
+
+async def test_gleichzeitige_eintraege_halten_vorlagen_nicht_fuer_geaendert(hass, caplog):
+    """Nach einem Update starten mehrere Einträge zugleich; keiner meldet fremde Änderungen."""
+    import asyncio
+
+    from custom_components.heatnexus.blueprints import async_install_blueprints
+
+    await async_install_blueprints(hass, "1.0.0")
+    await asyncio.gather(*(async_install_blueprints(hass, "2.0.0") for _ in range(7)))
+
+    assert "Selbst geänderte" not in caplog.text

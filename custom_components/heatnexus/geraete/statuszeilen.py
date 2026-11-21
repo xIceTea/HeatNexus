@@ -71,6 +71,15 @@ GEMEINSAM: tuple[Statuszeile, ...] = (
         panel=True,
         karte=True,
     ),
+    # Wie viel Wärme der Puffer noch hält; danach richtet sich, ob ein Stückholzkessel
+    # angeheizt wird. Die Karte zeigt ihn schon an der Pufferkachel.
+    Statuszeile(
+        r"^puffer-?beladegrad$",
+        "Beladegrad",
+        "mdi:storage-tank",
+        ("buffer_charge_level",),
+        panel=True,
+    ),
     # Ob der Netzbetreiber gerade sperrt oder zum Einschalten auffordert; nur
     # Anlagen mit SG-Ready-Eingang (Hybridmanager) melden den Zustand.
     Statuszeile(

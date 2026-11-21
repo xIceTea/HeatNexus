@@ -29,6 +29,11 @@
   "info": "Fühler und Anschlüsse kontrollieren",
   "text": "TPO-Fühler defekt"
  },
+ "AL107": {
+  "behebung": "Das Gebläserad steckt bzw. bewegt sich nicht.\na) Gebläserad ist verschmutzt, reinigen (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Gebläsestecker locker bzw. nicht eingerastet, Stecker fest zusammen stecken. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
+  "info": "Gebläserad reinigen.",
+  "text": "Saugzuggebläse steckt"
+ },
  "AL11": {
   "behebung": "Kessel geht nicht in Betrieb. Ascheschieber steckt durch Fremdteil.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Ascheraumtür vorsichtig (es kann noch Glut vorhanden sein) öffnen und Fremdteil entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Wenn geschmolzene Asche oder große Brocken in der Asche sind, sollte die Brennstoffauswahl auf „schlackend“ umgestellt werden. Tritt der Fehler nach der Umstellung wieder muss ein Brennstoff mit kleiner 1,5 % Aschegehalt verwendet werden. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",

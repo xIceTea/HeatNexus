@@ -1,19 +1,7 @@
-"""Die fünf Farbsätze des Schaubilds als bewegtes Bild.
+"""Die Farbsätze des Schaubilds in beiden Fassungen als bewegtes Bild.
 
-Ein Standbild je Satz zeigt fünf Bilder nebeneinander und beantwortet die
-Frage nicht, um die es geht: wie dieselbe Anlage in einem anderen Satz
-aussieht. Hier läuft sie durch – Dunkel, Hell, Terrakotta, Petrol, Pflaume –
-während Pumpen und Strömung weitergehen.
-
-Aufgebaut auf `build_schaubild_animation.py`: dieselbe Zeichnung, dieselben
-Ebenen, dasselbe Stylesheet der Oberfläche. Hier kommen nur zwei Dinge dazu,
-die der Farbsatz ändert und die nicht im Bild stecken:
-
-* die Zeichnung selbst, umgestellt über `schema.farben.farben_umstellen`,
-* die Farbvariablen der Oberfläche aus `PALETTEN` in `ordnung.js` – von ihnen
-  hängen Kartengrund, Linien und der Akzent der laufenden Pumpe ab.
-
-    python tools/build_farbsaetze_animation.py
+Baut auf `build_schaubild_animation.py` auf; je Satz kommen die umgestellte Zeichnung
+(`schema.farben.farben_umstellen`) und die Farbvariablen aus `PALETTEN` dazu.
 """
 
 from __future__ import annotations
@@ -32,19 +20,31 @@ import build_schaubild_animation as bewegung
 
 ZIEL = WURZEL / "assets" / "anlagenschema_farbsaetze.gif"
 
-# Reihenfolge im Film. Dunkel steht am Anfang: Es ist die Vorgabe.
-SAETZE = ["dunkel", "hell", "terrakotta", "petrol", "pflaume"]
-NAMEN = {
-    "dunkel": "Dunkel",
-    "hell": "Hell",
+# Reihenfolge im Film, Themen wie in `PALETTEN`. HeatNexus dunkel steht am Anfang.
+SAETZE = [
+    "heatnexus_dunkel",
+    "heatnexus_hell",
+    "terrakotta_dunkel",
+    "terrakotta_hell",
+    "petrol_dunkel",
+    "petrol_hell",
+    "pflaume_dunkel",
+    "pflaume_hell",
+    "windhager_hell",
+    "windhager_dunkel",
+]
+_SATZNAMEN = {
+    "heatnexus": "HeatNexus",
     "terrakotta": "Terrakotta",
     "petrol": "Petrol",
     "pflaume": "Pflaume",
+    "windhager": "Windhager-Stil",
 }
+NAMEN = {thema: f"{_SATZNAMEN[thema.split('_')[0]]} {thema.split('_')[1]}" for thema in SAETZE}
 
-# Wie lange ein Satz steht. Zwölf Aufnahmen zu 100 ms sind gut eine Sekunde –
+# Wie lange ein Satz steht. Zehn Aufnahmen zu 100 ms sind eine Sekunde –
 # lang genug zum Hinsehen, kurz genug, dass der Film nicht zieht.
-JE_SATZ = 12
+JE_SATZ = 10
 
 # Der Zustand, in dem die Anlage gezeigt wird. Gewählt ist der einzige
 # Augenblick, in dem **alle fünf** Pumpen fördern: Steht eine still, sieht es
@@ -54,13 +54,18 @@ SZENE = 50
 
 def _temperaturfarben() -> dict[str, dict[str, str]]:
     """Warm und kalt je Satz – sie färben Speicherinhalt und Heizkörper."""
-    schema = schema_modul()
+    farben = schema_modul().farben
     saetze = {
-        "dunkel": schema.farben.FARBEN,
-        "hell": schema.farben.FARBEN_HELL,
-        "terrakotta": schema.farben.FARBEN_TERRAKOTTA,
-        "petrol": schema.farben.FARBEN_PETROL,
-        "pflaume": schema.farben.FARBEN_PFLAUME,
+        "heatnexus_dunkel": farben.FARBEN,
+        "heatnexus_hell": farben.FARBEN_HELL,
+        "terrakotta_dunkel": farben.FARBEN_TERRAKOTTA,
+        "terrakotta_hell": farben.FARBEN_TERRAKOTTA_HELL,
+        "petrol_dunkel": farben.FARBEN_PETROL,
+        "petrol_hell": farben.FARBEN_PETROL_HELL,
+        "pflaume_dunkel": farben.FARBEN_PFLAUME,
+        "pflaume_hell": farben.FARBEN_PFLAUME_HELL,
+        "windhager_hell": farben.FARBEN_WINDHAGER,
+        "windhager_dunkel": farben.FARBEN_WINDHAGER_DUNKEL,
     }
     return {name: {"warm": f["warm"], "kalt": f["kalt"]} for name, f in saetze.items()}
 
@@ -68,7 +73,8 @@ def _temperaturfarben() -> dict[str, dict[str, str]]:
 def _zeichnung(svg: str, satz: str) -> str:
     """Die Zeichnung im gewünschten Satz als Datenadresse."""
     schema = schema_modul()
-    umgestellt = svg if satz == "dunkel" else schema.farben.farben_umstellen(svg, satz)
+    # Die Zeichnung kommt im dunklen HeatNexus-Satz; jeder andere wird umgestellt.
+    umgestellt = schema.farben.farben_umstellen(svg, satz)
     kodiert = base64.b64encode(umgestellt.encode("utf-8")).decode("ascii")
     return f"data:image/svg+xml;base64,{kodiert}"
 
@@ -108,7 +114,7 @@ def _seite(
         for nr, satz in auftraege
     )
     # Je Satz die Farbvariablen der Oberfläche. Ohne sie bliebe der Akzent der
-    # laufenden Pumpe in allen fünf Sätzen derselbe.
+    # laufenden Pumpe in allen Sätzen derselbe.
     regeln = []
     for satz in SAETZE:
         werte = "".join(f"{name}:{wert};" for name, wert in paletten[satz].items())
@@ -167,9 +173,8 @@ def _aufnehmen(daten: dict, browser: str, arbeit: Path) -> list:
 def _schreiben(bilder: list) -> None:
     """Die Bildfolge als GIF ablegen.
 
-    Eine gemeinsame Farbtafel über alle fünf Sätze, damit die Verdichtung
-    zwischen den Bildern greift. Bei fünf verschiedenen Gehäusefarben braucht
-    sie mehr Platz als die des einzelnen Satzes – daher 256 statt 128.
+    Eine gemeinsame Farbtafel über alle Sätze, damit die Verdichtung zwischen
+    den Bildern greift; bei so vielen Gehäusefarben mit 256 statt 128 Farben.
     """
     from PIL import Image
 

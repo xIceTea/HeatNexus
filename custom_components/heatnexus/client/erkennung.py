@@ -52,6 +52,17 @@ DESKRIPTOR_VORGABE: dict = {
     "max": None,
     "step": None,
     "press_value": None,
+    # Bedienbar nur bei diesen Werten der Anlage: {"gn/mn": (Werte, ...)}.
+    "freigabe": None,
+    # Ein Bit des Werts statt des ganzen Werts (Bitmaske wie `2/2`).
+    "bit": None,
+    # Werte, bei denen ein Ein/Aus-Wert „an“ heißt, wo er auf einer Aufzählung sitzt.
+    "an_bei": None,
+    # Weitere Adressen derselben Funktion, die den Ein/Aus-Wert ebenfalls einschalten:
+    # [{"adresse": "gn/mn", "bit": n}], ohne `bit` zählt jeder Wert über null.
+    "oder": None,
+    # Kennungszusatz aus `key_suffix`; trennt Entitäten auf derselben Adresse.
+    "zusatz": None,
     # Schaltwerte eines Schalters auf einer Betriebswahl. Ohne Angabe gelten
     # 1 und 0.
     "ein_wert": None,
@@ -274,6 +285,9 @@ class ErkennungMixin:
         """
         if self.sprache == "de":
             return None
+        if eigene := geraete.TABELLEN.get(gnmn):
+            woerter = texte.Woerterbuch(self.sprache)
+            return {wert: woerter(text) for wert, text in eigene.items()}
         return self._texte.enums.get(gnmn) or get_enum(gnmn, self.sprache)
 
     def _stoerungstexte(self) -> dict[int, str] | None:
@@ -349,10 +363,16 @@ class ErkennungMixin:
             max=definition.get("max"),
             step=definition.get("step"),
             press_value=definition.get("press_value"),
+            freigabe=definition.get("freigabe"),
+            bit=definition.get("bit"),
+            an_bei=definition.get("an_bei"),
+            oder=definition.get("oder"),
+            zusatz=definition.get("key_suffix"),
             ein_wert=definition.get("ein_wert"),
             aus_wert=definition.get("aus_wert"),
             zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,
             zustand_aus=definition.get("zustand_aus"),
+            enabled_default=definition.get("enabled_default", True),
             device_id=self._geraetekennung(prefix),
             alt_device_id=self._alte_kennung(prefix),
             device_name=fct["name"],
@@ -590,7 +610,10 @@ class ErkennungMixin:
         layers = get_layers(fct_type) or {}
         if not nur_kern:
             level_of, _ = self._ebenen_und_gruppen(layers)
+            klasse = self.geraeteklasse.get(prefix.split("/")[2])
             for definition in FCT_ENTITY_MAP.get(fct_type, []):
+                if (klassen := definition.get("klassen")) and klasse not in klassen:
+                    continue
                 self._add_entity(definition, prefix, device_id, fct, level_of)
 
         # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
@@ -798,6 +821,7 @@ class ErkennungMixin:
                     "alt_device_id": muster.get("alt_device_id"),
                     "device_name": muster["device_name"],
                     "fct_type": muster.get("fct_type"),
+                    "node_id": muster["oid"].strip("/").split("/")[1],
                 }
             )
 

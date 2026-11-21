@@ -9,6 +9,8 @@ from __future__ import annotations
 
 FCT_TYPE = 2
 MODELL = "Warmwasser"
+# Geräteklasse aus der `programId`. Die Klasse 1417 ist die AeroWIN EVO.
+MODELLE_JE_KLASSE: dict[str, str] = {"1417": "Warmwasser (AeroWIN EVO)"}
 RANG = 42
 SYMBOL = "mdi:water-boiler"
 SCHAUBILD = "wasser"
@@ -31,4 +33,13 @@ NAMEN: dict[str, str] = {
 }
 
 NUR_BUS: tuple[str, ...] = ()
+
+# Zirkulation nach Betriebsart der Zirkulationspumpe `5/6`; aus (0) braucht keinen ihrer Werte.
+# Die Herstellerebene regelt nur 0–3; bei 4 „EIN“ und Unbekanntem bleibt alles stehen.
+# Die Programme `5/64` und `5/65` bleiben immer: Über sie wird die Steuerungsart aktiviert.
+BEDINGUNGEN: dict[str, list[dict]] = {
+    "0/118": [{"oid": "5/6", "ausser": ["0"]}],
+    "1/118": [{"oid": "5/6", "ausser": ["0"]}],
+    "59/18": [{"oid": "5/6", "ausser": ["0", "1", "3"]}],
+}
 ENTITAETEN: list[dict] = []

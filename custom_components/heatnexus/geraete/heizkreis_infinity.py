@@ -20,11 +20,15 @@ EXTRA_OIDS: tuple[str, ...] = (
     "1/2",
     "1/101",
     "2/9",
+    "58/46",
+    "59/90",
 )
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "58/46": "Aktorentest freigegeben",
+    "59/90": "Einfluss Energy Pilot",
     # Die Herstellertabelle nennt Programme und Sollwerte für Raum- und
     # Vorlauftemperatur gleich. Die Vorlaufwerte tragen deshalb ihre Größe im Namen.
     "58/78": "Programm 1 Vorlauftemperatur",
@@ -44,4 +48,18 @@ NAMEN: dict[str, str] = {
 }
 
 NUR_BUS: tuple[str, ...] = ()
+
+TABELLEN: dict[str, dict[int, str]] = {"58/46": {0: "Nein", 1: "Ja"}}
+
+# Mischermotor und Mischerlaufzeit führt die Herstellerdatei als nicht änderbar.
+NUR_ANZEIGE: tuple[str, ...] = ("58/83", "58/84")
+
+# Heizprogramme gehören zur Raumregelung (1, 2), Vorlaufprogramme zur Vorlaufregelung (4).
+# Weg fällt nur der Satz der Gegenseite; Pumpenkreis, Fan Coil und Unbekanntes behalten beide.
+BEDINGUNGEN: dict[str, list[dict]] = {
+    **{a: [{"oid": "7/76", "ausser": ["4"]}] for a in ("3/61", "3/62", "3/63")},
+    **{a: [{"oid": "7/76", "ausser": ["1", "2"]}] for a in ("58/78", "58/79", "58/80")},
+    # Das Kühlprogramm gilt nur mit Kühlen am Kreis.
+    "59/48": [{"oid": "58/102", "ausser": ["0"]}],
+}
 ENTITAETEN: list[dict] = []

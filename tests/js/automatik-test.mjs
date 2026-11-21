@@ -19,6 +19,7 @@ assert.equal(uhrzeit(7), "07:00");
 const leer = tagesleisteSvg({});
 assert.ok(leer.startsWith("<svg"));
 assert.ok(!leer.includes("al-absenkung"));
+assert.ok(tagesleisteSvg({}, 1000, null, "Day profile").includes('aria-label="Day profile"'));
 
 const tag = {
   sonne: Array.from({ length: 25 }, (_, h) => (h > 7 && h < 19 ? 0.5 : 0)),

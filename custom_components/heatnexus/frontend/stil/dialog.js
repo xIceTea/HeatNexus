@@ -19,7 +19,7 @@ export const DIALOG = `
      liefen sie zu einem einzigen Block zusammen. */
   .dialog-text { font-size: 14px; line-height: 1.5; opacity: 0.8; white-space: pre-line; }
   .dialog.erklaerung { max-width: 520px; }
-  .dialog.erklaerung .dialog-text { max-height: 62vh; overflow-y: auto; }
+  .dialog.erklaerung .dialog-text { max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; }
   .dialog-zahl-zeile { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 14px; }
   .dialog-zahl { width: 96px; padding: 8px 10px; border-radius: 8px;
     border: 1px solid var(--divider-color); background: var(--card-background-color);
@@ -27,7 +27,8 @@ export const DIALOG = `
   .dialog-leiste { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
   /* Ein Fenster ist höchstens so hoch wie der Bildschirm und scrollt in sich. Die Leiste mit
      Schließen und Übernehmen klebt unten; sie reicht über den Innenabstand bis an den Rand. */
-  .dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+  .dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+    overscroll-behavior: contain; }
   .dialog:not(.automatik-dialog) > .dialog-leiste {
     position: sticky; bottom: -22px; z-index: 1;
     margin: 8px -24px -22px; padding: 14px 24px 22px;
@@ -42,7 +43,7 @@ export const DIALOG = `
   }
   .dialog-taste:hover { background: var(--hn-linie); }
   .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
-    color: #ff8a80; }
+    color: var(--hn-fehler); }
   .dialog-taste.akzent {
     color: var(--hn-akzent); background: color-mix(in srgb, var(--hn-akzent) 18%, transparent);
     border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);

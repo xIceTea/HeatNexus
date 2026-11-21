@@ -199,11 +199,94 @@ const befund = {};
   befund.nachDialog = ergebnis;
 }
 
+// --- Nach der Rückkehr der App neu zeichnen ---------------------------------
+{
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  zeit.zeitLaufenLassen();
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  const ergebnis = {};
+  document.visibilityState = "hidden";
+  document.ausloesen("visibilitychange");
+  ergebnis.beimVerstecken = umriss();
+  document.visibilityState = "visible";
+  document.ausloesen("visibilitychange");
+  ergebnis.beimZeigen = umriss();
+  zeit.bilderLaufenLassen();
+  ergebnis.zweiBilderSpaeter = umriss();
+  zeit.fenster.ausloesen("pageshow");
+  ergebnis.nachPageshow = umriss();
+  zeit.bilderLaufenLassen();
+  const vorher = document.hoererZahl("visibilitychange");
+  flaeche.disconnectedCallback();
+  ergebnis.hoererNachAbbau = vorher - document.hoererZahl("visibilitychange");
+  befund.nachRueckkehr = ergebnis;
+}
+
 // --- Namen aus der Anlage werden nicht übersetzt -----------------------------
 {
   const { flaeche } = bauen({ texte: { Wohnhaus: "Residence", Hilfe: "Help" } });
   const knoepfe = flaeche.shadowRoot.querySelector(".waehler").children.map((taste) => taste.textContent);
   befund.anlagenNamen = knoepfe;
+}
+
+// --- Ein neues Element nach dem Seitenwechsel: Lage und Neuzeichnen ----------
+// Home Assistant baut beim Zurückkehren auf die Seite ein neues Element.
+{
+  const alt = bauen({ reiter: "befund" }).flaeche;
+  alt._anlageIndex = 1;
+  alt._gebaut = false;
+  alt._zeichnen();
+  zeit.zeitLaufenLassen();
+  const neu = new klasse();
+  befund.lageNachSeitenwechsel = { reiter: neu._reiter, anlage: neu._anlageIndex };
+
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  const ergebnis = { gleichNachAufbau: umriss() };
+  zeit.einBild();
+  ergebnis.erstesBild = umriss();
+  zeit.bilderLaufenLassen();
+  ergebnis.danach = umriss();
+  befund.nachErstemAufbau = ergebnis;
+
+  const gemerkt = globalThis.sessionStorage;
+  const sperre = () => {
+    throw new Error("gesperrt");
+  };
+  globalThis.sessionStorage = { getItem: sperre, setItem: sperre };
+  const gesperrt = bauen({ reiter: "befund" }).flaeche;
+  befund.gesperrterSpeicher = { reiter: new klasse()._reiter, gebaut: Boolean(inhalt(gesperrt)) };
+  globalThis.sessionStorage = gemerkt;
+}
+
+// --- Anheben beim zweiten Aufbau, gemerkte Anlage außerhalb der Liste, Reiterausrichtung ---
+{
+  const { flaeche } = bauen();
+  flaeche.isConnected = true;
+  zeit.bilderLaufenLassen();
+  const umriss = () => flaeche.style.getPropertyValue("transform");
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  zeit.einBild();
+  befund.zweiterAufbauHebtAn = umriss();
+  zeit.bilderLaufenLassen();
+
+  globalThis.sessionStorage.setItem("heatnexus.lage", JSON.stringify({ reiter: "hilfe", anlage: 7 }));
+  befund.anlageNachZuGrosserLage = bauen().flaeche._anlageIndex;
+
+  const ausrichten = klasse.prototype._reiterZeigen;
+  let aufrufe = 0;
+  klasse.prototype._reiterZeigen = function (...werte) {
+    aufrufe++;
+    return ausrichten.apply(this, werte);
+  };
+  const gezaehlt = bauen().flaeche;
+  gezaehlt.isConnected = true;
+  zeit.bilderLaufenLassen();
+  klasse.prototype._reiterZeigen = ausrichten;
+  befund.reiterAusrichtungen = aufrufe;
 }
 
 process.stdout.write(JSON.stringify(befund, null, 2));

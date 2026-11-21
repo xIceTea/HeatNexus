@@ -18,6 +18,7 @@ from .automatik.entitaeten import anmelden as automatik_anmelden
 from .automatik.system import BINAER_ARTEN as SYSTEM_BINAER
 from .automatik.system import anmelden as system_anmelden
 from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
+from .helpers import parse_value
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
 # begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
@@ -70,11 +71,65 @@ class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):
             self._attr_device_class = DEVICE_CLASS_MAP[device_class]
 
     @property
-    def is_on(self) -> bool | None:
+    def _oder_adressen(self) -> list[tuple[str, int | None]]:
+        """Vollständige OIDs der zusätzlichen Einschaltquellen, je mit Bit."""
+        praefix = self._praefix_der_funktion
+        if not praefix:
+            return []
+        return [
+            (f"{praefix}/{q['adresse']}/0", q.get("bit"))
+            for q in self._descriptor.get("oder") or []
+        ]
+
+    @property
+    def _oder_im_abruf(self) -> list[str]:
+        """Nur Adressen, die die Anlage führt; eine fehlende kostete jeden Lauf eine Anfrage."""
+        bekannt = getattr(self.coordinator.client, "oids", None)
+        return [oid for oid, _ in self._oder_adressen if bekannt is None or oid in bekannt]
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        for oid in self._oder_im_abruf:
+            self.coordinator.client.register_poll_oid(oid)
+
+    async def async_will_remove_from_hass(self) -> None:
+        for oid in self._oder_im_abruf:
+            self.coordinator.client.unregister_poll_oid(oid)
+        await super().async_will_remove_from_hass()
+
+    @property
+    def available(self) -> bool:
+        # Fehlt der eigene Wert, entscheiden die weiteren Quellen allein.
+        return super().available or (
+            self.coordinator.last_update_success and bool(self._oder_werte())
+        )
+
+    def _eigener_wert(self) -> bool | None:
         value = self.int_value
         if value is None:
             return None
+        if (bit := self._descriptor.get("bit")) is not None:
+            return bool(value >> int(bit) & 1)
+        if (an_bei := self._descriptor.get("an_bei")) is not None:
+            return value in an_bei
         return value != 0
+
+    def _oder_werte(self) -> list[bool]:
+        werte = (self.coordinator.data or {}).get("oids", {})
+        ergebnis = []
+        for oid, bit in self._oder_adressen:
+            if (zahl := parse_value(werte.get(oid), float, oid)) is None:
+                continue
+            ergebnis.append(bool(int(zahl) >> int(bit) & 1) if bit is not None else zahl > 0)
+        return ergebnis
+
+    @property
+    def is_on(self) -> bool | None:
+        eigen = self._eigener_wert()
+        weitere = self._oder_werte()
+        if eigen is None and not weitere:
+            return None
+        return bool(eigen) or any(weitere)
 
 
 class WindhagerStoerungBinarySensor(MeldungsQuelle, WindhagerEntity, BinarySensorEntity):

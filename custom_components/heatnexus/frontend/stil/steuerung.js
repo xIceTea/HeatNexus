@@ -24,7 +24,7 @@ export const STEUERUNG = `
   .laufzeit-abbruch {
     margin-left: 4px; padding: 2px 8px; border-radius: 999px;
     font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
-    color: #ff8a80;
+    color: var(--hn-fehler);
     background: rgba(229, 57, 53, 0.18);
     border: 1px solid rgba(229, 57, 53, 0.45);
   }

@@ -233,7 +233,7 @@ Vorgabe 10 °C und 22 °C, jeweils 180 Minuten.
 
 Der Erkennungsstand wird gespeichert und in dieser Reihenfolge wiederverwendet:
 Arbeitsspeicher, dann Platte, dann vollständige Neuerkennung. Verworfen wird er
-bei geändertem Umfang, bei einem Alter über 30 Tagen oder durch den Dienst
+bei geändertem Umfang, bei einem Alter über 30 Tagen oder durch die Aktion
 `heatnexus.rediscover`.
 
 **Nach einer Aktualisierung ist nichts zu tun.** Eine neue Fassung verwirft den

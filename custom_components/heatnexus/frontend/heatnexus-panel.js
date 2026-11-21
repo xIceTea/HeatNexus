@@ -24,12 +24,13 @@
  */
 
 import { STIL } from "./stil.js";
-import { PALETTEN } from "./ordnung.js";
+import { PALETTEN, paletteSchluessel } from "./ordnung.js";
 import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { BefundMixin } from "./teile/befund.js";
+import { BefundEingabeMixin } from "./teile/befundeingabe.js";
 import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
@@ -51,11 +52,14 @@ import { GemeinsamMixin } from "./teile/gemeinsam.js";
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
+/** Wo Reiter und Anlage für die Browsersitzung liegen. */
+const LAGE_SPEICHER = "heatnexus.lage";
+
 const Grundlage = GemeinsamMixin(WaermepumpeMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
-        BefundMixin(AutomatikMixin(
+        BefundEingabeMixin(BefundMixin(AutomatikMixin(
           EinrichtungMixin(
             KennwerteMixin(
               TagesbildMixin(
@@ -67,7 +71,7 @@ const Grundlage = GemeinsamMixin(WaermepumpeMixin(HybridMixin(HilfeMixin(
               )
             )
           )
-        ))
+        )))
       )
     )
   )
@@ -90,6 +94,7 @@ class HeatNexusPanel extends Grundlage {
     // die erste. Bei nur einer Anlage gibt es die Wahl gar nicht.
     this._anlageIndex = -1;
     this._reiter = "uebersicht";
+    this._lageHolen();
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
     // Sollwerte, die nach einer Betriebswahl noch nachgerechnet werden.
@@ -125,11 +130,31 @@ class HeatNexusPanel extends Grundlage {
     this._zeichnen();
   }
 
+  /** Reiter und Anlage von vorher: Home Assistant baut das Element nach jedem Seitenwechsel neu. */
+  _lageHolen() {
+    try {
+      const lage = JSON.parse(window.sessionStorage.getItem(LAGE_SPEICHER) || "null");
+      if (lage && typeof lage.reiter === "string") this._reiter = lage.reiter;
+      if (lage && Number.isInteger(lage.anlage)) this._anlageIndex = lage.anlage;
+    } catch (err) {
+      // Ohne Sitzungsspeicher beginnt die Oberfläche in der Übersicht.
+    }
+  }
+
+  _lageMerken() {
+    try {
+      window.sessionStorage.setItem(LAGE_SPEICHER, JSON.stringify({ reiter: this._reiter, anlage: this._anlageIndex }));
+    } catch (err) {
+      // Ohne Sitzungsspeicher gilt die Lage nur bis zum nächsten Seitenwechsel.
+    }
+  }
+
   connectedCallback() {
     if (!this._abgebaut) return;
     // Nach dem Abbau sind Hörer und Zeitgeber weg; die Oberfläche entsteht neu.
     this._abgebaut = false;
     this._gebaut = false;
+    this._einmalAngehoben = false;
     this._zeichnen();
   }
 
@@ -331,7 +356,7 @@ class HeatNexusPanel extends Grundlage {
 
   /** Den gewählten Farbsatz am Wirtselement setzen; `auto` räumt ihn ab. */
   _paletteAnwenden() {
-    const palette = PALETTEN[this._farbsatz()] || null;
+    const palette = PALETTEN[paletteSchluessel(this._farbsatz(), this._helligkeit(), this._dunkelModus())] || null;
     // Alle Farbsätze zusammen nennen die Eigenschaften, die wieder zu entfernen sind.
     const bekannt = new Set(Object.values(PALETTEN).flatMap((satz) => Object.keys(satz)));
     bekannt.forEach((name) => {
@@ -381,6 +406,8 @@ class HeatNexusPanel extends Grundlage {
     this._bindungen = [];
     this._verlaufskarten = [];
     this._wartend = [];
+    // Eine gemerkte Anlage, die es nicht mehr gibt, fällt auf „Alle“ zurück.
+    if (this._anlageIndex >= this._anlagen().length) this._anlageIndex = -1;
     const anlage = this._aktuelleAnlage();
     const stil = this._stilEinsetzen();
     this._paletteAnwenden();
@@ -405,7 +432,6 @@ class HeatNexusPanel extends Grundlage {
       flaechen.push(gemeinsam);
       inhalt.appendChild(gemeinsam);
     } else if (this._alleAnlagen()) {
-      if (this._reiter === "zeitprogramme") inhalt.appendChild(this._zeitprogrammeHeute());
       this._anlagen().forEach((eintrag) => {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";
@@ -420,7 +446,7 @@ class HeatNexusPanel extends Grundlage {
       inhalt.appendChild(flaechen[0]);
     }
     this._reiterFlaechen(inhalt, flaechen);
-    this._nachDialogNeuZeichnen();
+    this._nachUnterbrechungNeuZeichnen();
     const alteLeiste = this.shadowRoot.querySelector(".reiter");
     const vorher = (alteLeiste && alteLeiste.scrollLeft) || 0;
     this._flaecheErsetzen(...stil, inhalt);
@@ -431,22 +457,35 @@ class HeatNexusPanel extends Grundlage {
       if (taste) taste.focus();
     }
     this._verlaufKarteLaden();
+    this._lageMerken();
   }
 
   /**
-   * Nach einem Dialog von Home Assistant die Fläche für zwei Bilder auf eine eigene Ebene heben.
-   * Mobile Browser zeichnen den verdeckten Bereich sonst erst beim Scrollen wieder; er bleibt schwarz.
+   * Hebt die Fläche nach dem ersten Aufbau, nach einem Dialog und nach der Rückkehr der App für zwei Bilder auf eine eigene Ebene.
+   * Mobile Browser zeichnen verdeckte und klebende Bereiche sonst erst beim Scrollen wieder.
    */
-  _nachDialogNeuZeichnen() {
-    window.addEventListener(
-      "dialog-closed",
-      () => {
-        if (!this.isConnected || this.shadowRoot.querySelector(".schleier")) return;
-        this.style.setProperty("transform", "translateZ(0)");
-        requestAnimationFrame(() => requestAnimationFrame(() => this.style.removeProperty("transform")));
-      },
-      { signal: this._aufbauAbbruch.signal }
+  _nachUnterbrechungNeuZeichnen() {
+    const anheben = () => {
+      if (!this.isConnected || this.shadowRoot.querySelector(".schleier")) return;
+      this.style.setProperty("transform", "translateZ(0)");
+      requestAnimationFrame(() => requestAnimationFrame(() => this.style.removeProperty("transform")));
+    };
+    const optionen = { signal: this._aufbauAbbruch.signal };
+    window.addEventListener("dialog-closed", anheben, optionen);
+    window.addEventListener("pageshow", anheben, optionen);
+    document.addEventListener(
+      "visibilitychange",
+      () => document.visibilityState === "visible" && anheben(),
+      optionen
     );
+    // Nach der Rückkehr von einer anderen Seite entsteht ein neues Element, ohne dass ein Ereignis folgt.
+    if (!this._einmalAngehoben) {
+      requestAnimationFrame(() => {
+        if (!this.isConnected) return;
+        this._einmalAngehoben = true;
+        anheben();
+      });
+    }
   }
 
   /** Kopfleiste mit Menütaste, Marke und Anlagenwahl. */
@@ -668,10 +707,12 @@ class HeatNexusPanel extends Grundlage {
    * Am Telefon passen nicht alle Reiter in die Leiste. Der Neuaufbau behält ihre Position;
    * nur ein verdeckter gewählter Reiter rückt so weit nach, dass er ganz zu sehen ist.
    */
-  _reiterZeigen(inhalt, vorher) {
+  _reiterZeigen(inhalt, vorher, nochmal = true) {
     const leiste = inhalt.querySelector(".reiter");
     if (!leiste) return;
     leiste.scrollLeft = vorher;
+    // Beim ersten Aufbau haben Tasten und Symbole oft noch keine Breite; ein Bild später stimmt sie.
+    if (nochmal) requestAnimationFrame(() => this.isConnected && this._reiterZeigen(inhalt, leiste.scrollLeft, false));
     const taste = leiste.querySelector('[aria-selected="true"]');
     if (!taste || !(leiste.scrollWidth > leiste.clientWidth) || !taste.getBoundingClientRect) return;
     const rand = leiste.getBoundingClientRect();
@@ -741,9 +782,8 @@ class HeatNexusPanel extends Grundlage {
     return griffe;
   }
 
-  /** Der Inhalt einer Anlage in ihrer Sprache; die Automatik spricht die gemeinsame. */
+  /** Der Inhalt einer Anlage in ihrer Sprache. */
   _anlagenInhalt(anlage) {
-    if (this._reiter === "automatik") return this._inhalt(anlage);
     return this._inSprache(anlage, (sicht) => sicht._inhalt(anlage));
   }
 

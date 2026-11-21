@@ -381,6 +381,7 @@ def test_ohne_auswahl_liest_der_executor_die_vorlagen(modul, tmp_path):
     hass = SimpleNamespace(
         config=SimpleNamespace(path=lambda *teile: str(tmp_path.joinpath(*teile))),
         async_add_executor_job=executor,
+        data={},
     )
     globale["verfuegbare"] = verfuegbare
     try:

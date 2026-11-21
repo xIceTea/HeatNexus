@@ -27,7 +27,7 @@ def coordinator(hass, monkeypatch):
     client = MagicMock()
     client.auth_errors = 0
     client.fetch_oids = AsyncMock(return_value={OID: "1"})
-    k = WindhagerDataUpdateCoordinator(hass, client, eintrag, "192.0.2.1", "Heizhaus")
+    k = WindhagerDataUpdateCoordinator(hass, client, eintrag, "192.0.2.1", "Heizhaus", MagicMock())
     k.data = {"oids": {OID: "0"}, "devices": []}
     monkeypatch.setattr(coordinator_modul.asyncio, "sleep", AsyncMock())
     return k
@@ -94,6 +94,25 @@ async def test_ein_geschlossener_client_fragt_nicht_mehr():
     await client.close()
 
     assert await client._fetch_oid(OID) == (OID, FEHLGESCHLAGEN)
+    assert client._session is None
+
+
+async def test_eine_wartende_anfrage_endet_nach_dem_schliessen_als_geschlossen():
+    import asyncio
+
+    from custom_components.heatnexus.client import WindhagerHttpClient
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    warteschlange = asyncio.Semaphore(1)
+    await warteschlange.acquire()
+    anfrage = asyncio.create_task(client._get("http://192.0.2.10/api/1.0/lookup/1", warteschlange))
+    await asyncio.sleep(0)
+    await client.close()
+    warteschlange.release()
+
+    with pytest.raises(CannotConnect):
+        await anfrage
     assert client._session is None
 
 

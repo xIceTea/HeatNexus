@@ -8,7 +8,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { BESCHRIFTUNG, STRANGGROESSEN, farbenUmstellen, schaubildAdresse, schaubildSchluessel } from "../ordnung.js";
 import { SchaubildAutomatikMixin } from "./schaubildautomatik.js";
 import { SchaubildWerteMixin } from "./schaubildwerte.js";
 import { HOEHE, MODUL, RAND, nurNamen, ohneNamen, reihenPlanen, teilAn, teileAus } from "./strang.js";
@@ -35,7 +35,7 @@ export const SchaubildMixin = (Basis) =>
 
   /**
    * Die Farben der Beschriftung, soweit sie vom ausgelieferten Stand abweichen.
-   * Die Karte führt keine Darstellung und zeichnet wie ausgeliefert.
+   * Ohne Darstellung zeichnet das Bild wie ausgeliefert.
    */
   _beschriftung() {
     if (typeof this._stilwahl !== "function") return {};
@@ -69,12 +69,15 @@ export const SchaubildMixin = (Basis) =>
     return "Anlagenübersicht";
   }
 
-  /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
+  /** Satz und Fassung, die gerade gelten; „Automatisch“ folgt dem Erscheinungsbild. */
   _farbsatzGilt() {
-    const satz = this._farbsatz();
-    if (satz && satz !== "auto") return satz;
+    return schaubildSchluessel(this._farbsatz(), this._helligkeit(), this._dunkelModus());
+  }
+
+  /** Ob Home Assistant dunkel steht; ohne Auskunft bleibt es offen, und es gilt Dunkel. */
+  _dunkelModus() {
     const themen = this._hass && this._hass.themes;
-    return themen && themen.darkMode === false ? "hell" : "dunkel";
+    return themen ? themen.darkMode : undefined;
   }
 
   /**
@@ -88,6 +91,66 @@ export const SchaubildMixin = (Basis) =>
     if (!dunkel) return null;
     const tabelle = (anlage.schema_farben || {})[this._farbsatzGilt()];
     return (tabelle && tabelle[dunkel]) || dunkel;
+  }
+
+  /** Die Schichtung des Puffers aus seinen Fühlern färben; der Tooltip nennt die Werte. */
+  _pufferFaerben(anlage, eintrag, koerper) {
+    const oben = this._zahl(eintrag.oben);
+    // Der Boiler meldet nur einen Istwert – dann bleibt `unten` leer und
+    // der Inhalt wird gleichmäßig eingefärbt.
+    const unten = eintrag.unten ? this._zahl(eintrag.unten) : null;
+    const geschichtet = eintrag.unten !== null && eintrag.unten !== undefined;
+    const da = oben !== null && (!geschichtet || unten !== null);
+    koerper.classList.toggle("da", da);
+    if (!da) {
+      // Zurück auf den neutralen Verlauf. Ohne das bliebe die letzte
+      // Färbung stehen und behauptete Messwerte, die es nicht gibt.
+      koerper.style.background = eintrag.grund;
+      koerper.title = this._tMit("{titel} – kein Fühlerwert", { titel: eintrag.titel });
+      return;
+    }
+    const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
+    const farbe = (grad) => {
+      const anteil =
+        spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
+      return `color-mix(in oklab, ${this._farbe(anlage, "warm")} ${Math.round(
+        anteil * 100
+      )}%, ${this._farbe(anlage, "kalt")})`;
+    };
+    if (!geschichtet) {
+      koerper.style.background = farbe(oben);
+      koerper.title = `${eintrag.titel} – ${this._text(eintrag.oben)}`;
+      return;
+    }
+    // Die Haltepunkte liegen auf den gezeichneten Dämmnähten: Der
+    // Speicherkörper reicht von y=116 bis y=296, die drei Nähte sitzen
+    // bei 168, 206 und 244 – also bei 29 %, 50 % und 71 %. Der obere
+    // Fühler beherrscht alles bis zur ersten Naht, der untere alles ab
+    // der dritten, dazwischen liegt die Sprungschicht mittig auf der
+    // mittleren. Vorher endete der obere Bereich bei 30 % und die
+    // Mischfarbe saß bei 62 % – beides zwischen den Nähten, und genau
+    // das ließ die Färbung gegenüber der Zeichnung verrutscht aussehen.
+    // Ein gemessener mittlerer Fühler ersetzt den Mittelwert auf der mittleren Naht.
+    const mitte = eintrag.mitte ? this._zahl(eintrag.mitte) : null;
+    koerper.style.background =
+      `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 29%, ` +
+      `${farbe(mitte ?? (oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
+    koerper.title = this._pufferTitel(eintrag, mitte !== null);
+  }
+
+  /** Der Tooltip des Puffers: seine Fühler und, wo gemeldet, der Beladegrad. */
+  _pufferTitel(eintrag, mitMitte) {
+    const werte = {
+      titel: eintrag.titel,
+      oben: this._text(eintrag.oben),
+      mitte: mitMitte ? this._text(eintrag.mitte) : "",
+      unten: this._text(eintrag.unten),
+    };
+    const titel = mitMitte
+      ? this._tMit("{titel}: oben {oben}, Mitte {mitte}, unten {unten}", werte)
+      : this._tMit("{titel}: oben {oben}, unten {unten}", werte);
+    if (!eintrag.beladegrad || !this._hatWert(eintrag.beladegrad)) return titel;
+    return `${titel}, ${this._tMit("Beladegrad {wert}", { wert: this._text(eintrag.beladegrad) })}`;
   }
 
   /**
@@ -137,7 +200,7 @@ export const SchaubildMixin = (Basis) =>
     return huelle;
   }
 
-  /** Wie der Strang steht; null zeigt das Bild über die ganze Breite, wie in der Lovelace-Karte. */
+  /** Wie der Strang steht; null zeigt das Bild über die ganze Breite. */
   _strangWahl() {
     if (typeof this._stilwahl !== "function") return null;
     const stufe = STRANGGROESSEN.find((eintrag) => eintrag.schluessel === this._stilwahl("strang_groesse"));
@@ -206,7 +269,7 @@ export const SchaubildMixin = (Basis) =>
   /** Eine Hülle ohne `reihe`, sonst Ausschnitt, Schrift und mit `unter` die Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
   _strangReihe(anlage, reihe, bindungen, unter) {
     const anfang = this._bindungen.length;
-    const huelle = this._schaubildHuelle(anlage, Boolean(reihe));
+    const huelle = this._schaubildHuelle(anlage, Boolean(reihe), unter);
     const schrift = reihe ? this._strangSchrift(anlage, reihe, unter) : null;
     const leiste = unter ? this._wertleiste(anlage, reihe) : null;
     bindungen.push(...this._bindungen.splice(anfang));
@@ -314,8 +377,8 @@ export const SchaubildMixin = (Basis) =>
     return bild;
   }
 
-  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg. */
-  _schaubildHuelle(anlage, inReihe = false) {
+  /** Die Zeichnung mit ihren Marken; `inReihe` lässt Namen und Zahlen für die Schrift der Reihe weg, `unter` stellt sie unter das Bild. */
+  _schaubildHuelle(anlage, inReihe = false, unter = false) {
     const huelle = this._bildflaeche(anlage);
     huelle.appendChild(
       this._zeichnung(anlage, inReihe ? ohneNamen(anlage.schema_svg) : anlage.schema_svg, "Anlagenschaubild")
@@ -495,53 +558,21 @@ export const SchaubildMixin = (Basis) =>
       // darüber sichtbar. Lag die Farbe oben, deckte sie all das zu und der
       // Speicher sah aus wie ein Klotz.
       huelle.insertBefore(koerper, huelle.firstChild);
+      // Die Farbe liegt unter dem Bild und erreicht keine Maus; Tooltip und Klick trägt eine Fläche darüber.
+      const ziel = this._klickbar(document.createElement("div"), eintrag.beladegrad || eintrag.oben);
+      ziel.className = `${ziel.className} schichtung-ziel`.trim();
+      ["left", "top", "width", "height", "borderRadius"].forEach((feld) => {
+        ziel.style[feld] = koerper.style[feld];
+      });
+      // Gleich hinter dem Bild: Pumpen und Wertmarken folgen später und bleiben darüber.
+      huelle.insertBefore(ziel, huelle.querySelector("img")?.nextSibling || null);
 
       this._bindungen.push(() => {
-        const oben = this._zahl(eintrag.oben);
-        // Der Boiler meldet nur einen Istwert – dann bleibt `unten` leer und
-        // der Inhalt wird gleichmäßig eingefärbt.
-        const unten = eintrag.unten ? this._zahl(eintrag.unten) : null;
-        const geschichtet = eintrag.unten !== null && eintrag.unten !== undefined;
-        const da = oben !== null && (!geschichtet || unten !== null);
-        koerper.classList.toggle("da", da);
-        if (!da) {
-          // Zurück auf den neutralen Verlauf. Ohne das bliebe die letzte
-          // Färbung stehen und behauptete Messwerte, die es nicht gibt.
-          koerper.style.background = eintrag.grund;
-          koerper.title = this._tMit("{titel} – kein Fühlerwert", { titel: eintrag.titel });
-          return;
-        }
-        const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
-        const farbe = (grad) => {
-          const anteil =
-            spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
-          return `color-mix(in oklab, ${this._farbe(anlage, "warm")} ${Math.round(
-            anteil * 100
-          )}%, ${this._farbe(anlage, "kalt")})`;
-        };
-        if (!geschichtet) {
-          koerper.style.background = farbe(oben);
-          koerper.title = `${eintrag.titel} – ${this._text(eintrag.oben)}`;
-          return;
-        }
-        // Die Haltepunkte liegen auf den gezeichneten Dämmnähten: Der
-        // Speicherkörper reicht von y=116 bis y=296, die drei Nähte sitzen
-        // bei 168, 206 und 244 – also bei 29 %, 50 % und 71 %. Der obere
-        // Fühler beherrscht alles bis zur ersten Naht, der untere alles ab
-        // der dritten, dazwischen liegt die Sprungschicht mittig auf der
-        // mittleren. Vorher endete der obere Bereich bei 30 % und die
-        // Mischfarbe saß bei 62 % – beides zwischen den Nähten, und genau
-        // das ließ die Färbung gegenüber der Zeichnung verrutscht aussehen.
-        koerper.style.background =
-          `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 29%, ` +
-          `${farbe((oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
-        koerper.title = this._tMit("{titel} – oben {oben}, unten {unten}", {
-          titel: eintrag.titel,
-          oben: this._text(eintrag.oben),
-          unten: this._text(eintrag.unten),
-        });
+        this._pufferFaerben(anlage, eintrag, koerper);
+        ziel.title = koerper.title;
       });
     });
+
 
     // Betriebslampen: am Pumpen-/Relaismodul die Klemmen und die Lampe des
     // Gehäuses, am Wärmeerzeuger der Punkt in seiner Zeichnung. Sie liegen als
@@ -705,6 +736,9 @@ export const SchaubildMixin = (Basis) =>
       marke.style.top = eintrag.top;
       huelle.appendChild(marke);
       this._bindungen.push(() => {
+        // Steht die Puffermitte als Zahl im Bild, rückt das Wort in die Kuppel.
+        const drei = !unter && this._pufferDrei() && eintrag.mitte && this._hatWert(eintrag.mitte);
+        marke.style.top = drei ? eintrag.top_drei : eintrag.top;
         const { laedt, zieht } = this._speicherzustand(eintrag);
         marke.classList.toggle("laedt", laedt);
         marke.classList.toggle("entlaedt", !laedt && zieht);

@@ -21,7 +21,9 @@ from ..automatik.entitaeten import SENSOR_ARTEN
 from ..automatik.entitaeten import anmelden as automatik_anmelden
 from ..automatik.system import SENSOR_ARTEN as SYSTEM_SENSOREN
 from ..automatik.system import anmelden as system_anmelden
+from ..befund.brennstoff_entitaeten import anmelden_sensor as brennstoff_anmelden
 from ..befund.entitaeten import anmelden as befund_anmelden
+from ..befund.pflege_entitaeten import anmelden_sensor as pflege_anmelden
 from ..entity import WindhagerEntity, async_setup_entities
 from .ableitungen import (
     WindhagerAbleitungSensor,
@@ -40,6 +42,7 @@ from .meldungen import (
 )
 from .stoerspeicher import anmelden as stoerspeicher_anmelden
 from .uhrzeit import anmelden as uhrzeit_anmelden
+from .verbindung import anmelden as verbindung_anmelden
 from .zeitprogramm import BLOCK_SCHEMA, SCHALTPUNKT_SCHEMA, WindhagerTimeProgramSensor
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,6 +62,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     for art in SYSTEM_SENSOREN:
         system_anmelden(hass, entry, async_add_entities, art)
     befund_anmelden(hass, entry, async_add_entities)
+    pflege_anmelden(hass, entry, async_add_entities)
+    brennstoff_anmelden(hass, entry, async_add_entities)
 
     platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
     # Quittieren, Zurücksetzen und Löschen im Störspeicher des Bediengeräts.
@@ -68,6 +73,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform.async_register_entity_service("stoerung_loeschen", eintrag, "async_loeschen")
     stoerspeicher_anmelden(hass, entry, async_add_entities)
     anlagenzustand_anmelden(hass, entry, async_add_entities)
+    verbindung_anmelden(hass, entry, async_add_entities)
     uhrzeit_anmelden(hass, entry, async_add_entities)
 
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist

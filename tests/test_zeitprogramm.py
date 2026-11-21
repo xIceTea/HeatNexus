@@ -62,7 +62,7 @@ import {{
   wertText,
   wochenraster,
 }} from "{adresse}";
-import {{ gruppieren, heuteText, nachTeilen }} from "{seite}";
+import {{ gruppieren, nachTeilen }} from "{seite}";
 
 const kreis = [
   {{ entity: "sensor.p1", teil: "hk", anlagenteil: "HK", gruppe: "heizen", art: "raum", nummer: 1 }},
@@ -210,9 +210,6 @@ console.log(
       gruppe.schluessel,
       gruppe.eintraege.map((e) => [e.programm.entity, e.vorlauf ? e.vorlauf.entity : null]),
     ]),
-    heute_text: heuteText(heizen, {{ tag: "Mo", minute: 600 }}, skala(heizen, "raum")),
-    heute_text_spaeter: heuteText(vorlauf, {{ tag: "Mo", minute: 1400 }}, skala(vorlauf, "vorlauf")),
-    heute_ohne_block: heuteText(vorlauf, {{ tag: "Tu", minute: 600 }}, skala(vorlauf, "vorlauf")),
     ortszeit_falsche_zone: ortszeit(new Date("2026-09-21T10:00:00Z"), "Nirgendwo/Stadt").tag !== null,
   }})
 );
@@ -480,15 +477,3 @@ def test_vorlauf_haengt_am_raumprogramm_gleicher_nummer(rechnung):
         ["warmwasser", [["sensor.ww", None]]],
         ["allein:sensor.frei", [["sensor.frei", None]]],
     ]
-
-
-def test_der_heute_text_nennt_jetzt_und_den_wechsel(rechnung):
-    assert rechnung["heute_text"] == "jetzt 21 °C · ab 22:00 16 °C"
-
-
-def test_ein_wechsel_an_einem_anderen_tag_nennt_den_wochentag(rechnung):
-    assert rechnung["heute_text_spaeter"] == "jetzt 10 °C · ab Mo 05:00 55 °C"
-
-
-def test_ohne_block_fuer_heute_steht_kein_zeitplan(rechnung):
-    assert rechnung["heute_ohne_block"] == "heute kein Zeitplan"

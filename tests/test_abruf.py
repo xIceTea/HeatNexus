@@ -39,8 +39,9 @@ def coordinator(hass):
     # Vergleich mit einer Zahl scheitert.
     client.auth_errors = 0
     client.fetch_all = AsyncMock(return_value={"oids": {}, "devices": []})
+    client.geraeteliste = []
     return WindhagerDataUpdateCoordinator(
-        hass, client, eintrag, "192.0.2.1", "Heizhaus", update_interval=30
+        hass, client, eintrag, "192.0.2.1", "Heizhaus", MagicMock(), update_interval=30
     )
 
 
@@ -102,8 +103,8 @@ async def test_ein_einzelner_fehler_haelt_die_werte(coordinator):
     coordinator.data = daten
 
     coordinator.client.fetch_all.side_effect = OSError("Verbindung abgebrochen")
-    assert await coordinator._async_update_data() is daten
-    assert await coordinator._async_update_data() is daten
+    assert await coordinator._async_update_data() == daten
+    assert await coordinator._async_update_data() == daten
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
@@ -115,3 +116,21 @@ async def test_ohne_werte_bleibt_der_fehler_ein_fehler(coordinator):
     coordinator.client.fetch_all.side_effect = OSError("Verbindung abgebrochen")
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
+
+
+@pytest.mark.parametrize("fehler", [TimeoutError("keine Antwort"), OSError("abgebrochen")])
+async def test_ein_fehlschlag_liefert_die_aktuelle_geraeteliste(coordinator, fehler):
+    """Nach dem Einlesen gilt die volle Liste, auch wenn der Abruf danach scheitert.
+
+    Sonst gleicht das Stilllegen gegen die Teilliste von davor ab.
+    """
+    teil = [{"id": "a"}]
+    voll = [{"id": "a"}, {"id": "b"}]
+    coordinator.data = {"oids": {"/1/60/0/0/7/0": "61.5"}, "devices": teil}
+    coordinator.client.geraeteliste = voll
+    coordinator.client.fetch_all.side_effect = fehler
+
+    daten = await coordinator._async_update_data()
+
+    assert daten["devices"] == voll
+    assert daten["oids"] == {"/1/60/0/0/7/0": "61.5"}

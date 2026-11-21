@@ -22,17 +22,23 @@ const zeit = browserAttrappe();
 /** Text eines Knotens, ohne Rand. */
 const text = (knoten) => String((knoten && knoten.textContent) || "").trim();
 
+/** Der ganze Name eines Programms: Ein Reiter trägt nur, was nach dem gemeinsamen Vorsatz darüber steht. */
+const vollerName = (knoten) => {
+  const vorsatz = knoten && knoten.closest("[role=tab]") && knoten.closest(".zp-programm").querySelector(".zp-vorsatz");
+  return vorsatz ? `${text(vorsatz)} ${text(knoten)}` : text(knoten);
+};
+
 /** Namen der Zeitprogramme, groß wie klein, in der Reihenfolge auf der Seite. */
 const programmNamen = (wurzel) => [
   ...wurzel.querySelectorAll(".zp-programmname"),
   ...wurzel.querySelectorAll(".zp-mininame"),
-].map(text);
+].map(vollerName);
 
 /** Der Name des Programms, an dem eine Taste steht. */
 const programmVon = (taste) => {
   const gross = taste.closest(".zp-programm");
-  if (gross) return text(gross.querySelector(".zp-programmname"));
-  return text(taste.closest(".zp-mini").querySelector(".zp-mininame"));
+  if (gross) return vollerName(gross.querySelector(".zp-programmname"));
+  return vollerName(taste.closest(".zp-mini").querySelector(".zp-mininame"));
 };
 
 /** Kartentitel ohne die Marke „aktiv", die in derselben Überschrift steht. */
@@ -151,6 +157,18 @@ const STOERSPEICHER = [
 ];
 const ANLIEGEND = STOERSPEICHER[1];
 
+/** Die Texte aller Blätter eines Baums, ohne Stil. */
+const blaetter = (knoten, ablage = []) => {
+  if (knoten.tagName === "STYLE" || knoten.tagName === "SCRIPT") return ablage;
+  if (!knoten.children.length) {
+    const text = String(knoten.textContent || "").trim();
+    if (text) ablage.push(text);
+    return ablage;
+  }
+  knoten.children.forEach((kind) => blaetter(kind, ablage));
+  return ablage;
+};
+
 const bilanz = {};
 const REITER = ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"];
 REITER.forEach((reiter) => {
@@ -165,6 +183,8 @@ REITER.forEach((reiter) => {
       String(kopf.textContent || "").trim()
     ),
     bindungen: flaeche._bindungen.length,
+    // Zahlen vor einer Einheit, wie sie dastehen; das Dezimalzeichen folgt der Sprache der Anlage.
+    zahlen: blaetter(flaeche.shadowRoot).filter((t) => /^[-−+]?\d+([.,]\d+)? ?(°C|K|%|min|h)/.test(t)),
     // Die hervorgehobene Karte: das Programm, auf dem die Betriebswahl steht.
     // Einfache Wähler, keine zusammengesetzten – mehr kann die DOM-Attrappe nicht.
     aktiveKarten: [...flaeche.shadowRoot.querySelectorAll(".karte")]
@@ -187,13 +207,18 @@ REITER.forEach((reiter) => {
     // Zeitprogramme: das geltende groß, die übrigen klein, der Hinweis einmal im Fuß.
     aktiveProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programm")]
       .filter((programm) => programm.classList.contains("aktiv"))
-      .map((programm) => text(programm.querySelector(".zp-programmname"))),
-    grosseProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
-    kleineProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-mininame")].map(text),
+      .map((programm) => vollerName(programm.querySelector(".zp-programmname"))),
+    grosseProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(vollerName),
+    kleineProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-mininame")].map(vollerName),
     programmNamen: programmNamen(flaeche.shadowRoot),
     fuss: [...flaeche.shadowRoot.querySelectorAll(".zp-fuss")].map((fuss) => fuss.children.map(text)),
     schaltzeiten: flaeche.shadowRoot.querySelectorAll(".schaltzeit").length,
     segmentWerte: [...flaeche.shadowRoot.querySelectorAll(".zp-segmentwert")].map(text),
+    klartext: [...flaeche.shadowRoot.querySelectorAll(".zp-tabelle")].map(text),
+    zeitmarken: flaeche.shadowRoot.querySelectorAll(".zp-marken").length,
+    achsen: flaeche.shadowRoot.querySelectorAll(".zp-achse").length,
+    spurwerte: [...flaeche.shadowRoot.querySelectorAll(".zp-stueck")].map(text).filter(Boolean),
+    oeffnenTasten: [...flaeche.shadowRoot.querySelectorAll(".zp-taste")].filter((taste) => text(taste) === "Öffnen").length,
     heuteKarten: flaeche.shadowRoot.querySelectorAll(".zp-heute").length,
     legenden: flaeche.shadowRoot.querySelectorAll(".zp-legende").length,
     // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
@@ -335,7 +360,7 @@ bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--
 // damit vom ersten Aufbau an richtig, ohne auf die Einstellungen zu warten.
 flaeche._darstellungSetzen({ farbsatz: "petrol" });
 const zweite = new (customElements.get("heatnexus-panel"))();
-bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: zweite._farbsatz() };
+bilanz.gemerkt = { gesetzt: window.localStorage.getItem("heatnexus.farbsatz"), beimAufbau: zweite._farbsatz() };
 
 // Die Kopfzeile folgt der Wahl in „Darstellung“ und wird ebenso gemerkt.
 {
@@ -428,7 +453,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const gedrueckt = () =>
     gruppen.map((g) => g.querySelectorAll(".darstellung-muster").filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert));
   const anfangs = gedrueckt();
-  gruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "farbig").ausloesen("click");
+  gruppen[2].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "farbig").ausloesen("click");
   const nachKlick = gedrueckt();
   const kopfNachKlick = flaeche._kopfstil();
   const [schliessen, uebernehmen] = fenster.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste");
@@ -438,6 +463,21 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   };
   const leiste = () => ({ text: String(schliessen.textContent), rot: schliessen.classList.contains("betont"), uebernehmen: !uebernehmen.hidden });
   const leisteNachKlick = leiste();
+  // Das Mausrad bleibt im Fenster: am Ende der Liste und neben dem Fenster scrollt die Seite dahinter nicht.
+  const rahmen = fenster.querySelector(".dialog");
+  Object.assign(rahmen, { scrollHeight: 1000, clientHeight: 500, scrollTop: 500 });
+  const innen = gruppen[0];
+  const gesperrt = (ziel, deltaY) => {
+    let gestoppt = false;
+    fenster.ausloesen("wheel", { target: ziel, deltaY, preventDefault() { gestoppt = true; } });
+    return gestoppt;
+  };
+  const scrollen = {
+    amEndeWeiter: gesperrt(innen, 100),
+    amEndeZurueck: gesperrt(innen, -100),
+    daneben: gesperrt(fenster, 100),
+  };
+  rahmen.scrollTop = 0;
   uebernehmen.ausloesen("click");
   const kopfNachUebernehmen = flaeche._kopfstil();
   // Ein zweites Fenster: geändert und verworfen bleibt die alte Wahl.
@@ -445,11 +485,27 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const zweites = wurzel.querySelectorAll(".schleier")[vorher];
   const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
   const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
-  zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  zweiteGruppen[2].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  // Die Helligkeit ist blass, solange „Home Assistant“ gewählt ist.
+  const helligkeitsblock = zweiteGruppen[1].parentElement;
+  const helligkeitStand = () => ({
+    aus: helligkeitsblock.classList.contains("aus"),
+    grund: helligkeitsblock.querySelector(".unter-bedingung").hidden ? "" : String(helligkeitsblock.querySelector(".unter-bedingung").textContent),
+  });
+  const satzWaehlen = (satz) => zweiteGruppen[0].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === satz).ausloesen("click");
+  const helligkeit = { anfangs: helligkeitStand() };
+  satzWaehlen("home_assistant");
+  helligkeit.homeAssistant = helligkeitStand();
+  satzWaehlen("terrakotta");
+  helligkeit.terrakotta = helligkeitStand();
+  satzWaehlen("windhager");
+  helligkeit.windhager = helligkeitStand();
   const kopfInDerVorschau = flaeche._kopfstil();
   zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
   bilanz.darstellung = {
     kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
+    ueberschriften: fenster.querySelectorAll(".darstellung-gruppe").map((k) => String(k.textContent)),
+    zeilen: fenster.querySelectorAll(".darstellung-name").map((k) => String(k.textContent)),
     anfangs,
     nachKlick,
     kopfNachKlick,
@@ -460,8 +516,20 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
     beimOeffnen,
+    scrollen,
+    helligkeit,
   };
   flaeche._darstellungSetzen({ kopf: "standard" });
+  // Ein gewählter Satz geht mit seiner Helligkeit zum Server, auch wenn diese gleich blieb.
+  const gesendet = [];
+  const setzen = flaeche._darstellungSetzen;
+  flaeche._darstellungSetzen = (teil) => gesendet.push(teil);
+  flaeche._darstellungOeffnen();
+  const drittes = wurzel.querySelectorAll(".schleier")[vorher];
+  drittes.querySelectorAll(".darstellung-wahl")[0].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "heatnexus").ausloesen("click");
+  drittes.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste")[1].ausloesen("click");
+  flaeche._darstellungSetzen = setzen;
+  bilanz.darstellung.gesendet = gesendet;
 }
 
 // „Schließen" im Menü neben „Fertig" schließt das Fenster.
@@ -693,6 +761,13 @@ const dialogTaste = (betont) =>
   rueckfrageDialog()
     .querySelectorAll(".dialog-taste")
     .find((taste) => taste.classList.contains("betont") === betont);
+// „Aktivieren“ steht am gezeigten Programm, das nicht gilt: erst den Reiter von Programm 2 wählen.
+const reiterVon = (anfang) =>
+  flaeche.shadowRoot
+    .querySelectorAll("[role=tab]")
+    .find((taste) => (taste.getAttribute("aria-label") || text(taste)).startsWith(anfang));
+const vorReiter = sichtbareAktivieren().length;
+reiterVon("Programm 2").ausloesen("click");
 const vorAktivieren = sichtbareAktivieren().length;
 
 const vorNein = dienstAufrufe.length;
@@ -721,6 +796,7 @@ flaeche._aktualisieren();
 const waehrendUmstellung = sichtbareAktivieren().length;
 zeit.zeitLaufenLassen();
 bilanz.aktivieren = {
+  vorReiter,
   vorher: vorAktivieren,
   frage: frageText,
   nachNein,
@@ -728,7 +804,7 @@ bilanz.aktivieren = {
   waehrendUmstellung,
   danach: mitAktivieren(),
   // Das neu geltende Programm rückt nach oben, das alte in die Minibalken.
-  grossDanach: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
+  grossDanach: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(vollerName),
 };
 
 // Eine nicht verfügbare Auswahl behält ihre Optionen, stellt aber nichts um.
@@ -784,6 +860,39 @@ if (programmZwei) {
 }
 bilanz.bezeichnung = bezeichnung;
 
+// Bezeichnung im Reiter: Der Stift öffnet das Feld, Speichern sendet nur die Bezeichnung.
+{
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const wurzel = flaeche.shadowRoot;
+  const zwei = () =>
+    wurzel
+      .querySelectorAll(".zp-programm")
+      .find((k) => k.querySelector(".zp-programmname") && vollerName(k.querySelector(".zp-programmname")).startsWith("Programm 2"));
+  const vorStift = !!zwei().querySelector(".zp-benennen");
+  zwei().querySelector(".zp-stift").ausloesen("click");
+  const form = zwei().querySelector(".zp-benennen");
+  const feld = form && form.querySelector(".zp-bezeichnung");
+  const vorbelegt = feld ? feld.value : null;
+  if (feld) feld.value = " Herbst ";
+  const vorWs = wsAufrufe.length;
+  const vorDienst = dienstAufrufe.length;
+  if (form) form.querySelector(".zp-speichern").ausloesen("click");
+  for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+  bilanz.stift = {
+    vorStift,
+    offen: !!form,
+    vorbelegt,
+    gesendet: wsAufrufe
+      .slice(vorWs)
+      .filter((anfrage) => anfrage.type === "heatnexus/bezeichnung")
+      .map((anfrage) => [anfrage.entity_id, anfrage.bezeichnung]),
+    programmGeschrieben: dienstAufrufe.slice(vorDienst).some((aufruf) => aufruf.dienst === "heatnexus.set_time_program"),
+    zu: !zwei().querySelector(".zp-benennen"),
+  };
+}
+
 // Die Betriebswahl zeigt die Bezeichnung, der Wert bleibt der Optionstext.
 states["select.betriebswahl"].state = "Programm 1";
 const beschriftetesFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, null);
@@ -817,10 +926,10 @@ hass.callWS = async (anfrage) => {
 flaeche._reiter = "zeitprogramme";
 flaeche._gebaut = false;
 flaeche._zeichnen();
-// Programm 2 gilt nicht und steht als Minibalken; sein Name öffnet den Dialog.
-const nameZwei = flaeche.shadowRoot
-  .querySelectorAll(".zp-mininame")
-  .find((name) => text(name).startsWith("Programm 2"));
+// Programm 2 steht im gewählten Reiter; „Öffnen“ holt den Dialog.
+const nameZwei = programmZwei && {
+  ausloesen: () => flaeche._zeitprogrammBearbeiten(programmZwei, document.createElement("div")),
+};
 let bezeichnungUndZeiten = null;
 if (nameZwei) {
   const vorZugleich = dienstAufrufe.length;
@@ -862,6 +971,34 @@ if (nameZwei) {
 }
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
+// Editor unter der Zeile: antippen, Samstag dazunehmen, speichern.
+{
+  states["select.betriebswahl"].state = "Programm 1";
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  reiterVon("Programm 1").ausloesen("click");
+  const wurzel = flaeche.shadowRoot;
+  const gezeigt = () =>
+    wurzel.querySelectorAll(".zp-programm").find((k) => vollerName(k.querySelector(".zp-programmname")) === "Programm 1");
+  const editor = () => gezeigt().querySelector(".zp-zeileneditor");
+  const vorher = !!editor();
+  gezeigt().querySelectorAll(".zp-zeile").find((z) => z.getAttribute("role") === "button").ausloesen("click");
+  const offen = !!editor();
+  flaeche._aktualisieren();
+  const bleibt = !!editor();
+  editor().querySelectorAll(".zp-tagwahl").find((taste) => taste.dataset.tag === "Sa").ausloesen("click");
+  const vorSpeichern = dienstAufrufe.length;
+  editor().querySelector(".zp-speichern").ausloesen("click");
+  for (let runde = 0; runde < 10; runde++) await Promise.resolve();
+  const geschrieben = dienstAufrufe
+    .slice(vorSpeichern)
+    .find((aufruf) => aufruf.dienst === "heatnexus.set_time_program");
+  bilanz.zeileneditor = { vorher, offen, bleibt, geschrieben: geschrieben ? geschrieben.angaben : null, zu: !editor() };
+  zeit.zeitLaufenLassen();
+  reiterVon("Programm 2").ausloesen("click");
+}
+
 // ---------------------------------------------------------------------------
 // Reiterleiste am Telefon: Sie behält ihre Position; nur ein verdeckter Reiter rückt nach.
 // ---------------------------------------------------------------------------
@@ -896,23 +1033,52 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._reiter = "zeitprogramme";
   flaeche._gebaut = false;
   flaeche._zeichnen();
+  reiterVon("Programm 1").ausloesen("click");
   const wurzel = flaeche.shadowRoot;
   const heute = {
-    zeilen: [...wurzel.querySelectorAll(".zp-heute-zeile")]
-      .filter((zeile) => zeile.dataset.gruppe)
-      .map((zeile) => ({
-        gruppe: zeile.dataset.gruppe,
-        programm: text(zeile.querySelector(".zp-heute-programm")),
-        text: text(zeile.querySelector(".zp-heute-text")),
-        jetztLinien: zeile.querySelectorAll(".jetzt-linie").length,
+    zeilen: [...wurzel.querySelectorAll(".zp-gruppe")]
+      .filter((gruppe) => gruppe.dataset.gruppe)
+      .map((gruppe) => ({
+        gruppe: gruppe.dataset.gruppe,
+        lage: text(gruppe.querySelector(".zp-lage")),
+        titel: text(gruppe.querySelector(".zp-titel")),
+        jetztLinien: gruppe.querySelectorAll(".jetzt-linie").length,
       })),
-    leer: wurzel.querySelectorAll(".zp-mini").filter((zeile) => zeile.classList.contains("leer")).map((zeile) => ({
-      name: text(zeile.querySelector(".zp-mininame")),
-      spuren: zeile.querySelectorAll(".spur").length,
-      aktivieren: zeile.querySelectorAll(".zp-aktivieren").length,
+    gilt: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("gilt")).map((taste) => ({
+      name: vollerName(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      punkte: taste.querySelectorAll(".zp-punkt-gilt").length,
+      marke: text(taste.querySelector(".zp-aktiv")),
+    })),
+    leer: wurzel.querySelectorAll("[role=tab]").filter((taste) => taste.classList.contains("leer")).map((taste) => ({
+      name: vollerName(taste.querySelector(".zp-mininame") || taste.querySelector(".zp-programmname")),
+      spuren: taste.querySelectorAll(".zp-spur").length,
+      aktivieren: taste.querySelectorAll(".zp-aktivieren").length,
     })),
   };
+  // Ein Programm mit einem Wert für den ganzen Tag: kein Zeitfenster statt einer leeren Spur.
+  zwei.attributes.blocks = [
+    { weekdays: ["Mo", "Tu", "We", "Th", "Fr"], switchPoints: [] },
+    { weekdays: ["Sa", "Su"], switchPoints: [{ time: "00:00", value: 18 }] },
+  ];
+  flaeche._aktualisieren();
+  reiterVon("Programm 2").ausloesen("click");
+  heute.ohneFenster = [...wurzel.querySelectorAll(".zp-ohne-fenster")].map(text);
+  heute.ohneFensterSpuren = wurzel.querySelectorAll(".zp-programm .zp-spur").length;
+  reiterVon("Programm 1").ausloesen("click");
   zwei.attributes.blocks = zweiBloecke;
+
+  // „Darstellung“: Schaltzeiten in der Spur statt als Tabelle.
+  flaeche._vorschau = { zeitprogramme: "spur" };
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  heute.inDerSpur = {
+    tabellen: wurzel.querySelectorAll(".zp-tabelle").length,
+    werte: [...wurzel.querySelectorAll(".zp-stueck")].map(text).filter(Boolean).length,
+    tipps: [...wurzel.querySelectorAll(".zp-stueck")].filter((stueck) => stueck.dataset.tipp).length,
+  };
+  flaeche._vorschau = null;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
 
   const vorherDaten = flaeche._daten;
   const vorherIndex = flaeche._anlageIndex;
@@ -929,7 +1095,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._zeichnen();
   heute.alle = {
     karten: wurzel.querySelectorAll(".zp-heute").length,
-    anlagen: [...wurzel.querySelectorAll(".zp-heute-anlagenname")].map(text),
+    programmKarten: wurzel.querySelectorAll(".zp-karte").length,
     legenden: wurzel.querySelectorAll(".zp-legende").length,
   };
   flaeche._daten = vorherDaten;
@@ -971,7 +1137,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   bilanz.vorlaufRueckmeldung = teile.vorlaufRueckmeldung && teile.vorlaufRueckmeldung.dataset.programm;
 }
 
-// Uhr: Ohne Zustandsänderung rücken Heute-Text und Jetzt-Linie mit dem Minutentakt vor.
+// Uhr: Ohne Zustandsänderung rücken Lagezeile und Jetzt-Linie mit dem Minutentakt vor.
 {
   flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
   hass.config = { time_zone: "UTC" };
@@ -982,15 +1148,16 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   // Der Takt läuft nur, solange das Panel im Dokument hängt.
   Object.defineProperty(flaeche, "isConnected", { value: true, configurable: true });
   const wurzel = flaeche.shadowRoot;
-  const heizen = () => wurzel.querySelectorAll(".zp-heute-zeile").find((zeile) => zeile.dataset.gruppe === "heizen");
+  reiterVon("Programm 2").ausloesen("click");
+  const heizen = () => wurzel.querySelectorAll(".zp-gruppe").find((gruppe) => gruppe.dataset.gruppe === "heizen");
   const gross = () => wurzel.querySelectorAll(".zp-programm")[0];
-  const vorher = { text: text(heizen().querySelector(".zp-heute-text")), gross: gross() };
+  const vorher = { text: text(heizen().querySelector(".zp-lage")), gross: gross() };
   flaeche._jetzt = () => new Date("2026-09-21T22:30:00Z");
   zeit.takteAusloesen(60 * 1000);
   const linie = gross().querySelector(".jetzt-linie");
   bilanz.uhr = {
     vorher: vorher.text,
-    nachher: text(heizen().querySelector(".zp-heute-text")),
+    nachher: text(heizen().querySelector(".zp-lage")),
     gleicherKnoten: gross() === vorher.gross,
     linie: linie && linie.style.left,
   };
@@ -998,12 +1165,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   // Fokus: Ein Neuaufbau der Gruppe lässt die Taste fokussiert, an der man stand.
   flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
   flaeche._aktualisieren();
-  const taste = wurzel.querySelectorAll(".zp-mini").map((zeile) => zeile.querySelector(".zp-aktivieren")).find(Boolean);
+  const taste = wurzel.querySelectorAll(".zp-aktivieren").find((knopf) => !knopf.hidden);
   taste.focus();
   const vorUmstellung = gross();
   states["select.betriebswahl"].state = "Standby";
   flaeche._aktualisieren();
   bilanz.fokus = { neuGezeichnet: gross() !== vorUmstellung, behalten: wurzel.activeElement === taste };
+  bilanz.ohneProgramm = [...wurzel.querySelectorAll(".zp-lage")].map(text);
   states["select.betriebswahl"].state = "Programm 1";
   flaeche._aktualisieren();
   delete flaeche.isConnected;
@@ -1878,6 +2046,10 @@ const echtesBestaetigen = flaeche._bestaetigen;
 flaeche._bestaetigen = async () => true;
 const vorQuittung = dienstAufrufe.length;
 await flaeche._stoerspeicherAktion("quittieren", ANLIEGEND, "sensor.stoerspeicher");
+const leerenTasten = [...flaeche.shadowRoot.querySelectorAll(".stoerspeicher-leeren")];
+const vorLeeren = dienstAufrufe.length;
+await flaeche._stoerspeicherLeeren("sensor.stoerspeicher");
+const leerenAufruf = dienstAufrufe[vorLeeren];
 flaeche._bestaetigen = echtesBestaetigen;
 bilanz.stoerspeicher = {
   zeilen: speicherZeilen.length,
@@ -1910,6 +2082,8 @@ bilanz.stoerspeicher = {
     };
   })(),
   muell: flaeche.shadowRoot.querySelectorAll(".stoerspeicher-muell").length,
+  leeren: leerenTasten.map((t) => String(t.textContent || "").trim()),
+  leerenAufruf,
   tasten,
   aufruf: dienstAufrufe[vorQuittung],
 };
@@ -2003,6 +2177,52 @@ bilanz.meldungBeimSpeichern = meldungen;
   const mitMeldung = kopf(beschreibung, [{ entity: "sensor.kz_stoerung", melder: "binary_sensor.kz_melder" }]);
   bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung, mitMeldung };
   for (const kennung of ["sensor.kz_art", "sensor.kz_stoerung", "binary_sensor.kz_melder"]) delete zustaende[kennung];
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
+// ---------------------------------------------------------------------------
+// Verbindung: eine dritte Plakette, nur solange die Steuerung schlecht antwortet.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const plakette = (zustand, kennung = "sensor.vb_verbindung") => {
+    if (zustand === undefined) delete zustaende["sensor.vb_verbindung"];
+    else zustaende["sensor.vb_verbindung"] = { entity_id: "sensor.vb_verbindung", state: zustand, attributes: { abruf_ms: 430, median_ms: 999 } };
+    const vorher = flaeche._bindungen.length;
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], verbindung: kennung });
+    flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+    const knoten = karte.querySelector(".verbindung");
+    return {
+      anzeige: knoten.style.display,
+      text: text(knoten),
+      symbol: knoten.firstChild.getAttribute("icon"),
+      stufe: ["info", "fehler"].filter((name) => knoten.classList.contains(name)),
+    };
+  };
+  const vorschauAnfang = flaeche._vorschau;
+  flaeche._vorschau = { ...(vorschauAnfang || {}), verbindung: "probleme" };
+  bilanz.verbindungStandard = flaeche._stilGespeichert("verbindung");
+  bilanz.verbindungPlakette = {
+    stabil: plakette("stabil"),
+    sammelt: plakette("sammelt"),
+    traege: plakette("traege"),
+    ueberlastet: plakette("ueberlastet"),
+    gestoert: plakette("gestoert"),
+    ohneSensor: plakette(undefined, null),
+  };
+  flaeche._vorschau = vorschauAnfang;
+  const vorschauVorher = flaeche._vorschau;
+  flaeche._vorschau = { ...(vorschauVorher || {}), verbindung: "immer" };
+  bilanz.verbindungImmer = {
+    stabil: plakette("stabil"),
+    sammelt: plakette("sammelt"),
+    gestoert: plakette("gestoert"),
+  };
+  flaeche._vorschau = { ...(vorschauVorher || {}), verbindung: "immer", verbindung_ms: "aus" };
+  bilanz.verbindungOhneZeit = plakette("stabil");
+  flaeche._vorschau = vorschauVorher;
+  delete zustaende["sensor.vb_verbindung"];
   flaeche._gebaut = false;
   flaeche._zeichnen();
 }

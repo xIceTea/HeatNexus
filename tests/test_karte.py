@@ -121,7 +121,17 @@ def test_die_zeichnung_geht_einmal_hinaus(karte, anlage):
     """Welcher Farbsatz gilt, weiß erst der Browser – er stellt selbst um."""
     nutzdaten = karte.schaubild_nutzdaten(anlage)
     assert nutzdaten["schema_svg"].startswith("<svg")
-    assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
+    assert set(nutzdaten["schema_farben"]) == {
+        "heatnexus_hell",
+        "terrakotta_dunkel",
+        "petrol_dunkel",
+        "pflaume_dunkel",
+        "windhager_hell",
+        "windhager_dunkel",
+        "terrakotta_hell",
+        "petrol_hell",
+        "pflaume_hell",
+    }
 
 
 def test_werte_tragen_entitaet_und_lage(karte, anlage):
@@ -553,3 +563,9 @@ def test_die_karte_beschriftet_jede_anlage_mit_ihrem_woerterbuch(karte):
     )
     assert "Domestic hot water" in _texte_im_bild(bild["svg"])
     assert "Warmwasser" not in _texte_im_bild(bild["svg"])
+
+
+def test_die_karte_folgt_der_darstellung_der_seitenleiste(durchlauf):
+    assert durchlauf["darstellung"]["puffer"] == "drei"
+    assert durchlauf["darstellung"]["lage"] == "unter"
+    assert durchlauf["darstellung"]["ohne"] == "zwei"

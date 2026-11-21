@@ -91,3 +91,36 @@ def test_der_befuellgrad_fuellt_den_behaelter_sonst_gilt_die_feste_hoehe(werte):
 def test_der_luefter_laeuft_an_der_leistung_oder_an_der_waermelieferung(werte):
     """Eine fremde Wärmepumpe meldet keine Leistung; ihr Lüfter folgt der Wärmelieferung."""
     assert werte["luefter"] == [[True, True], [False, False]]
+
+
+def test_der_puffer_zeigt_ohne_wahl_zwei_zahlen(werte):
+    assert werte["puffer_zwei"]["marken"] == ["60.5 °C", "46.6 °C"]
+    assert werte["puffer_zwei"]["wort"] == "50%"
+
+
+def test_mit_drei_pufferwerten_rueckt_das_wort_nach_oben(werte):
+    assert werte["puffer_drei"]["marken"] == ["60.5 °C", "46.6 °C", "50.7 °C"]
+    assert werte["puffer_drei"]["wort"] == "30%"
+
+
+def test_der_tooltip_nennt_mitte_und_beladegrad(werte):
+    assert werte["puffer_zwei"]["titel"] == (
+        "Puffer: oben 60.5 °C, Mitte 50.7 °C, unten 46.6 °C, Beladegrad 38 %"
+    )
+
+
+def test_ohne_beladegrad_bleibt_der_tooltip_bei_den_fuehlern(werte):
+    assert werte["puffer_ohne_beladegrad"]["titel"] == (
+        "Puffer: oben 60.5 °C, Mitte 50.7 °C, unten 46.6 °C"
+    )
+
+
+def test_eine_flaeche_ueber_dem_bild_traegt_den_tooltip(werte):
+    ziel = werte["puffer_zwei"]["ziel"]
+    assert ziel["titel"] == werte["puffer_zwei"]["titel"]
+    assert ziel["nachBild"] is True
+
+
+def test_ein_klick_auf_den_puffer_oeffnet_den_beladegrad(werte):
+    assert werte["puffer_zwei"]["ziel"]["klickbar"] is True
+    assert werte["puffer_zwei"]["ziel"]["geoeffnet"] == "sensor.bg"

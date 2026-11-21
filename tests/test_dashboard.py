@@ -1689,7 +1689,7 @@ def test_auch_eine_anlage_ohne_betriebsart_meldet_den_ausfall(badges):
 
 @pytest.mark.parametrize(
     ("sprache", "erwartet"),
-    [("en", "Connection to controller"), ("nl", "Verbinding met regeling")],
+    [("en", "Connection to controller"), ("nl", "Verbinding met regelaar")],
 )
 def test_die_ausfall_badge_nennt_die_verbindung_zur_steuerung(badges, sprache, erwartet):
     from custom_components.heatnexus.texte import Woerterbuch

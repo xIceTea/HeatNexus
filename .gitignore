@@ -30,3 +30,7 @@ dumps/
 *_menus.json
 *_structure.json
 *_dump*.txt
+
+# Abzüge der Sonde
+heatnexus-abzug-*.zip
+sonde-fehler.log

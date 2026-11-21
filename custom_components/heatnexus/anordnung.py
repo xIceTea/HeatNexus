@@ -31,11 +31,11 @@ import voluptuous as vol
 
 from .const import DOMAIN
 from .helpers import ordnung_anwenden  # noqa: F401  (Teil der Schnittstelle dieses Moduls)
-from .schema import FARBSAETZE
+from .schema import ALTE_FARBSAETZE, FARBSAETZE, HELLIGKEITEN, farbwahl_uebersetzen
 
-# Fassung des Speicherformats. Wird sie erhöht, muss `_async_migrate_func`
-# eines Stores die alten Daten übersetzen – bis dahin gibt es nur die 1.
-ANORDNUNG_STORE_VERSION = 1
+# Fassung des Speicherformats. Fassung 2 teilt den alten Farbsatz in Satz und
+# Helligkeit; `_AnordnungStore._async_migrate_func` übersetzt Fassung 1.
+ANORDNUNG_STORE_VERSION = 2
 ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 
 # Reiter, die eine eigene Anordnung haben.
@@ -111,6 +111,14 @@ STRANGGROESSEN = ("klein", "mittel", "gross")
 # `WERTELAGEN` in `frontend/ordnung.js` passen.
 WERTEGROESSEN = ("klein", "mittel", "gross")
 WERTELAGEN = ("automatisch", "bild", "unter")
+# Muss zu `PUFFERWERTE` in `frontend/ordnung.js` passen.
+PUFFERWERTE = ("zwei", "drei")
+# Muss zu `VERBINDUNGSANZEIGEN` in `frontend/ordnung.js` passen.
+VERBINDUNGSANZEIGEN = ("probleme", "immer")
+# Muss zu `VERBINDUNG_MS` in `frontend/ordnung.js` passen.
+VERBINDUNG_MS = ("an", "aus")
+# Muss zu `ZP_SCHALTZEITEN` in `frontend/ordnung.js` passen.
+ZP_SCHALTZEITEN = ("tabelle", "spur")
 # Farben der Beschriftung im Schaubild, frei gewählt. Muss zu `BESCHRIFTUNG` in
 # `frontend/ordnung.js` passen; die Deckkraft steht in Prozent.
 FARBE = vol.Match(r"^#[0-9a-fA-F]{6}$")
@@ -126,7 +134,9 @@ ERZEUGERWAHL = vol.All(
 # Jede Einstellung gilt für die ganze Oberfläche, nicht für eine Anlage.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
-        vol.Optional("farbsatz"): vol.In(FARBSAETZE),
+        # Alte Werte schickt ein Browser mit dem Stand vor dem Update; sie werden übersetzt.
+        vol.Optional("farbsatz"): vol.In((*FARBSAETZE, *ALTE_FARBSAETZE)),
+        vol.Optional("helligkeit"): vol.In(HELLIGKEITEN),
         vol.Optional("kopf"): vol.In(KOPFSTILE),
         vol.Optional("menue"): vol.In(MENUESTILE),
         vol.Optional("alle"): vol.In(ALLESTILE),
@@ -134,6 +144,10 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
         vol.Optional("strang_groesse"): vol.In(STRANGGROESSEN),
         vol.Optional("werte_groesse"): vol.In(WERTEGROESSEN),
         vol.Optional("werte_lage"): vol.In(WERTELAGEN),
+        vol.Optional("puffer_werte"): vol.In(PUFFERWERTE),
+        vol.Optional("verbindung"): vol.In(VERBINDUNGSANZEIGEN),
+        vol.Optional("verbindung_ms"): vol.In(VERBINDUNG_MS),
+        vol.Optional("zeitprogramme"): vol.In(ZP_SCHALTZEITEN),
         vol.Optional("beschriftung_grund"): FARBE,
         vol.Optional("beschriftung_deckkraft"): DECKKRAFT,
         vol.Optional("beschriftung_schrift"): FARBE,
@@ -144,11 +158,32 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
 )
 
 
+class _AnordnungStore(Store):
+    """Der Speicher der Anordnung; er übersetzt ältere Fassungen beim Laden."""
+
+    async def _async_migrate_func(
+        self, alte_fassung: int, alte_unterfassung: int, daten: dict[str, Any]
+    ) -> dict[str, Any]:
+        benutzer = {
+            kennung: _farbwahl_im_eintrag(eintrag)
+            for kennung, eintrag in (daten.get("benutzer") or {}).items()
+        }
+        return {**daten, "benutzer": benutzer}
+
+
+def _farbwahl_im_eintrag(eintrag: dict[str, Any]) -> dict[str, Any]:
+    """Die Einstellungen eines Benutzers mit Satz und Helligkeit statt des alten Farbsatzes."""
+    einstellungen = eintrag.get(EINSTELLUNGEN)
+    if not einstellungen:
+        return eintrag
+    return {**eintrag, EINSTELLUNGEN: farbwahl_uebersetzen(einstellungen)}
+
+
 def _store(hass: HomeAssistant) -> Store:
     """Der Speicher – einer für die ganze Integration, Benutzer darin getrennt."""
     speicher = hass.data.get(f"{DOMAIN}_anordnung_store")
     if speicher is None:
-        speicher = Store(hass, ANORDNUNG_STORE_VERSION, ANORDNUNG_STORE_KEY)
+        speicher = _AnordnungStore(hass, ANORDNUNG_STORE_VERSION, ANORDNUNG_STORE_KEY)
         hass.data[f"{DOMAIN}_anordnung_store"] = speicher
     return speicher
 
@@ -191,7 +226,8 @@ async def einstellungen_setzen(
     """Die Einstellungen eines Benutzers ergänzen – Reiter bleiben unberührt."""
     alle = dict(await _laden(hass))
     eigene = dict(alle.get(benutzer_id) or {})
-    eigene[EINSTELLUNGEN] = {**(eigene.get(EINSTELLUNGEN) or {}), **einstellungen}
+    neu = farbwahl_uebersetzen(einstellungen)
+    eigene[EINSTELLUNGEN] = {**(eigene.get(EINSTELLUNGEN) or {}), **neu}
     alle[benutzer_id] = eigene
     await _sichern(hass, alle)
 

@@ -25,6 +25,7 @@ from ..const import (
 )
 from .ableitungen import AbleitungenMixin
 from .abruf import AbrufMixin
+from .antwortzeit import Messreihe
 from .erkennung import ErkennungMixin
 from .kennungen import KennungenMixin
 from .menues import MenuesMixin
@@ -117,12 +118,12 @@ class WindhagerHttpClient(
         # Metadaten aus den Menü-Ebenen: OID -> vollständiger Datenpunkt.
         # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
         self.menu_meta: dict = {}
-        # OID -> (prefix, menu_id, Position in der Ebene) für den Sammelabruf.
         # Statisch immer gepollte OIDs (aktive Entities + Climate).
         self.poll_oids: set = set()
-        # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
-        # (z.B. eine vom Nutzer eingeschaltete Service-Entity).
+        # Dynamisch angemeldete OIDs, etwa eine vom Nutzer eingeschaltete Service-Entity.
         self._dynamic_oids: set = set()
+        # Klassen der Anmeldungen, je Klasse gezählt; getrennt, weil ein neues Einlesen `poll_class` ersetzt.
+        self._dynamic_klassen: dict[str, dict[str, int]] = {}
         # Wie viele Entitäten eine dynamisch angemeldete Adresse brauchen.
         self._oid_nutzer: dict[str, int] = {}
         # Zeitprogramme (typeId 30) werden nicht über lookup, sondern über den
@@ -222,8 +223,11 @@ class WindhagerHttpClient(
         self.auth_errors = 0
         self.poll_count = 0
         self.poll_seconds = 0.0
+        self.messreihe = Messreihe()
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
         self._poll_anfragen = 0
+        # Was der letzte Durchlauf in seiner Zeit nicht mehr gelesen hat; Fehlschläge zählen nicht.
+        self._ungelesen = 0
         # HTTP-Status der letzten Antwort auf `fetch`.
         self._letzter_status = 0
         # Der letzte Fehler einer einzelnen Lesung und ob ein Teilausfall schon

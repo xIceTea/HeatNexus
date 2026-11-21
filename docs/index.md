@@ -126,14 +126,19 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <div class="sprachen" aria-label="Deutsch, Englisch, Niederländisch"><span>DE</span><span>EN</span><span>NL</span></div>
       </a>
       <a class="k k-drittel" href="{{ anleitung }}#oberflaeche">
-        <h3>Fünf Farbsätze.</h3>
+        <h3>Fünf Farbsätze, hell und dunkel.</h3>
         <p>Vor- und Rücklauf bleiben in jedem Satz rot und blau.</p>
-        <div class="farben" aria-label="Dunkel, Hell, Terrakotta, Petrol, Pflaume">
-          <i style="--a:#1e232b;--b:#5b8def" title="Dunkel"></i>
-          <i style="--a:#ffffff;--b:#2e6de0" title="Hell"></i>
-          <i style="--a:#242220;--b:#d98e46" title="Terrakotta"></i>
-          <i style="--a:#192226;--b:#3fa89a" title="Petrol"></i>
-          <i style="--a:#211b2a;--b:#a878e0" title="Pflaume"></i>
+        <div class="farben" aria-label="HeatNexus, Terrakotta, Petrol, Pflaume und Windhager-Stil, je dunkel und hell">
+          <i style="--a:#1e232b;--b:#5b8def" title="HeatNexus dunkel"></i>
+          <i style="--a:#f4f5f7;--b:#2e6de0" title="HeatNexus hell"></i>
+          <i style="--a:#242220;--b:#d98e46" title="Terrakotta dunkel"></i>
+          <i style="--a:#f7f3ef;--b:#a85a24" title="Terrakotta hell"></i>
+          <i style="--a:#192226;--b:#3fa89a" title="Petrol dunkel"></i>
+          <i style="--a:#f1f6f5;--b:#1f7a6e" title="Petrol hell"></i>
+          <i style="--a:#211b2a;--b:#a878e0" title="Pflaume dunkel"></i>
+          <i style="--a:#f6f3f8;--b:#7b4bb0" title="Pflaume hell"></i>
+          <i style="--a:#283035;--b:#f86a74" title="Windhager-Stil dunkel"></i>
+          <i style="--a:#f2f2f2;--b:#c20012" title="Windhager-Stil hell"></i>
         </div>
       </a>
       <a class="k k-drittel insel" href="{{ anleitung }}#einrichtung">
@@ -141,11 +146,15 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <p>Mehrere Steuerungen in einem Eintrag, jede mit eigenem Namen.</p>
         <div class="gebaeude" aria-hidden="true"><span>Haupthaus</span><span>Werkstatt</span></div>
       </a>
-      <a class="k k-halb" href="{{ anleitung }}#einrichtung">
+      <a class="k k-drittel" href="{{ anleitung }}#auswertung">
+        <h3>Pflege, Abgas und Brennstoff.</h3>
+        <p>Die Auswertung zeigt fällige Pflege, wärmeres Abgas seit der Reinigung und wie lange der Brennstoff reicht.</p>
+      </a>
+      <a class="k k-drittel" href="{{ anleitung }}#einrichtung">
         <h3>Eigene Wärmequellen.</h3>
         <p>Solaranlage, Heizstab oder Fernwärme hängen nicht an der Steuerung. Angelegt erscheinen sie im Schaubild und melden, wann sie liefern.</p>
       </a>
-      <a class="k k-halb" href="{{ anleitung }}#vorlagen">
+      <a class="k k-drittel" href="{{ anleitung }}#vorlagen">
         <h3>Fertige Vorlagen.</h3>
         <p>Blueprints für Störungsmeldung, Wartungserinnerung und Vorratswarnung, einzeln abwählbar.</p>
       </a>
@@ -188,8 +197,10 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
               <tr><td>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
               <tr><td>AeroWIN</td><td>Strom</td><td><span class="stand fremd">Bei Nutzern im Einsatz</span></td></tr>
               <tr><td>BioWIN Alpha</td><td>Pellets</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>FireWIN, SilvaWIN, BioWIN XL</td><td>Pellets, Scheitholz</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
 <tr><td>Andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
-              <tr><td>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>MinoWIN, MultiWIN 2 Plus</td><td>Gas</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
+              <tr><td>Andere Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
               <tr><td>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">Ohne Rückmeldung</span></td></tr>
             </tbody>
           </table>
@@ -268,7 +279,7 @@ mitgelieferten Datenbank und wird erkannt, eine Rückmeldung fehlt noch.
         <a href="{{ anleitung }}#oberflaeche">Die Oberfläche<span>Jeder Reiter und was er zeigt</span></a>
         <a href="{{ anleitung }}#karte">Schaubild als Karte<span>Einrichtung und Einstellungen</span></a>
         <a href="{{ anleitung }}#automatik">Automatik<span>Wie sie entscheidet</span></a>
-        <a href="{{ anleitung }}#vorlagen">Vorlagen und Dienste<span>Mit Beispielaufruf</span></a>
+        <a href="{{ anleitung }}#vorlagen">Vorlagen und Aktionen<span>Mit Beispielaufruf</span></a>
       </div>
       <div>
         <h3>Referenz</h3>

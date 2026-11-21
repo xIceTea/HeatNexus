@@ -219,12 +219,34 @@ def test_ohne_waermeanforderung_steht_ein_strich(durchlauf):
     assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
 
 
-def test_die_werte_stehen_im_balken_statt_darunter(durchlauf):
-    """Die Schaltzeiten als Text doppelten den Balken; die genauen Zeiten zeigt der Dialog."""
+def test_die_werte_stehen_in_einer_tabelle_unter_der_spur(durchlauf):
+    """Die Spur trägt keine Zahlen; Zeiten und Werte stehen darunter als Tabelle."""
     zeitprogramme = durchlauf["zeitprogramme"]
     assert zeitprogramme["schaltzeiten"] == 0
-    assert zeitprogramme["segmentWerte"], "Im Balken steht kein Wert"
-    assert all(text.endswith("°C") for text in zeitprogramme["segmentWerte"])
+    assert zeitprogramme["segmentWerte"] == []
+    assert any("Übrige Zeit" in zeile and "°C" in zeile for zeile in zeitprogramme["klartext"])
+    assert zeitprogramme["spurwerte"] == []
+
+
+def test_unter_der_spur_steht_eine_feste_achse_statt_zeitmarken(durchlauf):
+    """Marken an den Schaltzeiten lagen am Handy übereinander; die Tabelle nennt die Zeiten."""
+    zeitprogramme = durchlauf["zeitprogramme"]
+    assert zeitprogramme["zeitmarken"] == 0
+    assert zeitprogramme["achsen"] > 0
+
+
+def test_bearbeitet_wird_nur_ueber_die_tageszeile(durchlauf):
+    """Eine zweite Taste „Öffnen“ neben der antippbaren Zeile führte zum selben Ziel."""
+    assert durchlauf["zeitprogramme"]["oeffnenTasten"] == 0
+
+
+def test_der_stift_aendert_nur_die_bezeichnung(durchlauf):
+    stift = durchlauf["stift"]
+    assert (stift["vorStift"], stift["offen"]) == (False, True)
+    assert stift["vorbelegt"] == "Übergangszeit"
+    assert stift["gesendet"] == [["sensor.programm_2", "Herbst"]]
+    assert stift["programmGeschrieben"] is False
+    assert stift["zu"] is True
 
 
 def test_eine_karte_je_anlagenteil_statt_je_programm(durchlauf):
@@ -239,28 +261,52 @@ def test_das_geltende_programm_steht_gross_die_uebrigen_klein(durchlauf):
     assert zeitprogramme["kleineProgramme"] == ["Programm 2 – Übergangszeit"]
 
 
-def test_der_hinweis_steht_einmal_im_kartenfuss(durchlauf):
-    assert durchlauf["zeitprogramme"]["fuss"] == [
-        [
-            "Es wirkt nur das Programm, auf dem die Betriebswahl steht.",
-            "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
-        ]
-    ]
+def test_die_karte_traegt_keinen_fusstext(durchlauf):
+    """Der Punkt am Reiter zeigt, welches Programm gilt; ein Satz darunter wiederholte es."""
+    assert durchlauf["zeitprogramme"]["fuss"] == []
 
 
-def test_der_heute_streifen_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
-    """Montag 10:00: Programm 1 hält 21 °C bis 22:00, dann 16 °C."""
+def test_ein_geltendes_programm_braucht_keine_lagezeile(durchlauf):
+    """Betriebswahl, „jetzt“ und der nächste Wechsel stehen in Reiter, Spur und Tabelle."""
     zeilen = durchlauf["heute"]["zeilen"]
     assert [z["gruppe"] for z in zeilen] == ["heizen", "warmwasser"]
-    heizen = zeilen[0]
-    assert heizen["programm"] == "Programm 1"
-    assert heizen["text"] == "jetzt 21 °C · ab 22:00 16 °C"
+    assert [z["lage"] for z in zeilen] == ["", ""]
     assert all(z["jetztLinien"] == 1 for z in zeilen)
 
 
-def test_die_legende_steht_einmal_je_seite(durchlauf):
-    assert durchlauf["zeitprogramme"]["heuteKarten"] == 1
-    assert durchlauf["zeitprogramme"]["legenden"] == 1
+def test_ein_einzelnes_programm_nennt_nur_seinen_namen(durchlauf):
+    """Mit Reitern nennt die Leiste das Programm; allein steht sein Name über den Tagen."""
+    heizen, warmwasser = durchlauf["heute"]["zeilen"]
+    assert heizen["titel"] == ""
+    assert warmwasser["titel"] == "WW-Programm"
+
+
+def test_ein_tag_mit_einem_wert_zeigt_kein_zeitfenster_statt_einer_spur(durchlauf):
+    heute = durchlauf["heute"]
+    assert any(
+        zeile.startswith("Kein Zeitfenster") and "18" in zeile for zeile in heute["ohneFenster"]
+    )
+    assert "Kein Zeitplan" in heute["ohneFenster"]
+    assert heute["ohneFensterSpuren"] == 0
+
+
+def test_in_der_spur_stehen_die_werte_statt_der_tabelle(durchlauf):
+    """Wahl unter „Darstellung“; ein Tipp auf einen Abschnitt nennt Zeit und Wert."""
+    in_der_spur = durchlauf["heute"]["inDerSpur"]
+    assert in_der_spur["tabellen"] == 0
+    assert in_der_spur["werte"] > 0, in_der_spur
+    assert in_der_spur["tipps"] >= in_der_spur["werte"]
+
+
+def test_es_gibt_keine_heute_karte_und_keine_legende(durchlauf):
+    """Die Lage steht in jeder Karte; eine eigene Karte „Heute“ wiederholte sie nur."""
+    assert durchlauf["zeitprogramme"]["heuteKarten"] == 0
+    assert durchlauf["zeitprogramme"]["legenden"] == 0
+
+
+def test_der_reiter_des_geltenden_programms_traegt_punkt_und_rahmen(durchlauf):
+    """Der Punkt sagt „gilt“ auch ohne Farbe; für Vorleser steht das Wort dabei."""
+    assert durchlauf["heute"]["gilt"] == [{"name": "Programm 1", "punkte": 1, "marke": "gilt"}]
 
 
 def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):
@@ -290,11 +336,10 @@ def test_das_zirkulationsprogramm_der_anderen_art_bleibt_klein_sichtbar(durchlau
     assert zirkulation["gross"] == "sensor.zirk_temp"
 
 
-def test_unter_alle_steht_ein_streifen_mit_jeder_anlage(durchlauf):
+def test_unter_alle_stehen_nur_die_karten_der_anlagen(durchlauf):
     alle = durchlauf["heute"]["alle"]
-    assert alle["karten"] == 1
-    assert alle["anlagen"] == ["Anlage A", "Anlage B"]
-    assert alle["legenden"] == 1
+    assert (alle["karten"], alle["legenden"]) == (0, 0)
+    assert alle["programmKarten"] >= 2
 
 
 def test_der_zeitprogramm_dialog_zeigt_erst_die_spannen(durchlauf):
@@ -379,8 +424,8 @@ def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
 
 
 def test_das_aktive_zeitprogramm_traegt_eine_textmarke(durchlauf):
-    """Farbe allein trägt keine Aussage; die Marke steht bei jeder aktiven Karte."""
-    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["· aktiv", "· aktiv"]
+    """Farbe allein trägt keine Aussage; der Reiter des geltenden Programms nennt es."""
+    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["gilt"]
 
 
 def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):
@@ -407,7 +452,7 @@ def test_nach_der_betriebswahl_laedt_der_sollwert(durchlauf):
     """Der alte Sollwert stünde sonst neben „übernommen ✓", bis die Steuerung nachrechnet."""
     sollwert = durchlauf["betriebswahl"]["sollwert"]
     assert sollwert["wartet"] == "lädt …"
-    assert sollwert["nachgezogen"] == "21.5 °C"
+    assert sollwert["nachgezogen"] == "21,5 °C"
     assert sollwert["danach"] == "20 °C"
 
 
@@ -441,7 +486,7 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert schaubild["dunkel"] != schaubild["hell"]
     # Ein Wert, den der helle Satz wirklich austauscht. Vor- und Rücklauf
     # stehen in jedem Satz gleich und taugen dafür nicht.
-    tabelle = anlage["schema_farben"]["hell"]
+    tabelle = anlage["schema_farben"]["heatnexus_hell"]
     dunkler_wert = next(alt for alt, neu in tabelle.items() if alt != neu)
     assert unquote(schaubild["dunkel"]).count(dunkler_wert) > 0
     assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
@@ -514,22 +559,32 @@ def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
 def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
     """Ein Klick zeigt die Wahl als Vorschau: „Übernehmen“ speichert sie, „Verwerfen“ stellt die alte zurück."""
     darstellung = durchlauf["darstellung"]
-    assert darstellung["kacheln"] == [6, 4, 2, 2, 3, 3, 3]
+    assert darstellung["kacheln"] == [6, 3, 4, 2, 2, 3, 3, 3, 2, 2, 2, 2]
     assert darstellung["anfangs"][1:] == [
+        ["dunkel"],
         ["standard"],
         ["zeichen"],
         ["umbrechen"],
         ["mittel"],
         ["automatisch"],
         ["mittel"],
+        ["zwei"],
+        ["immer"],
+        ["an"],
+        ["tabelle"],
     ]
     assert darstellung["nachKlick"][1:] == [
+        ["dunkel"],
         ["farbig"],
         ["zeichen"],
         ["umbrechen"],
         ["mittel"],
         ["automatisch"],
         ["mittel"],
+        ["zwei"],
+        ["immer"],
+        ["an"],
+        ["tabelle"],
     ]
     assert darstellung["kopfNachKlick"] == "farbig"
     assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
@@ -615,7 +670,7 @@ def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     # Trotz hellem Erscheinungsbild: der gewählte Satz gilt.
     assert schaubild["terrakotta"] not in (schaubild["hell"], schaubild["dunkel"])
     assert schaubild["wahlDunkel"] == schaubild["dunkel"]
-    terrakotta = anlage["schema_farben"]["terrakotta"]
+    terrakotta = anlage["schema_farben"]["terrakotta_dunkel"]
     assert unquote(schaubild["terrakotta"]).count(next(iter(terrakotta.values()))) > 0
 
 
@@ -780,6 +835,41 @@ def test_ein_laufender_kaminkehrer_endet_ueber_die_gegentaste(dialog):
     assert "läuft: Beenden drückt die Gegentaste" in dialog["faelle"]
 
 
+# Eingaben der Auswertung: Befüllung, Bestand und Datum der letzten Pflege.
+EINGABE = Path(__file__).parent / "js" / "befund-eingabe.mjs"
+
+
+@pytest.fixture(scope="module")
+def eingabe() -> dict:
+    """Die Eingabedialoge in Node fahren – ohne Browser, ohne Anlage."""
+    lauf = subprocess.run(
+        ["node", str(EINGABE), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+@pytest.mark.parametrize(
+    "fall",
+    [
+        "Befüllung ohne Rest: nur die Menge",
+        "Befüllung mit Rest: Menge und Rest",
+        "Befüllung ohne Menge: kein Aufruf, Hinweis",
+        "Bestand: Vorgabe gerechnet, Zahl auf den Vorrat",
+        "Datum: Tag auf die Datumsentität",
+        "Datum in der Zukunft: kein Aufruf",
+        "Abbruch: kein Aufruf",
+        "ohne Eingabe: keine Tasten",
+    ],
+)
+def test_eingaben_der_auswertung(eingabe, fall):
+    assert fall in eingabe["faelle"]
+
+
 def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):
     """Der Text sagt, was ansteht; die Abhilfe, was zu tun ist."""
     assert durchlauf["uebersicht"]["abhilfe"] == ["schließen"]
@@ -801,8 +891,14 @@ def test_waehrend_der_umstellung_ist_keine_taste_zu_sehen(durchlauf):
     assert durchlauf["aktivieren"]["waehrendUmstellung"] == 0
 
 
-def test_nach_der_umstellung_wechselt_die_taste_zum_alten_programm(durchlauf):
-    assert durchlauf["aktivieren"]["danach"] == ["Programm 1"]
+def test_aktivieren_steht_erst_am_gewaehlten_reiter(durchlauf):
+    """Vor der Wahl zeigt die Karte das geltende Programm; dort gibt es nichts zu aktivieren."""
+    assert durchlauf["aktivieren"]["vorReiter"] == 0
+
+
+def test_nach_der_umstellung_verschwindet_die_taste(durchlauf):
+    """Das gezeigte Programm gilt jetzt; die Taste steht nur an einem, das nicht gilt."""
+    assert durchlauf["aktivieren"]["danach"] == []
 
 
 def test_nach_der_umstellung_steht_das_neue_programm_gross(durchlauf):
@@ -1202,9 +1298,7 @@ def _in_sprachen(aufteilung, eigene: str, gemeinsame: str = "de") -> dict:
     return {**aufteilung, "anlagen": [a, b], "texte": gemeinsam.fuer_frontend}
 
 
-@pytest.fixture(scope="module")
-def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
-    nutzlast = _in_sprachen(aufteilung, "nl")
+def _sprachen_durchlauf(nutzlast: dict, tmp_path_factory) -> dict:
     datei = tmp_path_factory.mktemp("sprachen") / "daten.json"
     datei.write_text(json.dumps(nutzlast), encoding="utf-8")
     ergebnis = subprocess.run(
@@ -1214,7 +1308,13 @@ def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
         encoding="utf-8",
     )
     assert ergebnis.returncode == 0, ergebnis.stderr[:2000]
-    return nutzlast, json.loads(ergebnis.stdout)
+    return json.loads(ergebnis.stdout)
+
+
+@pytest.fixture(scope="module")
+def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
+    nutzlast = _in_sprachen(aufteilung, "nl")
+    return nutzlast, _sprachen_durchlauf(nutzlast, tmp_path_factory)
 
 
 def test_nur_eine_abweichende_anlage_bringt_ihr_woerterbuch_mit(aufteilung):
@@ -1346,6 +1446,15 @@ def test_der_stoerspeicher_steht_in_der_stoerungskarte(durchlauf):
     """Der erledigte Eintrag steht im Verlauf und trägt den Papierkorb."""
     assert durchlauf["stoerspeicher"]["zeilen"] == 1
     assert durchlauf["stoerspeicher"]["muell"] == 1
+
+
+def test_eine_taste_loescht_alle_erledigten_eintraege(durchlauf):
+    """Die Taste steht über dem Verlauf und ruft den Dienst am Sensor Störspeicher."""
+    assert durchlauf["stoerspeicher"]["leeren"] == ["Erledigte löschen"]
+    assert durchlauf["stoerspeicher"]["leerenAufruf"] == {
+        "dienst": "heatnexus.meldungen_loeschen",
+        "angaben": {"entity_id": "sensor.stoerspeicher"},
+    }
 
 
 def test_ein_anliegender_eintrag_wird_kachel_in_der_farbe_seiner_art(durchlauf):
@@ -1523,6 +1632,41 @@ def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
 
 
+def test_die_helligkeit_ist_nur_bei_home_assistant_blass(durchlauf):
+    assert durchlauf["darstellung"]["helligkeit"] == {
+        "anfangs": {"aus": False, "grund": ""},
+        "homeAssistant": {"aus": True, "grund": "Folgt dem Design von Home Assistant"},
+        "terrakotta": {"aus": False, "grund": ""},
+        "windhager": {"aus": False, "grund": ""},
+    }
+
+
+def test_ein_gewaehlter_satz_geht_mit_seiner_helligkeit_zum_server(durchlauf):
+    """Ein Satz allein gälte am Server als alter Wert und würde übersetzt.
+
+    Gespeichert war Petrol aus der Zeit vor der Helligkeit, also dunkel; die Helligkeit bleibt dabei stehen.
+    """
+    assert durchlauf["darstellung"]["gesendet"] == [
+        {"farbsatz": "heatnexus", "helligkeit": "dunkel"}
+    ]
+
+
+def test_das_mausrad_scrollt_nicht_die_seite_hinter_dem_fenster(durchlauf):
+    """Am Ende der Liste und neben dem Fenster bleibt die Seite stehen; zurück scrollt das Fenster selbst."""
+    assert durchlauf["darstellung"]["scrollen"] == {
+        "amEndeWeiter": True,
+        "amEndeZurueck": False,
+        "daneben": True,
+    }
+
+
+def test_ein_fenster_reicht_den_schwung_nicht_weiter():
+    """Auch Wischen am Handy scrollt am Ende der Liste nicht die Seite dahinter."""
+    stil = (PANEL_JS.parent / "stil" / "dialog.js").read_text(encoding="utf-8")
+    regel = stil[stil.index("  .dialog { max-height") :].split("}")[0]
+    assert "overscroll-behavior: contain" in regel
+
+
 def test_die_leiste_eines_fensters_bleibt_sichtbar():
     """Ein langes Fenster scrollt in sich; Schließen und Übernehmen kleben unten."""
     stil = (PANEL_JS.parent / "stil" / "dialog.js").read_text(encoding="utf-8")
@@ -1542,13 +1686,19 @@ def test_der_vorlauf_hat_eine_eigene_rueckmeldung(durchlauf):
     assert durchlauf["vorlaufRueckmeldung"] == "sensor.vorlauf_1"
 
 
-def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
-    """Montag 22:30: 16 °C bis Dienstag 06:00. Das große Programm bleibt derselbe Knoten."""
+def test_der_minutentakt_bewegt_die_jetzt_linie(durchlauf):
+    """Montag 22:30: Das große Programm bleibt derselbe Knoten, nur die Linie rückt."""
     uhr = durchlauf["uhr"]
-    assert uhr["vorher"] == "jetzt 21 °C · ab 22:00 16 °C"
-    assert uhr["nachher"] == "jetzt 16 °C · ab Di 06:00 21 °C"
     assert uhr["gleicherKnoten"] is True
     assert uhr["linie"] == "93.75%"
+
+
+def test_ohne_geltendes_programm_steht_ein_satz_mit_der_betriebswahl(durchlauf):
+    """Betriebswahl „Standby“: weder ein Heizprogramm noch das WW-Programm ist aktiv."""
+    assert durchlauf["ohneProgramm"] == [
+        "Kein Programm aktiv · Betriebswahl: Standby",
+        "Nicht aktiv · Betriebswahl: Standby",
+    ]
 
 
 def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
@@ -1632,3 +1782,158 @@ def test_ein_wechsel_von_profil_oder_heizflaechen_behaelt_eigene_werte():
     quelle = (PANEL_JS.parent / "teile" / "einrichtung.js").read_text(encoding="utf-8")
     assert "{ profil: wahl.value }" in quelle
     assert "nachricht.eigene" not in quelle
+
+
+KARTENHELFER = Path(__file__).parent / "js" / "verlauf-kartenhelfer.mjs"
+
+
+def test_verlauf_laedt_die_kartenhelfer_ohne_vorher_geoeffnetes_dashboard():
+    """Startet Home Assistant nicht in einem Dashboard, fehlen die Kartenhelfer zunächst."""
+    lauf = subprocess.run(
+        ["node", str(KARTENHELFER), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    assert len(json.loads(lauf.stdout)["faelle"]) == 2
+
+
+@pytest.mark.parametrize("fall", ["stabil", "sammelt", "ohneSensor"])
+def test_die_verbindung_zeigt_bei_gutem_zustand_keine_plakette(durchlauf, fall):
+    assert durchlauf["verbindungPlakette"][fall]["anzeige"] == "none"
+
+
+@pytest.mark.parametrize(
+    ("fall", "text", "stufe"),
+    [
+        ("traege", "Verbindung: Träge · 430 ms", ["info"]),
+        ("ueberlastet", "Verbindung: Überlastet · 430 ms", ["fehler"]),
+        ("gestoert", "Verbindung: Gestört · 430 ms", ["fehler"]),
+    ],
+)
+def test_die_verbindung_zeigt_eine_plakette_bei_problemen(durchlauf, fall, text, stufe):
+    plakette = durchlauf["verbindungPlakette"][fall]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == text
+    assert plakette["stufe"] == stufe
+
+
+@pytest.mark.parametrize(
+    ("fall", "text", "stufe"),
+    [
+        ("stabil", "Verbindung: Stabil · 430 ms", []),
+        ("sammelt", "Verbindung: Sammelt Daten · 430 ms", ["info"]),
+        ("gestoert", "Verbindung: Gestört · 430 ms", ["fehler"]),
+    ],
+)
+def test_auf_wunsch_steht_die_verbindung_immer_da(durchlauf, fall, text, stufe):
+    plakette = durchlauf["verbindungImmer"][fall]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == text
+    assert plakette["stufe"] == stufe
+
+
+def test_die_verbindung_steht_standardmaessig_immer_da(durchlauf):
+    assert durchlauf["verbindungStandard"] == "immer"
+
+
+def test_die_antwortzeit_laesst_sich_ausblenden(durchlauf):
+    plakette = durchlauf["verbindungOhneZeit"]
+    assert plakette["anzeige"] == ""
+    assert plakette["text"] == "Verbindung: Stabil"
+
+
+def test_das_fenster_darstellung_ordnet_die_wahlen_in_gruppen(durchlauf):
+    darstellung = durchlauf["darstellung"]
+    assert darstellung["ueberschriften"] == ["Aussehen", "Schaubild", "Übersicht", "Zeitprogramme"]
+    assert darstellung["zeilen"][:7] == [
+        "Farbsatz",
+        "Kopfzeile",
+        "Seitenleiste",
+        "Anordnung",
+        "Werte",
+        "Beschriftung",
+        "Verbindung",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Editor unter der Zeile
+# ---------------------------------------------------------------------------
+def test_die_zeile_oeffnet_den_editor_darunter(durchlauf):
+    editor = durchlauf["zeileneditor"]
+    assert (editor["vorher"], editor["offen"], editor["bleibt"]) == (False, True, True)
+
+
+def test_speichern_schreibt_das_ganze_programm_mit_den_neuen_tagen(durchlauf):
+    """Samstag wandert aus dem Wochenendblock; die Anlage bekommt beide Blöcke."""
+    editor = durchlauf["zeileneditor"]
+    assert editor["geschrieben"] == {
+        "entity_id": "sensor.programm_1",
+        "blocks": [
+            {
+                "weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa"],
+                "switch_points": [{"time": "06:00", "value": 21}, {"time": "22:00", "value": 16}],
+            },
+            {"weekdays": ["Su"], "switch_points": [{"time": "07:30", "value": 21}]},
+        ],
+    }
+    assert editor["zu"] is True
+
+
+def test_die_automatik_einer_anlage_steht_in_ihrer_sprache(zwei_sprachen):
+    """Der Reiter Automatik folgt der Anlage wie jeder andere Reiter."""
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    texte = [t for bereich in ergebnis["automatik"].values() for t in bereich]
+    reste = sorted(t for t in texte if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert texte
+    assert not reste, f"Automatik der niederländischen Anlage noch deutsch: {reste}"
+
+
+def test_unter_alle_steht_jeder_automatik_kreis_in_der_sprache_seiner_anlage(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    texte = ergebnis["automatikAlle"]["anlage"]
+    reste = sorted(t for t in texte if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert texte, "kein Heizkreis der niederländischen Anlage in ihrer Sprache"
+    assert not reste, f"Automatik von Anlage B unter „Alle“ noch deutsch: {reste[:5]}"
+    assert any(DEUTSCH.search(t) for t in ergebnis["automatikAlle"]["rahmen"])
+
+
+@pytest.mark.parametrize("reiter", ["uebersicht", "steuerung"])
+def test_zahlen_vor_einer_einheit_stehen_mit_komma(durchlauf, reiter):
+    """Ist- und Sollwert des Heizkreises kommen roh aus den Attributen der Klima-Entität."""
+    # Die übrigen Zahlen formatiert Home Assistant; die Attrappe gibt sie roh zurück.
+    zahlen = durchlauf[reiter]["zahlen"]
+    assert "20,8 °C" in zahlen
+    assert "20.8 °C" not in zahlen
+
+
+def test_die_zahl_steht_mit_dem_dezimalzeichen_der_anlage(
+    zwei_sprachen, aufteilung, tmp_path_factory
+):
+    """Niederländisch schreibt ein Komma, Englisch einen Punkt."""
+    _, ergebnis = zwei_sprachen
+    assert "20,8 °C" in ergebnis["seite"]["anlage"]
+    englisch = _sprachen_durchlauf(_in_sprachen(aufteilung, "en"), tmp_path_factory)
+    assert "20.8 °C" in englisch["seite"]["anlage"]
+    assert "20,8 °C" not in englisch["seite"]["anlage"]
+
+
+def test_die_automatik_schreibt_zahlen_mit_dem_dezimalzeichen_der_anlage(
+    zwei_sprachen, aufteilung, tmp_path_factory
+):
+    """Kennwerte, Tagesbild und Marken der Automatik folgen derselben Regel wie der Server."""
+    _, ergebnis = zwei_sprachen
+    komma = re.compile(r"\d,\d")
+    niederlaendisch = [t for bereich in ergebnis["automatik"].values() for t in bereich]
+    assert any(komma.search(t) for t in niederlaendisch)
+    englisch = _sprachen_durchlauf(_in_sprachen(aufteilung, "en"), tmp_path_factory)
+    texte = [t for bereich in englisch["automatik"].values() for t in bereich]
+    # Gezeichnete Kurven stehen als SVG-Text da; ihre Koordinaten sind keine Zahlen zum Lesen.
+    reste = sorted(t for t in texte if komma.search(t) and not t.startswith("<"))
+    assert texte
+    assert not reste, f"Dezimalkomma in der englischen Automatik: {reste}"

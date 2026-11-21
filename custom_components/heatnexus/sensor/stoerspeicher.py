@@ -160,6 +160,13 @@ class StoerspeicherSensor(CoordinatorEntity, SensorEntity):
         await self.coordinator.client.stoerung_loeschen(gefunden["id"])
         await self._abschliessen("loeschen", gefunden)
 
+    async def leeren(self) -> None:
+        """Jeden erledigten Eintrag löschen; anliegende Störungen lehnt die Steuerung ab."""
+        for eintrag in [e for e in self._roh or [] if e.get("loeschbar")]:
+            await self.coordinator.client.stoerung_loeschen(eintrag["id"])
+            logbuch(self.hass, self, "loeschen", eintrag)
+        self.coordinator.meldungen_nachfassen()
+
     async def _abschliessen(self, aktion: str, eintrag: dict) -> None:
         """Im Logbuch festhalten, wer was getan hat, und die Liste sofort neu lesen."""
         logbuch(self.hass, self, aktion, eintrag)

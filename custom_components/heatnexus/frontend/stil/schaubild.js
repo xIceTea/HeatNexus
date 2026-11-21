@@ -234,6 +234,8 @@ export const SCHAUBILD = `
        hier und in schema.py getrennt gepflegt werden muessen. */
     transition: background 1.5s ease;
   }
+  /* Durchsichtig über dem Bild: trägt Tooltip und Klick der Schichtung. */
+  .schaubild .schichtung-ziel { position: absolute; background: transparent; }
 
   /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
   .schaubild .speicher {

@@ -46,7 +46,7 @@ def test_temperaturprogramm_bleibt_in_grad(sensoren):
     punkte = [{"time": "06:00", "value": 21}, {"time": "22:00", "value": 0}]
     klasse = sensoren.WindhagerTimeProgramSensor
     assert klasse._schaltet([{"switchPoints": punkte}]) is False
-    assert klasse._fmt_points(punkte) == "06:00→21°, 22:00→0°"
+    assert klasse._fmt_points(punkte) == "06:00→21 °C, 22:00→0 °C"
 
 
 # ---------------------------------------------------------------------------
@@ -510,9 +510,9 @@ def test_zeitprogramm_fasst_wochentage_und_schaltpunkte_zusammen(sensoren):
 @pytest.mark.parametrize(
     ("sprache", "erwartet"),
     [
-        ("de", "Mo, Di: 06:00→21° | täglich: keine Schaltpunkte"),
-        ("en", "Mo, Tu: 06:00→21° | daily: no switch points"),
-        ("nl", "Ma, Di: 06:00→21° | dagelijks: geen schakelpunten"),
+        ("de", "Mo, Di: 06:00→21 °C | täglich: keine Schaltpunkte"),
+        ("en", "Mo, Tu: 06:00→21 °C | daily: no switch points"),
+        ("nl", "Ma, Di: 06:00→21 °C | dagelijks: geen schakelpunten"),
     ],
 )
 def test_zeitprogramm_folgt_der_sprache_der_datenpunkte(sensoren, sprache, erwartet):
@@ -556,6 +556,196 @@ def test_zeitprogramm_ohne_daten_ist_nicht_verfuegbar(sensoren):
 def test_zeitprogramm_meldet_keine_oid_zum_polling(sensoren):
     """Es wird über den object-Endpunkt gelesen, nicht über das OID-Polling."""
     assert sensoren.WindhagerTimeProgramSensor._register_poll_oid is False
+
+
+def _tarifprogramm(sensoren):
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerTimeProgramSensor, {}, type="time_program", oid="/1/60/2/54/7/0"
+    )
+    koordinator.data["objects"] = {
+        "/1/60/2/54/7/0": [
+            {
+                "weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+                "switchPoints": [{"time": "06:00", "value": 0}, {"time": "22:00", "value": 4}],
+            }
+        ]
+    }
+    koordinator.last_update_success = True
+    return entity
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [
+        ("de", "täglich: 06:00→Tarif 1, 22:00→Tarif 5"),
+        ("en", "daily: 06:00→Tariff 1, 22:00→Tariff 5"),
+        ("nl", "dagelijks: 06:00→Tarief 1, 22:00→Tarief 5"),
+    ],
+)
+def test_stromtarifprogramm_nennt_tarife_statt_grad(sensoren, sprache, erwartet):
+    """`54/7` führt die Werte 0–4 für Tarif 1–5, keine Temperaturen und kein Ein/Aus."""
+    entity = _tarifprogramm(sensoren)
+    entity.coordinator.client.sprache = sprache
+
+    assert entity.native_value == erwartet
+
+
+async def test_stromtarifprogramm_lehnt_das_schreiben_ab(sensoren):
+    """Das Tarifprogramm ist nur lesbar; der Dienst meldet das, statt Temperaturen zu schreiben."""
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity = _tarifprogramm(sensoren)
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(switch_points=[{"time": "06:00", "value": 1}])
+
+    assert fehler.value.translation_key == "zeitprogramm_nicht_aenderbar"
+    assert not entity.coordinator.client.geschrieben
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [
+        ("de", "Mo–Fr: 06:00→27,5 °C, 22:00→25,5 °C | Sa, So: 07:00→21 °C"),
+        ("en", "Mo–Fr: 06:00→27.5 °C, 22:00→25.5 °C | Sa, Su: 07:00→21 °C"),
+        ("nl", "Ma–Vr: 06:00→27,5 °C, 22:00→25,5 °C | Za, Zo: 07:00→21 °C"),
+    ],
+)
+def test_zustand_fasst_tage_zusammen_und_schreibt_zahlen_der_sprache(sensoren, sprache, erwartet):
+    """Drei Nachbartage stehen als Spanne; Dezimalzeichen und Einheit folgen der Sprache."""
+    entity = _zeitprogramm(
+        sensoren,
+        [
+            {
+                "weekdays": ["Mo", "Tu", "We", "Th", "Fr"],
+                "switchPoints": [
+                    {"time": "06:00", "value": 27.5},
+                    {"time": "22:00", "value": 25.5},
+                ],
+            },
+            {"weekdays": ["Sa", "Su"], "switchPoints": [{"time": "07:00", "value": 21}]},
+        ],
+    )
+    entity.coordinator.client.sprache = sprache
+
+    assert entity.native_value == erwartet
+
+
+FENSTER_BLOECKE = [
+    {
+        "weekdays": ["Mo", "Tu", "We", "Th", "Fr"],
+        "values": [
+            {"start": "05:00", "stop": "08:00"},
+            {"start": "15:00", "stop": "22:00"},
+            {"start": "00:00", "stop": "00:00"},
+        ],
+    },
+    {
+        "weekdays": ["Sa"],
+        "values": [
+            {"start": "22:00", "stop": "00:00"},
+            {"start": "00:00", "stop": "00:00"},
+            {"start": "00:00", "stop": "00:00"},
+        ],
+    },
+    {
+        "weekdays": ["Su"],
+        "values": [{"start": "00:00", "stop": "00:00"}] * 3,
+    },
+]
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [
+        ("de", "Mo–Fr: 05:00–08:00, 15:00–22:00 | Sa: 22:00–24:00 | So: kein Zeitfenster"),
+        ("en", "Mo–Fr: 05:00–08:00, 15:00–22:00 | Sa: 22:00–24:00 | Su: no time window"),
+        ("nl", "Ma–Vr: 05:00–08:00, 15:00–22:00 | Za: 22:00–24:00 | Zo: geen tijdvenster"),
+    ],
+)
+def test_ein_fensterprogramm_nennt_seine_zeitfenster(sensoren, sprache, erwartet):
+    """Untertyp 7 führt je Tag bis zu drei Fenster; 00:00–00:00 ist unbenutzt, Ende 00:00 heißt 24:00."""
+    entity = _zeitprogramm(sensoren, FENSTER_BLOECKE)
+    entity.coordinator.client.sprache = sprache
+
+    assert entity.native_value == erwartet
+
+
+def _programm_an(sensoren, oid, punkte):
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerTimeProgramSensor, {}, type="time_program", oid=oid
+    )
+    koordinator.data["objects"] = {oid: [{"weekdays": ["Mo"], "switchPoints": punkte}]}
+    koordinator.last_update_success = True
+    return entity
+
+
+def test_das_pufferprogramm_des_hybridmanagers_zeigt_auch_null_in_grad(sensoren):
+    """`54/15` führt 0–60 °C; eine 0 ist dort kein „Aus“."""
+    entity = _programm_an(sensoren, "/1/60/2/54/15/0", [{"time": "06:00", "value": 0}])
+
+    assert entity.native_value == "Mo: 06:00→0 °C"
+
+
+@pytest.mark.parametrize("oid", ["/1/60/1/50/14/0", "/1/60/1/59/95/0", "/1/15/0/5/65/0"])
+@pytest.mark.parametrize("wert", [21, 2, -1])
+async def test_ein_schaltprogramm_nimmt_nur_null_und_eins(sensoren, oid, wert):
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity = _programm_an(sensoren, oid, [{"time": "06:00", "value": 0}])
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(switch_points=[{"time": "06:00", "value": wert}])
+
+    assert fehler.value.translation_key == "schaltwert_ungueltig"
+
+
+class _ObjektClient:
+    """Liest ein festes Objekt und merkt sich, was geschrieben würde."""
+
+    def __init__(self, objekt: dict) -> None:
+        self.objekt = objekt
+        self.objekte: list[tuple[str, dict]] = []
+        self.sprache = "de"
+
+    async def fetch_object(self, oid: str):
+        return dict(self.objekt), 200
+
+    async def write_object(self, oid: str, payload: dict) -> None:
+        self.objekte.append((oid, payload))
+
+    async def refresh_object(self, oid: str):
+        return None
+
+
+FENSTERPROGRAMM = {
+    "OID": "/1/60/0/51/107/0",
+    "typeId": 30,
+    "subtypeId": 7,
+    "value": [{"weekdays": ["Mo"], "values": [{"start": "06:00", "stop": "22:00"}]}],
+}
+
+
+@pytest.mark.parametrize(
+    ("deskriptor", "gelesen"),
+    [(7, 7), (14, 7)],
+    ids=["untertyp_im_deskriptor", "untertyp_im_gelesenen_objekt"],
+)
+async def test_ein_programm_ohne_schaltpunkte_wird_nicht_geschrieben(sensoren, deskriptor, gelesen):
+    """Nur Untertyp 14 trägt Schaltpunkte; ein Fensterprogramm ginge beim Schreiben verloren."""
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerTimeProgramSensor,
+        {},
+        type="time_program",
+        oid="/1/60/0/51/107/0",
+        subtypeId=deskriptor,
+    )
+    koordinator.client = _ObjektClient({**FENSTERPROGRAMM, "subtypeId": gelesen})
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(switch_points=[{"time": "06:00", "value": 21}])
+
+    assert fehler.value.translation_key == "zeitprogramm_nicht_aenderbar"
+    assert koordinator.client.objekte == []
 
 
 async def test_ein_falscher_wochentag_ist_ein_hinweis_kein_absturz(sensoren):

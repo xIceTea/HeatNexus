@@ -35,7 +35,7 @@ const sammeln = (wert) => {
       states[inhalt] = {
         entity_id: inhalt,
         state: bereich === "binary_sensor" || bereich === "switch" ? "on" : "21.5",
-        attributes: { friendly_name: inhalt, unit_of_measurement: "°C", stoerung_aktiv: false },
+        attributes: { friendly_name: inhalt, unit_of_measurement: "°C", stoerung_aktiv: false, current_temperature: 20.8 },
       };
     } else sammeln(inhalt);
   });
@@ -77,7 +77,31 @@ const alsListen = (ablage) =>
 
 const ergebnis = { seite: neu(), alle: neu(), zusammen: neu() };
 
-// Die Seite der zweiten Anlage, Reiter für Reiter; die Automatik spricht die gemeinsame Sprache.
+// Je Anlage ein eingerichteter Heizkreis; die Sätze übersetzt der Server, hier bleiben sie leer.
+const stunden = Array.from({ length: 24 }, (_, stunde) => ({ stunde, at: 10, raum: 21, aktion: "programm" }));
+const automatikKreis = (anlage, nummer) => ({
+  heizkreis: `SN1-${nummer}-0`,
+  name: `HK ${nummer}`,
+  anlage: anlage.name,
+  anlage_id: anlage.id,
+  eingerichtet: true,
+  konfig: { aktiv: false, modus: "beobachten", profil: "standard", heizflaechen: "gemischt", ausrichtung: "eco" },
+  werte: { sonnenquote: 55, lernfenster: 7 },
+  zustand: "programm",
+  begruendung: "",
+  kennwerte: { at: 14, heizgrenze: 18, raum: 21.4, soll: 21, raeume: [] },
+  tag: { sonne: [0, 0.5, 0], stunden, jetzt: 12.5 },
+  vorschau: [],
+  protokoll: [],
+});
+flaeche._automatik = {
+  darf_aendern: true,
+  profile: { standard: { sonnenquote: 60 } },
+  heizkreise: daten.anlagen.map((anlage, i) => automatikKreis(anlage, i + 2)),
+};
+flaeche._automatikZeit = Date.now();
+
+// Die Seite der zweiten Anlage, Reiter für Reiter.
 flaeche._anlageIndex = 1;
 for (const reiter of ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "hilfe"]) {
   flaeche._reiter = reiter;
@@ -86,6 +110,16 @@ for (const reiter of ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprog
   flaeche._aktualisieren();
   texte(flaeche.shadowRoot, ergebnis.seite);
 }
+
+// Die Automatik der zweiten Anlage für sich: Ihre Texte stehen nicht im Rahmen.
+const automatik = neu();
+flaeche._reiter = "automatik";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+flaeche._aktualisieren();
+const leiste = flaeche.shadowRoot.querySelector(".leiste");
+leiste.parentElement.children.filter((kind) => kind !== leiste).forEach((kind) => texte(kind, automatik));
+ergebnis.automatik = automatik;
 
 // Ein Fenster und eine Rückmeldung entstehen erst nach dem Aufbau.
 flaeche._reiter = "uebersicht";
@@ -116,6 +150,15 @@ for (const reiter of ["uebersicht", "steuerung", "wartung", "hilfe"]) {
   texte(flaeche.shadowRoot, ergebnis.alle);
 }
 
+// Die Automatik unter „Alle“: ein Raster, jeder Heizkreis in der Sprache seiner Anlage.
+const automatikAlle = neu();
+flaeche._reiter = "automatik";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+flaeche._aktualisieren();
+texte(flaeche.shadowRoot, automatikAlle);
+ergebnis.automatikAlle = automatikAlle;
+
 // „Alle“ zusammen: ein Raster, jede Karte in der Sprache ihrer Anlage.
 flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { alle: "zusammen" } };
 for (const reiter of ["uebersicht", "steuerung", "wartung", "hilfe"]) {
@@ -142,11 +185,14 @@ if (mitErklaerung) {
   };
 }
 
+clearInterval(flaeche._automatikUhr);
 console.log(
   JSON.stringify({
     seite: alsListen(ergebnis.seite),
     alle: alsListen(ergebnis.alle),
     zusammen: alsListen(ergebnis.zusammen),
+    automatik: alsListen(ergebnis.automatik),
+    automatikAlle: alsListen(ergebnis.automatikAlle),
     erklaerung: ergebnis.erklaerung || null,
     lang: ergebnis.lang,
     geoeffnet: ergebnis.geoeffnet,

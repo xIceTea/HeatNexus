@@ -320,6 +320,62 @@ def test_eine_eingeschaltete_entitaet_meldet_sich_selbst_an(client):
     assert client._faellig() == set()
 
 
+def test_ein_befundwert_kommt_im_takt_des_befunds(client):
+    """Ein abgeschalteter Fachparameter, den der Befund braucht, läuft im Fünf-Minuten-Takt."""
+    oid = "/1/60/0/0/42/0"
+    client.devices = [{"oid": oid, "name": "O2", "enabled_default": False}]
+    client._compute_poll_oids()
+    client.register_poll_oid(oid, "befund")
+    client._rest = set()
+    assert client._takte()["befund"] == 10
+    client._tick = 10
+    assert oid in client._faellig()
+    client._tick = 1
+    assert oid not in client._faellig()
+
+
+def test_der_schnellere_takt_einer_entitaet_bleibt(client):
+    oid = "/1/60/0/0/7/0"
+    client.devices = [{"oid": oid, "name": "Kesseltemperatur", "type": "sensor"}]
+    client._compute_poll_oids()
+    client.register_poll_oid(oid, "befund")
+    client._rest = set()
+    client._tick = 1
+    assert oid in client._faellig()
+
+
+def test_der_befundtakt_endet_mit_der_abmeldung(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.unregister_poll_oid(oid)
+    client.register_poll_oid(oid)
+    assert client.abrufklasse(oid) == "normal"
+
+
+def test_der_befundtakt_endet_auch_wenn_eine_entitaet_bleibt(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.register_poll_oid(oid)
+    client.unregister_poll_oid(oid, "befund")
+    assert client.abrufklasse(oid) == "normal"
+    assert oid in client.abrufplan
+
+
+def test_nach_der_abmeldung_gilt_die_schnellste_verbleibende_klasse(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client.register_poll_oid(oid, "fast")
+    client.unregister_poll_oid(oid, "fast")
+    assert client.abrufklasse(oid) == "befund"
+
+
+def test_eine_abgelehnte_adresse_verliert_ihre_klasse(client):
+    oid = "/1/60/0/0/42/0"
+    client.register_poll_oid(oid, "befund")
+    client._abmelden(oid, {"reason": "invalid Identifier"}, 409)
+    assert oid not in client._dynamic_klassen
+
+
 # ---------------------------------------------------------------------------
 # Fälligkeit: der Takt hängt am eingestellten Intervall
 # ---------------------------------------------------------------------------
@@ -569,6 +625,21 @@ def test_der_kesselschalter_liest_seinen_zustand_aus_der_betriebsart(client):
     assert beschreibung["id"] == "0000ABCD1234-0-9-75-0-ein_aus"
     assert beschreibung["zustand_oid"] == "/1/60/0/2/59/0"
     assert set(beschreibung["zustand_aus"]) == {0, 1}
+
+
+def test_die_pufferladepumpe_des_puffermoduls_ist_ab_werk_deaktiviert(client):
+    """Das Bit blieb an einer Anlage während der Ladung aus; die Ventile bleiben aktiv."""
+    from custom_components.heatnexus.geraete import umschaltung
+
+    client.oids = set()
+    client.devices = []
+    fct = {"name": "Puffermodul", "fctType": 15}
+    for eintrag in umschaltung.ENTITAETEN[:2]:
+        client._add_entity(eintrag, "/1/17/0", "/1/17", fct)
+    pumpe, ventil = client.devices
+    assert pumpe["id"].endswith("-pufferladepumpe")
+    assert pumpe["enabled_default"] is False
+    assert ventil["enabled_default"] is True
 
 
 def test_ein_knotenweiter_datenpunkt_haengt_am_knoten_nicht_an_der_funktion(client):

@@ -10,12 +10,14 @@ from typing import Any
 STUNDEN_TAGE = 60
 TAGE_TAGE = 400
 UNTER_K = 3.0
-FASSUNG = 1
+FASSUNG = 2
 HEIZKREIS = "hk"
 KESSEL = "k"
 MESSWERTE = ("at", "vl", "vi", "soll")
 # Schlüssel einer Stunde in Ortszeit; Heizkreis-Befunde und Nachrechnen lesen ihn ebenso.
 STUNDE = "%Y-%m-%d %H"
+# Teile, die aus der Langzeitstatistik nachgerechnet werden; jeder führt seinen eigenen Stand.
+NACHRECHNEN_TEILE = ("stunden", "pflege", "abgas")
 
 
 def _schluessel(zeit: datetime) -> str:
@@ -112,8 +114,16 @@ class Archiv:
         self.stunden_k: dict[str, dict[str, dict[str, Any]]] = {}
         self.tage_hk: dict[str, dict[str, dict[str, Any]]] = {}
         self.tage_k: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel und Pflege der letzte Stand; die Logik dazu steht in `pflege.py`.
+        self.pflege: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel und Tag die Summen des Abgaswächters; die Logik steht in `abgas.py`.
+        self.abgas: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Kessel der Lagerstand (`lager`) und der Zählerstand je Tag (`zaehler`).
+        self.brennstoff: dict[str, dict[str, dict[str, Any]]] = {}
+        # Je Wärmepumpe und Tag Temperatursummen und Zählerstände; die Logik steht in `waermepumpe.py`.
+        self.wp: dict[str, dict[str, dict[str, Any]]] = {}
         self._offen: dict[tuple[str, str], tuple[str, list[dict[str, Any]]]] = {}
-        self.nachgerechnet = 0
+        self.nachgerechnet: dict[str, int] = {}
 
     @classmethod
     def aus_dict(cls, roh: Any) -> Archiv:
@@ -121,22 +131,32 @@ class Archiv:
         archiv = cls()
         if not isinstance(roh, dict):
             return archiv
-        for name in ("stunden_hk", "stunden_k", "tage_hk", "tage_k"):
+        for name in (
+            "stunden_hk",
+            "stunden_k",
+            "tage_hk",
+            "tage_k",
+            "pflege",
+            "abgas",
+            "brennstoff",
+            "wp",
+        ):
             setattr(archiv, name, _verschachtelt(roh.get(name)))
-        stand = roh.get("nachgerechnet")
-        archiv.nachgerechnet = (
-            stand if isinstance(stand, int) and not isinstance(stand, bool) else 0
-        )
+        archiv.nachgerechnet = _nachrechenstand(roh.get("nachgerechnet"))
         return archiv
 
     def als_dict(self) -> dict[str, Any]:
         return {
             "fassung": FASSUNG,
-            "nachgerechnet": self.nachgerechnet,
+            "nachgerechnet": dict(self.nachgerechnet),
             "stunden_hk": self.stunden_hk,
             "stunden_k": self.stunden_k,
             "tage_hk": self.tage_hk,
             "tage_k": self.tage_k,
+            "pflege": self.pflege,
+            "abgas": self.abgas,
+            "brennstoff": self.brennstoff,
+            "wp": self.wp,
         }
 
     def _quellen(self, art: str) -> tuple[dict, dict]:
@@ -231,6 +251,41 @@ class Archiv:
             for d, v in sorted(self.tage_k.get(kessel, {}).items())
         ]
 
+    def pflege_eintrag(self, kennung: str, art: str) -> dict[str, Any]:
+        """Der gespeicherte Stand einer Pflege, als Kopie; leer, wenn es keinen gibt."""
+        return dict(self.pflege.get(kennung, {}).get(art, {}))
+
+    def pflege_setzen(self, kennung: str, art: str, eintrag: dict[str, Any]) -> None:
+        self.pflege.setdefault(kennung, {})[art] = dict(eintrag)
+
+    def abgas_tage(self, kennung: str) -> dict[str, dict[str, Any]]:
+        """Die Tagessummen des Abgaswächters eines Kessels, als Kopie."""
+        return {tag: dict(v) for tag, v in self.abgas.get(kennung, {}).items()}
+
+    def abgas_setzen(self, kennung: str, tage: dict[str, dict[str, Any]]) -> None:
+        self.abgas[kennung] = {tag: dict(v) for tag, v in tage.items()}
+
+    def lager(self, kennung: str) -> dict[str, Any]:
+        """Der Lagerstand eines Kessels, als Kopie; leer ohne eingetragenen Vorrat."""
+        return dict(self.brennstoff.get(kennung, {}).get("lager", {}))
+
+    def lager_setzen(self, kennung: str, lager: dict[str, Any]) -> None:
+        self.brennstoff.setdefault(kennung, {})["lager"] = dict(lager)
+
+    def zaehler(self, kennung: str) -> dict[str, float]:
+        """Der letzte Zählerstand je Tag, als Kopie."""
+        return dict(self.brennstoff.get(kennung, {}).get("zaehler", {}))
+
+    def zaehler_setzen(self, kennung: str, tag: str, wert: float) -> None:
+        self.brennstoff.setdefault(kennung, {}).setdefault("zaehler", {})[tag] = wert
+
+    def wp_tage(self, kennung: str) -> dict[str, dict[str, Any]]:
+        """Die Tage einer Wärmepumpe, als Kopie."""
+        return {tag: dict(v) for tag, v in self.wp.get(kennung, {}).items()}
+
+    def wp_setzen(self, kennung: str, tage: dict[str, dict[str, Any]]) -> None:
+        self.wp[kennung] = {tag: dict(v) for tag, v in tage.items()}
+
     def kuerzen(self, heute: date) -> None:
         """Stunden älter als 60 Tage und Tage älter als 400 Tage entfernen."""
         grenze_s = (heute - timedelta(days=STUNDEN_TAGE)).isoformat()
@@ -238,6 +293,24 @@ class Archiv:
         for quelle in (self.stunden_hk, self.stunden_k):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {k: v for k, v in eintraege.items() if k[:10] >= grenze_s}
-        for quelle in (self.tage_hk, self.tage_k):
+        for quelle in (self.tage_hk, self.tage_k, self.abgas, self.wp):
             for kennung, eintraege in quelle.items():
                 quelle[kennung] = {d: v for d, v in eintraege.items() if d >= grenze_t}
+        for eintrag in self.brennstoff.values():
+            if "zaehler" in eintrag:
+                eintrag["zaehler"] = {d: v for d, v in eintrag["zaehler"].items() if d >= grenze_t}
+
+
+def _ganzzahl(wert: Any) -> bool:
+    return isinstance(wert, int) and not isinstance(wert, bool)
+
+
+def _nachrechenstand(roh: Any) -> dict[str, int]:
+    """Stand je Teil; ein früher gemeinsamer Stand gilt für jeden Teil."""
+    if _ganzzahl(roh):
+        return dict.fromkeys(NACHRECHNEN_TEILE, roh)
+    if not isinstance(roh, dict):
+        return {}
+    return {
+        teil: stand for teil, stand in roh.items() if teil in NACHRECHNEN_TEILE and _ganzzahl(stand)
+    }

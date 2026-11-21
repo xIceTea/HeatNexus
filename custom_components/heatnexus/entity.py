@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import texte
+from . import freigabe, texte
 from .const import (
     DOMAIN,
     OID_HARDWAREVERSION,
@@ -23,6 +23,7 @@ from .const import (
     SIGNAL_NEUE_ENTITAETEN,
 )
 from .error_texts import parse_messages
+from .exceptions import WindhagerWriteError, mit_text
 from .geraete import modell
 from .helpers import enum_texte, parse_value
 from .lon import ungueltig as lon_ungueltig
@@ -123,7 +124,11 @@ def _knoten(beschreibung: dict) -> str | None:
     """Die Knotennummer, an der diese Beschreibung hängt."""
     quelle = beschreibung.get("prefix") or beschreibung.get("oid") or ""
     teile = str(quelle).strip("/").split("/")
-    return teile[1] if len(teile) >= 2 else None
+    if len(teile) >= 2:
+        return teile[1]
+    # Status, Meldung und Abfragetaste tragen keine Adresse, nur den Knoten.
+    knoten = beschreibung.get("node_id")
+    return str(knoten) if knoten is not None else None
 
 
 def _modulwert(coordinator: Any, beschreibung: dict, gn_mn: str) -> str | None:
@@ -346,6 +351,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         „nicht verfügbar".
         """
         await super().async_added_to_hass()
+        for adresse in self._freigabe_adressen:
+            self.coordinator.client.register_poll_oid(adresse)
         if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.register_poll_oid(self._oid)
             # Den einen Wert sofort holen: Wer eine Entität einschaltet, lädt den Eintrag
@@ -371,6 +378,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Beim Entfernen/Deaktivieren die OID wieder abmelden."""
+        for adresse in self._freigabe_adressen:
+            self.coordinator.client.unregister_poll_oid(adresse)
         if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.unregister_poll_oid(self._oid)
         await super().async_will_remove_from_hass()
@@ -438,7 +447,36 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     _require_value_for_available = True
 
     @property
+    def _praefix_der_funktion(self) -> str | None:
+        """Der Funktionspräfix `/1/<Knoten>/<Funktion>` dieser Entität."""
+        return _funktionspraefix(self._descriptor)
+
+    @property
+    def _freigabe_praefix(self) -> str | None:
+        """Funktionspräfix, wenn die Bedienung an Freigaben hängt; sonst `None`."""
+        if not self._descriptor.get("freigabe"):
+            return None
+        return _funktionspraefix(self._descriptor)
+
+    @property
+    def _freigabe_adressen(self) -> list[str]:
+        """Die Adressen, von denen die Freigabe dieser Bedienung abhängt."""
+        if (praefix := self._freigabe_praefix) is None:
+            return []
+        return freigabe.adressen(self._descriptor["freigabe"], praefix)
+
+    @property
+    def freigegeben(self) -> bool:
+        """Ob die Anlage diese Bedienung im aktuellen Zustand zulässt."""
+        if (praefix := self._freigabe_praefix) is None:
+            return True
+        werte = (self.coordinator.data or {}).get("oids", {})
+        return freigabe.freigegeben(self._descriptor["freigabe"], praefix, werte)
+
+    @property
     def available(self) -> bool:
+        if not self.freigegeben:
+            return False
         if not self._require_value_for_available:
             return super().available
         if self.raw_value is not None:
@@ -452,6 +490,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
         Kein voller Durchlauf: Ein Dienstaufruf wartete sonst, bis die ganze Anlage gelesen ist.
         """
+        if not self.freigegeben:
+            raise mit_text(WindhagerWriteError, "bedienung_gesperrt", oid=self._oid)
         await self.coordinator.client.update(self._oid, value)
         self._sofort_anzeigen(value)
         self._nachfassen(value)

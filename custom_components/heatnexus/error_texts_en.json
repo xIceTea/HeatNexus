@@ -27,6 +27,10 @@
   "info": "Verify sensors and connections",
   "text": "Accumulator sensor TPO defective"
  },
+ "AL107": {
+  "info": "Clean impeller",
+  "text": "Induced draught fan defective"
+ },
  "AL11": {
   "info": "Follow operating manual",
   "text": "Ash slider blocked"

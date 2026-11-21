@@ -756,3 +756,165 @@ def test_dieselbe_adresse_bleibt_an_anderer_funktion_unberuehrt(client_module):
 def test_die_flache_tabelle_gilt_weiterhin(client_module):
     """Ohne Eintrag je Funktionstyp bleibt es beim gepflegten Namen."""
     assert client_module.name_override(25, "5/0") == "WW-Hysterese Ein"
+
+
+def _umschaltmodul(client_module, automatikkessel, pufferspeicher):
+    """Puffermodul fct 15 mit drei Entitäten auf `2/2` bzw. `2/9`."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/17/0/{adresse}/0",
+            fct_type=15,
+            name=zusatz,
+            type="binary_sensor",
+            zusatz=zusatz,
+        )
+        for adresse, zusatz in (
+            ("2/2", "pufferladepumpe"),
+            ("2/2", "umschaltventil_1"),
+            ("2/9", "pufferladung"),
+        )
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    meta = {
+        "/1/17/0/20/0/0": {"value": str(automatikkessel)},
+        "/1/17/0/20/2/0": {"value": str(pufferspeicher)},
+    }
+    return client, meta
+
+
+def test_ohne_automatikkessel_entfallen_nur_die_umschaltventile(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=0, pufferspeicher=1)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"pufferladepumpe", "pufferladung"}
+    # Die Pumpe sitzt auf derselben Adresse und braucht sie weiter.
+    assert "/1/17/0/2/2/0" in client.oids
+
+
+def test_ohne_pufferspeicher_entfaellt_die_pufferladung(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=1, pufferspeicher=0)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"pufferladepumpe", "umschaltventil_1"}
+    assert "/1/17/0/2/9/0" not in client.oids
+
+
+def test_unbekannter_wert_am_umschaltmodul_nimmt_nichts_weg(client_module):
+    client, meta = _umschaltmodul(client_module, automatikkessel=7, pufferspeicher=7)
+    client._rollen_filter(meta)
+
+    assert len(client.devices) == 3
+
+
+def _gefiltert(client_module, fct_type, adressen, werte):
+    """Namen der Adressen, die nach dem Rollenfilter an einem Gerät stehen bleiben."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/20/0/{a}/0", fct_type=fct_type, name=a, type="sensor"
+        )
+        for a in adressen
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    client._rollen_filter({f"/1/20/0/{a}/0": {"value": w} for a, w in werte.items()})
+    return {d["name"] for d in client.devices}
+
+
+_INFINITY_PROGRAMME = ("3/61", "3/62", "3/63", "58/78", "58/79", "58/80")
+
+
+@pytest.mark.parametrize(
+    ("regelart", "bleibt"),
+    [
+        ("1", {"3/61", "3/62", "3/63"}),
+        ("2", {"3/61", "3/62", "3/63"}),
+        ("4", {"58/78", "58/79", "58/80"}),
+        ("0", set(_INFINITY_PROGRAMME)),
+        ("3", set(_INFINITY_PROGRAMME)),
+        ("5", set(_INFINITY_PROGRAMME)),
+        ("9", set(_INFINITY_PROGRAMME)),
+    ],
+)
+def test_infinity_programme_entfallen_nur_beim_belegten_gegenwert(client_module, regelart, bleibt):
+    """Pumpenkreis, Fan Coil und unbekannte Regelarten behalten Heiz- und Vorlaufprogramme."""
+    namen = _gefiltert(client_module, 1, _INFINITY_PROGRAMME, {"7/76": regelart})
+    assert namen == bleibt
+
+
+@pytest.mark.parametrize(
+    ("betriebsart", "bleibt"),
+    [
+        ("0", set()),
+        ("1", {"0/118", "1/118"}),
+        ("2", {"0/118", "1/118", "59/18"}),
+        ("3", {"0/118", "1/118"}),
+        ("4", {"0/118", "1/118", "59/18"}),
+    ],
+)
+def test_zirkulationswerte_entfallen_nur_beim_belegten_gegenwert(
+    client_module, betriebsart, bleibt
+):
+    """`5/6` = 4 „EIN“ nennt die Herstellerebene nicht; dort bleibt alles stehen."""
+    namen = _gefiltert(client_module, 2, ("0/118", "1/118", "59/18"), {"5/6": betriebsart})
+    assert namen == bleibt
+
+
+@pytest.mark.parametrize(("kuehlen", "bleibt"), [("0", False), ("1", True), ("2", True)])
+def test_kuehlprogramm_entfaellt_nur_ohne_kuehlen(client_module, kuehlen, bleibt):
+    namen = _gefiltert(client_module, 1, ("59/48",), {"58/102": kuehlen})
+    assert ("59/48" in namen) is bleibt
+
+
+def test_kuehlprogramm_bleibt_ohne_lesbares_kuehlen(client_module):
+    assert _gefiltert(client_module, 1, ("59/48",), {}) == {"59/48"}
+
+
+@pytest.mark.parametrize(
+    ("konfiguration", "bleibt"), [("0", True), ("1", False), ("2", True), ("4", True)]
+)
+def test_kuehlzeitprogramm_entfaellt_nur_bei_reinem_heizen(client_module, konfiguration, bleibt):
+    namen = _gefiltert(client_module, 14, ("51/108",), {"51/115": konfiguration})
+    assert ("51/108" in namen) is bleibt
+
+
+def _logwin_mit_spiegel(client_module, mit_modul: bool):
+    """LogWIN (fct 10) mit gespiegeltem Puffer, auf Wunsch neben dem Puffermodul (fct 15)."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    eintraege = [(65, 10, "0/7"), (65, 10, "0/15"), (65, 10, "23/87")]
+    if mit_modul:
+        eintraege += [(17, 15, "0/15"), (17, 15, "23/87")]
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/{knoten}/0/{adresse}/0", fct_type=fct, name=f"{fct} {adresse}", type="sensor"
+        )
+        for knoten, fct, adresse in eintraege
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    return client
+
+
+def test_am_logwin_entfallen_die_vom_puffermodul_gespiegelten_werte(client_module):
+    client = _logwin_mit_spiegel(client_module, mit_modul=True)
+    client._spiegel_verwerfen()
+
+    assert {d["name"] for d in client.devices} == {"10 0/7", "15 0/15", "15 23/87"}
+    assert client.oids == {"/1/65/0/0/7/0", "/1/17/0/0/15/0", "/1/17/0/23/87/0"}
+
+
+def test_ohne_puffermodul_behaelt_das_logwin_seinen_puffer(client_module):
+    client = _logwin_mit_spiegel(client_module, mit_modul=False)
+    client._spiegel_verwerfen()
+
+    assert len(client.devices) == 3
+
+
+def test_das_puffermodul_fuehrt_seine_betriebsart_als_eigene_entitaet():
+    """Neben der abgeleiteten Pufferladung: Der Verlauf soll 14, 15 und 16 unterscheiden."""
+    from custom_components.heatnexus.geraete import umschaltung
+
+    eintraege = [e for e in umschaltung.ENTITAETEN if e["oid"] == "/2/9/0"]
+    art = next(e for e in eintraege if e["platform"] == "enum_sensor")
+    assert art["enum"] == "2/9"
+    # Ohne Zusatz behält die Entität die Kennung, die sie vor der Tabelle hatte.
+    assert "key_suffix" not in art

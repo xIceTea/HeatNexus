@@ -34,6 +34,7 @@ KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "39/59": "PuroWIN-Typ",
     # „Gerätetyp" heißt auch 12/38; 39/61 meldet die Leistung in kW.
     "39/61": "Nennleistung",
     "43/103": "Wärmemengenzähler Auswahl",
@@ -403,3 +404,13 @@ ENTITAETEN: list[dict] = [
     # FE01msg ("<Gerät> Meldung"-Sensor, device_status).
     {"oid": "/0/97/0", "name": "Alarmtext", "platform": "error_sensor", "key_suffix": "text"},
 ]
+
+# Was der Befund auswertet; die PuroWIN zählt keinen Brennstoff.
+BEFUND = {
+    "pflege": (
+        {"art": "asche", "weise": "zaehler", "adresse": "/39/91/0"},
+        {"art": "hauptreinigung", "weise": "zaehler", "adresse": "/39/92/0"},
+        {"art": "wartung", "weise": "zaehler", "adresse": "/39/93/0", "frist_monate": 3},
+    ),
+    "abgas": {"bezug": "hauptreinigung"},
+}

@@ -66,7 +66,11 @@ const PUFFER = {
   name_mitte: "Mitte",
   unten: "sensor.unten",
   name_unten: "Unten",
-  neben: [{ name: "Ladepumpe", entity: "sensor.ladepumpe" }],
+  neben: [
+    { name: "Ladepumpe", entity: "sensor.ladepumpe" },
+    { name: "Pumpe", entity: "binary_sensor.pumpe", art: "schalter", an: "läuft", aus: "aus" },
+    { name: "Ladung", entity: "binary_sensor.ladung" },
+  ],
 };
 
 // Ohne jede Entität: Die Karten zeichnen Striche statt zu scheitern.
@@ -110,7 +114,9 @@ const hass = {
     "sensor.oben": zustand("68.0", { unit_of_measurement: "°C" }),
     "sensor.unten": zustand("31.0", { unit_of_measurement: "°C" }),
     "sensor.ladepumpe": zustand("unavailable"),
+    "binary_sensor.ladung": zustand("on"),
   },
+  formatEntityState: (s) => (s.state === "on" ? "Läuft" : s.state),
 };
 
 const leitwert = karte("heatnexus-leitwert", LEITWERT, hass);

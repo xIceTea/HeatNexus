@@ -123,3 +123,85 @@ def test_eingriffstage_der_mitversorgten_zaehlen_beim_kessel(m):
     archiv = gefuellt(arch)
     tage = aus.eingriffstage(archiv, ["hk"])
     assert tage and set(tage.values()) == {None}
+
+
+def test_pflege_abschnitt_je_geraet(m):
+    from datetime import date
+
+    aus, arch = m
+    pfl = load_standalone("befund.pflege")
+    ziele = load_standalone("befund.pflegeziele")
+    archiv = arch.Archiv()
+    archiv.pflege_setzen("/1/60/0", "hauptreinigung", {"rest": 140.0})
+    ziel = ziele.Ziel("/1/60/0", "dev", pfl.PFLEGE[25][1])
+    k = aus.Kontext(
+        "AT", pflege=[aus.Pflegegeraet("dev", "PuroWIN", [ziel])], heute=date(2026, 11, 20)
+    )
+    abschnitte = aus.anlage(archiv, k)["abschnitte"]
+    teil = next(x for x in abschnitte if x["art"] == "pflege")
+    assert teil["kennung"] == "dev"
+    assert teil["befunde"][0]["art"] == "pflege_hauptreinigung"
+    assert teil["befunde"][0]["status"] == "sammelt"
+
+
+def test_ohne_pflegegeraet_kein_abschnitt(m):
+    aus, arch = m
+    abschnitte = aus.anlage(arch.Archiv(), kontext(aus))["abschnitte"]
+    assert not any(x["art"] == "pflege" for x in abschnitte)
+
+
+def test_abgas_abschnitt_mit_und_ohne_o2(m):
+    from datetime import date
+
+    aus, arch = m
+    archiv = arch.Archiv()
+    geraete = [
+        aus.Abgasgeraet("puro", "PuroWIN", "/1/60/0", False, "hackgut", None, True),
+        aus.Abgasgeraet("bio", "BioWIN", "/1/61/0", False, "pellets", None, False),
+    ]
+    k = aus.Kontext("AT", abgas=geraete, heute=date(2026, 11, 20))
+    teile = [x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "abgas"]
+    assert [x["kennung"] for x in teile] == ["puro", "bio"]
+    assert [b["art"] for b in teile[0]["befunde"]] == ["abgas", "abgasverlust"]
+    assert [b["art"] for b in teile[1]["befunde"]] == ["abgas"]
+    assert teile[0]["befunde"][0]["status"] == "sammelt"
+
+
+def test_pflege_nutzt_das_vorjahr_des_kessels(m):
+    from datetime import date, timedelta
+
+    aus, arch = m
+    pfl = load_standalone("befund.pflege")
+    ziele = load_standalone("befund.pflegeziele")
+    heute = date(2026, 11, 20)
+    archiv = arch.Archiv()
+    archiv.tage_k["/1/60/0"] = {
+        (heute - timedelta(days=i)).isoformat(): {"bh": 5000.0 - 8 * i} for i in range(1, 380)
+    }
+    archiv.pflege_setzen("/1/60/0", "wartung", {"rest": 1741.0})
+    ziel = ziele.Ziel("/1/60/0", "dev", pfl.PFLEGE[25][2])
+    k = aus.Kontext("AT", pflege=[aus.Pflegegeraet("dev", "PuroWIN", [ziel])], heute=heute)
+    befund = next(x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "pflege")[
+        "befunde"
+    ][0]
+    assert befund["angaben"]["vorjahr"] is True
+    assert befund["wert"] == 218.0
+
+
+def test_brennstoff_abschnitt_aus_lager_und_waerme(m):
+    from datetime import date, timedelta
+
+    aus, arch = m
+    heute = date(2026, 11, 20)
+    archiv = arch.Archiv()
+    archiv.tage_k["/1/60/0"] = {
+        (heute - timedelta(days=i)).isoformat(): {"kwh": 120.0} for i in range(1, 15)
+    }
+    archiv.lager_setzen("/1/60/0", {"bestand": 10.0, "seit": heute.isoformat()})
+    vorgabe = {"art": "hackgut", "weise": "waerme"}
+    k = aus.Kontext(
+        "AT", brennstoff=[aus.Brennstoffgeraet("puro", "PuroWIN", "/1/60/0", vorgabe)], heute=heute
+    )
+    teil = next(x for x in aus.anlage(archiv, k)["abschnitte"] if x["art"] == "brennstoff")
+    assert teil["befunde"][0]["wert"] == 56.0
+    assert teil["befunde"][0]["angaben"]["einheit"] == "Srm"

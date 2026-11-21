@@ -8,6 +8,12 @@ from __future__ import annotations
 
 FCT_TYPE = 14
 MODELL = "Heizkreis (UML/UMLZ)"
+# Derselbe Funktionstyp läuft auch in der AeroWIN EVO (1417) und im Infinity PLUS (2101, 2102).
+MODELLE_JE_KLASSE: dict[str, str] = {
+    "1417": "Heizkreis (AeroWIN EVO)",
+    "2101": "Heizkreis (Infinity PLUS)",
+    "2102": "Heizkreis (Infinity PLUS)",
+}
 RANG = 30
 SYMBOL = "mdi:radiator"
 SCHAUBILD = "heizkreis"
@@ -32,12 +38,14 @@ EXTRA_OIDS: tuple[str, ...] = (
     "5/65",
     "5/70",
     "5/71",
+    "59/90",
 )
 
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 NAMEN: dict[str, str] = {
+    "59/90": "Einfluss Energy Pilot",
     # Menü „Frostschutzgrenzen": Die Herstellertabelle führt die Namen ohne
     # den Menütitel, unter dem sie am Gerät stehen.
     "3/0": "Frostschutzgrenze Raumtemperatur",
@@ -72,6 +80,11 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
         "schaltpunkt_anteil": -1.0,
     },
 )
+
+# Beide Zirkulationsprogramme (`5/64`, `5/65`) bleiben bei jeder Betriebsart der Pumpe:
+# Unter „Zeitprogramme“ aktiviert man die andere Steuerungsart über ihr Programm.
+# Das Kühlprogramm entfällt nur bei der Konfiguration „Heizen“ (`51/115` = 1).
+BEDINGUNGEN: dict[str, list[dict]] = {"51/108": [{"oid": "51/115", "ausser": ["1"]}]}
 
 ENTITAETEN: list[dict] = [
     # --- Infoebene Heizkreis / Warmwasser (read only) ---

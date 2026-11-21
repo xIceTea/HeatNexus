@@ -131,6 +131,8 @@ CONF_MELDUNG_EINLESEN = "meldung_einlesen"
 # gilt. Leer heißt: HeatNexus sucht sie sich in der Anlage selbst. Nötig,
 # weil der Außenfühler oft woanders hängt als bei der Anlage, die ihn meldet.
 CONF_AUSSENTEMPERATUR = "aussentemperatur"
+# Temperaturfühler im Heizraum; der Abgaswächter rechnet den Abgasverlust damit statt mit 20 °C.
+CONF_HEIZRAUM = "heizraum"
 # Beim Umbenennen einer Steuerung die Entitäts-IDs mitziehen (nur im Optionsdialog).
 CONF_IDS_ANPASSEN = "ids_anpassen"
 # Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
@@ -228,6 +230,10 @@ def karte_verzeichnis(version: str) -> str:
 # Der Name der eigenen Lovelace-Karte. Das Dashboard setzt ihn in den Text zum
 # Kopieren ein, die Karte meldet sich unter demselben Namen an.
 KARTE_ELEMENT = "heatnexus-schaubild"
+
+# Stand des Vertrags zwischen Hülle und Umsetzung der Karten, wie in `frontend/kartenhuelle.js`.
+# Erhöhen, wenn eine Umsetzung mit einer älteren Hülle nicht läuft: Diese zeigt dann den Hinweis.
+KARTE_VERTRAG = 1
 
 
 def karte_js_pfad(version: str) -> str:
@@ -331,12 +337,14 @@ MAX_UPDATE_INTERVAL = 300
 POLL_FAST = "fast"
 POLL_NORMAL = "normal"
 POLL_SLOW = "slow"
-POLL_KLASSEN = frozenset({POLL_FAST, POLL_NORMAL, POLL_SLOW})
+# Werte, die nur der Befund in seinem Fünf-Minuten-Takt braucht.
+POLL_BEFUND = "befund"
+POLL_KLASSEN = frozenset({POLL_FAST, POLL_NORMAL, POLL_BEFUND, POLL_SLOW})
 # Angestrebter Abstand zweier Abrufe je Klasse, in Sekunden. Daraus wird der
 # Takt am tatsächlich eingestellten Intervall berechnet – eine feste Vielfache
 # stimmte nur bei den voreingestellten 30 s: Bei 300 s wären aus den 15 Minuten
 # der langsamen Klasse zweieinhalb Stunden geworden.
-POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_SLOW: 900}
+POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_BEFUND: 300, POLL_SLOW: 900}
 
 # Entitätsarten, die die Anlage bedienen oder ihren Zustand zeigen: immer schnell.
 POLL_TYPEN_SCHNELL = frozenset(
@@ -391,6 +399,29 @@ UPDATE_INTERVAL = 30
 # Datenpunkte, die jedes Modul über sich selbst führt.
 OID_SOFTWAREVERSION = "4/92"
 OID_HARDWAREVERSION = "4/93"
+
+# Zeitprogramme, deren Werte nicht Temperaturen sind oder nicht nach Ein/Aus aussehen dürfen.
+# „schalt“: 0 Aus, 1 Ein · „tarif“: 0–4 für Tarif 1–5 · „wasser“: 0–60 °C, auch 0 ist eine Temperatur.
+PROGRAMMART = {
+    "5/65": "schalt",
+    "50/14": "schalt",
+    "59/95": "schalt",
+    "54/7": "tarif",
+    "54/15": "wasser",
+}
+
+# Wertebereich je Zeitprogramm, wie ihn das Bediengerät der Anlage zulässt; die Anlage meldet keinen.
+# Ohne Eintrag gilt der Bereich des Speicherformats. Zeiten liegen im Raster von 15 min, Werte von 0,5.
+PROGRAMMGRENZEN = {
+    **dict.fromkeys(("3/61", "3/62", "3/63", "59/48"), (5.0, 30.0)),
+    **dict.fromkeys(("58/78", "58/79", "58/80", "4/82"), (0.0, 90.0)),
+    **dict.fromkeys(("5/61", "5/62", "5/63", "5/64"), (10.0, 75.0)),
+    "54/15": (0.0, 60.0),
+    **dict.fromkeys(("5/65", "50/14", "59/95"), (0.0, 1.0)),
+}
+PROGRAMMGRENZEN_FORMAT = (0.0, 127.5)
+ZEITRASTER_MINUTEN = 15
+WERTRASTER = 0.5
 
 # Ab wie vielen abgewiesenen Anfragen in Folge nach dem Passwort gefragt wird.
 #

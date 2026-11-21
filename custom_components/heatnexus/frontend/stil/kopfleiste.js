@@ -89,6 +89,10 @@ export const KOPFLEISTE = `
     border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);
     color: var(--hn-akzent);
   }
+  /* Am Telefon steht die Anlagenwahl in eigenen Zeilen; das Menü bleibt oben neben der Marke. */
+  @media (max-width: 700px) {
+    .kopfleiste > .waehler { order: 1; flex-basis: 100%; }
+  }
   .reiter { display: flex; gap: 4px; padding: 12px 16px 0; overflow-x: auto; }
   .reiter button {
     display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;

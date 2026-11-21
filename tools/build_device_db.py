@@ -272,13 +272,39 @@ def _merkmale(eintraege, ziel: dict) -> None:
             ziel.setdefault("neustart", []).append(adresse)
 
 
+# Gruppen, die die Herstellerliste mit einem Schlüssel statt einer Text-ID führt,
+# zugeordnet zur Text-ID gleichen Inhalts aus denselben Dateien. Ein Schlüssel
+# ohne Text-ID ergibt keine Gruppe, sonst erschiene er als Name einer Entität.
+GRUPPEN_TEXT_ID = {
+    "boiler_temperatures": "EmStrId_BOILER_TEMPERATURE",
+    "hot_water_load": "EmStrId_DHW_LOAD",
+    "lon_system_data": "EmStrId_LON_SYSTEM_DATA",
+    "module_functions": "EmStrId_MODULE_FUNCTIONS",
+    "puffer_loading_pump": "EmStrId_BUFFER_LOADING_PUMP",
+    "puffer_temperatures": "EmStrId_BUFFER_TEMPERATURES",
+    "pump_supplementary_boiler": "EmStrId_PUMP_FOR_ZSK",
+    "stratified_charge": "EmStrId_STRATIFIED_LOADING",
+    "supplementary_boiler": "EmStrId_PEAK_LOAD_BOILER_ZSK",
+    "switch_valve": "EmStrId_SWITCHING_VALVE",
+    "switches_puffer_temperatures": "EmStrId_SWITCH_BUFFER_TEMP",
+    "system_configuration": "EmStrId_SYSTEM_CONFIGURATION",
+}
+
+
+def _gruppentext(schluessel: str, texte: dict) -> str | None:
+    """Klartext einer Gruppe, oder None, wenn der Hersteller keinen führt."""
+    return texte.get(GRUPPEN_TEXT_ID.get(schluessel, schluessel))
+
+
 def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
     """Benannte Gruppen einer Ebene: Klartext -> Datenpunkte."""
     ergebnis: dict[str, list[str]] = {}
     for eintrag in eintraege or []:
         if not isinstance(eintrag, dict) or not eintrag.get("group_name"):
             continue
-        name = texte.get(eintrag["group_name"], eintrag["group_name"])
+        name = _gruppentext(eintrag["group_name"], texte)
+        if name is None:
+            continue
         adressen = _adressen(eintrag.get("parameters"))
         if adressen:
             ergebnis.setdefault(name, []).extend(
@@ -487,6 +513,18 @@ def ergaenze_stoerungen(tabelle: dict[str, dict[str, str]], sprache: str) -> Non
             tabelle[code] = dict(je_sprache[sprache])
 
 
+# Codes, denen die Texttabelle des Touch-Bediengeräts (PW_ErrorTexte) denselben
+# Wortlaut gibt wie einem bekannten Code. Sie übernehmen dessen Eintrag.
+GLEICHE_STOERUNGEN = {"AL107": "AL17"}
+
+
+def ergaenze_gleiche(tabelle: dict[str, dict[str, str]]) -> None:
+    """Fehlende Codes aus GLEICHE_STOERUNGEN mit dem Eintrag ihres Gegenstücks füllen."""
+    for code, vorbild in GLEICHE_STOERUNGEN.items():
+        if code not in tabelle and vorbild in tabelle:
+            tabelle[code] = dict(tabelle[vorbild])
+
+
 def ergaenze_behebung(tabelle: dict[str, dict[str, str]], abhilfe: dict) -> int:
     """Abhilfetexte aus den Bedienungsanleitungen als `behebung` übernehmen.
 
@@ -532,6 +570,7 @@ def main() -> int:
     ergaenze_stoerungen(stoerungen["de"], "de")
     abhilfe = json.loads(args.abhilfe.read_text(encoding="utf-8")) if args.abhilfe else {}
     behebungen = ergaenze_behebung(stoerungen["de"], abhilfe)
+    ergaenze_gleiche(stoerungen["de"])
     sprachen = {}
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
@@ -539,6 +578,7 @@ def main() -> int:
         sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
         ergaenze_stoerungen(stoerungen[sprache], sprache)
+        ergaenze_gleiche(stoerungen[sprache])
     eigene = json.loads(EIGENE_NAMEN.read_text(encoding="utf-8"))
     eigen_ergaenzt, veraltet = ergaenze_eigene_namen(namen, sprachen, eigene)
 

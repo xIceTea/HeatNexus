@@ -229,6 +229,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
         "anlagen": anlagen,
         **uebersetze_baum(gemeinsame_daten, gemeinsam),
         "texte": gemeinsam.fuer_frontend,
+        "sprache": gemeinsam.sprache,
     }
 
 

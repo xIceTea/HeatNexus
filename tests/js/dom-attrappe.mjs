@@ -144,6 +144,12 @@ class Knoten {
     }
     return false;
   }
+  /** Der oberste Knoten über diesem, wie am Schattenbaum die Wurzel. */
+  getRootNode() {
+    let knoten = this;
+    while (knoten.parentElement) knoten = knoten.parentElement;
+    return knoten;
+  }
   /** Das fokussierte Element, sofern es in diesem Teilbaum liegt. */
   get activeElement() {
     return fokus.element && fokus.element !== this && this.contains(fokus.element) ? fokus.element : null;
@@ -378,12 +384,20 @@ export function browserAttrappe() {
   const fenster = new Knoten("#window");
   globalThis.addEventListener = (...werte) => fenster.addEventListener(...werte);
   globalThis.removeEventListener = (...werte) => fenster.removeEventListener(...werte);
+  globalThis.dispatchEvent = (ereignis) => fenster.dispatchEvent(ereignis);
   // Der Browserspeicher, in dem der zuletzt gewählte Farbsatz liegt.
   const speicher = new Map();
   globalThis.localStorage = {
     getItem: (schluessel) => (speicher.has(schluessel) ? speicher.get(schluessel) : null),
     setItem: (schluessel, wert) => speicher.set(schluessel, String(wert)),
     removeItem: (schluessel) => speicher.delete(schluessel),
+  };
+  // Der Speicher der Sitzung im Browserfenster; er überdauert den Wechsel zu einer anderen Seite.
+  const sitzung = new Map();
+  globalThis.sessionStorage = {
+    getItem: (schluessel) => (sitzung.has(schluessel) ? sitzung.get(schluessel) : null),
+    setItem: (schluessel, wert) => sitzung.set(schluessel, String(wert)),
+    removeItem: (schluessel) => sitzung.delete(schluessel),
   };
   const austragen = (liste, kennung) => {
     const stelle = liste.findIndex((eintrag) => eintrag.kennung === kennung);
@@ -422,6 +436,10 @@ export function browserAttrappe() {
     /** Nur die vorgemerkten Bilder zeichnen. */
     bilderLaufenLassen() {
       while (bilder.length) bilder.shift().ruf(0);
+    },
+    /** Genau ein Bild zeichnen: nur die Aufträge, die jetzt schon warten. */
+    einBild() {
+      bilder.splice(0).forEach((bild) => bild.ruf(0));
     },
     offeneAuftraege: () => auftraege.length,
     offeneBilder: () => bilder.length,

@@ -309,6 +309,7 @@ class MetadatenMixin:
         """Die Schritte nach dem Abgleich: Markierungen, Filter, abgeleitete Werte."""
         self._neustart_markieren()
         self._rollen_filter(meta)
+        self._spiegel_verwerfen()
         # Erst die Doppelten heraus, dann der Fühlertest: Er kostet eine Anfrage
         # je Netzwerkvariable, und was ein Datenpunkt schon führt, wird nicht
         # erst gemessen und dann verworfen.
@@ -442,7 +443,7 @@ class MetadatenMixin:
                 for d in self.devices
                 if d.get("fct_type") == fct_type and (p := self._praefix_aus_oid(d.get("oid")))
             }
-            bedingungen = get_conditions(fct_type)
+            bedingungen = {**get_conditions(fct_type), **geraete.BEDINGUNGEN.get(fct_type, {})}
             regel = ROLLEN_FILTER.get(fct_type)
             for praefix in praefixe:
                 weg = weg_je_praefix.setdefault(praefix, set())
@@ -450,11 +451,11 @@ class MetadatenMixin:
                 # freischaltet. Trifft kein Satz zu, ist sie ohne Aufgabe.
                 for adresse, saetze in bedingungen.items():
                     geprueft = [
-                        (str(wert(praefix, s["oid"])), s["values"])
+                        (str(wert(praefix, s["oid"])), s)
                         for s in saetze
                         if wert(praefix, s["oid"]) is not None
                     ]
-                    if geprueft and not any(ist in erlaubt for ist, erlaubt in geprueft):
+                    if geprueft and not any(geraete.satz_trifft(ist, s) for ist, s in geprueft):
                         weg.add(adresse)
                 if not regel:
                     continue
@@ -468,17 +469,44 @@ class MetadatenMixin:
 
         if not any(weg_je_praefix.values()):
             return
-        behalten = []
+        behalten, entfallen = [], []
         for d in self.devices:
             praefix = self._praefix_aus_oid(d.get("oid"))
-            if self._kennung_aus_oid(d.get("oid")) in weg_je_praefix.get(praefix, ()):
+            kennung = self._kennung_aus_oid(d.get("oid"))
+            weg = weg_je_praefix.get(praefix, ())
+            # Eine Bedingung auf `gn/mn:zusatz` trifft nur die eine Entität auf der Adresse.
+            if kennung in weg or f"{kennung}:{d.get('zusatz')}" in weg:
                 _LOGGER.debug(
                     "%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid")
                 )
-                self.oids.discard(d.get("oid"))
+                entfallen.append(d.get("oid"))
                 continue
             behalten.append(d)
         self.devices = behalten
+        # Eine Adresse bleibt im Abruf, solange eine andere Entität auf ihr sitzt.
+        self.oids -= set(entfallen) - {d.get("oid") for d in behalten}
+
+    def _spiegel_verwerfen(self) -> None:
+        """Gespiegelte Werte verwerfen, wenn das Modul, das sie führt, an der Anlage hängt."""
+        vorhanden = {d.get("fct_type") for d in self.devices}
+        weg = {
+            (an, adresse)
+            for modul, spiegel in geraete.SPIEGEL.items()
+            if modul in vorhanden
+            for an, adressen in spiegel.items()
+            for adresse in adressen
+        }
+        if not weg:
+            return
+        behalten = [
+            d for d in self.devices if (d.get("fct_type"), gnmn_aus_oid(d.get("oid"))) not in weg
+        ]
+        if len(behalten) == len(self.devices):
+            return
+        entfallen = {d.get("oid") for d in self.devices} - {d.get("oid") for d in behalten}
+        _LOGGER.debug("%d gespiegelte Werte verworfen", len(self.devices) - len(behalten))
+        self.devices = behalten
+        self.oids -= entfallen
 
     def _nach_praefix(self) -> dict[str, dict[str, dict]]:
         """Deskriptoren nach Funktionspräfix und Kennung sortiert.

@@ -99,3 +99,80 @@ async def test_gelesene_werte_bleiben_auch_bei_abbruch(client, monkeypatch):
 
     assert len(client._letzte_werte) == POLL_BLOCK
     assert len(client._rest) == 40 - POLL_BLOCK
+
+
+# ---------------------------------------------------------------------------
+# Noch offen: nur was das Zeitfenster nicht mehr gelesen hat
+# ---------------------------------------------------------------------------
+async def test_eine_misslungene_lesung_bleibt_nicht_offen(client, monkeypatch):
+    client.poll_oids = {"/oid/a", "/oid/b"}
+    client.poll_class = dict.fromkeys(client.poll_oids, "fast")
+    _anlage(client, monkeypatch, {"/oid/a": "1"})
+
+    await client.fetch_all()
+
+    assert "/oid/b" in client._rest
+    assert client.noch_offen == 0
+
+
+async def test_das_zeitfenster_laesst_die_ungelesenen_offen(client, monkeypatch, uhr):
+    from custom_components.heatnexus.const import POLL_BLOCK
+
+    async def fetch_oid(oid):
+        uhr[0] += 1.0
+        return oid, "1"
+
+    monkeypatch.setattr(client, "_fetch_oid", fetch_oid)
+    client.poll_oids = {f"/oid/{nummer:02d}" for nummer in range(40)}
+    client.poll_class = dict.fromkeys(client.poll_oids, "fast")
+
+    await client.fetch_all(budget=POLL_BLOCK + 3)
+
+    assert client.noch_offen == 40 - (POLL_BLOCK + 3)
+
+
+async def test_ein_abgebrochener_abruf_laesst_den_rest_offen(client, monkeypatch):
+    import asyncio
+
+    from custom_components.heatnexus.const import POLL_BLOCK
+
+    zaehler = [0]
+
+    async def fetch_oid(oid):
+        zaehler[0] += 1
+        if zaehler[0] > POLL_BLOCK:
+            raise asyncio.CancelledError
+        return oid, "1"
+
+    monkeypatch.setattr(client, "_fetch_oid", fetch_oid)
+    client.poll_oids = {f"/oid/{nummer:02d}" for nummer in range(40)}
+    client.poll_class = dict.fromkeys(client.poll_oids, "fast")
+
+    with pytest.raises(asyncio.CancelledError):
+        await client.fetch_all()
+
+    assert client.noch_offen == 40 - POLL_BLOCK
+
+
+async def test_eine_neu_angemeldete_adresse_zaehlt_nicht_als_offen(client, monkeypatch):
+    client.poll_oids = {"/oid/a"}
+    client.poll_class = {"/oid/a": "fast"}
+    _anlage(client, monkeypatch, {"/oid/a": "1"})
+    await client.fetch_all()
+
+    client.register_poll_oid("/oid/neu")
+
+    assert client.noch_offen == 0
+
+
+async def test_ein_abruf_ohne_werte_erbt_keinen_alten_rest(client, monkeypatch):
+    client._ungelesen = 7
+
+    async def scheitert():
+        raise RuntimeError("keine Antwort")
+
+    monkeypatch.setattr(client, "_meldungen_lesen", scheitert)
+    with pytest.raises(RuntimeError):
+        await client.fetch_all()
+
+    assert client.noch_offen == 0

@@ -43,6 +43,27 @@ export const WerteMixin = (Basis) =>
       return Number.isNaN(wert) ? null : wert;
     }
 
+    /** Eine Zahl mit dem Dezimalzeichen der Anlagensprache; ohne Wert ein Strich. */
+    _zahlText(wert, stellen) {
+      const zahl = Number(wert);
+      if (wert === null || wert === undefined || wert === "" || !Number.isFinite(zahl)) return "–";
+      const text = zahl.toFixed(stellen ?? (Number.isInteger(zahl) ? 0 : 1));
+      return this._dezimalpunkt() ? text : text.replace(".", ",");
+    }
+
+    /** Ein fertiger Text mit dem Dezimalzeichen der Anlagensprache; Ziffern um ein Komma werden ein Punkt. */
+    _dezimal(text) {
+      return this._dezimalpunkt() ? String(text).replace(/(\d),(?=\d)/g, "$1.") : text;
+    }
+
+    /** Wie `texte.DEZIMALPUNKT` auf dem Server: Englisch schreibt einen Punkt, die übrigen ein Komma. */
+    _dezimalpunkt() {
+      const hass = this._hass || {};
+      const gemeinsam = this._daten && this._daten.sprache;
+      const sprache = this._sprache || gemeinsam || (hass.locale && hass.locale.language) || hass.language || "de";
+      return String(sprache).toLowerCase().startsWith("en");
+    }
+
     _name(entity) {
       const zustand = this._zustand(entity);
       return (zustand && zustand.attributes.friendly_name) || entity;

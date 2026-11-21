@@ -28,7 +28,8 @@
           "count": "Anzahl der Steuerungen"
         },
         "data_description": {
-          "name": "Gilt für die ganze Anlage. Ein Ort passt besser als ein Kesselname, etwa „Keller“ oder „Scheune“."
+          "name": "Gilt für die ganze Anlage. Ein Ort passt besser als ein Kesselname, etwa „Keller“ oder „Scheune“.",
+          "count": "Für jede Steuerung folgt ein eigener Schritt mit Adresse und Passwort."
         }
       },
       "system": {
@@ -42,7 +43,9 @@
         },
         "data_description": {
           "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen.",
-          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname."
+          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname.",
+          "host": "HeatNexus fragt die Steuerung unter dieser Adresse im Heimnetz ab. Eine im Router fest vergebene Adresse bleibt nach einem Neustart gleich.",
+          "password": "Das Passwort gehört zum gewählten Zugang. HeatNexus sendet es nur an diese Steuerung."
         }
       },
       "scope": {
@@ -80,7 +83,9 @@
           "username": "Zugang"
         },
         "data_description": {
-          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen."
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen.",
+          "host": "Diese Steuerung hat die Anmeldung abgelehnt.",
+          "password": "HeatNexus meldet sich mit diesem Passwort neu an."
         }
       },
       "reconfigure": {
@@ -92,7 +97,9 @@
           "username": "Zugang"
         },
         "data_description": {
-          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein."
+          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein.",
+          "anlage": "Nur die Adresse dieser Steuerung ändert sich.",
+          "host": "Vor dem Speichern prüft HeatNexus, ob unter dieser Adresse dieselbe Steuerung antwortet."
         }
       },
       "umzug": {
@@ -128,7 +135,8 @@
           "sprache": "Sprache von HeatNexus",
           "sprache_anlage": "Sprache dieser Anlage",
           "startwerte": "Startwerte von der Anlage übernehmen",
-          "stoerung_zuruecksetzen": "Störungen am Kessel zurücksetzen erlauben"
+          "stoerung_zuruecksetzen": "Störungen am Kessel zurücksetzen erlauben",
+          "heizraum": "Fühler Heizraum"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -140,7 +148,9 @@
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Gilt für alle Anlagen in HeatNexus: Namen der Datenpunkte, Oberfläche und Dashboard. Bei „Automatisch“ gilt die Sprache von Home Assistant. Eine Änderung hier stellt alle Anlagen um.",
           "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus.",
-          "stoerung_zuruecksetzen": "Schaltet in der Meldungsliste die Taste „Störung am Kessel zurücksetzen“ frei. Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat."
+          "stoerung_zuruecksetzen": "Schaltet in der Meldungsliste die Taste „Störung am Kessel zurücksetzen“ frei. Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat.",
+          "heizraum": "Temperaturfühler im Heizraum. Der Abgaswächter rechnet den Abgasverlust damit statt mit geschätzten 20 °C.",
+          "startwerte": "Beim Start übernimmt HeatNexus zuletzt gelesene Werte aus dem Speicher der Steuerung, wenn sie jünger als die gewählte Grenze sind. Die Werte erscheinen so schneller. Bei „aus“ erscheinen sie erst mit dem ersten Abruf."
         }
       },
       "system": {
@@ -186,6 +196,9 @@
         "description": "Ankreuzen, welche Werte eingeschaltet sein sollen.",
         "data": {
           "zusatzwerte": "Werte"
+        },
+        "data_description": {
+          "zusatzwerte": "Angekreuzte Werte entstehen eingeschaltet, alle anderen abgeschaltet. Eine abgeschaltete Entität lässt sich später einzeln einschalten."
         }
       },
       "steuerung_neu": {
@@ -199,7 +212,9 @@
         },
         "data_description": {
           "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter.",
-          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname."
+          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname.",
+          "host": "HeatNexus fragt die neue Steuerung unter dieser Adresse im Heimnetz ab.",
+          "password": "Das Passwort gehört zum gewählten Zugang. HeatNexus sendet es nur an diese Steuerung."
         }
       },
       "steuerung_entfernen": {
@@ -207,6 +222,9 @@
         "description": "Welche Steuerung soll aus dieser Heizung entfernt werden?",
         "data": {
           "host": "Steuerung"
+        },
+        "data_description": {
+          "host": "Der nächste Schritt zeigt, was zusammen mit dieser Steuerung entfernt wird."
         }
       },
       "steuerung_entfernen_bestaetigen": {
@@ -214,6 +232,9 @@
         "description": "**{anlage}** wird mit allem entfernt, was an ihr hängt:\n\n- {geraete} Geräte mit ihren Entitäten und ihrem Verlauf\n- Automatiken: {automatiken}. Ihre Eingriffe an der Steuerung werden zurückgenommen.\n- Wärmequellen: {quellen}\n\nDas lässt sich nicht rückgängig machen. Kommt die Steuerung später wieder hinzu, wird sie neu eingelesen.",
         "data": {
           "verstanden": "Ich habe verstanden und will die Steuerung entfernen"
+        },
+        "data_description": {
+          "verstanden": "Ohne diesen Haken entfernt HeatNexus nichts."
         }
       }
     },
@@ -536,6 +557,75 @@
             "name": "Betriebsphase"
           }
         }
+      },
+      "befund_pflege_reinigung": {
+        "name": "Reinigung fällig"
+      },
+      "befund_pflege_hauptreinigung": {
+        "name": "Hauptreinigung fällig"
+      },
+      "befund_pflege_wartung": {
+        "name": "Wartung fällig"
+      },
+      "befund_pflege_asche": {
+        "name": "Asche entleeren fällig"
+      },
+      "befund_pflege_jahresreinigung": {
+        "name": "Jahresreinigung fällig"
+      },
+      "befund_abgas": {
+        "name": "Abgas über Kessel seit Reinigung"
+      },
+      "befund_abgasverlust": {
+        "name": "Mehrverlust Abgas"
+      },
+      "befund_brennstoff": {
+        "name": "Brennstoff reicht bis"
+      },
+      "befund_arbeitszahl": {
+        "name": "Gütegrad gegenüber Bezug"
+      },
+      "verbindung": {
+        "name": "Verbindung",
+        "state": {
+          "stabil": "Stabil",
+          "traege": "Träge",
+          "ueberlastet": "Überlastet",
+          "gestoert": "Gestört",
+          "sammelt": "Sammelt Daten"
+        },
+        "state_attributes": {
+          "bezug_ms": {
+            "name": "Übliche Antwortzeit (ms)"
+          },
+          "bezug_vorlaeufig": {
+            "name": "Bezug vorläufig"
+          },
+          "abruf_ms": {
+            "name": "Antwortzeit letzter Abruf (ms)"
+          },
+          "median_ms": {
+            "name": "Antwortzeit 15 Minuten (ms)"
+          },
+          "fehlerquote": {
+            "name": "Fehlerquote (%)"
+          },
+          "antworten": {
+            "name": "Antworten in 15 Minuten"
+          },
+          "noch_offen": {
+            "name": "Nicht gelesene Werte"
+          },
+          "abrufe_mit_rest": {
+            "name": "Abrufe mit Rest in Folge"
+          },
+          "gueltige_stunden": {
+            "name": "Stunden im Bezug"
+          }
+        }
+      },
+      "antwortzeit": {
+        "name": "Antwortzeit"
       }
     },
     "binary_sensor": {
@@ -564,10 +654,58 @@
       },
       "automatik_empfehlung_verwerfen": {
         "name": "Empfehlung verwerfen"
+      },
+      "pflege_asche_erledigt": {
+        "name": "Asche entleert"
+      },
+      "pflege_jahresreinigung_erledigt": {
+        "name": "Jahresreinigung erledigt"
+      },
+      "verdampfer_erledigt": {
+        "name": "Verdampfer gereinigt"
+      }
+    },
+    "date": {
+      "pflege_reinigung_zuletzt": {
+        "name": "Letzte Reinigung"
+      },
+      "pflege_hauptreinigung_zuletzt": {
+        "name": "Letzte Hauptreinigung"
+      },
+      "pflege_wartung_zuletzt": {
+        "name": "Letzte Wartung"
+      },
+      "pflege_asche_zuletzt": {
+        "name": "Asche zuletzt entleert"
+      },
+      "pflege_jahresreinigung_zuletzt": {
+        "name": "Letzte Jahresreinigung"
+      },
+      "verdampfer_zuletzt": {
+        "name": "Letzte Verdampferreinigung"
+      }
+    },
+    "number": {
+      "brennstoffvorrat": {
+        "name": "Brennstoffvorrat"
+      },
+      "brennstoff_heizwert": {
+        "name": "Heizwert Brennstoff"
+      },
+      "brennstoff_fuellmenge": {
+        "name": "Füllmenge je Anheizvorgang"
       }
     }
   },
   "issues": {
+    "verbindung_ueberlastet": {
+      "title": "{anlage}: Steuerung überlastet",
+      "description": "Die Steuerung von **{anlage}** beantwortet im Abfrageintervall nicht mehr alle Abfragen. Die Antwortzeit lag zuletzt bei {median} ms.\n\nVerlängere das Abfrageintervall in den Optionen von HeatNexus. Prüfe auch, ob ein zweites Programm dieselbe Steuerung abfragt. Der Hinweis verschwindet von selbst, sobald wieder alle Werte ankommen."
+    },
+    "verbindung_gestoert": {
+      "title": "{anlage}: Verbindung zur Steuerung gestört",
+      "description": "{fehlerquote} % der Anfragen an die Steuerung von **{anlage}** scheitern.\n\nPrüfe die Netzwerkverbindung zur Steuerung. Hilft das nicht, starte die Steuerung neu. Der Hinweis verschwindet von selbst, sobald die Anfragen wieder gelingen."
+    },
     "nicht_erreichbar": {
       "title": "{anlage} ist nicht erreichbar",
       "description": "Von der Anlage **{anlage}** kommen keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
@@ -645,6 +783,9 @@
           "description": "Zu welcher Anlage gehört die Wärmequelle?",
           "data": {
             "host": "Steuerung"
+          },
+          "data_description": {
+            "host": "Die Wärmequelle erscheint im Schaubild dieser Steuerung."
           }
         },
         "quelle": {
@@ -659,7 +800,10 @@
           },
           "data_description": {
             "quelle": "Der Wert, der über die Quelle entscheidet.",
-            "pumpe": "Zeichnet ein Laufrad in die Leitung der Quelle, solange sie liefert."
+            "pumpe": "Zeichnet ein Laufrad in die Leitung der Quelle, solange sie liefert.",
+            "name": "Unter diesem Namen erscheint die Quelle in HeatNexus.",
+            "art": "Legt fest, wie die Quelle im Schaubild gezeichnet wird.",
+            "bedingung_art": "Legt fest, woran HeatNexus erkennt, dass die Quelle liefert: an einem Zustand, an einer Schwelle oder an der Differenz zweier Fühler. Die Werte folgen im nächsten Schritt."
           }
         },
         "regel": {
@@ -692,6 +836,9 @@
   "exceptions": {
     "wert_abgelehnt": {
       "message": "Die Anlage hat den neuen Wert nicht angenommen. Die Einstellung ist im aktuellen Zustand der Anlage gesperrt oder nicht änderbar. Datenpunkt {oid}, HTTP {status}."
+    },
+    "bedienung_gesperrt": {
+      "message": "Die Anlage lässt diese Bedienung im aktuellen Zustand nicht zu. Datenpunkt {oid}."
     },
     "schreiben_nicht_erreichbar": {
       "message": "Die Anlage {anlage} hat den Schreibvorgang nicht beantwortet: keine Verbindung oder Zeit abgelaufen. Ein späterer Versuch gelingt meist. Datenpunkt {oid}."
@@ -740,6 +887,18 @@
     },
     "zeitprogramm_geschuetzt": {
       "message": "Dieses Zeitprogramm ist schreibgeschützt."
+    },
+    "zeitprogramm_nicht_aenderbar": {
+      "message": "Dieses Zeitprogramm lässt sich in HeatNexus nicht ändern."
+    },
+    "schaltwert_ungueltig": {
+      "message": "Ein Schaltprogramm kennt nur 0 (Aus) und 1 (Ein)."
+    },
+    "wert_ausserhalb": {
+      "message": "Der Wert {wert} liegt außerhalb des Bereichs {min} bis {max}."
+    },
+    "schaltzeit_doppelt": {
+      "message": "Nach dem Runden auf 15 Minuten steht {uhrzeit} doppelt."
     },
     "schaltpunkte_fehlen": {
       "message": "Bitte „switch_points“ oder „blocks“ angeben."
@@ -823,7 +982,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldungsliste leeren",
-      "description": "Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant."
+      "description": "Leert die Meldungsliste eines Geräts. Sofern das Bediengerät eine Meldungsliste führt, löscht die Aktion dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert sie nur die Liste in Home Assistant. Am Sensor „Meldungen“ der Steuerung löscht sie alle erledigten Einträge."
     },
     "set_vorgabe": {
       "name": "Befristete Vorgabe setzen",
@@ -845,7 +1004,7 @@
       "fields": {
         "switch_points": {
           "name": "Schaltpunkte",
-          "description": "Liste von Schaltpunkten mit time und value. time im Format HH:MM, value = Soll-Temperatur, bei einem Schaltprogramm 1 für Ein und 0 für Aus. Gilt für den Block aus weekdays."
+          "description": "Liste von Schaltpunkten mit time und value. time im Format HH:MM, value = Soll-Temperatur, bei einem Schaltprogramm 1 für Ein und 0 für Aus. Gilt für den Block aus weekdays. Höchstens sechs Schaltpunkte je Block. Die Zeit wird auf 15 Minuten gerundet, der Wert auf 0,5. Erlaubt sind Raum und Kühlen 5–30 °C, Vorlauf und Puffer 0–90 °C, Warmwasser 10–75 °C, Puffer am Hybridmanager 0–60 °C."
         },
         "weekdays": {
           "name": "Wochentage",
@@ -888,6 +1047,20 @@
         "eintrag": {
           "name": "Eintrag",
           "description": "Nummer des Eintrags in der Meldungsliste, wie sie im Attribut „eintraege“ des Sensors Meldungen steht."
+        }
+      }
+    },
+    "brennstoff_geliefert": {
+      "name": "Brennstoff nachgefüllt",
+      "description": "Trägt eine Lieferung oder eigene Befüllung in den Vorrat des Kessels ein. Mit dem Rest davor ergibt sich der tatsächliche Verbrauch.",
+      "fields": {
+        "menge": {
+          "name": "Menge",
+          "description": "Nachgefüllte Menge in der Einheit des Vorrats."
+        },
+        "rest": {
+          "name": "Rest davor",
+          "description": "Der Rest im Lager vor der Lieferung. Ohne Angabe gilt der gerechnete Vorrat."
         }
       }
     }

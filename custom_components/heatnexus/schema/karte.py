@@ -17,6 +17,7 @@ from .zeichnung import (
     Buch,
     beschriftungen,
     datenadresse,
+    mittenwerte,
     schaubild_svg,
 )
 
@@ -54,9 +55,7 @@ def anlagenschema(
     svg, breite = schaubild_svg(module, mit_mischer, buch)
 
     rahmen = ebenen.Rahmen.aus_modulen(module, breite)
-    elemente: list[dict[str, Any]] = []
-    for platz, modul in enumerate(module):
-        elemente += beschriftungen(RAND + platz * MODUL_BREITE, modul, breite, buch)
+    elemente, mitte = _wertelemente(module, breite, buch)
     module_lampen, uebergabe = ebenen.pumpenmodule(module, rahmen)
     lampen = [*ebenen.lampen_der_erzeuger(module, rahmen), *module_lampen]
 
@@ -70,6 +69,8 @@ def anlagenschema(
         # Überlagerungen auf denselben Maßstab wie das Bild.
         "breite": breite,
         "elements": elemente,
+        # Der mittlere Pufferfühler; die Oberfläche zeigt ihn nur auf Wunsch.
+        "werte_mitte": mitte,
         # Welche Anlagenteile gezeichnet sind – für die Wahl der Zeichnung.
         "zeichenbar": [
             {"id": m.get("kennung") or m["titel"], "titel": m["titel"], "art": m["art"]}
@@ -99,6 +100,18 @@ def anlagenschema(
         # Wärme im Bauteil einer Quelle, solange sie liefert.
         "waerme": ebenen.waerme(module, rahmen),
     }
+
+
+def _wertelemente(
+    module: list[dict[str, Any]], breite: int, buch: Buch | None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Die festen Wertmarken des Bildes und die Puffermitte, die nur auf Wunsch erscheint."""
+    elemente: list[dict[str, Any]] = []
+    mitte: list[dict[str, Any]] = []
+    for platz, modul in enumerate(module):
+        elemente += beschriftungen(RAND + platz * MODUL_BREITE, modul, breite, buch)
+        mitte += mittenwerte(RAND + platz * MODUL_BREITE, modul, breite, buch)
+    return elemente, mitte
 
 
 def schaubild_daten(
@@ -168,20 +181,8 @@ def schaubild_nutzdaten(
         "schema_farben": (
             {thema: dict(werte) for thema, werte in FARBABBILDUNGEN.items()} if bild else {}
         ),
-        "schema_werte": (
-            [
-                {
-                    "entity": el["entity"],
-                    "left": el["style"]["left"],
-                    "top": el["style"]["top"],
-                    "beschriftung": el["prefix"].strip() or None,
-                    "name": el.get("name"),
-                }
-                for el in bild["elements"]
-            ]
-            if bild
-            else []
-        ),
+        "schema_werte": _wertmarken(bild["elements"]) if bild else [],
+        "schema_werte_mitte": _wertmarken(bild.get("werte_mitte", [])) if bild else [],
         "schema_pumpen": bild.get("pumpen", []) if bild else [],
         # Bewegung im Schaubild: die Leitungen strömen, solange eine Pumpe
         # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
@@ -201,3 +202,17 @@ def schaubild_nutzdaten(
         # Füllstand: Vorratsbehälter in Stufen oder in Prozent mit Zahl.
         "schema_vorrat": bild.get("vorrat", []) if bild else [],
     }
+
+
+def _wertmarken(elemente: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Die Wertmarken des Bildes in der Form, die die Oberfläche liest."""
+    return [
+        {
+            "entity": el["entity"],
+            "left": el["style"]["left"],
+            "top": el["style"]["top"],
+            "beschriftung": el["prefix"].strip() or None,
+            "name": el.get("name"),
+        }
+        for el in elemente
+    ]

@@ -15,6 +15,7 @@ import time
 
 from ..const import (
     FETCH_CONCURRENCY,
+    POLL_BEFUND,
     POLL_BLOCK,
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
@@ -63,7 +64,7 @@ class AbrufMixin:
     """Zyklischer Abruf und gezielte Lesevorgänge."""
 
     # Je schneller die Klasse, desto kleiner der Rang.
-    _KLASSEN_RANG = {POLL_FAST: 0, POLL_NORMAL: 1, POLL_SLOW: 2}
+    _KLASSEN_RANG = {POLL_FAST: 0, POLL_NORMAL: 1, POLL_BEFUND: 2, POLL_SLOW: 3}
 
     # OIDs, die statisch immer mitgepollt werden müssen, weil eine
     # Climate-Entity sie für Anzeige/Berechnung braucht.
@@ -114,35 +115,52 @@ class AbrufMixin:
         """
         return (self.poll_oids | self._dynamic_oids) - self._abgemeldet
 
-    def register_poll_oid(self, oid: str) -> None:
+    def register_poll_oid(self, oid: str, klasse: str | None = None) -> None:
         """Eine Entity meldet ihre OID zum zyklischen Polling an.
 
         Eine eben angemeldete Adresse wird einmal gelesen, gleich welcher
         Klasse: Entities melden sich erst nach dem ersten Durchlauf an, und ein
         träger Wert stünde sonst bis zum nächsten langsamen Takt ohne Zahl da.
+        Eine mitgegebene Klasse gilt, solange keine Entität einen schnelleren Takt hat.
         """
         if oid and oid not in self._abgemeldet:
+            if klasse:
+                anmeldungen = self._dynamic_klassen.setdefault(oid, {})
+                anmeldungen[klasse] = anmeldungen.get(klasse, 0) + 1
             neu = oid not in self._dynamic_oids
             self._dynamic_oids.add(oid)
             self._oid_nutzer[oid] = self._oid_nutzer.get(oid, 0) + 1
             if neu and oid not in self._letzte_werte:
                 self._rest.add(oid)
 
-    def unregister_poll_oid(self, oid: str) -> None:
+    def unregister_poll_oid(self, oid: str, klasse: str | None = None) -> None:
         """Eine entfernte/deaktivierte Entity meldet ihre OID ab.
 
         Gezählt wird, wer sie braucht: Ein Zählerstand und seine Ableitungen
         lesen dieselbe Adresse, und die eine abzuschalten darf die andere nicht
-        blind stellen.
+        blind stellen. Wer mit Klasse angemeldet hat, meldet mit derselben ab.
         """
+        self._klasse_austragen(oid, klasse)
         offen = self._oid_nutzer.get(oid, 0) - 1
         if offen > 0:
             self._oid_nutzer[oid] = offen
             return
         self._oid_nutzer.pop(oid, None)
         self._dynamic_oids.discard(oid)
+        self._dynamic_klassen.pop(oid, None)
         # Auch das vorgemerkte Erstlesen entfällt: Niemand wartet mehr darauf.
         self._rest.discard(oid)
+
+    def _klasse_austragen(self, oid: str, klasse: str | None) -> None:
+        """Nimmt eine Anmeldung mit Klasse zurück; danach gilt die schnellste übrige Klasse."""
+        anmeldungen = self._dynamic_klassen.get(oid)
+        if not klasse or not anmeldungen or klasse not in anmeldungen:
+            return
+        anmeldungen[klasse] -= 1
+        if anmeldungen[klasse] <= 0:
+            del anmeldungen[klasse]
+        if not anmeldungen:
+            del self._dynamic_klassen[oid]
 
     def _abmelden(self, oid: str, data, status: int) -> bool:
         """Einen abgelehnten Datenpunkt aus dem zyklischen Abruf nehmen.
@@ -162,6 +180,7 @@ class AbrufMixin:
         self.poll_oids.discard(oid)
         self._dynamic_oids.discard(oid)
         self._oid_nutzer.pop(oid, None)
+        self._dynamic_klassen.pop(oid, None)
         self._rest.discard(oid)
         return True
 
@@ -449,6 +468,11 @@ class AbrufMixin:
         self._letzte_meldungen = out
         return out, devs
 
+    @property
+    def noch_offen(self) -> int:
+        """Fällige Adressen, die der letzte Abruf in seiner Zeit nicht mehr gelesen hat."""
+        return self._ungelesen
+
     def statistik(self) -> dict:
         """Kennzahlen des Abrufverhaltens – für die Diagnose.
 
@@ -493,6 +517,13 @@ class AbrufMixin:
         """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
         return poll_takte(self.update_interval)
 
+    def abrufklasse(self, oid: str) -> str:
+        """Die schnellere Klasse aus Beschreibung und Anmeldung; ohne beide der mittlere Takt."""
+        klassen = set(self._dynamic_klassen.get(oid, ()))
+        if beschrieben := self.poll_class.get(oid):
+            klassen.add(beschrieben)
+        return min(klassen, key=lambda k: self._KLASSEN_RANG.get(k, 9), default=POLL_NORMAL)
+
     def _faellig(self, tick: int | None = None) -> set:
         """OIDs, die in diesem Durchlauf an der Reihe sind.
 
@@ -507,7 +538,7 @@ class AbrufMixin:
         tick = self._tick if tick is None else tick
         faellig = set()
         for oid in self.abrufplan:
-            takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
+            takt = takte.get(self.abrufklasse(oid), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
             if tick == 0 or tick % takt == 0:
@@ -535,6 +566,7 @@ class AbrufMixin:
         # ältesten, und ohne Vorrang käme er bei knapper Zeit nie an die Reihe.
         reihenfolge = sorted(faellig, key=lambda oid: (oid not in self._rest, oid))
         self._rest |= faellig - self._abgemeldet
+        self._ungelesen = len(reihenfolge)
         misslungen: set[str] = set()
         anzahl = 0
         while anzahl < len(reihenfolge):
@@ -553,6 +585,7 @@ class AbrufMixin:
             self._sekunden_je_wert = (time.monotonic() - begonnen) / len(block)
             misslungen |= self._gelesenes_uebernehmen(ergebnisse)
             anzahl += len(block)
+            self._ungelesen = len(reihenfolge) - anzahl
         self._poll_anfragen = anzahl
         _LOGGER.debug("Poll: %d OIDs einzeln", anzahl)
         return misslungen, anzahl
@@ -722,6 +755,7 @@ class AbrufMixin:
             await self.async_init()
 
         poll_begonnen = time.monotonic()
+        self._ungelesen = 0
         ende = poll_begonnen + budget if budget else None
         # Der Zähler rückt zu Beginn weiter; ein abgebrochener Durchlauf stünde
         # sonst ohne Ende wieder an. Nur der erste zählt erst, wenn er fertig ist.

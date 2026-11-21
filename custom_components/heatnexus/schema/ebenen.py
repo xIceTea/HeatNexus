@@ -47,6 +47,7 @@ from .zeichnung import (
     RAND,
     RUECKLAUF_Y,
     SPEICHER_ARTEN,
+    SPEICHER_DREI_Y,
     SPEICHER_Y,
     VORLAUF_Y,
     WP_LUEFTER,
@@ -571,6 +572,9 @@ def schichtung(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
             {
                 "oben": oben,
                 "unten": unten,
+                # Ein gemessener mittlerer Fühler ersetzt die gemittelte Farbe dazwischen.
+                "mitte": modul.get("mitte") if unten else None,
+                "beladegrad": modul.get("beladegrad"),
                 **_stelle(_links(platz) + masse["x"], masse["y"], rahmen),
                 "breite": _pct(masse["breite"], rahmen.breite),
                 "hoehe": _pct(masse["hoehe"], HOEHE),
@@ -635,6 +639,9 @@ def speicher(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
                 "toleranz": LADE_TOLERANZ,
                 "entnahme": list(rahmen.entnahme),
                 **_stelle(_mitte(platz), SPEICHER_Y, rahmen),
+                # Mit drei Zahlen am Puffer weicht das Wort der mittleren nach oben aus.
+                "mitte": modul.get("mitte"),
+                "top_drei": _pct(SPEICHER_DREI_Y, HOEHE),
                 "titel": modul["titel"],
             }
         )

@@ -153,6 +153,28 @@ export const WERTELAGEN = [
   { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
 ];
 
+export const VERBINDUNGSANZEIGEN = [
+  { schluessel: "probleme", titel: "Bei Problemen", hinweis: "Nur wenn die Steuerung träge, überlastet oder gestört antwortet" },
+  { schluessel: "immer", titel: "Immer", hinweis: "Auch bei stabiler Verbindung" },
+];
+
+export const VERBINDUNG_MS = [
+  { schluessel: "an", titel: "Ein", hinweis: "Die Antwortzeit steht hinter dem Zustand" },
+  { schluessel: "aus", titel: "Aus", hinweis: "Nur der Zustand" },
+];
+
+// Wo die Schaltzeiten eines Zeitprogramms stehen: als Tabelle unter dem Balken oder als Werte in ihm.
+export const ZP_SCHALTZEITEN = [
+  { schluessel: "tabelle", titel: "Tabelle", hinweis: "Zeiten und Werte unter dem Balken" },
+  { schluessel: "spur", titel: "Im Balken", hinweis: "Werte im Balken; Antippen zeigt Zeit und Wert" },
+];
+
+// Wie viele Temperaturen ein Puffer im Bild zeigt. Die dritte erscheint nur, wo er einen mittleren Fühler meldet.
+export const PUFFERWERTE = [
+  { schluessel: "zwei", titel: "Oben und unten", hinweis: "Zwei Temperaturen, dazwischen der Ladezustand" },
+  { schluessel: "drei", titel: "Oben, Mitte, unten", hinweis: "Drei Temperaturen, wo der Puffer einen mittleren Fühler meldet" },
+];
+
 // Farben der Beschriftung im Schaubild: frei gewählt, als Text gespeichert. Die Werte hier
 // sind der ausgelieferte Stand. Die Schlüssel decken sich mit `anordnung.py`.
 export const BESCHRIFTUNG = {
@@ -216,19 +238,70 @@ export const SCHAUBILD_SPEICHER = "heatnexus.schaubild";
 export const LINIEN_SPEICHER = "heatnexus.verlauf_linien";
 
 export const FARBSAETZE = [
-  { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
-  { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },
-  { schluessel: "hell", titel: "Hell", hinweis: "Kühles Weiß mit blauem Akzent" },
-  { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warmes Dunkel mit Terrakotta" },
-  { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhiges Dunkel mit Petrolgrün" },
-  { schluessel: "pflaume", titel: "Pflaume", hinweis: "Dunkles Violett mit Pflaume" },
+  { schluessel: "home_assistant", titel: "Home Assistant", hinweis: "Farben des Designs von Home Assistant", fassungen: [] },
+  { schluessel: "heatnexus", titel: "HeatNexus", hinweis: "Graphit oder kühles Weiß mit blauem Akzent", fassungen: ["hell", "dunkel"] },
+  { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warme Töne mit Terrakotta", fassungen: ["hell", "dunkel"] },
+  { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhige Töne mit Petrolgrün", fassungen: ["hell", "dunkel"] },
+  { schluessel: "pflaume", titel: "Pflaume", hinweis: "Violette Töne mit Pflaume", fassungen: ["hell", "dunkel"] },
+  { schluessel: "windhager", titel: "Windhager-Stil", hinweis: "Wie die Bediengeräte, roter Akzent", fassungen: ["hell", "dunkel"] },
 ];
+
+export const HELLIGKEITEN = [
+  { schluessel: "auto", titel: "Automatisch", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
+  { schluessel: "hell", titel: "Hell", hinweis: "Helle Flächen, dunkle Schrift" },
+  { schluessel: "dunkel", titel: "Dunkel", hinweis: "Dunkle Flächen, helle Schrift" },
+];
+
+// Bis 1.15 trug ein Schlüssel Satz und Helligkeit zugleich. Muss zu
+// `ALTE_FARBSAETZE` in `schema/farben.py` passen.
+export const ALTE_FARBSAETZE = {
+  auto: ["home_assistant", "auto"],
+  dunkel: ["heatnexus", "dunkel"],
+  hell: ["heatnexus", "hell"],
+  terrakotta: ["terrakotta", "dunkel"],
+  petrol: ["petrol", "dunkel"],
+  pflaume: ["pflaume", "dunkel"],
+  windhager: ["windhager", "hell"],
+  windhager_dunkel: ["windhager", "dunkel"],
+};
+
+/** Satz und Helligkeit; ein alter Farbsatz ohne Helligkeit wird übersetzt, Unbekanntes fällt auf den Standard. */
+export function farbwahl(farbsatz, helligkeit) {
+  let [satz, hell] = [farbsatz, helligkeit];
+  if (!hell && satz in ALTE_FARBSAETZE) [satz, hell] = ALTE_FARBSAETZE[satz];
+  return {
+    farbsatz: FARBSAETZE.some((s) => s.schluessel === satz) ? satz : FARBSAETZE[0].schluessel,
+    helligkeit: HELLIGKEITEN.some((h) => h.schluessel === hell) ? hell : HELLIGKEITEN[0].schluessel,
+  };
+}
+
+/** Hell oder dunkel: „Automatisch“ folgt Home Assistant, ein Satz ohne die gewünschte Fassung nimmt seine eigene. */
+export function farbfassung(farbsatz, helligkeit, dunkelModus) {
+  const satz = FARBSAETZE.find((s) => s.schluessel === farbsatz) || FARBSAETZE[0];
+  const automatisch = helligkeit === "auto" || !satz.fassungen.length;
+  const wunsch = automatisch ? (dunkelModus === false ? "hell" : "dunkel") : helligkeit;
+  return satz.fassungen.length && !satz.fassungen.includes(wunsch) ? satz.fassungen[0] : wunsch;
+}
+
+/** Die Palette der Oberfläche; „Home Assistant“ setzt keine und lässt dessen Farben stehen. */
+export function paletteSchluessel(farbsatz, helligkeit, dunkelModus) {
+  if (farbsatz === "home_assistant") return null;
+  return `${farbsatz}_${farbfassung(farbsatz, helligkeit, dunkelModus)}`;
+}
+
+/** Die Farben des Schaubilds; zu „Home Assistant“ passt HeatNexus in derselben Fassung. */
+export function schaubildSchluessel(farbsatz, helligkeit, dunkelModus) {
+  const satz = farbsatz === "home_assistant" ? "heatnexus" : farbsatz;
+  return `${satz}_${farbfassung(farbsatz, helligkeit, dunkelModus)}`;
+}
+
 
 // Die Einstellungen im Fenster „Darstellung“: Schlüssel am Server, dazu die
 // erlaubten Werte. Der Browser merkt sich jede Wahl, weil der erste Aufbau
 // vor den Einstellungen vom Server steht und sonst umspringen würde.
 export const DARSTELLUNG = {
   farbsatz: FARBSAETZE,
+  helligkeit: HELLIGKEITEN,
   kopf: KOPFSTILE,
   menue: MENUESTILE,
   alle: ALLESTILE,
@@ -236,10 +309,14 @@ export const DARSTELLUNG = {
   strang_groesse: STRANGGROESSEN,
   werte_groesse: WERTEGROESSEN,
   werte_lage: WERTELAGEN,
+  puffer_werte: PUFFERWERTE,
+  verbindung: VERBINDUNGSANZEIGEN,
+  verbindung_ms: VERBINDUNG_MS,
+  zeitprogramme: ZP_SCHALTZEITEN,
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.
-export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel" };
+export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel", verbindung: "immer" };
 
 // Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
 // `ERZEUGER_MAX` in `anordnung.py` passen.
@@ -248,6 +325,31 @@ export const ERZEUGER_MAX = 64;
 /** Wo eine Wahl der Darstellung im Browser liegt. */
 export function darstellungSpeicher(schluessel) {
   return `heatnexus.${schluessel}`;
+}
+
+/** Die im Browser gemerkte Wahl; ein gesperrter Speicher ergibt nichts. */
+export function gemerkteWahl(schluessel) {
+  try {
+    return window.localStorage.getItem(darstellungSpeicher(schluessel)) || "";
+  } catch (err) {
+    return "";
+  }
+}
+
+/** Eine Wahl der Darstellung aus den Einstellungen am Server, sonst aus dem Browser, sonst der Standard. */
+export function darstellungWahl(einstellungen, schluessel) {
+  if (schluessel === "farbsatz" || schluessel === "helligkeit") {
+    const e = einstellungen || {};
+    const satz = e.farbsatz || gemerkteWahl("farbsatz");
+    // Ohne Satz am Server gilt die gemerkte Helligkeit, sonst gehören beide zusammen.
+    const hell = e.farbsatz ? e.helligkeit : gemerkteWahl("helligkeit");
+    return farbwahl(satz, hell)[schluessel];
+  }
+  const wert = (einstellungen || {})[schluessel] || gemerkteWahl(schluessel);
+  if (schluessel in BESCHRIFTUNG) return beschriftungGueltig(schluessel, wert) ? wert : BESCHRIFTUNG[schluessel];
+  const stile = DARSTELLUNG[schluessel];
+  if (stile.some((eintrag) => eintrag.schluessel === wert)) return wert;
+  return DARSTELLUNG_STANDARD[schluessel] || stile[0].schluessel;
 }
 
 // Wie groß die Marken im Schaubild stehen. Der Faktor wirkt auf die Schrift,
@@ -265,11 +367,11 @@ export function schriftmass(schluessel) {
   return treffer ? treffer.faktor : 1;
 }
 
-// Was ein fester Satz an der Oberfläche setzt. `auto` steht nicht darin: Dann
-// gelten die Vorgaben aus `stil.js`, die den Variablen von Home Assistant
-// folgen.
+// Was ein Satz in seiner Fassung an der Oberfläche setzt, „<satz>_<hell|dunkel>“.
+// „Home Assistant“ steht nicht darin: Dann gelten die Vorgaben aus `stil.js`,
+// die den Variablen von Home Assistant folgen.
 export const PALETTEN = {
-  dunkel: {
+  heatnexus_dunkel: {
     "--hn-grund": "#14171c",
     "--hn-karte": "#1e232b",
     "--hn-text": "#eceff1",
@@ -283,11 +385,11 @@ export const PALETTEN = {
     "--hn-gut": "#7bd88f",
     "--hn-at": "#4fd1b5",
   },
-  hell: {
+  heatnexus_hell: {
     "--hn-grund": "#f4f5f7",
     "--hn-karte": "#ffffff",
     "--hn-text": "#1c1f24",
-    "--hn-gedaempft": "#6b7480",
+    "--hn-gedaempft": "#626b77",
     "--hn-akzent": "#2e6de0",
     "--hn-akzent-text": "#ffffff",
     "--hn-linie": "#e0e3e8",
@@ -297,7 +399,7 @@ export const PALETTEN = {
     "--hn-gut": "#2e7d32",
     "--hn-at": "#00796b",
   },
-  terrakotta: {
+  terrakotta_dunkel: {
     "--hn-grund": "#1a1816",
     "--hn-karte": "#242220",
     "--hn-text": "#ece8e4",
@@ -311,7 +413,7 @@ export const PALETTEN = {
     "--hn-gut": "#7bd88f",
     "--hn-at": "#4fd1b5",
   },
-  petrol: {
+  petrol_dunkel: {
     "--hn-grund": "#10171a",
     "--hn-karte": "#192226",
     "--hn-text": "#e4ecec",
@@ -325,7 +427,7 @@ export const PALETTEN = {
     "--hn-gut": "#7bd88f",
     "--hn-at": "#4fd1b5",
   },
-  pflaume: {
+  pflaume_dunkel: {
     "--hn-grund": "#16121c",
     "--hn-karte": "#211b2a",
     "--hn-text": "#ece7f0",
@@ -334,6 +436,81 @@ export const PALETTEN = {
     "--hn-akzent-text": "#150e1c",
     "--hn-linie": "#2b2336",
     "--hn-flaeche": "#2b2336",
+    "--hn-sonne": "#f5c451",
+    "--hn-ww": "#5aa9e6",
+    "--hn-gut": "#7bd88f",
+    "--hn-at": "#4fd1b5",
+  },
+  // Helle Fassungen: der Satz „hell“, im Ton des jeweiligen Akzents getönt.
+  terrakotta_hell: {
+    "--hn-grund": "#f7f3ef",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#2a2420",
+    "--hn-gedaempft": "#6e645b",
+    "--hn-akzent": "#a85a24",
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#ebe4dc",
+    "--hn-flaeche": "#f2ece5",
+    "--hn-sonne": "#b7791f",
+    "--hn-ww": "#1f6fb2",
+    "--hn-gut": "#2e7d32",
+    "--hn-at": "#00796b",
+  },
+  petrol_hell: {
+    "--hn-grund": "#f1f6f5",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#1a2624",
+    "--hn-gedaempft": "#5c6d6b",
+    "--hn-akzent": "#1f7a6e",
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#dfe9e7",
+    "--hn-flaeche": "#e9f1ef",
+    "--hn-sonne": "#b7791f",
+    "--hn-ww": "#1f6fb2",
+    "--hn-gut": "#2e7d32",
+    "--hn-at": "#00796b",
+  },
+  pflaume_hell: {
+    "--hn-grund": "#f6f3f8",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#241d2b",
+    "--hn-gedaempft": "#6a6075",
+    "--hn-akzent": "#7b4bb0",
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#e7e1ee",
+    "--hn-flaeche": "#efeaf4",
+    "--hn-sonne": "#b7791f",
+    "--hn-ww": "#1f6fb2",
+    "--hn-gut": "#2e7d32",
+    "--hn-at": "#00796b",
+  },
+  // Angelehnt an die Windhager-Bediengeräte, Akzent im Rot der Marke. Grün ist so
+  // weit abgedunkelt, dass es als Schrift 4,5 : 1 auf der Karte hält.
+  windhager_hell: {
+    "--hn-grund": "#f2f2f2",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#404040",
+    "--hn-gedaempft": "#666666",
+    "--hn-akzent": "#c20012",
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#e5e5e5",
+    "--hn-flaeche": "#f2f2f2",
+    "--hn-sonne": "#b7791f",
+    "--hn-ww": "#006fd2",
+    "--hn-gut": "#318803",
+    "--hn-at": "#00796b",
+  },
+  // Die Bediengeräte kennen keine dunkle Fassung. Grundton ist das Anthrazit der
+  // Kesselgehäuse; das Rot ist aufgehellt, damit es als Schrift lesbar bleibt.
+  windhager_dunkel: {
+    "--hn-grund": "#1f2428",
+    "--hn-karte": "#283035",
+    "--hn-text": "#f2f2f2",
+    "--hn-gedaempft": "#a7aeb3",
+    "--hn-akzent": "#f86a74",
+    "--hn-akzent-text": "#1a1f22",
+    "--hn-linie": "#343c42",
+    "--hn-flaeche": "#323a40",
     "--hn-sonne": "#f5c451",
     "--hn-ww": "#5aa9e6",
     "--hn-gut": "#7bd88f",

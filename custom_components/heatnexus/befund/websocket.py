@@ -13,7 +13,8 @@ import voluptuous as vol
 from ..automatik.verwaltung import verwaltung_holen
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import haus
+from ..registrierung import geraetename
+from . import haus, pflege
 from .laufzeit import QUELLE, Sammler, befund_holen, quelle_entitaet, unique_id
 
 NACHT_EINTRAEGE = 8
@@ -59,15 +60,52 @@ async def _nacht_einsetzen(
                 befund["angaben"]["nacht"] = haus.nacht(befund["wert"], raum, aussen)
 
 
+def _eingabe(register: er.EntityRegistry, device_id: str, art: str) -> dict[str, str] | None:
+    """Was die Karte nachtragen lässt: Datum der letzten Pflege oder den Vorrat im Lager."""
+    if art == "brennstoff":
+        vorrat = register.async_get_entity_id("number", DOMAIN, f"{device_id}-brennstoffvorrat")
+        return {"art": "vorrat", "entity": vorrat} if vorrat else None
+    if art.startswith("pflege_"):
+        pflegen = [art.removeprefix("pflege_")]
+    elif art == "abgas":
+        pflegen = ["hauptreinigung", "jahresreinigung"]
+    elif art == "arbeitszahl":
+        pflegen = ["verdampfer"]
+    else:
+        return None
+    for pflege_art in pflegen:
+        kennung = (
+            f"{device_id}-verdampfer-zuletzt"
+            if pflege_art == "verdampfer"
+            else f"{device_id}-pflege-{pflege_art}-zuletzt"
+        )
+        if datum := register.async_get_entity_id("date", DOMAIN, kennung):
+            return {"art": "datum", "entity": datum, "pflege": pflege_art}
+    return None
+
+
 def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str, Any]) -> None:
     """Je Befund die Entität des Sensors; die Seite öffnet darüber den Verlauf."""
     register = er.async_get(hass)
     geraete = {kennung: device_id for kennung, device_id, _ in sammler.geraete()}
     for abschnitt in stand["abschnitte"]:
-        device_id = geraete.get(abschnitt["kennung"])
+        # Ein Pflegeabschnitt trägt das Gerät selbst als Kennung.
+        eigen = abschnitt["art"] == "pflege"
+        device_id = abschnitt["kennung"] if eigen else geraete.get(abschnitt["kennung"])
+        # Abschnitte je Gerät heißen wie das Gerät in Home Assistant, auch nach dem Umbenennen.
+        if device_id and abschnitt["art"] in ("pflege", "abgas", "brennstoff", "waermepumpe"):
+            abschnitt["titel"] = geraetename(
+                hass, device_id, sammler.entry.entry_id, abschnitt["titel"]
+            )
         for befund in abschnitt["befunde"]:
-            kennung = unique_id(device_id, befund["art"]) if device_id else ""
+            kennung = (
+                pflege.befund_kennung(device_id, befund["art"])
+                or unique_id(device_id, befund["art"])
+                if device_id
+                else ""
+            )
             befund["entity"] = register.async_get_entity_id("sensor", DOMAIN, kennung)
+            befund["eingabe"] = _eingabe(register, device_id, befund["art"]) if device_id else None
             adresse = QUELLE.get(befund["art"])
             befund["quelle"] = (
                 quelle_entitaet(register, device_id, adresse) if adresse and device_id else None

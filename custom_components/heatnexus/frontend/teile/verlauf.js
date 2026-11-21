@@ -13,6 +13,33 @@ import { LINIEN_SPEICHER } from "../ordnung.js";
 
 // Mehr Vorschläge passen nicht sinnvoll unter das Suchfeld; die Suche grenzt ein.
 const LINIEN_VORSCHLAEGE = 12;
+// Unter diesem Pfad wird das Dashboard-Modul geladen; eine Seite entsteht dabei nicht.
+const KARTEN_WEG = "heatnexus-kartenhelfer";
+const KARTEN_WARTEN_MS = 5000;
+
+/**
+ * Die Kartenhelfer von Home Assistant. Home Assistant setzt sie erst mit dem Dashboard-Modul;
+ * ohne ein vorher geöffnetes Dashboard wird es über die Routen der Seitenleiste nachgeladen.
+ */
+export async function kartenhelfer() {
+  if (!window.loadCardHelpers) {
+    let uhr;
+    try {
+      const frist = new Promise((_, nein) => {
+        uhr = setTimeout(() => nein(new Error("frist")), KARTEN_WARTEN_MS);
+      });
+      await Promise.race([customElements.whenDefined("partial-panel-resolver"), frist]);
+      const aufloeser = document.createElement("partial-panel-resolver");
+      const wege = aufloeser._getRoutes([{ component_name: "lovelace", url_path: KARTEN_WEG }]);
+      await wege.routes[KARTEN_WEG].load();
+    } catch (err) {
+      // Ohne Kartenhelfer bleiben die Diagramme leer; die übrige Oberfläche läuft weiter.
+    } finally {
+      clearTimeout(uhr);
+    }
+  }
+  return window.loadCardHelpers ? window.loadCardHelpers() : null;
+}
 
 export const VerlaufMixin = (Basis) =>
   class extends Basis {
@@ -280,8 +307,8 @@ export const VerlaufMixin = (Basis) =>
 
   async _verlaufNeuLaden(platz, gewaehlt) {
     platz.dataset.entities = JSON.stringify([...gewaehlt]);
-    if (!window.loadCardHelpers) return;
-    const helfer = await window.loadCardHelpers();
+    const helfer = await kartenhelfer();
+    if (!helfer) return;
     const karte = helfer.createCardElement({
       type: "history-graph",
       hours_to_show: Number(platz.dataset.stunden) || 24,
@@ -312,8 +339,9 @@ export const VerlaufMixin = (Basis) =>
     // `data-karte` trägt eine fertige Kartenkonfiguration (Hybridmanager),
     // `data-verlauf` den Verlauf mit wählbaren Linien.
     const plaetze = this.shadowRoot.querySelectorAll("[data-verlauf], [data-karte]");
-    if (!plaetze.length || !window.loadCardHelpers) return;
-    const helfer = await window.loadCardHelpers();
+    if (!plaetze.length) return;
+    const helfer = await kartenhelfer();
+    if (!helfer) return;
     this._verlaufskarten = [];
     plaetze.forEach((platz) => {
       const karte = helfer.createCardElement(

@@ -133,6 +133,9 @@ class AttrappenClient:
     def steuerung_kennung(self) -> str:
         return "0000ABCD1234"
 
+    def strukturaenderung_abholen(self) -> bool:
+        return False
+
     def register_poll_oid(self, oid: str) -> None:
         self.gepollt.add(oid)
 
@@ -538,6 +541,50 @@ async def test_beim_entladen_bleiben_keine_laufzeitdaten_stehen(hass, eintrag):
     assert modul.laufzeitdaten(eintrag) is None
 
 
+async def test_das_entladen_wartet_den_laufenden_abruf_ab(hass, eintrag, caplog):
+    """Die Verbindung schließt erst, wenn der laufende Abruf beendet ist."""
+    import logging
+
+    import custom_components.heatnexus as modul
+
+    ablauf: list[str] = []
+    laeuft, freigabe = asyncio.Event(), asyncio.Event()
+
+    class Haengt(AttrappenClient):
+        anhalten = False
+
+        async def fetch_all(self, budget: float | None = None) -> dict[str, Any]:
+            if self.anhalten:
+                ablauf.append("abruf")
+                laeuft.set()
+                await freigabe.wait()
+                ablauf.append("abruf fertig")
+            return await super().fetch_all(budget)
+
+        async def close(self) -> None:
+            ablauf.append("schließen")
+            await super().close()
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", Haengt):
+        assert await hass.config_entries.async_setup(eintrag.entry_id) is True
+        await hass.async_block_till_done()
+    (koordinator,) = modul.laufzeitdaten(eintrag)["coordinators"].values()
+    koordinator.client.anhalten = True
+    abruf = asyncio.create_task(koordinator.async_refresh())
+    await laeuft.wait()
+    caplog.clear()
+
+    entladen = asyncio.create_task(hass.config_entries.async_unload(eintrag.entry_id))
+    await asyncio.wait({entladen}, timeout=0.2)
+    freigabe.set()
+    assert await entladen is True
+    await abruf
+
+    assert ablauf == ["abruf", "abruf fertig", "schließen"]
+    warnungen = [z for z in caplog.records if z.levelno >= logging.WARNING]
+    assert not [z for z in warnungen if z.name.startswith("custom_components.heatnexus")]
+
+
 # ---------------------------------------------------------------------------
 # Vollabzug
 # ---------------------------------------------------------------------------
@@ -566,6 +613,54 @@ async def test_der_vollabzug_legt_den_erkennungsstand_ab(hass, eintrag):
     assert gespeichert, "kein Erkennungsstand im Arbeitsspeicher"
     stand = next(iter(gespeichert.values()))
     assert len(stand["devices"]) == len(ZUSAETZLICH)
+
+
+def _einlese_meldung(hass, eintrag):
+    from homeassistant.components import persistent_notification
+
+    from custom_components.heatnexus.einlesen import meldungs_id
+
+    meldungen = persistent_notification._async_get_or_create_notifications(hass)
+    return meldungen.get(meldungs_id(eintrag))
+
+
+async def test_nach_dem_vollabzug_erscheint_die_erfolgsmeldung(hass, eintrag):
+    """Die Erfolgsmeldung ersetzt die Ankündigung, sobald die Verzögerung abgelaufen ist."""
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.heatnexus.einlesen import MELDUNG_VERZOEGERUNG
+
+    hass.config_entries.async_update_entry(eintrag, options={"meldung_einlesen": True})
+    assert await _einrichten(hass, eintrag) is True
+    assert _einlese_meldung(hass, eintrag)["title"] == "HeatNexus is reading the system"
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=MELDUNG_VERZOEGERUNG + 1))
+    await hass.async_block_till_done()
+
+    meldung = _einlese_meldung(hass, eintrag)
+    assert meldung["title"] == "HeatNexus is ready"
+    assert eintrag.runtime_data["einlesen_offen"] == set()
+
+
+async def test_nach_dem_entladen_erscheint_keine_erfolgsmeldung(hass, eintrag, monkeypatch):
+    """Der Zeitgeber der Erfolgsmeldung endet mit dem Eintrag."""
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.heatnexus import einlesen
+
+    aufrufe: list = []
+    monkeypatch.setattr(einlesen, "_einlesen_abgeschlossen", lambda *a, **k: aufrufe.append(a))
+    assert await _einrichten(hass, eintrag) is True
+    assert await hass.config_entries.async_unload(eintrag.entry_id)
+    await hass.async_block_till_done()
+
+    verzoegerung = timedelta(seconds=einlesen.MELDUNG_VERZOEGERUNG + 1)
+    async_fire_time_changed(hass, dt_util.utcnow() + verzoegerung)
+    await hass.async_block_till_done()
+
+    assert not aufrufe
 
 
 async def test_ein_gescheiterter_vollabzug_laesst_die_anlage_laufen(hass, eintrag):

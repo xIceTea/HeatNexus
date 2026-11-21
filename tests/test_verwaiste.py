@@ -343,7 +343,7 @@ def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
     assert hinweis.translation_placeholders == {"anzahl": "1"}
 
 
-def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
+async def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
     """Sonst entstünde er erst beim nächsten Laden des Eintrags."""
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -374,6 +374,7 @@ def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
         hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id), lambda: gerufen.append(1)
     )
     stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+    await hass.async_block_till_done()
 
     assert registry.async_get(entitaet.entity_id).disabled_by is None
     assert gerufen, "Die Plattformen wurden nicht benachrichtigt"

@@ -6,6 +6,7 @@ import contextlib
 import re
 from typing import Any
 
+from ..const import PROGRAMMART, PROGRAMMGRENZEN
 from ..dashboard.anlagen import trifft
 from ..dashboard.muster import (
     namensmuster,
@@ -450,6 +451,18 @@ def _lagerraum_karte(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> dict
     }
 
 
+# Das Silentmode-Programm `50/14` schaltet nur ein und aus.
+SILENTMODE_ADRESSE = "50/14"
+
+
+def _silentmode_art(programm: dict[str, Any] | None) -> dict[str, Any]:
+    """Art und Wertebereich des Programms nach seiner Adresse; ohne Adresse die von `50/14`."""
+    adresse = (programm or {}).get("adresse") or SILENTMODE_ADRESSE
+    art = PROGRAMMART.get(adresse, PROGRAMMART[SILENTMODE_ADRESSE])
+    bereich = PROGRAMMGRENZEN.get(adresse, PROGRAMMGRENZEN[SILENTMODE_ADRESSE])
+    return {"programm_art": art, "programm_bereich": list(bereich)}
+
+
 def _waermepumpen_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     """Je Wärmepumpe mit Silentmode eine Karte: Modus, Faktor und Zeitprogramm.
 
@@ -473,6 +486,7 @@ def _waermepumpen_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
                 "programm": programm["entity_id"] if programm else None,
                 # Der Dialog zeigt die Bezeichnung aus dem Reiter Zeitprogramme.
                 "programm_bezeichnung": (programm or {}).get("bezeichnung"),
+                **_silentmode_art(programm),
             }
         )
     return karten

@@ -84,6 +84,9 @@ from .stilllegung import (
     umfang_verkleinert,
 )
 from .texte import sprachwahl_umstellen, vorladen, woerterbuch_des_eintrags
+from .verbindung_lauf import STORE_VERSION as VERBINDUNG_STORE_VERSION
+from .verbindung_lauf import VerbindungLauf
+from .verbindung_lauf import store_key as verbindung_store_key
 from .verweise import verweise_verfolgen
 
 _LOGGER = logging.getLogger(__name__)
@@ -176,6 +179,21 @@ def _sprachwahl_umstellen(hass: HomeAssistant) -> None:
     for eintrag, optionen in zip(eintraege, neu or [None] * len(eintraege), strict=True):
         if optionen is not None:
             hass.config_entries.async_update_entry(eintrag, options=optionen)
+
+
+@callback
+def _funde_schliessen(hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict]) -> None:
+    """Offene Funde für Adressen dieses Eintrags schließen, etwa nach dem Wiedereinschalten.
+
+    Der Dialog, der den Eintrag gerade anlegt, trägt dessen Kennung und bleibt offen.
+    """
+    adressen = {s.get(CONF_HOST) for s in systeme}
+    for fund in hass.config_entries.flow.async_progress_by_handler(
+        DOMAIN, include_uninitialized=True
+    ):
+        kontext = fund["context"]
+        if kontext.get("host") in adressen and kontext.get("unique_id") != entry.unique_id:
+            hass.config_entries.flow.async_abort(fund["flow_id"])
 
 
 def _marken_je_anlage_uebernehmen(
@@ -377,8 +395,9 @@ async def _anlage_verbinden(
     if restored and not client.geraeteinfo:
         await _geraeteinfo_nachholen(client, mem_cache, cache_key)
 
+    verbindung = await VerbindungLauf.laden(hass, entry.entry_id, host, label)
     coordinator = WindhagerDataUpdateCoordinator(
-        hass, client, entry, host, label, scope["update_interval"]
+        hass, client, entry, host, label, verbindung, scope["update_interval"]
     )
     await _vorabstand_setzen(entry, client, coordinator, host)
     await coordinator.async_config_entry_first_refresh()
@@ -457,6 +476,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not systeme:
         raise mit_text(ConfigEntryNotReady, "keine_anlage_im_eintrag")
 
+    _funde_schliessen(hass, entry, systeme)
     _marken_je_anlage_uebernehmen(hass, entry, systeme)
 
     hass.data.setdefault(DOMAIN, {})
@@ -578,9 +598,15 @@ async def _einrichtung_zuruecknehmen(
             _LOGGER.debug("Plattformen ließen sich nicht entladen: %s", fehler)
     await _aufgaben_beenden(daten.get("hintergrund", []))
     for anlage in anlagen:
-        await anlage.coordinator.async_shutdown()
-        await anlage.client.close()
+        await _anlage_schliessen(anlage.coordinator)
     entry.runtime_data = None
+
+
+async def _anlage_schliessen(coordinator: WindhagerDataUpdateCoordinator) -> None:
+    """Den Abruf einstellen und abwarten, die Bewertung sichern, dann die Verbindung schließen."""
+    await coordinator.async_shutdown()
+    await coordinator.verbindung.async_entladen()
+    await coordinator.client.close()
 
 
 async def _aufgaben_beenden(aufgaben: list[asyncio.Task]) -> None:
@@ -686,7 +712,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # meldet „Connector is closed".
         await _aufgaben_beenden(daten.get("hintergrund", []))
         for coordinator in daten.get("coordinators", {}).values():
-            await coordinator.client.close()
+            await _anlage_schliessen(coordinator)
         # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
         # Zeitgeber der Einlese-Meldung und die Geräteliste des Dashboards;
         # bleiben sie stehen, meldet HeatNexus eine Anlage als bereit, die es
@@ -712,7 +738,7 @@ async def async_remove_config_entry_device(
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
-    await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)
+    await verwaltung_holen(hass).eintrag_entfernt(entry)
     await befund_entfernen(hass, entry)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)
@@ -720,6 +746,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     for system in systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, store_key(entry, system[CONF_HOST])
+        ).async_remove()
+        await Store(
+            hass, VERBINDUNG_STORE_VERSION, verbindung_store_key(entry.entry_id, system[CONF_HOST])
         ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)

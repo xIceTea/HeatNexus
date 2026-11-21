@@ -6,11 +6,13 @@ import asyncio
 from collections.abc import Callable
 from datetime import timedelta
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .client.antwortzeit import IM_ABRUF, Messreihe
 from .const import (
     ABRUF_RESERVE,
     ABRUF_TIMEOUT,
@@ -26,13 +28,25 @@ from .exceptions import mit_text
 from .texte import woerterbuch
 from .zirkulation import steht_still
 
+if TYPE_CHECKING:
+    from .verbindung_lauf import VerbindungLauf
+
 _LOGGER = logging.getLogger(__name__)
 
 
 class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
     """Fragt eine Anlage zyklisch ab."""
 
-    def __init__(self, hass, client, entry, host, label, update_interval=UPDATE_INTERVAL):
+    def __init__(
+        self,
+        hass,
+        client,
+        entry,
+        host,
+        label,
+        verbindung: VerbindungLauf,
+        update_interval=UPDATE_INTERVAL,
+    ):
         """Coordinator für genau eine Anlage."""
         super().__init__(
             hass,
@@ -65,6 +79,10 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self._ausfall_gemeldet = False
         # Startet den Vollabzug, wenn sich der Aufbau der Anlage ändert; gesetzt beim Einbinden.
         self.bei_strukturaenderung: Callable[[], None] | None = None
+        # Bewertet die Antwortzeiten nach jedem Abruf.
+        self.verbindung = verbindung
+        # Gehalten, solange ein Abruf läuft; `async_shutdown` wartet ihn damit ab.
+        self._abruf_laeuft = asyncio.Lock()
 
     def _langsamer_fragen(self) -> None:
         """Nach einem Fehlschlag den Abstand verdoppeln.
@@ -152,6 +170,49 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self.bei_strukturaenderung()
 
     async def _async_update_data(self):
+        """Werte der Anlage holen; danach die Verbindung bewerten, auch nach einem Fehlschlag."""
+        async with self._abruf_laeuft:
+            erfolgreich = False
+            try:
+                daten = await self._abrufen()
+                # Ein einzelner Fehlschlag liefert alte Werte; gelungen ist nur ein Abruf ohne ihn.
+                erfolgreich = self._fehlschlaege == 0
+                return daten
+            finally:
+                self._verbindung_bewerten(erfolgreich)
+
+    async def async_shutdown(self) -> None:
+        """Keine neuen Abrufe mehr starten und einen laufenden zu Ende gehen lassen."""
+        await super().async_shutdown()
+        async with self._abruf_laeuft:
+            pass
+
+    def _verbindung_bewerten(self, erfolgreich: bool) -> None:
+        """Ein Fehler hier darf das Ergebnis des Abrufs nicht verdecken."""
+        messreihe = getattr(self.client, "messreihe", None)
+        if not isinstance(messreihe, Messreihe):
+            return
+        try:
+            self.verbindung.nach_abruf(messreihe, self.client.noch_offen, erfolgreich)
+        except Exception:
+            _LOGGER.exception("Bewertung der Verbindung zu %s gescheitert", self.host)
+
+    async def _gemessen_abrufen(self, budget: float):
+        """Der Abruf selbst; nur seine Anfragen zählen für die Antwortzeit."""
+        token = IM_ABRUF.set(True)
+        try:
+            return await self.client.fetch_all(budget=budget)
+        finally:
+            IM_ABRUF.reset(token)
+
+    def _letzter_stand(self) -> dict:
+        """Die zuletzt gelesenen Werte mit der Geräteliste, die jetzt gilt.
+
+        Die Liste ist kein Messwert: Nach einem Einlesen darf sie nicht veralten.
+        """
+        return {**self.data, "devices": self.client.geraeteliste}
+
+    async def _abrufen(self):
         """Werte der Anlage holen."""
         # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
         # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
@@ -164,7 +225,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # rechtzeitig auf. Die Zeitüberschreitung bleibt der Notnagel für
             # eine Anlage, die gar nicht mehr antwortet.
             async with asyncio.timeout(fenster):
-                data = await self.client.fetch_all(budget=fenster - ABRUF_RESERVE)
+                data = await self._gemessen_abrufen(fenster - ABRUF_RESERVE)
                 self._strukturaenderung_weitergeben()
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()
@@ -188,7 +249,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # jedem Leser eine Anlage ohne Datenpunkte, und die Entitäten würden stillgelegt.
             if not self.data:
                 raise mit_text(UpdateFailed, "keine_werte", anlage=self.host, fehler=err) from err
-            return self.data
+            return self._letzter_stand()
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
@@ -206,7 +267,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 raise mit_text(
                     UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
                 ) from err
-            return self.data
+            return self._letzter_stand()
 
     async def werte_nachlesen(self, oids: list[str]) -> dict | None:
         """Einzelne Adressen sofort lesen und in den Bestand legen; None bei Fehlschlag.

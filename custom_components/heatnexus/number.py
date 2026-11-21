@@ -5,7 +5,9 @@ from __future__ import annotations
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_platform
 
+from .befund.brennstoff_entitaeten import anmelden_number, dienst_anmelden
 from .entity import WindhagerEntity, async_setup_entities
 from .helpers import nachkommastellen
 
@@ -22,6 +24,8 @@ DEVICE_CLASSES = {klasse.value for klasse in NumberDeviceClass}
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager numbers from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"number": WindhagerNumber})
+    anmelden_number(hass, entry, async_add_entities)
+    dienst_anmelden(entity_platform.async_get_current_platform())
 
 
 class WindhagerNumber(WindhagerEntity, NumberEntity):

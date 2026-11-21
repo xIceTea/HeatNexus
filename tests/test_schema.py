@@ -728,7 +728,6 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
     erwartet = {
         1: "heizkreis",  # Heizkurve, Kühlgrenzen, Estrichprogramm
         2: "wasser",  # WW-Programm, Hygiene-Programm, Zirkulationspumpe
-        4: "umschaltung",  # Weiche, Folgeschaltung, Zusatzkessel ZSK
         5: "solar",  # Kollektortemperatur, Kollektor spülen
         6: "kessel",  # Gas/Öl: Ionisationsstrom, Anlagendruck
         7: "kessel",  # Wärmepumpe: COP, Silentmode
@@ -737,7 +736,7 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         10: "kessel",  # Automatikkessel
         13: "solar",  # „Solar ES", von der Anlage selbst benannt
         14: "heizkreis",
-        15: "umschaltung",  # Automatikkessel / Festbrennstoff / Puffer
+        15: "puffer",  # Puffer oben/mitte/unten, Pufferladepumpe, Umschaltventile
         16: "puffer",
         20: "pumpenmodul",  # ZSP
         21: "puffer",
@@ -752,6 +751,95 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         7: "waermepumpe",
         27: "waermepumpe",
     }
+
+
+def test_puffermodul_des_reglers_wird_als_puffer_mit_ladepumpe_gezeichnet(werte):
+    """FctType 15 trägt die Herstellernamen: oben und unten, die Ladepumpe als Bit von `2/2`."""
+    puffer = _teil(
+        "Puffer",
+        15,
+        [
+            ("sensor.kessel", "Kesseltemperatur"),
+            ("sensor.oben", "Puffertemperatur oben"),
+            ("sensor.unten", "Puffertemperatur unten"),
+            ("binary_sensor.lp", "Pufferladepumpe"),
+        ],
+    )
+    modul = werte.zeichenbare_module([puffer])[0]
+    assert modul["art"] == "puffer"
+    assert [w["entity_id"] for w in modul["werte"]] == ["sensor.oben", "sensor.unten"]
+    assert modul["pumpe"] == "binary_sensor.lp"
+
+
+def _puffer_mit_mitte() -> list:
+    return [
+        _teil("LogWIN", 10, [("sensor.kessel", "Kesseltemperatur Ist")]),
+        _teil(
+            "Puffer",
+            15,
+            [
+                ("sensor.oben", "Puffertemperatur oben"),
+                ("sensor.mitte", "Puffertemperatur mitte"),
+                ("sensor.unten", "Puffertemperatur unten"),
+                ("sensor.bg", "Puffer-Beladegrad"),
+            ],
+        ),
+    ]
+
+
+def test_puffermitte_steht_nicht_unter_den_festen_werten(karte, zeichnung):
+    """Die Mitte kommt als eigene Marke an die Stelle des Ladeworts, das Wort rückt nach oben."""
+    bild = karte.anlagenschema(_puffer_mit_mitte())
+    assert [el["entity"] for el in bild["elements"]] == [
+        "sensor.kessel",
+        "sensor.oben",
+        "sensor.unten",
+    ]
+    (mitte,) = bild["werte_mitte"]
+    (speicher,) = bild["speicher"]
+    assert mitte["entity"] == "sensor.mitte"
+    assert float(mitte["style"]["top"].rstrip("%")) == pytest.approx(
+        float(speicher["top"].rstrip("%")), abs=0.1
+    )
+    assert mitte["style"]["left"] == bild["elements"][1]["style"]["left"]
+    assert speicher["mitte"] == "sensor.mitte"
+    assert float(speicher["top_drei"].rstrip("%")) < float(speicher["top"].rstrip("%"))
+    assert zeichnung.KANTEN_JE_ART["puffer"][0] < zeichnung.SPEICHER_DREI_Y
+
+
+def test_schichtung_kennt_mitte_und_beladegrad(karte):
+    (schicht,) = karte.anlagenschema(_puffer_mit_mitte())["schichtung"]
+    assert schicht["mitte"] == "sensor.mitte"
+    assert schicht["beladegrad"] == "sensor.bg"
+
+
+def test_nutzdaten_tragen_die_puffermitte_mit_namen(karte):
+    nutzdaten = karte.schaubild_nutzdaten({"id": "a", "name": "X", "teile": _puffer_mit_mitte()})
+    (mitte,) = nutzdaten["schema_werte_mitte"]
+    assert mitte["entity"] == "sensor.mitte"
+    assert mitte["name"] == "mitte"
+    assert mitte["beschriftung"] is None
+
+
+def test_ohne_mittleren_fuehler_bleibt_alles_wie_bisher(karte, anlage):
+    bild = karte.anlagenschema(anlage)
+    assert bild["werte_mitte"] == []
+    assert bild["schichtung"][0]["mitte"] is None
+    assert bild["schichtung"][0]["beladegrad"] is None
+
+
+def test_schaltdifferenz_puffer_mitte_ist_kein_fuehler(werte):
+    """Ein Sollwert, der die Mitte im Namen trägt, darf nicht als Fühler gelten."""
+    assert not re.search(
+        werte.PUFFER_MITTE, "Schaltdifferenz WW Bereitung Puffer Mitte", re.IGNORECASE
+    )
+    for name in ("Puffertemperatur mitte", "Puffer Mitte", "Puffertemperatur TPM"):
+        assert re.search(werte.PUFFER_MITTE, name, re.IGNORECASE), name
+
+
+def test_kaskade_steht_nicht_im_schaubild(werte):
+    kaskade = _teil("Kaskade", 4, [("sensor.t", "Kesseltemperatur")])
+    assert werte.zeichenbare_module([kaskade]) == []
 
 
 def test_warmwasser_und_zirkulation_in_beiden_schreibweisen(werte):
@@ -1323,6 +1411,8 @@ def test_die_leitungsfarben_gelten_in_jedem_satz(farben):
         farben.FARBEN_TERRAKOTTA,
         farben.FARBEN_PETROL,
         farben.FARBEN_PFLAUME,
+        farben.FARBEN_WINDHAGER,
+        farben.FARBEN_WINDHAGER_DUNKEL,
     ):
         for rolle in farben.FESTE_ROLLEN:
             assert satz[rolle] == farben.FARBEN[rolle], f"{rolle} weicht ab"
@@ -1336,6 +1426,8 @@ def test_die_leitungen_ueberstehen_jeden_wechsel(schema, farben, anlage):
         farben.THEMA_TERRAKOTTA,
         farben.THEMA_PETROL,
         farben.THEMA_PFLAUME,
+        farben.THEMA_WINDHAGER,
+        farben.THEMA_WINDHAGER_DUNKEL,
     ):
         gewechselt = farben.farben_umstellen(dunkel, thema)
         assert farben.FARBE_VORLAUF in gewechselt, f"{thema}: der Vorlauf ist umgefärbt"
@@ -1409,13 +1501,27 @@ def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, farben, anlag
 
 
 # ---------------------------------------------------------------------------
-# Weitere Farbsätze: Petrol und Pflaume
+# Weitere Farbsätze: Petrol, Pflaume und die zwei Sätze im Windhager-Stil
 # ---------------------------------------------------------------------------
 def _weitere(farben):
     return (
         (farben.THEMA_PETROL, farben.FARBEN_PETROL),
         (farben.THEMA_PFLAUME, farben.FARBEN_PFLAUME),
+        (farben.THEMA_WINDHAGER, farben.FARBEN_WINDHAGER),
+        (farben.THEMA_WINDHAGER_DUNKEL, farben.FARBEN_WINDHAGER_DUNKEL),
+        (farben.THEMA_TERRAKOTTA_HELL, farben.FARBEN_TERRAKOTTA_HELL),
+        (farben.THEMA_PETROL_HELL, farben.FARBEN_PETROL_HELL),
+        (farben.THEMA_PFLAUME_HELL, farben.FARBEN_PFLAUME_HELL),
     )
+
+
+def test_der_dunkle_windhager_satz_hat_ein_eigenes_schaubild(farben):
+    """Helle Gehäuse auf dunkler Karte fielen aus dem Bild."""
+    assert (
+        farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER]
+        != farben.FARBABBILDUNGEN[farben.THEMA_WINDHAGER_DUNKEL]
+    )
+    assert farben.FASSUNGEN["windhager"] == ("hell", "dunkel")
 
 
 def test_jeder_weitere_satz_kennt_alle_rollen(schema, farben):
@@ -1475,7 +1581,14 @@ def _im_browser(schema, tmp_path, rumpf: str, nutzlast):
 def test_der_browser_tauscht_dieselben_farben(schema, farben, anlage, tmp_path):
     """Der Austausch geschieht im Browser – er muss dasselbe ergeben wie hier."""
     dunkel = _svg_von(schema, anlage)
-    themen = [farben.THEMA_HELL, farben.THEMA_TERRAKOTTA, farben.THEMA_PETROL, farben.THEMA_PFLAUME]
+    themen = [
+        farben.THEMA_HELL,
+        farben.THEMA_TERRAKOTTA,
+        farben.THEMA_PETROL,
+        farben.THEMA_PFLAUME,
+        farben.THEMA_WINDHAGER,
+        farben.THEMA_WINDHAGER_DUNKEL,
+    ]
     ergebnis = _im_browser(
         schema,
         tmp_path,
@@ -1512,7 +1625,17 @@ def test_die_nutzdaten_schicken_das_bild_einmal(karte, anlage):
     """Ein Bild je Farbsatz wäre fünfmal dieselbe Zeichnung."""
     nutzdaten = karte.schaubild_nutzdaten({"id": "a", "name": "X", "teile": anlage})
     assert nutzdaten["schema_svg"].startswith("<svg")
-    assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
+    assert set(nutzdaten["schema_farben"]) == {
+        "heatnexus_hell",
+        "terrakotta_dunkel",
+        "petrol_dunkel",
+        "pflaume_dunkel",
+        "windhager_hell",
+        "windhager_dunkel",
+        "terrakotta_hell",
+        "petrol_hell",
+        "pflaume_hell",
+    }
     assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
 
 
@@ -1523,6 +1646,56 @@ def test_die_oberflaeche_kennt_dieselben_saetze(schema, farben):
     )
     for satz in farben.FARBSAETZE:
         assert f'schluessel: "{satz}"' in text, f"{satz} fehlt in ordnung.js"
+
+
+def _paletten(schema, tmp_path) -> dict[str, dict[str, str]]:
+    """`PALETTEN` aus `ordnung.js`, so wie der Browser sie liest."""
+    ordnung_js = (Path(schema.__file__).parents[1] / "frontend" / "ordnung.js").resolve()
+    skript = tmp_path / "paletten.mjs"
+    skript.write_text(
+        f'import {{ PALETTEN }} from "{ordnung_js.as_uri()}";\n'
+        "console.log(JSON.stringify(PALETTEN));\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    return json.loads(ausgabe.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_jeder_feste_satz_hat_eine_vollstaendige_palette(schema, farben, tmp_path):
+    """Eine fehlende Variable bliebe am Wirtselement auf dem vorigen Satz stehen."""
+    paletten = _paletten(schema, tmp_path)
+    variablen = set(paletten["heatnexus_dunkel"])
+    for satz, fassungen in farben.FASSUNGEN.items():
+        for fassung in fassungen:
+            thema = f"{satz}_{fassung}"
+            assert thema in paletten, f"{thema} fehlt in PALETTEN"
+            assert set(paletten[thema]) == variablen, f"{thema} nennt andere Variablen"
+
+
+def _kontrast(vorn: str, hinten: str) -> float:
+    def leuchtdichte(wert: str) -> float:
+        teile = [int(wert[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        lin = [k / 12.92 if k <= 0.03928 else ((k + 0.055) / 1.055) ** 2.4 for k in teile]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    hell, dunkel = sorted((leuchtdichte(vorn), leuchtdichte(hinten)), reverse=True)
+    return (hell + 0.05) / (dunkel + 0.05)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_die_windhager_und_hellen_saetze_bleiben_lesbar(schema, farben, tmp_path):
+    """Akzent und Grün dienen auch als Schrift; beide halten 4,5 : 1 auf der Karte."""
+    paletten = _paletten(schema, tmp_path)
+    saetze = (farben.THEMA_WINDHAGER, farben.THEMA_WINDHAGER_DUNKEL)
+    for satz in (*saetze, "terrakotta_hell", "petrol_hell", "pflaume_hell"):
+        palette = paletten[satz]
+        karte = palette["--hn-karte"]
+        for variable in ("--hn-text", "--hn-gedaempft", "--hn-akzent", "--hn-gut"):
+            assert _kontrast(palette[variable], karte) >= 4.5, f"{satz}: {variable}"
+        assert _kontrast(palette["--hn-akzent-text"], palette["--hn-akzent"]) >= 4.5, satz
 
 
 def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
@@ -1541,6 +1714,11 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
         "terrakotta": farben.FARBEN_TERRAKOTTA,
         "petrol": farben.FARBEN_PETROL,
         "pflaume": farben.FARBEN_PFLAUME,
+        "windhager": farben.FARBEN_WINDHAGER,
+        "windhager_dunkel": farben.FARBEN_WINDHAGER_DUNKEL,
+        "terrakotta_hell": farben.FARBEN_TERRAKOTTA_HELL,
+        "petrol_hell": farben.FARBEN_PETROL_HELL,
+        "pflaume_hell": farben.FARBEN_PFLAUME_HELL,
     }
     for name, farben in saetze.items():
         for rolle in ("vorlauf", "glut", "warm"):

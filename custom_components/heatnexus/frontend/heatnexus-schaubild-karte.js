@@ -8,15 +8,24 @@
 
 // Die Karten der Übersicht reisen mit: Eine Ressource reicht für das ganze Dashboard.
 import "./heatnexus-kacheln.js";
+import { anmelden } from "./kartenhuelle.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
 import { STIL } from "./stil.js";
-import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, schriftmass } from "./ordnung.js";
+import {
+  ALTE_FARBSAETZE,
+  FARBSAETZE,
+  HELLIGKEITEN,
+  SCHAUBILD_SPEICHER,
+  SCHRIFTMASSE,
+  darstellungWahl,
+  farbwahl,
+  schriftmass,
+} from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
-const EDITOR = "heatnexus-schaubild-editor";
 
 const Grundlage = SchaubildMixin(BausteineMixin(WerteMixin(HTMLElement)));
 
@@ -28,18 +37,19 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this._anlagen = [];
     this._bindungen = [];
     this._gebaut = false;
+    this._darstellung = {};
   }
 
   // Eigener Editor statt eines festen Schemas: Nur er kann die Anlagen zur
   // Auswahl stellen – ein Schema wird ohne `hass` gebaut und kennt sie nicht.
   static async getConfigElement() {
-    await import("./heatnexus-schaubild-editor.js");
-    await customElements.whenDefined(EDITOR);
-    return document.createElement(EDITOR);
+    const { ELEMENT: editor } = await import("./heatnexus-schaubild-editor.js");
+    await customElements.whenDefined(editor);
+    return document.createElement(editor);
   }
 
   static getStubConfig() {
-    return { type: `custom:${ELEMENT}`, farbsatz: "auto", schrift: "normal", animation: true };
+    return { type: `custom:${ELEMENT}`, farbsatz: "home_assistant", helligkeit: "auto", schrift: "normal", animation: true };
   }
 
   // Volle Breite im Raster der Ansicht: Neben dem Bild steht die Werteliste,
@@ -54,8 +64,13 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 
   setConfig(config) {
-    if (config && config.farbsatz && !FARBSAETZE.some((s) => s.schluessel === config.farbsatz)) {
+    // Alte Werte bis 1.15 gelten weiter; `farbwahl` übersetzt sie.
+    const bekannt = (wert) => FARBSAETZE.some((s) => s.schluessel === wert) || wert in ALTE_FARBSAETZE;
+    if (config && config.farbsatz && !bekannt(config.farbsatz)) {
       throw new Error(`Unbekannter Farbsatz: ${config.farbsatz}`);
+    }
+    if (config && config.helligkeit && !HELLIGKEITEN.some((h) => h.schluessel === config.helligkeit)) {
+      throw new Error(`Unbekannte Helligkeit: ${config.helligkeit}`);
     }
     if (config && config.schrift && !SCHRIFTMASSE.some((m) => m.schluessel === config.schrift)) {
       throw new Error(`Unbekanntes Schriftmaß: ${config.schrift}`);
@@ -66,7 +81,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
       this._config.zeichnungen,
       this._config.mischer,
     ]);
-    this._config = { farbsatz: "auto", schrift: "normal", animation: true, ...(config || {}) };
+    this._config = { schrift: "normal", animation: true, ...(config || {}) };
     this._gebaut = false;
     const jetzt = JSON.stringify([
       this._config.werte,
@@ -92,9 +107,19 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this._aktualisieren();
   }
 
+  /** Die Wahlen aus „Darstellung“ in der Seitenleiste; Farbsatz und Schrift stellt der Editor. */
+  _stilwahl(schluessel) {
+    return darstellungWahl(this._darstellung, schluessel);
+  }
+
   /** Der im Editor gewählte Satz gilt; das Panel fragt hier seine Anordnung. */
   _farbsatz() {
-    return this._config.farbsatz;
+    return farbwahl(this._config.farbsatz, this._config.helligkeit).farbsatz;
+  }
+
+  /** Die im Editor gewählte Helligkeit. */
+  _helligkeit() {
+    return farbwahl(this._config.farbsatz, this._config.helligkeit).helligkeit;
   }
 
   /** Das im Editor gewählte Schriftmaß der Marken. */
@@ -175,7 +200,12 @@ class HeatNexusSchaubildKarte extends Grundlage {
       if (this._config.teile_aus) anfrage.teile_aus = this._config.teile_aus;
       if (this._config.zeichnungen) anfrage.zeichnungen = this._config.zeichnungen;
       if (this._config.mischer === false) anfrage.mischer = false;
+      const darstellung = this._hass
+        .callWS({ type: "heatnexus/anordnung" })
+        .then((anordnung) => (anordnung && anordnung.einstellungen) || {})
+        .catch(() => ({}));
       this._anlagen = await this._hass.callWS(anfrage);
+      this._darstellung = await darstellung;
       if (!this._texte) {
         this._texte = await this._hass.callWS({ type: "heatnexus/texte" }).catch(() => ({}));
       }
@@ -338,9 +368,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 }
 
-if (!customElements.get(ELEMENT)) {
-  customElements.define(ELEMENT, HeatNexusSchaubildKarte);
-}
+anmelden(ELEMENT, HeatNexusSchaubildKarte);
 
 window.customCards = window.customCards || [];
 if (!window.customCards.some((k) => k.type === ELEMENT)) {
@@ -353,4 +381,4 @@ if (!window.customCards.some((k) => k.type === ELEMENT)) {
   });
 }
 
-export { HeatNexusSchaubildKarte, ELEMENT, EDITOR, ALLE };
+export { HeatNexusSchaubildKarte, ELEMENT, ALLE };

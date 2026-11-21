@@ -133,7 +133,7 @@ export const EinrichtungMixin = (Basis) =>
         const basis = vorgabe[feld.name];
         const geaendert = wert !== basis;
         if (geaendert) abweichend += 1;
-        const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
+        const basisText = typeof basis === "number" ? this._dezimal(zahl(basis, Number.isInteger(basis) ? 0 : 1)) : basis || "–";
         const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit ? this._t(feld.einheit) : ""}`.trim();
         const unter = geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : feld.unter ? this._t(feld.unter) : "";
         const zeile = this._automatikFeld(feld.titel, unter, geaendert, feld.hilfe);

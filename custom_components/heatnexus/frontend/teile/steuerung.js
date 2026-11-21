@@ -120,7 +120,7 @@ export const SteuerungMixin = (Basis) =>
       rueckmeldung.className = "rueckmeldung";
       const grad = Number(werte.temperatur);
       rueckmeldung.textContent = Number.isFinite(grad)
-        ? `${grad} °C · ${Math.round(Number(werte.dauer) || 0)} min`
+        ? `${this._zahlText(grad)} °C · ${Math.round(Number(werte.dauer) || 0)} min`
         : "";
     });
     return taste;
@@ -283,7 +283,7 @@ export const SteuerungMixin = (Basis) =>
     this._bindungen.push(() => {
       const zustand = this._zustand(kreis.entity);
       const ist = zustand && zustand.attributes.current_temperature;
-      zahl.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
+      zahl.textContent = ist !== undefined && ist !== null ? `${this._zahlText(ist)} °C` : "–";
       sollZahl.textContent = this._sollwertText(kreis.entity, zustand && zustand.attributes.temperature);
       const rest = this._restzeit(zustand);
       laufzeit.style.display = rest ? "inline-flex" : "none";
@@ -508,7 +508,7 @@ export const SteuerungMixin = (Basis) =>
     const warten = this._sollwertWartet[entity];
     if (warten && soll === warten.vorher && Date.now() < warten.bis) return this._t("lädt …");
     if (warten) delete this._sollwertWartet[entity];
-    return soll !== undefined && soll !== null ? `${soll} °C` : "–";
+    return soll !== undefined && soll !== null ? `${this._zahlText(soll)} °C` : "–";
   }
 
   _auswahlFeld(titel, entity, hilfe, verwandte) {

@@ -72,10 +72,15 @@ def test_speichern_und_laden(a):
     archiv = a.Archiv()
     archiv.messen("hk", datetime(2026, 10, 1, 10, 0), werte())
     archiv.messen("hk", datetime(2026, 10, 1, 11, 0), werte())
-    archiv.nachgerechnet = 1
+    archiv.nachgerechnet = {"stunden": 2, "abgas": 1}
     wieder = a.Archiv.aus_dict(archiv.als_dict())
     assert wieder.stunden("hk") == archiv.stunden("hk")
-    assert wieder.nachgerechnet == 1
+    assert wieder.nachgerechnet == {"stunden": 2, "abgas": 1}
+
+
+def test_ein_gemeinsamer_nachrechenstand_gilt_fuer_jeden_teil(a):
+    archiv = a.Archiv.aus_dict({"nachgerechnet": 5})
+    assert archiv.nachgerechnet == {teil: 5 for teil in a.NACHRECHNEN_TEILE}
 
 
 def test_kuerzen_behaelt_tage(a):
@@ -108,7 +113,7 @@ def test_nachtragen_bildet_vergangene_tage(a):
 def test_kaputter_speicher_ergibt_leeres_archiv(a, roh):
     archiv = a.Archiv.aus_dict(roh)
     assert archiv.stunden("hk") == []
-    assert archiv.nachgerechnet == 0
+    assert archiv.nachgerechnet == {}
 
 
 def test_vortag_entsteht_auch_nach_neustart_ueber_mitternacht(a):
@@ -142,3 +147,44 @@ def test_tag_ohne_angabe_zur_automatik_bleibt_offen(a):
     for h in range(25):
         archiv.messen("hk", t + timedelta(hours=h), werte())
     assert archiv.tage_heizkreis("hk")[0]["automatik_h"] is None
+
+
+def test_pflege_bleibt_beim_speichern(a):
+    archiv = a.Archiv()
+    archiv.pflege_setzen("/1/60/0", "wartung", {"rest": 1730.0, "zuletzt": "2026-09-01"})
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert wieder.pflege_eintrag("/1/60/0", "wartung") == {"rest": 1730.0, "zuletzt": "2026-09-01"}
+    assert archiv.als_dict()["fassung"] == 2
+
+
+def test_altes_archiv_ohne_pflege_laedt(a):
+    alt = {"fassung": 1, "stunden_hk": {}, "tage_k": {}}
+    assert a.Archiv.aus_dict(alt).pflege_eintrag("/1/60/0", "wartung") == {}
+
+
+def test_pflege_eintrag_ist_eine_kopie(a):
+    archiv = a.Archiv()
+    archiv.pflege_setzen("/1/60/0", "asche", {"rest": 5.0})
+    archiv.pflege_eintrag("/1/60/0", "asche")["rest"] = 99.0
+    assert archiv.pflege_eintrag("/1/60/0", "asche")["rest"] == 5.0
+
+
+def test_abgas_tage_bleiben_und_werden_gekuerzt(a):
+    archiv = a.Archiv()
+    archiv.abgas_setzen("/1/60/0", {"2025-01-01": {"50": [1.0, 1, 0.0, 0, 1.0]}, "2026-11-01": {}})
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert set(wieder.abgas_tage("/1/60/0")) == {"2025-01-01", "2026-11-01"}
+    wieder.kuerzen(date(2026, 11, 20))
+    assert set(wieder.abgas_tage("/1/60/0")) == {"2026-11-01"}
+
+
+def test_brennstoff_lager_und_zaehler(a):
+    archiv = a.Archiv()
+    archiv.lager_setzen("/1/60/0", {"bestand": 5.0, "seit": "2026-11-01"})
+    archiv.zaehler_setzen("/1/60/0", "2024-01-01", 1.0)
+    archiv.zaehler_setzen("/1/60/0", "2026-11-19", 11.5)
+    wieder = a.Archiv.aus_dict(archiv.als_dict())
+    assert wieder.lager("/1/60/0") == {"bestand": 5.0, "seit": "2026-11-01"}
+    wieder.kuerzen(date(2026, 11, 20))
+    assert wieder.zaehler("/1/60/0") == {"2026-11-19": 11.5}
+    assert wieder.lager("/1/61/0") == {}

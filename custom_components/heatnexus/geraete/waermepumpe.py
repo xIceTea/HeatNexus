@@ -11,6 +11,12 @@ from . import statuszeilen
 
 FCT_TYPE = 7
 MODELL = "Wärmepumpe"
+# Die Klasse 1417 ist die AeroWIN EVO; ihre Ebenen führen die EVO-Zähler `51/125`, `51/126`.
+# Die Klasse 1416 führt die Typenliste des Herstellers als AeroWIN.
+MODELLE_JE_KLASSE: dict[str, str] = {
+    "1416": "AeroWIN Wärmepumpe",
+    "1417": "AeroWIN EVO Wärmepumpe",
+}
 # Hinter den Kesseln: Am Hybridmanager kommt der Kessel von links, die Wärmepumpe von rechts.
 RANG = 11
 SYMBOL = "mdi:heat-pump"
@@ -55,3 +61,17 @@ NUR_ANZEIGE: tuple[str, ...] = (
     "52/62",  # Wärmemenge Warmwasser heute
 )
 ENTITAETEN: list[dict] = []
+
+# Was der Befund für den Gütegrad liest; Phase 4 und 7 sind Heizbetrieb. Es gibt Tageszähler und
+# den COP des Tages. Die Wärmemenge Warmwasser heute steigt in 0,1 kWh, also in jedem Takt.
+BEFUND = {
+    "waermepumpe": {
+        "vorlauf": "/52/15/0",
+        "phase": "/50/6/0",
+        "phasen_heizen": (4, 7),
+        "luft": "/52/12/0",
+        "leistung": "/50/26/0",
+        "tageszaehler": {"q": "/52/60/0", "cop": "/52/87/0", "bh": "/52/51/0"},
+        "ww_heute": "/52/62/0",
+    }
+}

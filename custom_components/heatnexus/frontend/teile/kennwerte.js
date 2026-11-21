@@ -135,7 +135,7 @@ export const KennwerteMixin = (Basis) =>
       const kachel = this._kachel(
         "aussentemperatur",
         "Außentemperatur",
-        `${zahl(k.at)} °C`,
+        this._dezimal(`${zahl(k.at)} °C`),
         this._tMit("gedämpft {wert} °C", { wert: zahl(k.at_gedaempft) }),
         skala,
         fuss
@@ -197,15 +197,15 @@ export const KennwerteMixin = (Basis) =>
       const k = kreis.kennwerte || {};
       const raeume = k.raeume || [];
       const minimum = k.raum_art === "minimum";
-      const beisatz = `${minimum ? this._t("kältester Raum") : "Ø"} ${zahl(k.raum)} °C`;
+      const beisatz = this._dezimal(`${minimum ? this._t("kältester Raum") : "Ø"} ${zahl(k.raum)} °C`);
       const rk = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : 1;
       const sonnig = vorhanden(k.sonne_raum_k) ? Number(k.sonne_raum_k) : 0.5;
       const stark = vorhanden(k.stark_k) ? Number(k.stark_k) : null;
       // Außerhalb von ±2 K sitzt der Punkt am Rand; nur dann nennt ein Pfeil den Wert.
       const ab = vorhanden(k.abweichung) ? Number(k.abweichung) : null;
       let wertText = null;
-      if (ab !== null && ab < -2) wertText = `‹ ${kelvin(ab)}`;
-      if (ab !== null && ab > 2) wertText = `${kelvin(ab)} ›`;
+      if (ab !== null && ab < -2) wertText = `‹ ${this._dezimal(kelvin(ab))}`;
+      if (ab !== null && ab > 2) wertText = `${this._dezimal(kelvin(ab))} ›`;
       const skala = this._skala({
         von: -2,
         bis: 2,
@@ -232,7 +232,7 @@ export const KennwerteMixin = (Basis) =>
       if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
       else if (vorhanden(k.soll)) fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
       else fuss.push(knoten("div", "fuss", this._t("Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.")));
-      return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
+      return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", this._dezimal(kelvin(k.abweichung)), beisatz, skala, fuss));
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */
@@ -245,7 +245,7 @@ export const KennwerteMixin = (Basis) =>
         if (raum.veraltet) wert.textContent = this._tMit("{wert} °C – veraltet", { wert: zahl(raum.wert) });
         else {
           const ziel = raum.ziel === null || raum.ziel === undefined ? "" : ` → ${zahl(raum.ziel)}`;
-          wert.textContent = `${zahl(raum.wert)}${ziel} °C`;
+          wert.textContent = this._dezimal(`${zahl(raum.wert)}${ziel} °C`);
           if (raum.heizt) wert.appendChild(knoten("span", "heizt", ` · ${this._t("heizt")}`));
           if (raum.aus) wert.appendChild(knoten("span", "aus", ` · ${this._t("aus")}`));
         }

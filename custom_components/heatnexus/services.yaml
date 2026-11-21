@@ -51,10 +51,11 @@ heizkreis_umbenennen:
 meldungen_loeschen:
   name: Meldungsliste leeren
   description: >-
-    Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine
-    Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren
-    Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home
-    Assistant.
+    Leert die Meldungsliste eines Geräts. Sofern das Bediengerät eine
+    Meldungsliste führt, löscht die Aktion dort die Einträge dieses Geräts,
+    deren Störung nicht mehr anliegt. Sonst leert sie nur die Liste in Home
+    Assistant. Am Sensor „Meldungen“ der Steuerung löscht sie alle erledigten
+    Einträge.
   target:
     entity:
       integration: heatnexus
@@ -161,7 +162,10 @@ set_time_program:
       description: >-
         Liste von Schaltpunkten {time, value}. time im Format HH:MM, value =
         Soll-Temperatur, bei einem Schaltprogramm 1 für Ein und 0 für Aus. Gilt
-        für den Block aus weekdays.
+        für den Block aus weekdays. Höchstens sechs Schaltpunkte je Block. Die
+        Zeit wird auf 15 Minuten gerundet, der Wert auf 0,5. Erlaubt sind Raum
+        und Kühlen 5–30 °C, Vorlauf und Puffer 0–90 °C, Warmwasser 10–75 °C,
+        Puffer am Hybridmanager 0–60 °C.
       example: '[{"time": "06:00", "value": 21}, {"time": "22:00", "value": 18}]'
       selector:
         object:
@@ -193,3 +197,36 @@ dashboard_ausgeben:
     Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten – mit diesem Text
     legst du ein eigenes Dashboard an, das dir gehört: neues Dashboard
     anlegen, Rohkonfigurations-Editor öffnen, Text einfügen.
+
+brennstoff_geliefert:
+  name: Brennstoff nachgefüllt
+  description: >-
+    Trägt eine Lieferung oder eigene Befüllung in den Vorrat des Kessels ein.
+    Mit dem Rest davor lernt die Rechnung den tatsächlichen Verbrauch.
+  # `supported_features` nimmt hier nur Merkmale aus Home Assistant selbst an.
+  # Den Vorrat wählt `required_features` (VorratMerkmal) beim Aufruf aus.
+  target:
+    entity:
+      integration: heatnexus
+      domain: number
+  fields:
+    menge:
+      name: Menge
+      description: Nachgefüllte Menge in der Einheit des Vorrats.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    rest:
+      name: Rest davor
+      description: Was davor noch im Lager lag; leer gilt der gerechnete Vorrat.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box

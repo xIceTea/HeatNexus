@@ -38,10 +38,11 @@ export const KARTEN = `
   .kartenkopf { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .zp-aktiv { margin-left: 6px; color: var(--hn-akzent); font-weight: 600; }
   .kartenkopf h2 { flex: 1; margin-bottom: 0; }
-  /* Unter „Alle“ im gemeinsamen Raster: der Name der Anlage vor dem Kartentitel. */
+  /* Unter „Alle“ der Name der Anlage vor dem Kartentitel; mehrere Namen brechen am Telefon um. */
   .karten-anlage {
-    display: inline-flex; align-items: center; flex: none; padding: 3px 9px; border-radius: 999px;
-    font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap;
+    display: inline-flex; align-items: center; flex: 0 1 auto; min-width: 0; max-width: 100%;
+    padding: 3px 9px; border-radius: 999px; overflow-wrap: anywhere;
+    font-size: 12px; font-weight: 700; line-height: 1.2;
     color: var(--hn-akzent); background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
   }
   .karte > .karten-anlage { align-self: flex-start; margin-bottom: 8px; }
@@ -86,8 +87,9 @@ export const KARTEN = `
     padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
     background: rgba(67, 160, 71, 0.15); color: #7bd88f;
   }
-  .abzeichen.alarm { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
-  .abzeichen.fehler { background: rgba(255, 193, 7, 0.15); color: #ffd54f; }
+  .abzeichen.alarm { background: rgba(229, 57, 53, 0.15); color: var(--hn-fehler); }
+  .abzeichen.fehler { background: rgba(255, 193, 7, 0.15); color: var(--hn-warnung); }
   .abzeichen.info { background: rgba(66, 165, 245, 0.15); color: #64b5f6; }
   .abzeichen.sonderbetrieb { background: rgba(66, 165, 245, 0.15); color: #64b5f6; margin-top: 6px; }
+  .abzeichen.verbindung { margin-top: 6px; }
 `;

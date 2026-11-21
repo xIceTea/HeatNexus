@@ -122,6 +122,10 @@ auf Wunsch als Hinweis in der Seitenleiste melden.
 Das Fenster gilt nur für den eigenen Benutzer. Ein Klick zeigt die Wahl sofort,
 „Übernehmen“ speichert sie.
 
+- **Farbsatz und Helligkeit:** Der Farbsatz färbt Oberfläche und Schaubild,
+  die Helligkeit wählt seine dunkle oder helle Fassung. `Automatisch` folgt
+  Home Assistant. Beim Farbsatz „Home Assistant“ gelten dessen Farben, die
+  Helligkeit ist dann ausgegraut.
 - **Schaubild:** Bei wenig Platz brechen die Anlagenteile in Reihen um oder
   werden kleiner. Die Größe je Anlagenteil lässt sich wählen.
 - **Werte:** Die Zahlen stehen im Bild oder in Kästen darunter. `Automatisch`
