@@ -146,11 +146,15 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <p>Mehrere Steuerungen in einem Eintrag, jede mit eigenem Namen.</p>
         <div class="gebaeude" aria-hidden="true"><span>Haupthaus</span><span>Werkstatt</span></div>
       </a>
-      <a class="k k-halb" href="{{ anleitung }}#einrichtung">
+      <a class="k k-drittel" href="{{ anleitung }}#auswertung">
+        <h3>Pflege, Abgas und Brennstoff.</h3>
+        <p>Die Auswertung zeigt fällige Pflege, wärmeres Abgas seit der Reinigung und wie lange der Brennstoff reicht.</p>
+      </a>
+      <a class="k k-drittel" href="{{ anleitung }}#einrichtung">
         <h3>Eigene Wärmequellen.</h3>
         <p>Solaranlage, Heizstab oder Fernwärme hängen nicht an der Steuerung. Angelegt erscheinen sie im Schaubild und melden, wann sie liefern.</p>
       </a>
-      <a class="k k-halb" href="{{ anleitung }}#vorlagen">
+      <a class="k k-drittel" href="{{ anleitung }}#vorlagen">
         <h3>Fertige Vorlagen.</h3>
         <p>Blueprints für Störungsmeldung, Wartungserinnerung und Vorratswarnung, einzeln abwählbar.</p>
       </a>
