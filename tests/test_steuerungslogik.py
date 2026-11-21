@@ -20,19 +20,17 @@ def _erfuellt(saetze: list[dict], werte: dict[str, str]) -> bool:
     return any(werte.get(s["oid"]) in s["values"] for s in saetze)
 
 
-@pytest.mark.parametrize(
-    ("modus", "sichtbar"),
-    [("0", set()), ("1", {"5/65"}), ("2", {"5/64"}), ("3", {"5/65"})],
-)
-def test_zirkulationsprogramm_folgt_der_betriebsart(geraete, modus, sichtbar):
-    regeln = geraete.BEDINGUNGEN[14]
-    gezeigt = {a for a in ("5/64", "5/65") if _erfuellt(regeln[a], {"5/6": modus})}
-    assert gezeigt == sichtbar
+@pytest.mark.parametrize("fct", [2, 14])
+def test_beide_zirkulationsprogramme_bleiben_bei_jeder_betriebsart(geraete, fct):
+    """Unter „Zeitprogramme“ aktiviert man die andere Steuerungsart über ihr Programm."""
+    regeln = geraete.BEDINGUNGEN.get(fct, {})
+    assert "5/64" not in regeln
+    assert "5/65" not in regeln
 
 
 def test_ohne_zirkulation_entfallen_ihre_werte_am_warmwasser(geraete):
     regeln = geraete.BEDINGUNGEN[2]
-    for adresse in ("0/118", "1/118", "59/18", "5/64", "5/65"):
+    for adresse in ("0/118", "1/118", "59/18"):
         assert not _erfuellt(regeln[adresse], {"5/6": "0"}), adresse
 
 

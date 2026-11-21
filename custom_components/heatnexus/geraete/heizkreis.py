@@ -81,11 +81,9 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
     },
 )
 
-# Zirkulationsprogramme nach Betriebsart der Zirkulationspumpe `5/6`: Temperatur- oder Zeit-/Impulssteuerung.
-BEDINGUNGEN: dict[str, list[dict]] = {
-    "5/64": [{"oid": "5/6", "values": ["2"]}],
-    "5/65": [{"oid": "5/6", "values": ["1", "3"]}],
-}
+# Beide Zirkulationsprogramme (`5/64`, `5/65`) bleiben bei jeder Betriebsart der Pumpe:
+# Unter „Zeitprogramme“ aktiviert man die andere Steuerungsart über ihr Programm.
+BEDINGUNGEN: dict[str, list[dict]] = {}
 
 ENTITAETEN: list[dict] = [
     # --- Infoebene Heizkreis / Warmwasser (read only) ---
