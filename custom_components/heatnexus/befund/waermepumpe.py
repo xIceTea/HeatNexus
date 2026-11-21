@@ -33,6 +33,9 @@ BEZUG_JE_BAND = 10
 MIN_BEZUG, MIN_JETZT = 5, 3
 GRENZE_PROZENT = -10.0
 RUECKSETZ_KWH, RUECKSETZ_H = 0.05, 0.05
+# Ein Rücksetzen am Abend beginnt den nächsten Tag, eines am frühen Morgen beendet den Vortag;
+# dazwischen gilt der höchste Stand des Tages.
+FRUEH_AB_STUNDE, SPAET_BIS_STUNDE = 18, 6
 VERLAUF_TAGE = 120
 # Heizen und Silentmode Heizen (`50/6`) bzw. Heizen (`50/70`); Abtauen und Warmwasser zählen nicht.
 PHASEN_HEIZEN = {fct: frozenset(w["phasen_heizen"]) for fct, w in _GUETEGRAD.items()}
@@ -140,7 +143,13 @@ def _tageszaehler(
     neu = {"q": q, "cop": zaehler.get("cop"), "bh": bh}
     if ziel.get("q") is None or q >= ziel["q"]:
         ziel |= neu
-    elif _zurueckgesetzt(ziel, q, bh):
+    elif _zurueckgesetzt(ziel, q, bh) and zeit.hour >= FRUEH_AB_STUNDE:
+        # Früh zurückgesetzt: die Uhr der Steuerung geht vor, der neue Stand beginnt morgen.
+        folgetag = (date.fromisoformat(tag) + timedelta(days=1)).isoformat()
+        morgen = tage.setdefault(folgetag, {"n": 0, "vl": 0.0, "luft": 0.0})
+        if morgen.get("q") is None or q >= morgen["q"]:
+            morgen |= neu
+    elif _zurueckgesetzt(ziel, q, bh) and zeit.hour < SPAET_BIS_STUNDE:
         # Spät zurückgesetzt: der Stand davor gehörte noch zum Vortag.
         vortag = tage.setdefault(_vortag(tag), {"n": 0, "vl": 0.0, "luft": 0.0})
         if vortag.get("q") is None or ziel["q"] > vortag["q"]:

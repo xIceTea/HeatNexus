@@ -85,9 +85,11 @@ def zurueckgesetzt(alt: float | None, neu: float | None) -> bool:
 
 
 def abnahme_je_tag(verlauf: dict[str, float], heute: date) -> tuple[float | None, int]:
-    """Abnahme je Kalendertag über die letzten 14 Tage; Sprünge nach oben zählen nicht."""
-    grenze = (heute - timedelta(days=FENSTER_TAGE)).isoformat()
-    punkte = sorted((d, r) for d, r in verlauf.items() if d >= grenze and _zahl(r) is not None)
+    """Abnahme je Kalendertag über die letzten 14 vollen Tage; Sprünge nach oben zählen nicht."""
+    grenze, bis = (heute - timedelta(days=FENSTER_TAGE + 1)).isoformat(), heute.isoformat()
+    punkte = sorted(
+        (d, r) for d, r in verlauf.items() if grenze <= d < bis and _zahl(r) is not None
+    )
     if len(punkte) < 2:
         return None, 0
     abnahme = sum(max(0.0, a - b) for (_, a), (_, b) in pairwise(punkte))

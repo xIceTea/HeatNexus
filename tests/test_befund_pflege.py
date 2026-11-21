@@ -59,7 +59,7 @@ def test_zuruecksetzen_seit_service(p):
 
 
 def test_abnahme_zaehlt_tage_ohne_betrieb_und_keine_spruenge(p):
-    v = verlauf(500.0, 4.0, 15)
+    v = verlauf(504.0, 4.0, 16)
     assert p.abnahme_je_tag(v, HEUTE) == (4.0, 14)
     # Am 12.11. erledigt: der Zähler beginnt neu bei 757 und sinkt wieder um 4 h je Tag.
     neu = {d: 757.0 - 4.0 * i for i, d in enumerate(sorted(x for x in v if x >= "2026-11-12"))}
@@ -68,8 +68,20 @@ def test_abnahme_zaehlt_tage_ohne_betrieb_und_keine_spruenge(p):
     assert rate == pytest.approx(52 / 14, abs=0.01)
 
 
+def test_der_angebrochene_tag_aendert_die_abnahme_nicht(p):
+    # 14 volle Tage mit 3 h je Tag; heute früh, mittags und spät ein anderer Teilstand.
+    gestern = HEUTE - timedelta(days=1)
+    voll = verlauf(500.0, 3.0, 15, gestern)
+    rest = voll[gestern.isoformat()]
+    raten = {
+        teil: p.abnahme_je_tag(voll | {HEUTE.isoformat(): rest - teil}, HEUTE)
+        for teil in (0.1, 1.5, 2.9)
+    }
+    assert set(raten.values()) == {(3.0, 14)}
+
+
 def test_faelligkeit_aus_eigenem_verlauf(p):
-    eintrag = {"rest": 140.0, "verlauf": verlauf(196.0, 4.0, 15)}
+    eintrag = {"rest": 140.0, "verlauf": verlauf(200.0, 4.0, 16)}
     b = p.befund(zaehler(p), eintrag, HEUTE)
     assert b.art == "pflege_hauptreinigung"
     assert b.wert == 35.0
@@ -79,14 +91,14 @@ def test_faelligkeit_aus_eigenem_verlauf(p):
 
 
 def test_bald_faellig_ist_hinweis(p):
-    eintrag = {"rest": 20.0, "verlauf": verlauf(76.0, 4.0, 15)}
+    eintrag = {"rest": 20.0, "verlauf": verlauf(80.0, 4.0, 16)}
     b = p.befund(zaehler(p), eintrag, HEUTE)
     assert b.wert == 5.0
     assert b.status == "hinweis"
 
 
 def test_sommer_ruht(p):
-    eintrag = {"rest": 140.0, "verlauf": verlauf(143.0, 0.2, 15)}
+    eintrag = {"rest": 140.0, "verlauf": verlauf(143.2, 0.2, 16)}
     b = p.befund(zaehler(p), eintrag, HEUTE)
     assert b.wert is None
     assert b.angaben["ruht"] is True
@@ -242,14 +254,14 @@ def test_vorschau_ueber_ein_jahr(p):
 
 def test_befund_mit_vorjahr_statt_linear(p):
     jahr = p.jahresverlauf(kesseltage(date(2027, 4, 1), 380), date(2027, 4, 1))
-    eintrag = {"rest": 400.0, "verlauf": verlauf(540.0, 10.0, 15, date(2027, 4, 1))}
+    eintrag = {"rest": 400.0, "verlauf": verlauf(550.0, 10.0, 16, date(2027, 4, 1))}
     b = p.befund(zaehler(p), eintrag, date(2027, 4, 1), jahr)
     assert b.angaben["vorjahr"] is True
     assert b.angaben["datum"] > "2027-10-01"
 
 
 def test_ohne_vorjahr_ueber_ein_jahr_kein_datum(p):
-    eintrag = {"rest": 1741.0, "verlauf": verlauf(1790.0, 3.5, 15)}
+    eintrag = {"rest": 1741.0, "verlauf": verlauf(1793.5, 3.5, 16)}
     b = p.befund(zaehler(p, "wartung"), eintrag, HEUTE)
     assert b.wert is None
     assert b.angaben["ueber_jahr"] is True
@@ -258,6 +270,6 @@ def test_ohne_vorjahr_ueber_ein_jahr_kein_datum(p):
 def test_sommer_mit_vorjahr_zeigt_datum_statt_ruhe(p):
     heute = date(2027, 7, 1)
     jahr = p.jahresverlauf(kesseltage(heute, 380), heute)
-    eintrag = {"rest": 140.0, "verlauf": verlauf(143.0, 0.2, 15, heute)}
+    eintrag = {"rest": 140.0, "verlauf": verlauf(143.2, 0.2, 16, heute)}
     b = p.befund(zaehler(p), eintrag, heute, jahr)
     assert b.angaben["datum"] > "2027-10-01"

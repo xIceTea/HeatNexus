@@ -100,6 +100,29 @@ def test_spaet_zurueckgesetzter_tageszaehler_geht_zum_vortag(wp):
     assert tage["2026-12-01"]["q"] == 61.0
 
 
+def test_vorgehende_uhr_der_steuerung_verschiebt_keinen_tag(wp):
+    # Die Steuerung setzt ihre Tageszähler einige Minuten vor Mitternacht zurück.
+    leer = wp.Probe(None, None, 0, 3)
+    takte = [
+        (datetime(2026, 12, 19, 12, 0), 25.0, 7.0),
+        (datetime(2026, 12, 19, 23, 50), 50.0, 14.0),
+        (datetime(2026, 12, 19, 23, 55), 0.1, 0.02),
+        (datetime(2026, 12, 20, 0, 0), 0.2, 0.03),
+        (datetime(2026, 12, 20, 12, 0), 28.0, 7.0),
+        (datetime(2026, 12, 20, 23, 50), 55.0, 13.0),
+        (datetime(2026, 12, 20, 23, 55), 0.1, 0.02),
+        (datetime(2026, 12, 21, 0, 0), 0.2, 0.03),
+        (datetime(2026, 12, 21, 1, 0), 1.0, 0.5),
+    ]
+    tage: dict = {}
+    for zeit, q, bh in takte:
+        tage = wp.sammeln(tage, zeit, 7, leer, False, {"q": q, "cop": 4.0, "bh": bh})
+    assert (tage["2026-12-19"]["q"], tage["2026-12-19"]["bh"]) == (50.0, 14.0)
+    assert (tage["2026-12-20"]["q"], tage["2026-12-20"]["bh"]) == (55.0, 13.0)
+    assert (tage["2026-12-21"]["q"], tage["2026-12-21"]["bh"]) == (1.0, 0.5)
+    assert "q" not in tage.get("2026-12-18", {})
+
+
 def test_tagewerte_aus_tageszaehlern(wp):
     eintrag = {"n": 100, "vl": 3500.0, "luft": 200.0, "q": 80.0, "cop": 4.0, "bh": 10.0}
     werte = wp.tagewerte({"2026-12-01": eintrag, "2026-12-02": eintrag | {"bh": 2.0}}, 7)
