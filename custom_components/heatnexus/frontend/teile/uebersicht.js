@@ -288,9 +288,9 @@ export const UebersichtMixin = (Basis) =>
       }
       const ist = zustand.attributes.current_temperature;
       const soll = zustand.attributes.temperature;
-      wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
+      wert.textContent = ist !== undefined && ist !== null ? `${this._zahlText(ist)} °C` : "–";
       sollzeile.textContent =
-        soll !== undefined && soll !== null ? `${soll} °C` : this._t("Raumtemperatur");
+        soll !== undefined && soll !== null ? `${this._zahlText(soll)} °C` : this._t("Raumtemperatur");
 
       const art = zustand.attributes.preset_mode ? this._presetName(zustand) : "";
       const rest = this._restzeit(zustand);

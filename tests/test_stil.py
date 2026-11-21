@@ -45,3 +45,18 @@ def test_safari_vergroessert_lange_zeilen_nicht():
 def test_kopf_der_automatik_bricht_um():
     """Name, Zustand und Einrichtung passen auf dem Telefon nicht in eine Zeile."""
     assert "flex-wrap: wrap" in _regel(".karte.automatik > .kartenkopf")
+
+
+def test_anlagenmarke_bricht_am_telefon_um():
+    """Unter „Alle“ trägt die Marke einer verschmolzenen Karte mehrere Anlagennamen."""
+    regel = _regel(".karten-anlage")
+    assert "white-space: nowrap" not in regel
+    assert "min-width: 0" in regel
+    assert "overflow-wrap: anywhere" in regel
+
+
+def test_werkzeugmenue_steht_am_telefon_in_der_kopfzeile():
+    """Die Anlagenwahl bekommt eine eigene Zeile; das Menü bleibt oben rechts neben der Marke."""
+    regel = _regel(".kopfleiste > .waehler")
+    assert "order: 1" in regel
+    assert "flex-basis: 100%" in regel

@@ -782,9 +782,8 @@ class HeatNexusPanel extends Grundlage {
     return griffe;
   }
 
-  /** Der Inhalt einer Anlage in ihrer Sprache; die Automatik spricht die gemeinsame. */
+  /** Der Inhalt einer Anlage in ihrer Sprache. */
   _anlagenInhalt(anlage) {
-    if (this._reiter === "automatik") return this._inhalt(anlage);
     return this._inSprache(anlage, (sicht) => sicht._inhalt(anlage));
   }
 

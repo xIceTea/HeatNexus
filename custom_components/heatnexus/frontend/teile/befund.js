@@ -70,13 +70,13 @@ const HILFE_ABGAS =
   "Verglichen wird die Abgastemperatur über der Kesseltemperatur im ruhigen Modulationsbetrieb, je Leistungsstufe. Bezug sind die ersten 14 Tage nach der letzten Hauptreinigung, beim LogWIN nach der Jahresreinigung. Belag am Wärmetauscher hebt den Wert. Laut Windhager kostet jeder Millimeter Aschebelag etwa 5 % Brennstoff. Mit O2-Signal rechnet die Karte den Mehrverlust nach Siegert. Die Raumluft kommt vom Fühler Heizraum aus den Optionen, sonst gelten 20 °C.";
 
 const HILFE_BRENNSTOFF =
-  "Der Vorrat ist der Stand der letzten Befüllung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge; sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Wer bei einer Befüllung den Rest davor angibt oder später den Bestand einträgt, korrigiert die Rechnung mit dem tatsächlichen Verbrauch. Heizwerte nach LWF-Merkblatt 12.";
+  "Der Vorrat ist der Stand der letzten Befüllung minus dem Verbrauch seither. Die BioWIN zählt ihren Pelletsverbrauch selbst, der LogWIN seine Anheizvorgänge. Sonst rechnet die Karte aus der erzeugten Wärme, dem Heizwert und 90 % Wirkungsgrad. Ein Rest bei der Befüllung oder ein später eingetragener Bestand korrigiert die Rechnung. Heizwerte nach LWF-Merkblatt 12.";
 
 const HILFE_WAERMEPUMPE =
-  "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet das mit der Carnot-Zahl heraus: Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser bleibt draußen, außer die Wärmepumpe zählt nur den gesamten Strom. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.";
+  "Die Arbeitszahl hängt vor allem davon ab, wie weit die Wärmepumpe die Wärme von der Luft auf den Vorlauf heben muss. Die Karte rechnet diesen Einfluss mit der Carnot-Zahl heraus. Der Gütegrad ist die erzeugte Wärme geteilt durch die Wärme, die eine ideale Maschine mit demselben Strom liefern würde. Verglichen werden je 5-K-Band der Lufttemperatur die letzten 28 Tage mit den ersten Tagen nach der letzten Verdampferreinigung. Es zählen Tage mit mindestens 4 Stunden Heizbetrieb. Abtauen bleibt in der Arbeitszahl. Warmwasser zählt nicht mit, außer wenn die Wärmepumpe nur den gesamten Strom erfasst. Laut Windhager setzen Laub und Schmutz die Lamellen des Verdampfers zu. Ab 10 % weniger Gütegrad erscheint ein Hinweis.";
 
 const HILFE_PFLEGE =
-  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Liegt ein Jahr Verlauf vor, rechnet das Datum mit den Betriebsstunden des Vorjahrs je Kalendertag und überspringt so den Sommer. Sonst rechnet es mit der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
+  "Die Steuerung zählt die Betriebsstunden bis zur nächsten Pflege herunter. Sobald ein Jahr Verlauf vorliegt, beruht das Datum auf den Betriebsstunden des Vorjahrs je Kalendertag. So fällt der Sommer heraus. Sonst beruht es auf der Abnahme der letzten 14 Tage. Ein Sprung des Zählers nach oben gilt als erledigte Pflege. Nach der Meldung „Wartung“ nennt Windhager drei Monate Frist. Ohne Zähler gilt das Intervall der Bedienungsanleitung.";
 
 const HILFE = {
   waermespeicher:
@@ -160,7 +160,7 @@ export const BefundMixin = (Basis) =>
 
     /** Ganze Zahlen ohne Nachkommastelle, sonst wie in der Automatik. */
     _befundZahl(wert, stellen = 1) {
-      return Number.isInteger(Number(wert)) ? zahl(wert, 0) : zahl(wert, stellen);
+      return this._dezimal(Number.isInteger(Number(wert)) ? zahl(wert, 0) : zahl(wert, stellen));
     }
 
     /** Unter „Alle“ ein gemeinsamer Stand über alle Anlagen, wie in der Automatik. */
@@ -504,14 +504,14 @@ export const BefundMixin = (Basis) =>
     _befundGrund(b) {
       if (b.grund === "raeume") return this._t("Braucht Räume. Die Räume werden in der Automatik gewählt.");
       if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
-      if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
+      if (b.grund === "kessel") return this._t("Dafür fehlen die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
-      if (b.grund === "vorrat") return this._t("Braucht den Vorrat im Lager. Er lässt sich hier eintragen.");
+      if (b.grund === "vorrat") return this._t("Dafür fehlt der Vorrat im Lager. Er lässt sich hier eintragen.");
       if (b.grund === "o2") return this._t("Braucht ein O2-Signal im Modulationsbetrieb.");
       if (b.grund === "pflege") return this._t("Die Steuerung meldet keinen Restwert.");
-      if (b.grund === "zuletzt") return this._t("Braucht das Datum der letzten Pflege. Es lässt sich hier nachtragen.");
+      if (b.grund === "zuletzt") return this._t("Dafür fehlt das Datum der letzten Pflege. Es lässt sich hier nachtragen.");
       if ((b.angaben || {}).ueber_jahr) return this._t("Fällig in mehr als einem Jahr.");
-      if ((b.angaben || {}).ruht) return this._t("Ruht, der Kessel läuft kaum. Ein Datum folgt mit der Heizzeit.");
+      if ((b.angaben || {}).ruht) return this._t("Der Kessel läuft kaum. Das Datum erscheint in der Heizzeit.");
       return this._t("Sammelt noch Tage.");
     }
 
@@ -536,7 +536,7 @@ export const BefundMixin = (Basis) =>
           starts: "Starts je Gradtag mit Automatik gegenüber ohne",
           abgas: "mehr als nach der Reinigung",
           abgasverlust: "Prozentpunkte mehr Abgasverlust",
-          arbeitszahl: "Gütegrad gegenüber dem Bezug",
+          arbeitszahl: "Gütegrad gegenüber Bezug",
           energie: "je Heizgradtag",
         }[b.art] || ""
       );
@@ -565,7 +565,7 @@ export const BefundMixin = (Basis) =>
         [b.art === "brennstoff" && a.korrektur && a.korrektur !== 1 ? a.korrektur : null, "Korrektur aus Lieferungen", (w) => `× ${this._befundZahl(w, 2)}`],
         [(b.art.startsWith("pflege_") || b.art === "brennstoff") && a.vorjahr !== undefined ? a.vorjahr : null, "Vorschau", (w) => this._t(w ? "nach Betriebsstunden des Vorjahrs" : "nach den letzten 14 Tagen")],
         [a.gemeldet ? kalenderdatumText(a.gemeldet, this._hass) : null, "Wartung gemeldet am", (w) => w],
-        [a.bezug_seit ? kalenderdatumText(a.bezug_seit, this._hass) : null, a.ohne_reinigungsdatum ? "Bezug seit, ohne Reinigungsdatum" : "Bezug seit Reinigung", (w) => w],
+        [a.bezug_seit ? kalenderdatumText(a.bezug_seit, this._hass) : null, a.ohne_reinigungsdatum ? "Bezug seit (kein Reinigungsdatum)" : "Bezug seit Reinigung", (w) => w],
         [a.nachgerechnet ? true : null, "Bezug", () => this._t("aus der Langzeitstatistik nachgerechnet")],
         [a.verlust_jetzt, a.luft_geschaetzt === false ? "Abgasverlust zuletzt, Raumluft gemessen" : "Abgasverlust zuletzt, Raumluft 20 °C geschätzt", (w) => `${this._befundZahl(w)} %`],
         [a.arbeitszahl_jetzt, "Arbeitszahl der letzten 28 Tage", (w) => this._befundZahl(w, 2)],

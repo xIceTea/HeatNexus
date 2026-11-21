@@ -108,13 +108,13 @@ export function tagesleisteBereich(tag, heizgrenze = null) {
  * Das Tagesbild als SVG-Text: Sonne als Fläche, Außen gemessen und
  * angepasste Prognose, Heizgrenze, der Modus je Stunde als Band und „jetzt“.
  */
-export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
+export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null, beschriftung = "Tagesverlauf") {
   const { hoehe, band, oben } = BILD;
   const bandY = hoehe - band - 2;
   const unten = bandY - 8;
   const x = (stunde) => ((Math.max(0, Math.min(24, Number(stunde))) / 24) * breite).toFixed(1);
   const teile = [
-    `<svg viewBox="0 0 ${breite} ${hoehe}" preserveAspectRatio="none" role="img" aria-label="Tagesverlauf">`,
+    `<svg viewBox="0 0 ${breite} ${hoehe}" preserveAspectRatio="none" role="img" aria-label="${beschriftung}">`,
   ];
   const sonne = (tag && tag.sonne) || [];
   if (sonne.length) {
@@ -262,7 +262,7 @@ export const TagesbildMixin = (Basis) =>
         tipp.replaceChildren(
           ...tagesleisteTipp(tag, stunde, (text) => this._t(text)).map((text) => {
             const zeile = document.createElement("div");
-            zeile.textContent = text;
+            zeile.textContent = this._dezimal(text);
             return zeile;
           })
         );
@@ -327,7 +327,7 @@ export const TagesbildMixin = (Basis) =>
       const grenze = (kreis.kennwerte || {}).heizgrenze;
       const bild = document.createElement("div");
       bild.className = "automatik-tag-bild";
-      bild.innerHTML = tagesleisteSvg(tag, 1000, grenze);
+      bild.innerHTML = tagesleisteSvg(tag, 1000, grenze, this._t("Tagesverlauf"));
       this._automatikBildBeschriften(bild, tag, grenze);
       this._automatikZeiger(bild, tag);
       const achse = document.createElement("div");
@@ -452,7 +452,7 @@ export const TagesbildMixin = (Basis) =>
         const raum = document.createElement("div");
         raum.className = "raum";
         raum.title = this._t("Räume im Mittel, gemessen zu Beginn der Stunde");
-        raum.textContent = eintrag.raum !== null && eintrag.raum !== undefined ? `${zahl(eintrag.raum)}°` : "–";
+        raum.textContent = eintrag.raum !== null && eintrag.raum !== undefined ? this._dezimal(`${zahl(eintrag.raum)}°`) : "–";
         zelle.appendChild(raum);
         raster.appendChild(zelle);
       });
@@ -505,7 +505,7 @@ export const TagesbildMixin = (Basis) =>
       const gemessen = heute && eintrag.at !== null && eintrag.at !== undefined;
       const aussen = gemessen ? eintrag.at : eintrag.korrigiert ?? eintrag.roh;
       if (aussen !== null && aussen !== undefined) teil("", `${this._t("Außen")} ${zahl(aussen, 0)} °C`);
-      if (eintrag.raum !== null && eintrag.raum !== undefined) teil("", `${this._t("Räume")} ${zahl(eintrag.raum)} °C`);
+      if (eintrag.raum !== null && eintrag.raum !== undefined) teil("", this._dezimal(`${this._t("Räume")} ${zahl(eintrag.raum)} °C`));
       const aktion = eintrag.aktion || "programm";
       teil(`modus m-${aktion}`, this._t(AKTIONEN[aktion] || aktion));
       if (eintrag.vorrang) {
@@ -536,7 +536,8 @@ export const TagesbildMixin = (Basis) =>
       const umschalten = () =>
         this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } });
       huelle.appendChild(this._automatikSchalter("Prognose anpassen", k.an, darf, umschalten, true));
-      korrekturMarken(k, (wort) => this._t(wort)).forEach(({ text: inhalt, wirkt }) => {
+      korrekturMarken(k, (wort) => this._t(wort)).forEach(({ text: roh, wirkt }) => {
+        const inhalt = this._dezimal(roh);
         const marke = document.createElement("span");
         marke.className = `automatik-korrekturmarke${wirkt ? " wirkt" : ""}`;
         marke.textContent = inhalt;
