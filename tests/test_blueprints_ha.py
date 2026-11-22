@@ -183,3 +183,23 @@ async def test_gleichzeitige_eintraege_halten_vorlagen_nicht_fuer_geaendert(hass
     await asyncio.gather(*(async_install_blueprints(hass, "2.0.0") for _ in range(7)))
 
     assert "Selbst geänderte" not in caplog.text
+
+
+def _eigen_und_geteilt(config_dir: str) -> tuple[Path, Path]:
+    from pytest_homeassistant_custom_component.common import get_test_config_dir
+
+    return Path(config_dir).resolve(), Path(get_test_config_dir()).resolve()
+
+
+def _vorlagen_in(verzeichnis: Path) -> list[Path]:
+    return list((verzeichnis / "blueprints" / "automation" / "heatnexus").glob("*.yaml"))
+
+
+async def test_die_vorlagen_landen_im_eigenen_konfigurationsverzeichnis(hass):
+    """Der Ordner der Bibliothek gehört allen Testläufen; jeder Lauf schreibt in einen eigenen."""
+    from custom_components.heatnexus.blueprints import async_install_blueprints
+
+    eigen, geteilt = _eigen_und_geteilt(hass.config.config_dir)
+    assert not eigen.is_relative_to(geteilt)
+    await async_install_blueprints(hass, "0.0.0")
+    assert _vorlagen_in(eigen)

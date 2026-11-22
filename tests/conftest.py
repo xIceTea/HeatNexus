@@ -252,6 +252,22 @@ def keine_abkuendigung_von_home_assistant():
         pytest.fail("Home Assistant meldet eine Abkündigung:\n" + "\n".join(meldungen))
 
 
+@pytest.fixture
+def hass_config_dir(tmp_path_factory) -> str:
+    """Je Test ein eigenes Konfigurationsverzeichnis statt des Ordners der Bibliothek.
+
+    Den Ordner teilen sich alle Testläufe; Vorlagen eines Laufs störten sonst den nächsten.
+    """
+    import shutil
+
+    from pytest_homeassistant_custom_component.common import get_test_config_dir
+
+    ziel = tmp_path_factory.mktemp("ha_konfiguration")
+    vorlage = shutil.ignore_patterns("blueprints", "__pycache__")
+    shutil.copytree(get_test_config_dir(), ziel, ignore=vorlage, dirs_exist_ok=True)
+    return str(ziel)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _paket_vorab_laden() -> None:
     """Das Paket vor dem ersten `hass` laden.
