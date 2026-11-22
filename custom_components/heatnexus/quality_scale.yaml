@@ -9,7 +9,9 @@
 
 rules:
   # ---------------------------------------------------------------- Bronze
-  action-setup: done
+  action-setup:
+    status: todo
+    comment: Entitätsaktionen werden noch beim Einrichten der Plattform angemeldet.
   appropriate-polling: done
   brands: done
   common-modules: done
