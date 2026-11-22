@@ -82,8 +82,10 @@ def waermespeicher(
     if not modell:
         return form.fehlt("waermespeicher", "raeume")
     tau = modell.get("auskuehlzeit_h")
-    if not tau:
-        return form.Befund("waermespeicher", form.SAMMELT, angaben={"grund": modell.get("grund")})
+    if not tau or modell.get("status") != "aktiv":
+        # Ein Wert aus wenigen Vergleichstagen ist nicht belegt; erst die Freigabe zählt.
+        angaben = {k: modell.get(k) for k in ("grund", "vergleiche", "tage")}
+        return form.Befund("waermespeicher", form.SAMMELT, angaben=angaben)
     bleibt = modell.get("fehler_bleibt")
     sonne = modell.get("sonne_k_h") or 0
     angaben = {
@@ -95,5 +97,6 @@ def waermespeicher(
         "vergleiche": modell.get("vergleiche", 0),
         "tage": modell.get("tage", 0),
     }
-    stufe = form.BELASTBAR if modell.get("status") == "aktiv" else form.VORLAEUFIG
-    return form.Befund("waermespeicher", form.UNAUFFAELLIG, float(tau), "h", stufe, angaben)
+    return form.Befund(
+        "waermespeicher", form.UNAUFFAELLIG, float(tau), "h", form.BELASTBAR, angaben
+    )

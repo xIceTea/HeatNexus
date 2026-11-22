@@ -1519,7 +1519,7 @@ async def test_sensoren_der_automatik(szenario):
     assert wert("naechste_entscheidung") == laufzeit.sonne(morgen)[0]
 
 
-async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(szenario):
+async def test_auskuehlzeit_erscheint_erst_mit_dem_freigegebenen_hausmodell(szenario):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
 
     sz = await szenario(ws=False)
@@ -1527,7 +1527,14 @@ async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(szenario):
     laufzeit.hausmodell = None
     sensor = KLASSEN["auskuehlzeit"](sz.verwaltung, HEIZKREIS)
     assert (sensor.native_value, sensor.native_unit_of_measurement) == (None, "h")
-    laufzeit.hausmodell = SimpleNamespace(auskuehlzeit_h=42.37)
+    laufzeit.hausmodell = SimpleNamespace(
+        auskuehlzeit_h=42.37, sonne_k_h=0.0, fehler=[0.35], fehler_bleibt=[0.42]
+    )
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["freigegeben"] is False
+    laufzeit.hausmodell = SimpleNamespace(
+        auskuehlzeit_h=42.37, sonne_k_h=0.0, fehler=[0.2] * 14, fehler_bleibt=[0.5] * 14
+    )
     assert sensor.native_value == 42.4
     # Das Speichern erwartet ein echtes Modell.
     laufzeit.hausmodell = None
