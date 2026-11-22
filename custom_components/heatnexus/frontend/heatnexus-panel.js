@@ -573,8 +573,8 @@ class HeatNexusPanel extends Grundlage {
     const taste = document.createElement("button");
     taste.className = "menue-taste";
     taste.type = "button";
-    taste.title = "Werkzeuge";
-    taste.setAttribute("aria-label", "Werkzeuge");
+    taste.title = this._t("Werkzeuge");
+    taste.setAttribute("aria-label", this._t("Werkzeuge"));
     taste.setAttribute("aria-haspopup", "menu");
     taste.setAttribute("aria-expanded", "false");
     taste.appendChild(this._symbolKnoten("mdi:dots-vertical"));

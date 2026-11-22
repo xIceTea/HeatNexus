@@ -55,3 +55,19 @@ def test_die_seite_holt_keine_texte_aus_der_sprache_von_home_assistant():
         if re.search(r"formatEntityAttribute(Value|Name)", datei.read_text(encoding="utf-8"))
     ]
     assert not treffer
+
+
+# Merkmale, die ein fester Text erreicht, ohne durch `_t` zu gehen.
+FEST = re.compile(
+    r'(?:\.(?:title|placeholder) = |setAttribute\("(?:title|aria-label|placeholder)", )"([^"]+)"'
+    r'|(?:title|aria-label|placeholder)="([^"$]+)"'
+)
+
+
+def test_kein_merkmal_traegt_festen_deutschen_text():
+    treffer = [
+        f"{datei.name}: {text[0] or text[1]}"
+        for datei in (WURZEL / "frontend").rglob("*.js")
+        for text in FEST.findall(datei.read_text(encoding="utf-8"))
+    ]
+    assert not treffer, f"ohne _t: {treffer}"

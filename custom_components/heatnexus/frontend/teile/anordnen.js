@@ -194,7 +194,7 @@ export const AnordnenMixin = (Basis) =>
     const breitenwert = document.createElement("div");
     breitenwert.className = "breite";
     breitenwert.textContent = `${breite}×`;
-    breitenwert.title = "Breite in Spalten";
+    breitenwert.title = this._t("Breite in Spalten");
     griff.appendChild(breitenwert);
     griff.appendChild(
       this._griffTaste("mdi:plus", "Breiter", breite >= grenze, () =>
@@ -401,7 +401,7 @@ export const AnordnenMixin = (Basis) =>
     const wahl = document.createElement("div");
     wahl.className = "spaltenwahl";
     wahl.setAttribute("role", "group");
-    wahl.setAttribute("aria-label", "Spaltenzahl");
+    wahl.setAttribute("aria-label", this._t("Spaltenzahl"));
     const jetzt = Number(this._reiterAnordnung().spalten) || 0;
     [
       { wert: 0, name: "Auto" },
@@ -442,8 +442,8 @@ export const AnordnenMixin = (Basis) =>
     const mehr = document.createElement("button");
     mehr.type = "button";
     mehr.className = "anordnen-taste";
-    mehr.title = "Weitere Optionen";
-    mehr.setAttribute("aria-label", "Weitere Optionen");
+    mehr.title = this._t("Weitere Optionen");
+    mehr.setAttribute("aria-label", this._t("Weitere Optionen"));
     mehr.appendChild(this._symbolKnoten("mdi:dots-vertical"));
     mehr.addEventListener("click", () => this._anordnenMenue());
     leiste.appendChild(mehr);

@@ -138,8 +138,8 @@ export const HilfeMixin = (Basis) =>
       const suchfeld = document.createElement("input");
       suchfeld.type = "search";
       suchfeld.className = "hilfe-suche";
-      suchfeld.placeholder = "Suchen …";
-      suchfeld.setAttribute("aria-label", "Erklärungen durchsuchen");
+      suchfeld.placeholder = this._t("Suchen …");
+      suchfeld.setAttribute("aria-label", this._t("Erklärungen durchsuchen"));
       karte.appendChild(suchfeld);
 
       const liste = document.createElement("div");

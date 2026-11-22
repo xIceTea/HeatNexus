@@ -164,7 +164,7 @@ export const SteuerungMixin = (Basis) =>
     abbruch.type = "button";
     abbruch.className = "laufzeit-abbruch";
     abbruch.textContent = this._t("abbrechen");
-    abbruch.title = "Vorgabe beenden und zum Programm zurückkehren";
+    abbruch.title = this._t("Vorgabe beenden und zum Programm zurückkehren");
     if (kreis.uebersteuerung_dauer) laufzeit.appendChild(abbruch);
     karte.appendChild(laufzeit);
 
@@ -174,7 +174,7 @@ export const SteuerungMixin = (Basis) =>
     const runter = document.createElement("button");
     runter.type = "button";
     runter.textContent = this._t("−");
-    runter.setAttribute("aria-label", "Sollwert senken");
+    runter.setAttribute("aria-label", this._t("Sollwert senken"));
     const mitte = document.createElement("div");
     mitte.className = "sollwert";
     const sollZahl = document.createElement("div");
@@ -186,7 +186,7 @@ export const SteuerungMixin = (Basis) =>
     const hoch = document.createElement("button");
     hoch.type = "button";
     hoch.textContent = this._t("+");
-    hoch.setAttribute("aria-label", "Sollwert anheben");
+    hoch.setAttribute("aria-label", this._t("Sollwert anheben"));
     // Ohne Raumfühler ist der Sollwert die große Zahl der Karte; auch er öffnet den Heizkreis.
     regler.append(runter, this._klickbar(mitte, kreis.entity), hoch);
     karte.appendChild(regler);
