@@ -52,6 +52,11 @@ const schalten = bloeckeLesen([
   {{ weekdays: ["Mo"],
     switchPoints: [{{ time: "06:00", value: 0 }}, {{ time: "20:00", value: 1 }}, {{ time: "23:00", value: 0 }}] }},
 ]);
+const schaltenWerktage = bloeckeLesen([
+  {{ weekdays: ["Mo", "Tu", "We", "Th", "Fr"],
+    switchPoints: [{{ time: "06:00", value: 0 }}, {{ time: "20:00", value: 1 }}, {{ time: "23:00", value: 0 }}] }},
+  {{ weekdays: ["Sa", "Su"], switchPoints: [{{ time: "08:00", value: 0 }}, {{ time: "22:00", value: 1 }}] }},
+]);
 const ohneSonntag = bloeckeLesen([
   {{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa"],
     switchPoints: [{{ time: "06:00", value: 21 }}, {{ time: "22:00", value: 17 }}] }},
@@ -80,6 +85,7 @@ console.log(JSON.stringify({{
   montag_werktage: tagesabschnitte(werktage, "Mo"),
   zusammengefasst: nachbarnZusammenfassen(blockraster(gleicheTage)).filter((z) => z.stelle >= 0).map((z) => [z.tage, z.abschnitte[0].wert]),
   fenster: zeitfensterText(schalten),
+  fenster_werktage: zeitfensterText(schaltenWerktage),
   sonntag_ohne_block: wertJetzt(ohneSonntag, {{ tag: "Su", minute: 600 }}),
   raster_sonntag: wochenraster(ohneSonntag).find((z) => z.tag === "Su").abschnitte,
   wechsel_ohne_block: naechsterWechsel(ohneSonntag, {{ tag: "Su", minute: 600 }}),
@@ -176,3 +182,10 @@ def test_zeilen_mit_verschiedenem_morgen_bleiben_getrennt(rechnung):
 def test_zeitfenster_der_waermepumpe_folgt_dem_vortag(rechnung):
     # Montag 23:00 schaltet aus; das gilt über die Tage ohne Block bis Sonntag 20:00.
     assert rechnung["fenster"] == "So 20:00–00:00; Mo 00:00–06:00, 20:00–23:00"
+
+
+def test_zeitfenster_mit_verschiedenen_vortagen_nennt_den_wert_je_tag(rechnung):
+    assert rechnung["fenster_werktage"] == (
+        "Mo–Fr 00:00–06:00 (je nach Vortag: Mo Ein, Di–Fr Aus), 20:00–23:00; "
+        "Sa, So 00:00–08:00 (je nach Vortag: Sa Aus, So Ein), 22:00–00:00"
+    )

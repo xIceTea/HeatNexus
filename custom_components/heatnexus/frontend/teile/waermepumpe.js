@@ -8,7 +8,7 @@
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
-import { TAG_MINUTEN, abschnitte, bloeckeLesen, tagesbereich, uhrzeit, zeilenvortag } from "../zeitprogramm.js";
+import { TAG_MINUTEN, abschnitte, bloeckeLesen, tagesbereich, uhrzeit, vortagText, zeilenvortag } from "../zeitprogramm.js";
 
 /**
  * Die Zeitfenster, in denen ein Schaltprogramm „Ein“ steht, als Text.
@@ -20,17 +20,24 @@ export function zeitfensterText(bloecke, t = (text) => text) {
   const zeilen = (bloecke || [])
     .filter((block) => block.tage.length)
     .map((block) => {
-      const ein = abschnitte(block.punkte, zeilenvortag(bloecke, block.tage)).filter((stueck) => stueck.wert === 1);
-      if (ein.length > 1 && ein[0].von === 0 && ein[ein.length - 1].bis === TAG_MINUTEN) {
+      // Ein Stück je nach Vortag ist an manchen Tagen der Zeile Ein, an anderen Aus; es bleibt für sich.
+      const ein = abschnitte(block.punkte, zeilenvortag(bloecke, block.tage)).filter(
+        (stueck) => stueck.jeNachVortag || stueck.wert === 1
+      );
+      const offen = ein.length && ein[0].jeNachVortag;
+      if (!offen && ein.length > 1 && ein[0].von === 0 && ein[ein.length - 1].bis === TAG_MINUTEN) {
         const erstes = ein.shift();
         ein[ein.length - 1] = { ...ein[ein.length - 1], bis: erstes.bis };
       }
       if (!ein.length) return null;
-      const spannen = ein.map((stueck) =>
-        stueck.von === 0 && stueck.bis === TAG_MINUTEN
-          ? t("ganztägig")
-          : `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)}`
-      );
+      const spannen = ein.map((stueck) => {
+        const spanne =
+          stueck.von === 0 && stueck.bis === TAG_MINUTEN
+            ? t("ganztägig")
+            : `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)}`;
+        if (!stueck.jeNachVortag) return spanne;
+        return `${spanne} (${vortagText(stueck.jeNachVortag, (wert) => t(wert === 1 ? "Ein" : "Aus"), t)})`;
+      });
       return `${tagesbereich(block.tage, t)} ${spannen.join(", ")}`;
     })
     .filter(Boolean);
