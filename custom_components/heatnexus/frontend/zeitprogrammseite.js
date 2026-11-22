@@ -11,6 +11,7 @@ import {
   tagesbereich,
   tarifText,
   uhrzeit,
+  vortagText,
 } from "./zeitprogramm.js";
 
 /** Reihenfolge der Gruppen in einer Karte; Programme ohne Gruppe folgen danach. */
@@ -137,21 +138,27 @@ export function tabelle(stuecke, grenzen, { t = OHNE, sprache } = {}) {
   const zeit = (s) => `${uhrzeit(s.von)} – ${bisText(s.bis)}`;
   const text = (wert) =>
     grenzen.tarif ? tarifText(wert, t) : grenzen.schalt ? t(wert >= 0.5 ? "Ein" : "Aus") : temperatur(wert, sprache);
-  const werte = stuecke.map((s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert));
+  // Ein Stück je nach Vortag steht vorn für sich; die Fenster ergeben sich aus den übrigen.
+  const vorn = stuecke
+    .filter((s) => s.jeNachVortag)
+    .map((s) => ({ stufe: null, farbe: null, zeit: zeit(s), wert: t("je nach Vortag") }));
+  const feste = stuecke.filter((s) => !s.jeNachVortag);
+  const werte = feste.map((s) => (grenzen.schalt ? (s.wert >= 0.5 ? 1 : 0) : s.wert));
   const grund = Math.min(...werte);
   const hoch = Math.max(...werte);
   const ton = (wert) => (grenzen.schalt && wert < 0.5 ? null : farbe(wert, grenzen));
   if (hoch === grund) {
     const stufe = grenzen.schalt && !hoch ? null : "voll";
-    return [{ stufe, farbe: ton(grund), zeit: t("ganztags"), wert: text(grund) }];
+    const wann = vorn.length ? zeit({ von: feste[0].von, bis: TAG_MINUTEN }) : t("ganztags");
+    return [...vorn, { stufe, farbe: ton(grund), zeit: wann, wert: text(grund) }];
   }
-  const zeilen = fensterDesTages(stuecke, grenzen).map((s) => ({
+  const zeilen = fensterDesTages(feste, grenzen).map((s) => ({
     stufe: grenzen.schalt || s.wert === hoch ? "voll" : "halb",
     farbe: ton(s.wert),
     zeit: zeit(s),
     wert: text(s.wert),
   }));
-  return [...zeilen, { stufe: null, farbe: ton(grund), zeit: t("Übrige Zeit"), wert: text(grund) }];
+  return [...vorn, ...zeilen, { stufe: null, farbe: ton(grund), zeit: t("Übrige Zeit"), wert: text(grund) }];
 }
 
 /** Ob ein Tag nur einen Wert oder keinen Plan hat; dann steht eine Zeile statt Spur und Tabelle. */
@@ -172,15 +179,21 @@ export function spurteile(stuecke, grenzen, { beschriften = false, t = OHNE, spr
   const flaechen = [];
   stuecke.forEach((stueck) => {
     const vorige = flaechen[flaechen.length - 1];
-    if (vorige && vorige.wert === wertVon(stueck) && vorige.bis === stueck.von) vorige.bis = stueck.bis;
-    else flaechen.push({ von: stueck.von, bis: stueck.bis, wert: wertVon(stueck) });
+    const offen = stueck.jeNachVortag || null;
+    const anschluss = vorige && !vorige.offen && !offen && vorige.bis === stueck.von;
+    if (anschluss && vorige.wert === wertVon(stueck)) vorige.bis = stueck.bis;
+    else flaechen.push({ von: stueck.von, bis: stueck.bis, wert: wertVon(stueck), offen });
   });
-  const grund = grenzen.schalt ? 0 : Math.min(...flaechen.map((f) => f.wert));
+  const grund = grenzen.schalt ? 0 : Math.min(...flaechen.filter((f) => !f.offen).map((f) => f.wert));
   // Ein Tag nur mit Aus wäre sonst eine leere Fläche; er trägt das Wort.
   const ganzAus = grenzen.schalt && flaechen.length === 1 && flaechen[0].wert === 0;
   const text = (wert) =>
     grenzen.tarif ? tarifText(wert, t) : grenzen.schalt ? t(wert ? "Ein" : "Aus") : temperatur(wert, sprache);
-  return flaechen.map(({ von, bis, wert }) => {
+  return flaechen.map(({ von, bis, wert, offen }) => {
+    // Ohne einzelnen Wert bleibt das Stück ohne Farbe; der Tipp nennt die Werte je Tag.
+    if (offen) {
+      return { von, bis, ruhe: false, farbe: null, text: "", tipp: `${uhrzeit(von)}–${bisText(bis)} · ${vortagText(offen, text, t)}` };
+    }
     const ruhe = wert === grund;
     const leer = grenzen.schalt && ruhe;
     const breit = bis - von >= BESCHRIFTUNG_AB_MINUTEN;
@@ -199,8 +212,11 @@ export function spurteile(stuecke, grenzen, { beschriften = false, t = OHNE, spr
 const gleichePunkte = (eine, andere) =>
   eine.length === andere.length && eine.every((punkt, n) => punkt.zeit === andere[n].zeit && punkt.wert === andere[n].wert);
 
-// Gleiche Schaltzeiten, aber ein anderer Wert vom Vortag ergeben einen anderen Morgen.
-const gleicherMorgen = (eine, andere) => (eine[0] || {}).wert === (andere[0] || {}).wert;
+// Gleiche Schaltzeiten, aber ein anderer Wert vom Vortag ergeben einen anderen Morgen; je nach Vortag passt keiner.
+const gleicherMorgen = (eine, andere) => {
+  const [erstes, zweites] = [eine[0] || {}, andere[0] || {}];
+  return !erstes.jeNachVortag && !zweites.jeNachVortag && erstes.wert === zweites.wert;
+};
 
 const grenzenAn = (eine, andere) =>
   eine.some((tag) => andere.some((nachbar) => Math.abs(TAGE.indexOf(tag) - TAGE.indexOf(nachbar)) === 1));

@@ -198,7 +198,8 @@ export function spaetesterWert(punkte) {
  *
  * Ein Schaltpunkt gilt, bis der nächste kommt. **Vor dem ersten gilt der
  * letzte Wert des Vortags** – die Anlage schaltet um Mitternacht nicht um.
- * Ohne Vortagswert gilt der letzte Wert desselben Tags.
+ * Ohne Vortagswert gilt der letzte Wert desselben Tags. Mit `{verschieden}`
+ * aus `zeilenvortag` trägt das erste Stück die Werte je Tag in `jeNachVortag`.
  */
 export function abschnitte(punkte, vortag = null) {
   if (!punkte || !punkte.length) return [];
@@ -206,7 +207,9 @@ export function abschnitte(punkte, vortag = null) {
   const stuecke = [];
   const letzter = sortiert[sortiert.length - 1];
   if (sortiert[0].zeit > 0) {
-    stuecke.push({ von: 0, bis: sortiert[0].zeit, wert: Number.isFinite(vortag) ? vortag : letzter.wert });
+    const erstes = { von: 0, bis: sortiert[0].zeit, wert: Number.isFinite(vortag) ? vortag : letzter.wert };
+    if (vortag && vortag.verschieden) erstes.jeNachVortag = vortag.verschieden;
+    stuecke.push(erstes);
   }
   sortiert.forEach((punkt, stelle) => {
     const bis = stelle + 1 < sortiert.length ? sortiert[stelle + 1].zeit : TAG_MINUTEN;
@@ -241,10 +244,26 @@ export function vortagswert(bloecke, tag) {
   return null;
 }
 
-/** Der Vortagswert einer Zeile mit mehreren Tagen; 'null', wenn er nicht an allen Tagen gleich ist. */
+/**
+ * Der Vortagswert einer Zeile mit mehreren Tagen. Ist er nicht an allen Tagen gleich,
+ * kommt `{verschieden: [{tage, wert}]}` zurück: die Tage je Wert in der Reihenfolge der Woche.
+ */
 export function zeilenvortag(bloecke, tage) {
-  const werte = new Set((tage || []).map((tag) => vortagswert(bloecke, tag)));
-  return werte.size === 1 ? [...werte][0] : null;
+  const gruppen = [];
+  TAGE.filter((tag) => (tage || []).includes(tag)).forEach((tag) => {
+    const wert = vortagswert(bloecke, tag);
+    const gruppe = gruppen.find((eintrag) => eintrag.wert === wert);
+    if (gruppe) gruppe.tage.push(tag);
+    else gruppen.push({ tage: [tag], wert });
+  });
+  if (gruppen.length > 1) return { verschieden: gruppen };
+  return gruppen.length ? gruppen[0].wert : null;
+}
+
+/** „je nach Vortag: Mo 43 °C, Di–Fr 20 °C“; `text` schreibt einen Wert. */
+export function vortagText(gruppen, text, t = OHNE) {
+  const werte = (gruppen || []).map((gruppe) => `${tagesbereich(gruppe.tage, t)} ${text(gruppe.wert)}`);
+  return `${t("je nach Vortag")}: ${werte.join(", ")}`;
 }
 
 /** Die Abschnitte eines Wochentags; ein Tag ohne Schaltzeit behält den ganzen Tag den Wert davor. */
@@ -590,11 +609,14 @@ export function spurKnoten(stuecke, grenzen, optionen = {}) {
     balken.className = "balken";
     balken.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
     balken.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
-    balken.style.background = farbe(stueck.wert, grenzen);
-    const text = wertText(stueck.wert, grenzen, t);
-    balken.title = `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)} · ${text}`;
+    // Haben die Tage der Zeile verschiedene Vortage, steht vor der ersten Schaltzeit kein einzelner Wert.
+    const offen = stueck.jeNachVortag;
+    balken.style.background = offen ? FARBE_AUS : farbe(stueck.wert, grenzen);
+    const text = offen ? t("je nach Vortag") : wertText(stueck.wert, grenzen, t);
+    const tipp = offen ? vortagText(offen, (wert) => wertText(wert, grenzen, t), t) : text;
+    balken.title = `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)} · ${tipp}`;
     // Bei Ein/Aus trägt nur „Ein“ eine Beschriftung; „Aus“ ist die leere Spur.
-    const aus = grenzen.schalt && stueck.wert < 0.5;
+    const aus = !offen && grenzen.schalt && stueck.wert < 0.5;
     if (optionen.werte && !aus && stueck.bis - stueck.von >= WERT_IM_SEGMENT_AB) {
       const wert = document.createElement("span");
       wert.className = "zp-segmentwert";
@@ -718,7 +740,8 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
       const zeile = document.createElement("div");
       zeile.className = "zp-spanne";
       const punktfarbe = document.createElement("i");
-      punktfarbe.style.background = farbe(stueck.wert, grenzen);
+      const offen = stueck.jeNachVortag;
+      punktfarbe.style.background = offen ? FARBE_AUS : farbe(stueck.wert, grenzen);
       const zeit = document.createElement("span");
       zeit.className = "zp-spannezeit";
       // `bis` steht auf 1440, wenn der Abschnitt bis Mitternacht läuft; als
@@ -726,7 +749,9 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
       zeit.textContent = `${uhrzeit(stueck.von)} – ${uhrzeit(stueck.bis % TAG_MINUTEN)}`;
       const wert = document.createElement("span");
       wert.className = "zp-spannewert";
-      wert.textContent = wertText(stueck.wert, grenzen, t);
+      wert.textContent = offen
+        ? vortagText(offen, (zahl) => wertText(zahl, grenzen, t), t)
+        : wertText(stueck.wert, grenzen, t);
       zeile.append(punktfarbe, zeit);
       // Die Marke steht vor dem Wert, damit die Werte untereinander bleiben.
       if (stelle && stelle.block === nummer && stelle.von === stueck.von) {

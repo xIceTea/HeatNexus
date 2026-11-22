@@ -30,7 +30,7 @@ import {{
   blockraster, bloeckeLesen, jetztStelle, naechsterWechsel, tagesabschnitte, vortagswert,
   wertJetzt, wochenraster, zeilenvortag,
 }} from "{modul}";
-import {{ nachbarnZusammenfassen }} from "{seite}";
+import {{ nachbarnZusammenfassen, spurteile, tabelle }} from "{seite}";
 import {{ zeitfensterText }} from "{pumpe}";
 
 const woche = bloeckeLesen([
@@ -72,6 +72,10 @@ console.log(JSON.stringify({{
   sonntag_ohne_vortag: tagesabschnitte(woche, "Su"),
   zeile_montag: zeile(woche, "Mo"),
   vortag_mehrdeutig: zeilenvortag(werktage, ["Mo", "Tu", "We", "Th", "Fr"]),
+  zeilen_werktage: nachbarnZusammenfassen(blockraster(werktage)).map((z) => [z.text, z.stelle]),
+  spur_werktage: spurteile(zeile(werktage, "Mo,Tu,We,Th,Fr"), {{ min: 40, max: 65, art: "wasser" }})[0],
+  tabelle_werktage: tabelle(zeile(werktage, "Mo,Tu,We,Th,Fr"), {{ min: 40, max: 65, art: "wasser" }}),
+  zeile_wochenende: zeile(werktage, "Sa,Su")[0],
   zeile_werktage: zeile(werktage, "Mo,Tu,We,Th,Fr"),
   montag_werktage: tagesabschnitte(werktage, "Mo"),
   zusammengefasst: nachbarnZusammenfassen(blockraster(gleicheTage)).filter((z) => z.stelle >= 0).map((z) => [z.tage, z.abschnitte[0].wert]),
@@ -129,11 +133,40 @@ def test_ueber_mehrere_tage_ohne_block_gilt_der_letzte_schaltpunkt(rechnung):
     assert rechnung["mittwoch_ohne_block"] == 14
 
 
-def test_zeile_mit_verschiedenen_vortagen_behaelt_den_eigenen_wert(rechnung):
+VERSCHIEDEN = [{"tage": ["Mo"], "wert": 43}, {"tage": ["Tu", "We", "Th", "Fr"], "wert": 20}]
+
+
+def test_zeile_mit_verschiedenen_vortagen_zeigt_keinen_einzelnen_wert(rechnung):
     """Mo–Fr: Montag erbt 43 vom Sonntag, Di–Fr 20 vom eigenen Block."""
-    assert rechnung["vortag_mehrdeutig"] is None
-    assert rechnung["zeile_werktage"][0] == {"von": 0, "bis": 330, "wert": 20}
+    assert rechnung["vortag_mehrdeutig"] == {"verschieden": VERSCHIEDEN}
+    assert rechnung["zeile_werktage"][0] == {
+        "von": 0,
+        "bis": 330,
+        "wert": 20,
+        "jeNachVortag": VERSCHIEDEN,
+    }
     assert rechnung["montag_werktage"][0] == {"von": 0, "bis": 330, "wert": 43}
+    assert rechnung["zeile_wochenende"]["jeNachVortag"] == [
+        {"tage": ["Sa"], "wert": 20},
+        {"tage": ["Su"], "wert": 43},
+    ]
+
+
+def test_der_abschnitt_je_nach_vortag_nennt_die_werte_je_tag(rechnung):
+    spur = rechnung["spur_werktage"]
+    assert spur["farbe"] is None
+    assert spur["tipp"] == "00:00–05:30 · je nach Vortag: Mo 43 °C, Di–Fr 20 °C"
+    assert rechnung["tabelle_werktage"][0] == {
+        "stufe": None,
+        "farbe": None,
+        "zeit": "00:00 – 05:30",
+        "wert": "je nach Vortag",
+    }
+
+
+def test_die_zeilen_folgen_weiter_den_bloecken_der_steuerung(rechnung):
+    """Bearbeiten schreibt den Block Mo–Fr; die Anzeige teilt ihn nicht in Mo und Di–Fr."""
+    assert rechnung["zeilen_werktage"] == [["Mo–Fr", 0], ["Sa, So", 1]]
 
 
 def test_zeilen_mit_verschiedenem_morgen_bleiben_getrennt(rechnung):

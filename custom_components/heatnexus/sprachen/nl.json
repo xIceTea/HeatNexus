@@ -1393,5 +1393,6 @@
   "Nicht aktiv": "Niet actief",
   "Kein Programm aktiv": "Geen programma actief",
   "Kein Zeitplan": "Geen schema",
-  "Das Programm hat sich inzwischen geändert. Nichts wurde gespeichert, die Ansicht zeigt den aktuellen Stand.": "Het programma is intussen gewijzigd. Er is niets opgeslagen; de weergave toont de actuele stand."
+  "Das Programm hat sich inzwischen geändert. Nichts wurde gespeichert, die Ansicht zeigt den aktuellen Stand.": "Het programma is intussen gewijzigd. Er is niets opgeslagen; de weergave toont de actuele stand.",
+  "je nach Vortag": "afhankelijk van de vorige dag"
 }

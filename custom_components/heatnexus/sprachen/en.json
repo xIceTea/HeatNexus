@@ -1388,5 +1388,6 @@
   "Nicht aktiv": "Not active",
   "Kein Programm aktiv": "No program active",
   "Kein Zeitplan": "No schedule",
-  "Das Programm hat sich inzwischen geändert. Nichts wurde gespeichert, die Ansicht zeigt den aktuellen Stand.": "The program has changed in the meantime. Nothing was saved; the view shows the current state."
+  "Das Programm hat sich inzwischen geändert. Nichts wurde gespeichert, die Ansicht zeigt den aktuellen Stand.": "The program has changed in the meantime. Nothing was saved; the view shows the current state.",
+  "je nach Vortag": "depends on the previous day"
 }
