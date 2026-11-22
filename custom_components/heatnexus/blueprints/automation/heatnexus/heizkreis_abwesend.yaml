@@ -58,10 +58,11 @@ blueprint:
 mode: single
 max_exceeded: silent
 
+# `from` ohne `to`: Auch eine Zone wie „Arbeit“ zählt als fort, bis die Person zurück ist.
 triggers:
   - trigger: state
     entity_id: !input anwesenheit
-    to: not_home
+    from: home
     for: !input verzoegerung
 
 variables:

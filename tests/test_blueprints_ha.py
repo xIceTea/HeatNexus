@@ -85,6 +85,71 @@ async def test_die_vorlage_ergibt_eine_gueltige_automation(hass, vorlage):
     assert geprueft.validation_status == "ok", geprueft.validation_error
 
 
+async def _abwesend_einrichten(hass):
+    """Die Vorlage Abwesenheit mit einer Person und 30 Minuten Verzögerung."""
+    from homeassistant.setup import async_setup_component
+
+    ziel = hass.config.path("blueprints", "automation")
+    await hass.async_add_executor_job(lambda: shutil.copytree(VORLAGEN, ziel, dirs_exist_ok=True))
+    hass.states.async_set("person.a", "home")
+    hass.states.async_set("climate.hk", "heat", {"preset_mode": "3"})
+    aufrufe: list = []
+
+    async def absenken(aufruf) -> None:
+        # Die Person kehrt zurück, sonst wartete der Lauf bis zum Testende.
+        aufrufe.append(aufruf)
+        hass.states.async_set("person.a", "home")
+
+    hass.services.async_register("climate", "set_preset_mode", absenken)
+    konfig = {
+        "id": "abwesend",
+        "use_blueprint": {
+            "path": "heatnexus/heizkreis_abwesend.yaml",
+            "input": {
+                "anwesenheit": ["person.a"],
+                "heizkreis": "climate.hk",
+                "verzoegerung": {"minutes": 30},
+            },
+        },
+    }
+    assert await async_setup_component(hass, "automation", {"automation": [konfig]})
+    await hass.async_block_till_done()
+    return aufrufe
+
+
+async def _nach(hass, minuten: int) -> None:
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=minuten))
+    await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize("unterwegs", ["not_home", "Arbeit"])
+async def test_abwesend_senkt_auch_ab_wenn_die_person_eine_zone_erreicht(hass, unterwegs):
+    aufrufe = await _abwesend_einrichten(hass)
+    hass.states.async_set("person.a", "not_home")
+    await hass.async_block_till_done()
+    await _nach(hass, 10)
+    hass.states.async_set("person.a", unterwegs)
+    await hass.async_block_till_done()
+    await _nach(hass, 31)
+    assert [str(a.data["preset_mode"]) for a in aufrufe] == ["5"]
+
+
+async def test_abwesend_senkt_nicht_ab_wenn_die_person_vorher_zurueckkommt(hass):
+    aufrufe = await _abwesend_einrichten(hass)
+    hass.states.async_set("person.a", "Arbeit")
+    await hass.async_block_till_done()
+    await _nach(hass, 10)
+    hass.states.async_set("person.a", "home")
+    await hass.async_block_till_done()
+    await _nach(hass, 31)
+    assert aufrufe == []
+
+
 def test_eine_automations_yaml_in_fremdem_zeichensatz_bricht_nichts_ab(tmp_path):
     """Ein Umlaut in CP1252 ließ das Setup scheitern; erkannt wird die Vorlage trotzdem."""
     from custom_components.heatnexus import blueprints
