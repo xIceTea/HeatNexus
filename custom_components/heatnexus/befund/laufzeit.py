@@ -21,7 +21,7 @@ from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
-from ..automatik.verwaltung import Verwaltung, verwaltung_holen
+from ..automatik.verwaltung import Verwaltung, _sichern, verwaltung_holen
 from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN, POLL_BEFUND
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
@@ -202,10 +202,18 @@ class Sammler:
         self._wp_lauf: dict[str, float | None] = {}
         # Adressen, die der Befund selbst zum Lesen angemeldet hat; `beenden` meldet sie ab.
         self._abruf: set[str] = set()
+        # Ein unlesbarer Store ohne Kopie bleibt unberührt; der Befund läuft nur im Speicher.
+        self._schreibschutz = False
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
-        self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
+        try:
+            self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
+        except Exception:  # ein defekter Befund darf die Einrichtung nicht aufhalten
+            _LOGGER.warning(
+                "Befund %s: Speicher nicht lesbar, beginne leer", self.anlage_id, exc_info=True
+            )
+            await self._unlesbar_sichern()
         if self._veraltet():
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
@@ -223,8 +231,17 @@ class Sammler:
             await alter.async_remove()
         return roh
 
+    async def _unlesbar_sichern(self) -> None:
+        """Wie die Automatik: Die unlesbare Datei bleibt als Kopie, bevor ein Speichern sie ersetzt."""
+        try:
+            await self.hass.async_add_executor_job(_sichern, self._store.path)
+        except OSError as fehler:
+            _LOGGER.error("Befund %s: Speicher nicht gesichert: %s", self.anlage_id, fehler)
+            self._schreibschutz = True
+
     def speichern(self) -> None:
-        self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)
+        if not self._schreibschutz:
+            self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)
 
     async def beenden(self) -> None:
         if self._aufgabe is not None and not self._aufgabe.done():
@@ -233,7 +250,8 @@ class Sammler:
             for oid in self._abruf:
                 abmelden(oid, POLL_BEFUND)
         self._abruf = set()
-        await self._store.async_save(self.archiv.als_dict())
+        if not self._schreibschutz:
+            await self._store.async_save(self.archiv.als_dict())
 
     # --- Quellen ------------------------------------------------------------
     def kreise(self) -> list[dict[str, Any]]:
