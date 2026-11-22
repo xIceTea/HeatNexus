@@ -128,6 +128,27 @@ async def test_ein_frischer_eintrag_folgt_der_sprache_von_home_assistant(hass, h
     assert sprache_des_eintrags(hass, eintrag) == ha_sprache
 
 
+async def test_eine_eingerichtete_steuerung_kommt_in_keinen_zweiten_eintrag(hass, eintrag):
+    """Auch zusammen mit einer weiteren Steuerung gilt die Seriennummer als vergeben."""
+    fremd = [{"nodeId": 15, "neuronId": "0000FFFF0001", "functions": []}]
+    with patch(
+        "custom_components.heatnexus.config_flow.validate_connection",
+        AsyncMock(side_effect=[fremd, STRUKTUR]),
+    ):
+        ablauf = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        ablauf = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"], {"name": "Zweite", "count": 2}
+        )
+        for host in ("192.0.2.30", NEU):
+            ablauf = await hass.config_entries.flow.async_configure(
+                ablauf["flow_id"],
+                {"label": host, "host": host, "username": "USER", "password": "geheim"},
+            )
+
+    assert ablauf == {**ablauf, "type": "abort", "reason": "already_configured"}
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+
+
 # ---------------------------------------------------------------------------
 # Neu konfigurieren
 # ---------------------------------------------------------------------------

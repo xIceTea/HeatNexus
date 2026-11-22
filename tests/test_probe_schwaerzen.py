@@ -204,3 +204,31 @@ def test_das_archiv_nennt_die_adresse_nicht_im_dateinamen(probe_modul, tmp_path,
         protokoll = abzug.read("probe/sonde.log").decode("utf-8")
     assert sorted(namen) == ["probe/anlage1_menus.json", "probe/sonde.log"]
     assert "192.0.2.10" not in protokoll
+
+
+def test_das_protokoll_schwaerzt_auch_die_adresse_einer_gescheiterten_anlage(
+    probe_modul, tmp_path, monkeypatch
+):
+    import zipfile
+
+    monkeypatch.setattr(probe_modul, "_im_explorer_zeigen", lambda _datei: None)
+    ziel = tmp_path / "probe"
+    ziel.mkdir()
+    menus = ziel / "192.0.2.10_menus.json"
+    menus.write_text(json.dumps(MENUS), encoding="utf-8")
+    log = ziel / "sonde.log"
+    log.write_text("Anlage 192.0.2.10\nAnlage 192.0.2.11 antwortet nicht\n", encoding="utf-8")
+    gut = {
+        "host": "192.0.2.10",
+        "ok": True,
+        "datapoints": 3,
+        "seconds": 1.0,
+        "files": [str(menus)],
+        "ersatz": probe_modul._ersatzpaare([], STRUKTUR, {"host": "192.0.2.10", **MENUS}),
+    }
+
+    assert probe_modul._abschluss([gut, {"host": "192.0.2.11", "ok": False}], ziel, log) == 0
+
+    with zipfile.ZipFile(next(tmp_path.glob("heatnexus-abzug-*.zip"))) as abzug:
+        protokoll = abzug.read("probe/sonde.log").decode("utf-8")
+    assert "192.0.2.11" not in protokoll and "192.0.2.10" not in protokoll

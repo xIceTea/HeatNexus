@@ -643,6 +643,30 @@ async def test_eine_vorhandene_adresse_kommt_nicht_doppelt(flow, monkeypatch):
     assert not geschrieben
 
 
+async def test_eine_steuerung_eines_anderen_eintrags_kommt_nicht_dazu(flow, monkeypatch):
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_SYSTEMS
+
+    geschrieben = {}
+    optionen = _optionen_mit(flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}], geschrieben)
+    anderer = SimpleNamespace(
+        entry_id="e2", unique_id="kb", data={CONF_SYSTEMS: [{"host": B, "label": "Werkstatt"}]}
+    )
+    optionen.hass.config_entries.async_entries = lambda _domain: [anderer]
+
+    async def verbinden(host, passwort, benutzer):
+        return [{"neuronId": "kb", "functions": []}]
+
+    monkeypatch.setattr(flow, "validate_connection", verbinden)
+    ergebnis = await optionen.async_step_steuerung_neu(
+        {"label": "Doppelt", "host": C, "username": "USER", "password": "x"}
+    )
+
+    assert ergebnis["errors"] == {"base": "steuerung_eingerichtet"}
+    assert not geschrieben
+
+
 async def test_ohne_verbindung_kommt_keine_steuerung_dazu(flow, monkeypatch):
     from custom_components.heatnexus.exceptions import CannotConnect
 

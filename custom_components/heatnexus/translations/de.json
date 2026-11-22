@@ -241,6 +241,7 @@
     "error": {
       "bestaetigung_fehlt": "Bitte bestätigen, dass die Steuerung mit allem entfernt werden soll.",
       "already_configured": "Diese Adresse steht schon in dieser Heizung.",
+      "steuerung_eingerichtet": "Diese Steuerung ist bereits eingerichtet.",
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
       "unknown": "Unerwarteter Fehler. Einzelheiten stehen im Protokoll von Home Assistant."

@@ -241,6 +241,7 @@
     "error": {
       "bestaetigung_fehlt": "Please confirm that the controller should be removed with everything attached to it.",
       "already_configured": "This address is already part of this heating system.",
+      "steuerung_eingerichtet": "This controller is already set up.",
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Login rejected - check the service password",
       "unknown": "Unexpected error. Details are in the Home Assistant log."
