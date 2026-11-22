@@ -1089,7 +1089,7 @@ async def test_ohne_kopie_wird_das_archiv_nicht_ueberschrieben(
     def kopie_misslingt(_pfad):
         raise OSError("Datenträger voll")
 
-    monkeypatch.setattr(laufzeit, "_sichern", kopie_misslingt)
+    monkeypatch.setattr(laufzeit, "datei_sichern", kopie_misslingt)
     verwaltung, eintrag = await _starten_als(hass, "e2")
     sammler = next(iter(verwaltung.sammler.values()))
     jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)

@@ -22,7 +22,7 @@ from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
-from ..automatik.verwaltung import Verwaltung, _sichern, verwaltung_holen
+from ..automatik.verwaltung import Verwaltung, datei_sichern, verwaltung_holen
 from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN, POLL_BEFUND
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
@@ -237,7 +237,7 @@ class Sammler:
     async def _unlesbar_sichern(self) -> None:
         """Wie die Automatik: Die unlesbare Datei bleibt als Kopie, bevor ein Speichern sie ersetzt."""
         try:
-            await self.hass.async_add_executor_job(_sichern, self._store.path)
+            await self.hass.async_add_executor_job(datei_sichern, self._store.path)
         except OSError as fehler:
             _LOGGER.error("Befund %s: Speicher nicht gesichert: %s", self.anlage_id, fehler)
             self._schreibschutz = True
