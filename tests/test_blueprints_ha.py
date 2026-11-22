@@ -197,7 +197,12 @@ def _vorlagen_in(verzeichnis: Path) -> list[Path]:
 
 async def test_die_vorlagen_landen_im_eigenen_konfigurationsverzeichnis(hass):
     """Der Ordner der Bibliothek gehört allen Testläufen; jeder Lauf schreibt in einen eigenen."""
+    from pytest_homeassistant_custom_component import plugins
+
     from custom_components.heatnexus.blueprints import async_install_blueprints
+
+    if not hasattr(plugins, "hass_config_dir"):
+        pytest.skip("Die Testbibliothek kennt die Fixture hass_config_dir noch nicht.")
 
     eigen, geteilt = _eigen_und_geteilt(hass.config.config_dir)
     assert not eigen.is_relative_to(geteilt)
