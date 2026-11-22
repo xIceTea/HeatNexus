@@ -2644,7 +2644,9 @@ def _abschluss(results: list[dict], out_dir: Path, log: Path) -> int:
         sage(f"\n  {_t('Keine Anlage ließ sich auslesen.')}")
         return 1
     # Das Protokoll nennt Antworten der Anlage; es bekommt den Ersatz aller Anlagen.
-    _ersetzen([log], [paar for r in gut for paar in r.get("ersatz", [])])
+    # Auch gescheiterte Anlagen stehen mit ihrer Adresse darin.
+    adressen = [(str(r["host"]).encode(), b"<ip>") for r in results if r.get("host")]
+    _ersetzen([log], [paar for r in gut for paar in r.get("ersatz", [])] + adressen)
     dateien = [Path(f) for r in gut for f in r.get("files", [])] + [log]
     staemme = {safe_name(r["host"]): f"anlage{n}" for n, r in enumerate(gut, start=1)}
     zip_datei = _abzug_packen(out_dir, dateien, staemme)
