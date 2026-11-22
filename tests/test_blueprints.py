@@ -360,6 +360,22 @@ def test_ausgelieferte_fassungen_sind_sha256():
     assert liste and all(re.fullmatch(r"[0-9a-f]{64}", h) for h in liste)
 
 
+def test_jede_mitgelieferte_vorlage_steht_in_der_liste_ausgelieferter_fassungen():
+    """Sonst gilt sie nach einem Update mit alter Marke als selbst geändert."""
+    import hashlib
+    import json
+
+    liste = set(
+        json.loads((VORLAGEN.parent.parent / "ausgeliefert.json").read_text(encoding="utf-8"))
+    )
+    fehlt = [
+        d.name
+        for d in sorted(VORLAGEN.glob("*.yaml"))
+        if hashlib.sha256(d.read_bytes()).hexdigest() not in liste
+    ]
+    assert not fehlt
+
+
 def test_ohne_auswahl_liest_der_executor_die_vorlagen(modul, tmp_path):
     """Das Verzeichnis der Vorlagen wird nicht in der Ereignisschleife gelesen."""
     import asyncio
