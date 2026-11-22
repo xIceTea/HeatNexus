@@ -62,3 +62,26 @@ def test_ein_schaltpunkt_ohne_felder_wird_uebersprungen(z):
     seltsam = [{**P1[0], "switchPoints": ["06:00", *P1[0]["switchPoints"], 7]}]
     donnerstag = datetime(2026, 10, 8, 3, 0, tzinfo=TZ)
     assert z.soll_um(seltsam, donnerstag) == 21
+
+
+def test_ein_tag_ohne_block_behaelt_den_letzten_wert_davor(z):
+    """Ein Wert gilt bis zum nächsten Schaltpunkt, auch über Tage ohne Block hinweg."""
+    samstag = datetime(2026, 10, 10, 10, 0, tzinfo=TZ)
+    sonntag = samstag + timedelta(days=1)
+    montag = samstag + timedelta(days=2)
+    assert z.soll_um(P3, samstag) == 18
+    assert z.soll_um(P3, sonntag) == 18
+    assert z.soll_um(P3, montag.replace(hour=3)) == 18
+
+
+def test_der_morgen_nach_einem_tag_ohne_block_folgt_dem_letzten_wert_davor(z):
+    programm = [
+        {
+            "weekdays": ["Mo"],
+            "switchPoints": [{"time": "06:00", "value": 20}, {"time": "22:00", "value": 14}],
+        },
+        {"weekdays": ["Sa"], "switchPoints": [{"time": "22:00", "value": 18}]},
+    ]
+    montag = datetime(2026, 10, 12, 2, 0, tzinfo=TZ)
+    assert z.soll_um(programm, montag) == 18
+    assert z.soll_um(programm, montag + timedelta(days=2)) == 14

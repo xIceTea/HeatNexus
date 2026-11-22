@@ -1,7 +1,7 @@
 """Vor dem ersten Schaltpunkt eines Tages gilt der letzte Wert des Vortags.
 
-Geprüft in Node, weil die Rechnung im Browser läuft. Fehlt der Block des
-Vortags, gilt der letzte Wert desselben Tags weiter.
+Geprüft in Node, weil die Rechnung im Browser läuft. Ein Tag ohne Block
+behält den Wert davor; erst ein Schaltpunkt ändert ihn.
 """
 
 from __future__ import annotations
@@ -52,6 +52,14 @@ const schalten = bloeckeLesen([
   {{ weekdays: ["Mo"],
     switchPoints: [{{ time: "06:00", value: 0 }}, {{ time: "20:00", value: 1 }}, {{ time: "23:00", value: 0 }}] }},
 ]);
+const ohneSonntag = bloeckeLesen([
+  {{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    switchPoints: [{{ time: "06:00", value: 21 }}, {{ time: "22:00", value: 17 }}] }},
+]);
+const nurSamstag = bloeckeLesen([
+  {{ weekdays: ["Mo"], switchPoints: [{{ time: "06:00", value: 20 }}, {{ time: "22:00", value: 14 }}] }},
+  {{ weekdays: ["Sa"], switchPoints: [{{ time: "22:00", value: 18 }}] }},
+]);
 const zeile = (bloecke, tage) => blockraster(bloecke).find((z) => z.tage.join() === tage).abschnitte;
 
 console.log(JSON.stringify({{
@@ -68,6 +76,12 @@ console.log(JSON.stringify({{
   montag_werktage: tagesabschnitte(werktage, "Mo"),
   zusammengefasst: nachbarnZusammenfassen(blockraster(gleicheTage)).filter((z) => z.stelle >= 0).map((z) => [z.tage, z.abschnitte[0].wert]),
   fenster: zeitfensterText(schalten),
+  sonntag_ohne_block: wertJetzt(ohneSonntag, {{ tag: "Su", minute: 600 }}),
+  raster_sonntag: wochenraster(ohneSonntag).find((z) => z.tag === "Su").abschnitte,
+  wechsel_ohne_block: naechsterWechsel(ohneSonntag, {{ tag: "Su", minute: 600 }}),
+  jetzt_ohne_block: jetztStelle(ohneSonntag, {{ tag: "Su", minute: 600 }}),
+  montag_nach_leerem_sonntag: wertJetzt(nurSamstag, {{ tag: "Mo", minute: 120 }}),
+  mittwoch_ohne_block: wertJetzt(nurSamstag, {{ tag: "We", minute: 600 }}),
 }}));
 """,
         encoding="utf-8",
@@ -96,9 +110,23 @@ def test_gilt_jetzt_folgt_dem_vortag(rechnung):
     assert rechnung["wechsel_sonntag_nacht"] == {"tag": "Mo", "tage": 1, "minute": 360, "wert": 20}
 
 
-def test_ohne_block_am_vortag_gilt_der_eigene_letzte_wert(rechnung):
-    assert rechnung["vortag_ohne_block"] is None
-    assert rechnung["sonntag_ohne_vortag"][0] == {"von": 0, "bis": 1320, "wert": 18}
+def test_ohne_block_am_vortag_gilt_der_letzte_wert_davor(rechnung):
+    """Samstag hat keinen Block: Von Montag 22:00 an gilt 14 bis Sonntag 22:00."""
+    assert rechnung["vortag_ohne_block"] == 14
+    assert rechnung["sonntag_ohne_vortag"][0] == {"von": 0, "bis": 1320, "wert": 14}
+
+
+def test_ein_tag_ohne_block_behaelt_den_wert_davor(rechnung):
+    assert rechnung["sonntag_ohne_block"] == 17
+    assert rechnung["raster_sonntag"] == [{"von": 0, "bis": 1440, "wert": 17}]
+    assert rechnung["wechsel_ohne_block"] == {"tag": "Mo", "tage": 1, "minute": 360, "wert": 21}
+    # Ohne Block gibt es keine Zeile, die als „jetzt“ hervortritt.
+    assert rechnung["jetzt_ohne_block"] is None
+
+
+def test_ueber_mehrere_tage_ohne_block_gilt_der_letzte_schaltpunkt(rechnung):
+    assert rechnung["montag_nach_leerem_sonntag"] == 18
+    assert rechnung["mittwoch_ohne_block"] == 14
 
 
 def test_zeile_mit_verschiedenen_vortagen_behaelt_den_eigenen_wert(rechnung):
@@ -109,8 +137,9 @@ def test_zeile_mit_verschiedenen_vortagen_behaelt_den_eigenen_wert(rechnung):
 
 
 def test_zeilen_mit_verschiedenem_morgen_bleiben_getrennt(rechnung):
-    assert rechnung["zusammengefasst"] == [[["Fr"], 15], [["Sa"], 15], [["Su"], 16]]
+    assert rechnung["zusammengefasst"] == [[["Fr"], 16], [["Sa"], 15], [["Su"], 16]]
 
 
 def test_zeitfenster_der_waermepumpe_folgt_dem_vortag(rechnung):
-    assert rechnung["fenster"] == "So 20:00–08:00; Mo 00:00–06:00, 20:00–23:00"
+    # Montag 23:00 schaltet aus; das gilt über die Tage ohne Block bis Sonntag 20:00.
+    assert rechnung["fenster"] == "So 20:00–00:00; Mo 00:00–06:00, 20:00–23:00"

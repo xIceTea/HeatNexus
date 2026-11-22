@@ -227,30 +227,32 @@ function letzterWert(bloecke, tag) {
   return [...block.punkte].sort((a, b) => a.zeit - b.zeit)[block.punkte.length - 1].wert;
 }
 
-/** Der letzte Wert des Vortags; 'null', wenn der Vortag keinen Block mit Schaltzeit hat. */
+/**
+ * Der Wert beim Wechsel auf diesen Tag: die letzte Schaltzeit davor. Tage ohne Block ändern nichts,
+ * nach sieben Tagen zählt der eigene Block; 'null', wenn kein Block eine Schaltzeit hat.
+ */
 export function vortagswert(bloecke, tag) {
   const stelle = TAGE.indexOf(tag);
-  return stelle < 0 ? null : letzterWert(bloecke, TAGE[(stelle + TAGE.length - 1) % TAGE.length]);
+  if (stelle < 0) return null;
+  for (let zurueck = 1; zurueck <= TAGE.length; zurueck += 1) {
+    const wert = letzterWert(bloecke, TAGE[(stelle + TAGE.length - zurueck) % TAGE.length]);
+    if (wert !== null) return wert;
+  }
+  return null;
 }
 
-/**
- * Der Vortagswert einer Zeile mit mehreren Tagen; 'null', wenn er nicht an allen Tagen gleich ist.
- * Ein Tag ohne Vortagswert zählt mit dem letzten Wert seines eigenen Blocks.
- */
+/** Der Vortagswert einer Zeile mit mehreren Tagen; 'null', wenn er nicht an allen Tagen gleich ist. */
 export function zeilenvortag(bloecke, tage) {
-  const werte = new Set(
-    (tage || []).map((tag) => {
-      const wert = vortagswert(bloecke, tag);
-      return wert !== null ? wert : letzterWert(bloecke, tag);
-    })
-  );
+  const werte = new Set((tage || []).map((tag) => vortagswert(bloecke, tag)));
   return werte.size === 1 ? [...werte][0] : null;
 }
 
-/** Die Abschnitte eines Wochentags mit dem Wert des Vortags vor der ersten Schaltzeit. */
+/** Die Abschnitte eines Wochentags; ein Tag ohne Schaltzeit behält den ganzen Tag den Wert davor. */
 function tagAbschnitte(bloecke, tag) {
   const block = blockDes(bloecke, tag);
-  return block ? abschnitte(block.punkte, vortagswert(bloecke, tag)) : [];
+  if (block && block.punkte.length) return abschnitte(block.punkte, vortagswert(bloecke, tag));
+  const vorher = vortagswert(bloecke, tag);
+  return vorher === null ? [] : [{ von: 0, bis: TAG_MINUTEN, wert: vorher }];
 }
 
 /** Zu jedem Wochentag seine Abschnitte – auch zu Tagen ohne Block. */
