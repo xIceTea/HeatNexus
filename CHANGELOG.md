@@ -22,15 +22,17 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine bereits eingerichtete Steuerung lässt sich kein zweites Mal einrichten.
 - Aktionen wie „Störung quittieren“ weisen einen unpassenden Sensor mit einer Meldung ab.
 - Die Sonde schwärzt im Protokoll auch die Adresse einer gescheiterten Anlage.
+- Hinweise und Beschriftungen im Panel erscheinen in der eingestellten Sprache.
 - AeroWIN: Die Werte „seit Start“ zählen ab dem passenden Startzähler.
 - LogWIN, DuoWIN: Puffertemperaturen und Beladegrad am Kessel bleiben, wenn das Puffermodul sie nicht liefert.
 
 **Zeitprogramme**
 - „Zeitprogramm setzen“ nimmt höchstens sieben Blöcke an und schreibt nur nach erfolgreichem Lesen.
+- „Zeitprogramm setzen“ weist Wochentage ab, die in mehreren Blöcken stehen.
 - Ein Wert außerhalb des Bereichs erscheint mit Einheit und Dezimalzeichen der Sprache.
 - Der Programmdialog speichert nicht über einen neueren Stand der Anlage.
 - An einem Tag ohne Block gilt in Panel und Automatik der Wert davor.
-- Sammelzeilen zeigen vor der ersten Schaltzeit „je nach Vortag“, wenn die Vortage abweichen.
+- Sammelzeilen und Zeitfenster der Wärmepumpe zeigen „je nach Vortag“, wenn die Vortage abweichen.
 
 **Auswertung**
 - Der Abgaswächter wertet die letzten sieben vollen Tage aus.
