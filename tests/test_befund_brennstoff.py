@@ -59,6 +59,19 @@ def test_verbrauch_aus_anheizvorgaengen(bs):
     assert list(verbrauch.values()) == pytest.approx([0.2, 0.1])
 
 
+def test_verbrauch_ueber_eine_luecke_verteilt_sich_auf_ihre_tage(bs):
+    tag = tage(4)
+    zaehler = {tag[0]: 11.50, tag[1]: 11.53, tag[3]: 11.63}
+    verbrauch = bs.tagesverbrauch({"art": "pellets", "weise": "zaehler"}, {}, zaehler)
+    assert verbrauch == pytest.approx({tag[1]: 0.03, tag[2]: 0.05, tag[3]: 0.05})
+
+
+def test_sprung_ueber_eine_luecke_zaehlt_nicht(bs):
+    tag = tage(4)
+    zaehler = {tag[0]: 11.50, tag[3]: 15.0}
+    assert bs.tagesverbrauch({"art": "pellets", "weise": "zaehler"}, {}, zaehler) == {}
+
+
 def test_zaehlersprung_zaehlt_nicht(bs):
     zaehler = dict(zip(tage(3), [11.50, 0.0, 0.02], strict=True))
     verbrauch = bs.tagesverbrauch({"art": "pellets", "weise": "zaehler"}, {}, zaehler)

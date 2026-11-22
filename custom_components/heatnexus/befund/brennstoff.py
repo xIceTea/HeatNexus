@@ -52,11 +52,16 @@ def korrektur(lager: dict[str, Any]) -> float:
 
 
 def _deltas(zaehler: dict[str, float], grenze: float) -> dict[str, float]:
+    """Zuwachs je Tag; über Tage ohne Stand verteilt er sich gleich auf jeden dieser Tage."""
+    staende = sorted((t, w) for t, w in zaehler.items() if w is not None)
     ergebnis: dict[str, float] = {}
-    for (tag_a, a), (tag_b, b) in pairwise(sorted(zaehler.items())):
-        folgetag = (date.fromisoformat(tag_b) - date.fromisoformat(tag_a)).days == 1
-        if folgetag and a is not None and b is not None and 0 <= b - a <= grenze:
-            ergebnis[tag_b] = b - a
+    for (tag_a, a), (tag_b, b) in pairwise(staende):
+        anfang = date.fromisoformat(tag_a)
+        tage = (date.fromisoformat(tag_b) - anfang).days
+        if tage < 1 or not 0 <= b - a <= grenze * tage:
+            continue
+        for i in range(1, tage + 1):
+            ergebnis[(anfang + timedelta(days=i)).isoformat()] = (b - a) / tage
     return ergebnis
 
 
