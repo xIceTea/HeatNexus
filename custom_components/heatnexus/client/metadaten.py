@@ -476,14 +476,14 @@ class MetadatenMixin:
         self.oids -= set(entfallen) - {d.get("oid") for d in behalten}
 
     def _spiegel_verwerfen(self) -> None:
-        """Gespiegelte Werte verwerfen, wenn das Modul, das sie führt, an der Anlage hängt."""
-        vorhanden = {d.get("fct_type") for d in self.devices}
+        """Gespiegelte Werte verwerfen, wenn das Modul an der Anlage dieselbe Adresse selbst führt."""
+        gefuehrt = {(d.get("fct_type"), gnmn_aus_oid(d.get("oid"))) for d in self.devices}
         weg = {
             (an, adresse)
             for modul, spiegel in geraete.SPIEGEL.items()
-            if modul in vorhanden
             for an, adressen in spiegel.items()
             for adresse in adressen
+            if (modul, adresse) in gefuehrt
         }
         if not weg:
             return

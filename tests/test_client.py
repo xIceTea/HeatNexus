@@ -878,12 +878,12 @@ def test_kuehlzeitprogramm_entfaellt_nur_bei_reinem_heizen(client_module, konfig
     assert ("51/108" in namen) is bleibt
 
 
-def _logwin_mit_spiegel(client_module, mit_modul: bool):
+def _logwin_mit_spiegel(client_module, mit_modul: bool, modul_adressen=("0/15", "23/87")):
     """LogWIN (fct 10) mit gespiegeltem Puffer, auf Wunsch neben dem Puffermodul (fct 15)."""
     client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
     eintraege = [(65, 10, "0/7"), (65, 10, "0/15"), (65, 10, "23/87")]
     if mit_modul:
-        eintraege += [(17, 15, "0/15"), (17, 15, "23/87")]
+        eintraege += [(17, 15, adresse) for adresse in modul_adressen]
     client.devices = [
         client_module.WindhagerHttpClient._deskriptor(
             oid=f"/1/{knoten}/0/{adresse}/0", fct_type=fct, name=f"{fct} {adresse}", type="sensor"
@@ -907,6 +907,24 @@ def test_ohne_puffermodul_behaelt_das_logwin_seinen_puffer(client_module):
     client._spiegel_verwerfen()
 
     assert len(client.devices) == 3
+
+
+@pytest.mark.parametrize(
+    ("modul_adressen", "am_logwin"),
+    [
+        ((), {"0/7", "0/15", "23/87"}),
+        (("23/87",), {"0/7", "0/15"}),
+        (("2/9",), {"0/7", "0/15", "23/87"}),
+    ],
+)
+def test_das_logwin_verliert_nur_was_das_puffermodul_selbst_fuehrt(
+    client_module, modul_adressen, am_logwin
+):
+    """Ein Puffermodul ohne lesbare Werte nimmt dem Kessel nichts weg."""
+    client = _logwin_mit_spiegel(client_module, mit_modul=True, modul_adressen=modul_adressen)
+    client._spiegel_verwerfen()
+
+    assert {d["name"][3:] for d in client.devices if d["fct_type"] == 10} == am_logwin
 
 
 @pytest.mark.parametrize("schaltwert", ["-", "-.-", "", "Text"])
