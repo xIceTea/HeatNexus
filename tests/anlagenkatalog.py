@@ -1,8 +1,8 @@
 """Testanlagen aus `daten/anlagen/` als Steuerung nachspielen, ohne Netz.
 
 Jede Datei beschreibt eine Anlage einer Baureihe: Struktur, Menüs mit den
-Metadaten jedes Datenpunkts, Einzelantworten, Objekte. Werte und Namen sind
-ersetzt; Enum-Grenzen, Einheiten und Schreibschutz sind die des Geräts.
+Metadaten jedes Datenpunkts, Einzelantworten, Objekte. Messwerte und Namen sind
+ersetzt; Auswahl- und Schaltwerte, Grenzen, Einheiten und Schreibschutz sind die des Geräts.
 """
 
 from __future__ import annotations
@@ -12,12 +12,65 @@ from pathlib import Path
 from urllib.parse import parse_qsl
 
 KATALOG = Path(__file__).parent / "daten" / "anlagen"
+SOLL = Path(__file__).parent / "daten" / "soll"
 HOST = "192.0.2.10"
 FEHLT = ({"code": 409, "message": "Conflict", "reason": "Target returns invalid Identifier"}, 409)
+UMFAENGE = {
+    "betreiber": {"levels": ["info", "operate"]},
+    "alles": {
+        "levels": ["info", "operate", "service", "oem"],
+        "enable_advanced": True,
+        "writable_advanced": True,
+    },
+}
+_OHNE_WERT = ("", "-", "-.-")
 
 
 def anlagen() -> list[str]:
     return sorted(p.stem for p in KATALOG.glob("*.json"))
+
+
+async def erkennen(name: str, umfang: str):
+    """Erkennung, Vollabzug und erster Abruf einer Testanlage; zurück kommen Client, Nachspiel, Daten."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient(HOST, "x", **UMFAENGE[umfang])
+    spiel = Nachspiel(name)
+    spiel.einsetzen(client)
+    await client.async_init_basic()
+    await client.async_init()
+    return client, spiel, await client.fetch_all()
+
+
+def _hat_wert(d: dict, daten: dict) -> bool | None:
+    """Ob der erste Abruf einen Wert brachte; None heißt: nicht abgefragt."""
+    from custom_components.heatnexus.lon import ungueltig
+
+    oid = d.get("oid")
+    for quelle in ("objects", "oids"):
+        if oid in (werte := daten.get(quelle) or {}):
+            wert = werte[oid]
+            if wert is None or str(wert).strip() in _OHNE_WERT:
+                return False
+            return not (ungueltig(wert) and (d.get("nv_name") or d.get("type") == "temperature"))
+    return None
+
+
+def vertrag(devices: list[dict], daten: dict) -> dict[str, str]:
+    """Je Entität: Plattform, ab Werk an oder aus, Wert im ersten Abruf."""
+    wert = {True: "wert", False: "leer", None: "-"}
+    return {
+        d["id"]: (
+            f"{d.get('type')} {'aus' if d.get('enabled_default') is False else 'an'} "
+            f"{wert[_hat_wert(d, daten)]}"
+        )
+        for d in sorted(devices, key=lambda d: d["id"])
+    }
+
+
+def soll(name: str) -> dict[str, dict[str, str]]:
+    """Der Vertrag einer Testanlage je Umfang, abgeleitet aus der Anlage mit echten Werten."""
+    return json.loads((SOLL / f"{name}.json").read_text(encoding="utf-8"))["umfaenge"]
 
 
 class Nachspiel:

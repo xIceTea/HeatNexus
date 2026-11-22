@@ -1,8 +1,8 @@
 """Jede bekannte Anlage durch Erkennung, Metadaten und ersten Abruf.
 
 Die Testanlagen in `daten/anlagen/` stammen von PuroWIN, UML, BioWIN älterer
-und neuerer Firmware, InfoWIN Touch v2 und DuoWIN. Geprüft werden Regeln, die
-an jeder Anlage gelten müssen – nicht einzelne Werte.
+und neuerer Firmware, BioWIN Hybrid, InfoWIN Touch v2, InfoWIN Plus, DuoWIN und
+LogWIN mit Puffermodul. Geprüft werden Regeln je Anlage und ihr Vertrag.
 """
 
 from __future__ import annotations
@@ -12,19 +12,11 @@ import re
 
 import pytest
 
-from .anlagenkatalog import HOST, Nachspiel, anlagen
+from .anlagenkatalog import SOLL, UMFAENGE, anlagen, erkennen, soll, vertrag
 from .conftest import requires_ha
 
 pytestmark = requires_ha()
 
-UMFAENGE = {
-    "betreiber": {"levels": ["info", "operate"]},
-    "alles": {
-        "levels": ["info", "operate", "service", "oem"],
-        "enable_advanced": True,
-        "writable_advanced": True,
-    },
-}
 FAELLE = [(a, u) for a in anlagen() for u in UMFAENGE]
 _ERGEBNISSE: dict[tuple[str, str], dict] = {}
 
@@ -33,14 +25,7 @@ async def _lauf(anlage: str, umfang: str) -> dict:
     """Einmal je Anlage und Umfang: Erkennung, Vollabzug, erster Abruf."""
     if (anlage, umfang) in _ERGEBNISSE:
         return _ERGEBNISSE[(anlage, umfang)]
-    from custom_components.heatnexus.client import WindhagerHttpClient
-
-    client = WindhagerHttpClient(HOST, "x", **UMFAENGE[umfang])
-    spiel = Nachspiel(anlage)
-    spiel.einsetzen(client)
-    await client.async_init_basic()
-    await client.async_init()
-    daten = await client.fetch_all()
+    client, spiel, daten = await erkennen(anlage, umfang)
     ergebnis = {
         "devices": json.loads(json.dumps(client.devices, default=str)),
         "daten": daten,
@@ -81,6 +66,25 @@ async def test_die_anlage_wird_erkannt(anlage, umfang):
         "/".join(d["oid"].split("/")[:4]) for d in _mit_oid(erg["devices"])
     }
     assert freigegeben <= mit_beschreibung, sorted(freigegeben - mit_beschreibung)
+
+
+def test_jede_anlage_hat_einen_vertrag():
+    assert anlagen() == sorted(p.stem for p in SOLL.glob("*.json"))
+
+
+@pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
+async def test_die_anlage_erfuellt_ihren_vertrag(anlage, umfang):
+    """Kennung, Plattform, ab Werk an und Wert wie an der Anlage mit echten Werten."""
+    erg = await _lauf(anlage, umfang)
+    ist, erwartet = vertrag(erg["devices"], erg["daten"]), soll(anlage)[umfang]
+    abweichung = [f"fehlt {k}: {erwartet[k]}" for k in sorted(erwartet.keys() - ist.keys())]
+    abweichung += [f"neu {k}: {ist[k]}" for k in sorted(ist.keys() - erwartet.keys())]
+    abweichung += [
+        f"anders {k}: {erwartet[k]} -> {ist[k]}"
+        for k in sorted(erwartet.keys() & ist.keys())
+        if erwartet[k] != ist[k]
+    ]
+    assert not abweichung, "\n".join(abweichung)
 
 
 @pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
@@ -165,6 +169,18 @@ async def test_geschriebene_werte_bietet_das_geraet_an(anlage, umfang):
     assert not falsch, falsch
 
 
+# Werte, die die Steuerung meldet, aber nicht zur Wahl anbietet – je (fctType, Adresse).
+# Die Auswahl zeigt dort keinen Zustand.
+AUSSERHALB_DER_AUSWAHL: dict[tuple[int, str], frozenset[int]] = {
+    (7, "50/5"): frozenset({0}),  # AeroWIN Betriebswahl
+    (9, "39/100"): frozenset({0}),  # BioWIN Wartung
+    (10, "9/75"): frozenset({19}),  # LogWIN Betriebswahl
+    (10, "43/106"): frozenset({2}),  # LogWIN Volumenstromsensor
+    (14, "4/13"): frozenset({0}),  # Heizkreis Außentemperatur
+    (26, "50/5"): frozenset({0}),  # Hybrid-Manager Betriebswahl
+}
+
+
 @pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
 async def test_eine_auswahl_kann_ihren_aktuellen_wert_zeigen(anlage, umfang):
     # Ein Wert außerhalb der angebotenen Liste ließe die Auswahl ohne Zustand.
@@ -177,6 +193,9 @@ async def test_eine_auswahl_kann_ihren_aktuellen_wert_zeigen(anlage, umfang):
         try:
             wert = int(float(roh))
         except (TypeError, ValueError):
+            continue
+        gnmn = "/".join(d["oid"].split("/")[4:6])
+        if wert in AUSSERHALB_DER_AUSWAHL.get((d.get("fct_type"), gnmn), ()):
             continue
         if wert not in d["allowed"]:
             falsch.append(f"{d['oid']} {d['name']}: {wert} nicht in {d['allowed']}")
