@@ -1,7 +1,7 @@
 """Temperatur-Zeitprogramme der Heizkreise: Sollwert zur Zeit, Ende der Komfortzeit.
 
 Ein Schaltpunkt gilt bis zum nächsten; vor dem ersten gilt der letzte des
-Vortags weiter. Ohne Home Assistant.
+Vortags weiter, über Tage ohne Block hinweg. Ohne Home Assistant.
 """
 
 from __future__ import annotations
@@ -39,15 +39,21 @@ def _punkte(bloecke: Any, tag: date) -> list[tuple[int, float]]:
     return sorted(punkte)
 
 
+def _wert_um_mitternacht(bloecke: Any, tag: date) -> float | None:
+    """Der letzte Schaltpunkt vor diesem Tag; Tage ohne Block ändern nichts, nach sieben der eigene."""
+    for zurueck in range(1, len(TAGE) + 1):
+        if punkte := _punkte(bloecke, tag - timedelta(days=zurueck)):
+            return punkte[-1][1]
+    return None
+
+
 def soll_je_minute(bloecke: Any, tag: date) -> list[tuple[int, float]]:
-    """Schaltpunkte des Tages; vorn der letzte Wert des Vortags ab 0:00."""
+    """Schaltpunkte des Tages; vorn ab 0:00 der Wert, der beim Tageswechsel gilt."""
     heute = _punkte(bloecke, tag)
-    gestern = _punkte(bloecke, tag - timedelta(days=1)) or heute
-    if not gestern:
-        return []
     if heute and heute[0][0] == 0:
         return heute
-    return [(0, gestern[-1][1]), *heute]
+    vorher = _wert_um_mitternacht(bloecke, tag)
+    return heute if vorher is None else [(0, vorher), *heute]
 
 
 def soll_um(bloecke: Any, zeit: datetime) -> float | None:

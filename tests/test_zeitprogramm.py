@@ -370,9 +370,13 @@ def test_der_naechste_wechsel_an_einem_spaeteren_tag(rechnung):
     assert rechnung["wechsel_spaeter_tag"] == {"tag": "Mo", "tage": 7, "minute": 300, "wert": 55}
 
 
-def test_ohne_wechsel_oder_ohne_block_gibt_es_keinen(rechnung):
+def test_ohne_wechsel_gibt_es_keinen(rechnung):
     assert rechnung["wechsel_keiner"] is None
-    assert rechnung["wechsel_ohne_block"] is None
+
+
+def test_ein_tag_ohne_block_wartet_auf_den_naechsten_schaltpunkt(rechnung):
+    """Dienstag hat keinen Block: Es gilt 10 von Montag 22:00 bis zum nächsten Montag 05:00."""
+    assert rechnung["wechsel_ohne_block"] == {"tag": "Mo", "tage": 6, "minute": 300, "wert": 55}
 
 
 # ---------------------------------------------------------------------------

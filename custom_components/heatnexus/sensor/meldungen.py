@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 from ..const import ERROR_TEXTS
 from ..entity import MeldungsQuelle, WindhagerEntity
 from ..error_texts import keine_stoerung, klartext, parse_messages, textsprache, unbekannt
+from .gemeinsam import SensorMerkmal
 from .stoerspeicher import eintraege_aufbereiten, zuruecksetzen_erlaubt
 
 # Höchstzahl der eigenen Liste: Sie geht ganz in den Zustand für den Neustart
@@ -115,6 +116,7 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
 
     _attr_icon = "mdi:format-list-bulleted"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_supported_features = SensorMerkmal.MELDUNGEN_LEEREN
     # Die Liste steht für den Neustart im Zustand, gehört aber nicht in den Verlauf.
     _unrecorded_attributes = frozenset({"meldungen"})
     # Quelle ist die /1-Discovery, nicht das OID-Polling.

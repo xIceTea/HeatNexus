@@ -198,6 +198,31 @@ await abschnitt("umgestellt", async () => {
   return { gezeichnet: await zeileAendern(vorher, neu, "Sa, So"), sofort: await zeileAendern(vorher, neu, "Sa, So", false) };
 });
 
+// Der Dialog prüft beim Übernehmen, ob die Anlage inzwischen einen neueren Stand meldet.
+async function dialogAendern(vorher, nachher) {
+  const { flaeche, aufrufe, wurzel } = bauen([HEIZEN], { "sensor.heizen": zustand("sensor.heizen", vorher) });
+  flaeche._zeitprogrammBearbeiten(HEIZEN, document.createElement("div"));
+  const dialog = wurzel.querySelector(".zp-dialog");
+  const taste = dialog.querySelectorAll(".dialog-taste").find((t) => t.classList.contains("betont"));
+  taste.ausloesen("click");
+  const feld = dialog.querySelector(".zp-wert");
+  feld.value = "19";
+  feld.ausloesen("change");
+  flaeche.hass = { ...flaeche._hass, states: { "sensor.heizen": zustand("sensor.heizen", nachher) } };
+  taste.ausloesen("click");
+  await abwarten();
+  const geschrieben = aufrufe.filter((a) => a.dienst === "heatnexus.set_time_program").map((a) => a.angaben.blocks);
+  const offen = !!wurzel.querySelector(".zp-dialog");
+  const werte = offen ? dialog.querySelectorAll(".zp-wert").map((w) => Number(w.value)) : [];
+  return { meldung: text(dialog.querySelector(".zp-meldung")), geschrieben, offen, werte };
+}
+
+await abschnitt("dialog", async () => {
+  const vorher = [{ weekdays: WERKTAGE, switchPoints: ARBEIT }, { weekdays: ["Sa", "Su"], switchPoints: SAMSTAG }];
+  const nachher = [{ weekdays: WERKTAGE, switchPoints: SONNTAG }, { weekdays: ["Sa", "Su"], switchPoints: SAMSTAG }];
+  return { veraltet: await dialogAendern(vorher, nachher), gleich: await dialogAendern(vorher, [...vorher].reverse()) };
+});
+
 console.log(JSON.stringify(befund));
 """
 
@@ -295,3 +320,18 @@ def test_bei_neuer_reihenfolge_trifft_das_speichern_den_richtigen_block(befund, 
     (bloecke,) = umgestellt["geschrieben"]
     tage = {tuple(b["weekdays"]): b["switch_points"][0]["value"] for b in bloecke}
     assert tage == {("Mo", "Tu", "We", "Th", "Fr"): 21, ("Sa", "Su"): 19}
+
+
+def test_der_dialog_schreibt_nicht_ueber_einen_neueren_stand(befund):
+    """Wie der Zeileneditor: nichts schreiben, Hinweis zeigen, den neuen Stand zum Bearbeiten anbieten."""
+    veraltet = _abschnitt(befund, "dialog")["veraltet"]
+    assert veraltet["geschrieben"] == []
+    assert veraltet["meldung"].startswith("Das Programm hat sich inzwischen geändert.")
+    assert veraltet["offen"] is True
+    assert veraltet["werte"][:2] == [20, 16]
+
+
+def test_der_dialog_schreibt_bei_gleichem_stand_in_anderer_reihenfolge(befund):
+    gleich = _abschnitt(befund, "dialog")["gleich"]
+    (bloecke,) = gleich["geschrieben"]
+    assert bloecke[0]["switch_points"][0]["value"] == 19

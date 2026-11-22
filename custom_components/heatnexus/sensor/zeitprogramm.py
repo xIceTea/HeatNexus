@@ -18,7 +18,8 @@ from ..const import (
 )
 from ..entity import WindhagerEntity
 from ..error_texts import textsprache
-from ..exceptions import WindhagerValueError, mit_text
+from ..exceptions import WindhagerError, WindhagerValueError, mit_text
+from .gemeinsam import SensorMerkmal
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
 SCHALTPUNKT_SCHEMA = vol.Schema(
@@ -70,7 +71,13 @@ def _auf_zeitraster(t: str) -> str:
     return f"{minute // 60:02d}:{minute % 60:02d}"
 
 
-def _auf_wertraster(val: float, grenzen: tuple[float, float]) -> float:
+def _grad(wert: float, sprache: str) -> str:
+    """„27,5 °C“; Englisch mit Punkt."""
+    text = _zahl(round(float(wert), 1))
+    return f"{text if sprache == 'en' else text.replace('.', ',')} °C"
+
+
+def _auf_wertraster(val: float, grenzen: tuple[float, float], sprache: str = "de") -> float:
     """Auf 0,5 runden, halbe Schritte aufwärts wie in der Oberfläche; außerhalb der Grenzen abweisen."""
     gerundet = math.floor(val / WERTRASTER + 0.5) * WERTRASTER
     unten, oben = grenzen
@@ -78,9 +85,9 @@ def _auf_wertraster(val: float, grenzen: tuple[float, float]) -> float:
         raise mit_text(
             WindhagerValueError,
             "wert_ausserhalb",
-            wert=_zahl(val),
-            min=_zahl(unten),
-            max=_zahl(oben),
+            wert=_grad(val, sprache),
+            min=_grad(unten, sprache),
+            max=_grad(oben, sprache),
         )
     return gerundet
 
@@ -95,6 +102,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_icon = "mdi:calendar-clock"
+    _attr_supported_features = SensorMerkmal.ZEITPROGRAMM
     # Zeitprogramme werden über den object-Endpunkt gelesen, nicht via lookup.
     _register_poll_oid = False
 
@@ -184,12 +192,6 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             teile.append(f"{namen[0]}–{namen[-1]}" if len(namen) > 2 else ", ".join(namen))
         return ", ".join(teile)
 
-    @staticmethod
-    def _grad(wert: float, sprache: str) -> str:
-        """„27,5 °C“; Englisch mit Punkt."""
-        text = _zahl(round(float(wert), 1))
-        return f"{text if sprache == 'en' else text.replace('.', ',')} °C"
-
     @classmethod
     def _fmt_points(cls, points: list, sprache: str = "de", schaltet: bool = False) -> str:
         out = []
@@ -199,7 +201,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             if schaltet:
                 out.append(f"{t}→{cls._SCHALTWORTE[sprache][v]}")
             else:
-                out.append(f"{t}→{cls._grad(v, sprache) if _ist_zahl(v) else '–'}")
+                out.append(f"{t}→{_grad(v, sprache) if _ist_zahl(v) else '–'}")
         return ", ".join(out) if out else cls._WORTE[sprache][1]
 
     _FENSTERWORT = {"de": "kein Zeitfenster", "en": "no time window", "nl": "geen tijdvenster"}
@@ -299,6 +301,8 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     # Die Anlage nimmt je Tag bzw. Block höchstens sechs Schaltzeiten an.
     # Besser hier ablehnen als die Anlage kommentarlos kürzen lassen.
     MAX_SCHALTPUNKTE = 6
+    # Das Übertragungsformat trägt höchstens sieben Blöcke je Programm.
+    MAX_BLOECKE = 7
 
     @classmethod
     def _norm_points(
@@ -306,6 +310,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         points: list,
         schalt: bool = False,
         grenzen: tuple[float, float] = PROGRAMMGRENZEN_FORMAT,
+        sprache: str = "de",
     ) -> list:
         if len(points) > cls.MAX_SCHALTPUNKTE:
             raise mit_text(
@@ -320,7 +325,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             val = float(p["value"])
             if schalt and val not in (0, 1):
                 raise mit_text(WindhagerValueError, "schaltwert_ungueltig")
-            val = _auf_wertraster(val, grenzen)
+            val = _auf_wertraster(val, grenzen, sprache)
             # Gerät erwartet ganze Zahl ohne Nachkommastelle, sonst .x
             num = int(val) if float(val).is_integer() else round(val, 1)
             if any(punkt["time"] == zeit for punkt in out):
@@ -356,12 +361,20 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         self._schreibbar_pruefen(d)
         schalt = self._art == "schalt"
         grenzen = self._grenzen
+        sprache = textsprache(self._sprache)
 
         if blocks:
+            if len(blocks) > self.MAX_BLOECKE:
+                raise mit_text(
+                    WindhagerValueError,
+                    "zu_viele_bloecke",
+                    hoechstens=self.MAX_BLOECKE,
+                    anzahl=len(blocks),
+                )
             value = [
                 {
                     "weekdays": self._norm_days(b.get("weekdays") or self.ALL_DAYS),
-                    "switchPoints": self._norm_points(b["switch_points"], schalt, grenzen),
+                    "switchPoints": self._norm_points(b["switch_points"], schalt, grenzen, sprache),
                 }
                 for b in blocks
             ]
@@ -369,7 +382,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             value = [
                 {
                     "weekdays": self._norm_days(weekdays or self.ALL_DAYS),
-                    "switchPoints": self._norm_points(switch_points, schalt, grenzen),
+                    "switchPoints": self._norm_points(switch_points, schalt, grenzen, sprache),
                 }
             ]
         else:
@@ -377,18 +390,14 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
 
         client = self.coordinator.client
         # Aktuelles Objekt als Envelope lesen (Felder wie OID/typeId erhalten).
+        # Ohne gelesenes Objekt ist der Untertyp unbelegt; ein Fensterprogramm verlöre seine Fenster.
         data, status = await client.fetch_object(full_oid)
-        if status == 200 and isinstance(data, dict):
-            if not _traegt_schaltpunkte(data):
-                raise mit_text(WindhagerValueError, "zeitprogramm_nicht_aenderbar")
-            payload = dict(data)
-            payload.pop("timestamp", None)
-        else:
-            payload = {
-                "OID": full_oid,
-                "typeId": d.get("typeId", 30),
-                "subtypeId": d.get("subtypeId", 14),
-            }
+        if status != 200 or not isinstance(data, dict):
+            raise mit_text(WindhagerError, "zeitprogramm_nicht_lesbar", oid=full_oid)
+        if not _traegt_schaltpunkte(data):
+            raise mit_text(WindhagerValueError, "zeitprogramm_nicht_aenderbar")
+        payload = dict(data)
+        payload.pop("timestamp", None)
         payload["value"] = value
 
         await client.write_object(full_oid, payload)
