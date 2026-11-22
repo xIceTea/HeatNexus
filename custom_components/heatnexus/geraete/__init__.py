@@ -7,6 +7,8 @@ Integration liest. Eine weitere Baureihe ist eine Datei und ein Eintrag in
 
 from __future__ import annotations
 
+from collections.abc import Callable
+import json
 import re
 from types import ModuleType
 
@@ -142,6 +144,59 @@ def satz_trifft(wert: str, satz: dict) -> bool:
     if "ausser" in satz:
         return wert not in satz["ausser"]
     return wert in satz["values"]
+
+
+def _gemeldet(meta: dict, wert: int) -> bool:
+    """Ob die Steuerung den Wert für die Einstellung nennt; ohne Aufzählung und Bereich gilt jeder."""
+    try:
+        if (roh := meta.get("enum")) not in (None, ""):
+            return wert in {int(w) for w in (json.loads(roh) if isinstance(roh, str) else roh)}
+        if meta.get("minValue") is not None and meta.get("maxValue") is not None:
+            return float(meta["minValue"]) <= wert <= float(meta["maxValue"])
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def schaltwert(meta: dict | None) -> int | None:
+    """Der Wert einer Einstellung als Zahl; None, wenn er unlesbar oder nicht gemeldet ist."""
+    try:
+        wert = float((meta or {}).get("value"))
+    except (TypeError, ValueError):
+        return None
+    if not wert.is_integer():
+        return None
+    return int(wert) if _gemeldet(meta or {}, int(wert)) else None
+
+
+def satz_widerspricht(meta: dict | None, satz: dict) -> bool:
+    """Ob der Wert den Satz belegt verneint. Unlesbar oder unbelegt verneint nie."""
+    wert = schaltwert(meta)
+    if wert is None:
+        return False
+    if "ausser" in satz:
+        return str(wert) in satz["ausser"]
+    return str(wert) not in satz["values"]
+
+
+def wegnahme(
+    bedingungen: dict[str, list[dict]], rolle: dict | None, quelle: Callable[[str], dict | None]
+) -> set[str]:
+    """Adressen eines Geräts, die belegt ohne Aufgabe sind; `quelle` liefert Metadaten je Adresse.
+
+    Eine Adresse entfällt nur, wenn jeder ihrer Sätze widerspricht, und eine Rolle
+    zählt nur, wenn die Rollentabelle sie nennt.
+    """
+    weg = {
+        adresse
+        for adresse, saetze in bedingungen.items()
+        if saetze and all(satz_widerspricht(quelle(s["oid"]), s) for s in saetze)
+    }
+    if rolle:
+        wert = schaltwert(quelle(rolle["quelle"]))
+        if wert in set().union(*rolle["nur_bei"].values()):
+            weg |= {a for a, erlaubt in rolle["nur_bei"].items() if wert not in erlaubt}
+    return weg
 
 
 # Zustandstexte für Adressen ohne Tabelle in der Herstellerdatei, deutsch.

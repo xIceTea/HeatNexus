@@ -909,6 +909,61 @@ def test_ohne_puffermodul_behaelt_das_logwin_seinen_puffer(client_module):
     assert len(client.devices) == 3
 
 
+@pytest.mark.parametrize("schaltwert", ["-", "-.-", "", "Text"])
+def test_unlesbarer_schaltwert_der_herstellerbedingung_nimmt_nichts_weg(client_module, schaltwert):
+    assert _gefiltert(client_module, 20, ("0/22",), {"29/1": schaltwert}) == {"0/22"}
+
+
+@pytest.mark.parametrize(
+    ("quelle", "bleibt"),
+    [
+        ({"value": "7", "minValue": "0", "maxValue": "1"}, True),
+        ({"value": "7", "enum": "[0,1]"}, True),
+        ({"value": "0", "minValue": "0", "maxValue": "1"}, False),
+        ({"value": "0.0", "enum": "[0,1]"}, False),
+    ],
+)
+def test_herstellerbedingung_nimmt_nur_bei_einem_wert_aus_dem_bereich_weg(
+    client_module, quelle, bleibt
+):
+    """Ein Wert außerhalb dessen, was die Steuerung für die Einstellung meldet, ist kein Gegenbeleg."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid="/1/14/0/0/22/0", fct_type=20, name="0/22", type="sensor"
+        )
+    ]
+    client.oids = {"/1/14/0/0/22/0"}
+    client._rollen_filter({"/1/14/0/29/1/0": quelle})
+
+    assert bool(client.devices) is bleibt
+
+
+@pytest.mark.parametrize(
+    ("werte", "bleibt"),
+    [
+        ({"29/1": "0"}, True),
+        ({"29/1": "0", "29/0": "-"}, True),
+        ({"29/1": "0", "29/0": "1"}, True),
+        ({"29/1": "0", "29/0": "0"}, False),
+    ],
+)
+def test_mehrere_saetze_nehmen_nur_weg_wenn_jeder_widerspricht(client_module, werte, bleibt):
+    """`22/31` gilt mit `29/1` oder `29/0`; ein unbekannter Satz kann die Adresse freischalten."""
+    assert ("22/31" in _gefiltert(client_module, 20, ("22/31",), werte)) is bleibt
+
+
+@pytest.mark.parametrize(
+    "quelle", [{"value": "7"}, {"value": "7", "minValue": "0", "maxValue": "9"}, {"value": "-"}]
+)
+def test_unbelegte_modulfunktion_nimmt_nichts_weg(client_module, quelle):
+    """Die Rollentabelle nennt die Modulfunktionen 0–5; eine andere ist kein Gegenbeleg."""
+    client, _ = _puffer_client(client_module, 0)
+    client._rollen_filter({"/1/16/1/20/4/0": quelle})
+
+    assert len(client.devices) == 4
+
+
 def test_das_puffermodul_fuehrt_seine_betriebsart_als_eigene_entitaet():
     """Neben der abgeleiteten Pufferladung: Der Verlauf soll 14, 15 und 16 unterscheiden."""
     from custom_components.heatnexus.geraete import umschaltung

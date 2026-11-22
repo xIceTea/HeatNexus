@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from collections.abc import Callable
 import contextlib
 import json
 import logging
@@ -425,48 +426,36 @@ class MetadatenMixin:
         except (TypeError, ValueError):
             return "string_sensor"
 
+    def _schaltpraefixe(self) -> dict[str, int]:
+        """Je Funktionspräfix der Funktionstyp, dessen Sichtbarkeitsregeln dort gelten."""
+        return {
+            p: d["fct_type"]
+            for d in self.devices
+            if d.get("fct_type") and (p := self._praefix_aus_oid(d.get("oid")))
+        }
+
+    @staticmethod
+    def _wegnahme(
+        praefixe: dict[str, int], quelle: Callable[[str], dict | None]
+    ) -> dict[str, set[str]]:
+        """Je Präfix die Adressen ohne Aufgabe; `quelle` liefert die Metadaten einer OID."""
+        return {
+            p: geraete.wegnahme(
+                {**get_conditions(fct), **geraete.BEDINGUNGEN.get(fct, {})},
+                ROLLEN_FILTER.get(fct),
+                lambda adresse, p=p: quelle(f"{p}/{adresse}/0"),
+            )
+            for p, fct in praefixe.items()
+        }
+
     def _rollen_filter(self, meta: dict) -> None:
-        """Datenpunkte verwerfen, die an dieser Anlage keine Aufgabe haben.
+        """Datenpunkte verwerfen, die an dieser Anlage belegt keine Aufgabe haben.
 
         Zwei Quellen: die Bedingungen der Herstellerdatei und `ROLLEN_FILTER`
-        für das, was dort fehlt. Beide brauchen einen lesbaren Schaltwert —
-        ohne ihn bleibt alles stehen.
+        für das, was dort fehlt. Beide brauchen einen lesbaren, gemeldeten
+        Schaltwert — ohne ihn bleibt alles stehen.
         """
-        weg_je_praefix: dict[str, set[str]] = {}
-
-        def wert(praefix: str, adresse: str) -> str | None:
-            return (meta.get(f"{praefix}/{adresse}/0") or {}).get("value")
-
-        for fct_type in {d.get("fct_type") for d in self.devices if d.get("fct_type")}:
-            praefixe = {
-                p
-                for d in self.devices
-                if d.get("fct_type") == fct_type and (p := self._praefix_aus_oid(d.get("oid")))
-            }
-            bedingungen = {**get_conditions(fct_type), **geraete.BEDINGUNGEN.get(fct_type, {})}
-            regel = ROLLEN_FILTER.get(fct_type)
-            for praefix in praefixe:
-                weg = weg_je_praefix.setdefault(praefix, set())
-                # Die Herstellerdatei nennt je Adresse, welche Einstellung sie
-                # freischaltet. Trifft kein Satz zu, ist sie ohne Aufgabe.
-                for adresse, saetze in bedingungen.items():
-                    geprueft = [
-                        (str(wert(praefix, s["oid"])), s)
-                        for s in saetze
-                        if wert(praefix, s["oid"]) is not None
-                    ]
-                    if geprueft and not any(geraete.satz_trifft(ist, s) for ist, s in geprueft):
-                        weg.add(adresse)
-                if not regel:
-                    continue
-                try:
-                    rolle = int(float(wert(praefix, regel["quelle"])))
-                except (TypeError, ValueError):
-                    continue
-                weg |= {
-                    adresse for adresse, erlaubt in regel["nur_bei"].items() if rolle not in erlaubt
-                }
-
+        weg_je_praefix = self._wegnahme(self._schaltpraefixe(), meta.get)
         if not any(weg_je_praefix.values()):
             return
         behalten, entfallen = [], []
