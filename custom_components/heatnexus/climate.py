@@ -471,6 +471,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         new_mode = 0 if hvac_mode == HVACMode.OFF else 1
         stand = self._stand()
         self._ruecksprung_verwerfen()
+        # HEAT behält eine Betriebswahl, die schon heizt; nur Standby und WW-Betrieb schalten um.
+        if new_mode and self.hvac_mode == HVACMode.HEAT:
+            self.async_write_ha_state()
+            return
         self._set_optimistic_mode(new_mode)
         await self._schreiben(stand, ("/3/50/0", str(new_mode)))
         self._start_fast_refresh()
