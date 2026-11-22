@@ -59,13 +59,20 @@ def test_waermespeicher_rechnet_die_nacht(haus):
         "fehler_bleibt": 0.56,
         "vergleiche": 9,
         "tage": 13,
-        "status": "beobachtet",
+        "status": "aktiv",
     }
     befund = haus.waermespeicher(modell, raum=21.9, aussen=6.8)
     assert befund.wert == 36.0
-    assert befund.stufe == "vorlaeufig"
+    assert befund.stufe == "belastbar"
     assert befund.angaben["nacht"]["nach"] == pytest.approx(18.9, abs=0.05)
     assert befund.angaben["ziel"] == pytest.approx(0.45, abs=0.005)
+
+
+def test_waermespeicher_bleibt_ohne_wert_bis_das_modell_freigegeben_ist(haus):
+    modell = {"auskuehlzeit_h": 8.5, "status": "beobachtet", "vergleiche": 1, "tage": 14}
+    befund = haus.waermespeicher(modell, raum=21.0, aussen=5.0)
+    assert (befund.status, befund.wert) == ("sammelt", None)
+    assert (befund.angaben["vergleiche"], befund.angaben["tage"]) == (1, 14)
 
 
 def test_waermespeicher_ohne_modell(haus):

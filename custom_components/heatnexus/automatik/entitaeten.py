@@ -283,7 +283,7 @@ class AutomatikSonnenquote(AutomatikWert):
 
 
 class AutomatikAuskuehlzeit(AutomatikWert):
-    """Die gelernte Auskühlzeit des Hauses; solange das Modell lernt, leer."""
+    """Die gelernte Auskühlzeit des Hauses; leer, bis das Modell freigegeben ist."""
 
     ART = "auskuehlzeit"
     _attr_translation_key = "automatik_auskuehlzeit"
@@ -294,7 +294,9 @@ class AutomatikAuskuehlzeit(AutomatikWert):
 
     def _wert(self, laufzeit: Laufzeit) -> float | None:
         modell = laufzeit.hausmodell
-        return None if modell is None else round(modell.auskuehlzeit_h, 1)
+        if not hausmodell.freigegeben(modell):
+            return None
+        return round(modell.auskuehlzeit_h, 1)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
