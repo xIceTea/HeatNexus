@@ -880,6 +880,9 @@
     "zu_viele_schaltpunkte": {
       "message": "At most {hoechstens} switching points per block, {anzahl} were given."
     },
+    "wochentag_doppelt": {
+      "message": "Each weekday may appear in one block only. Given more than once: {tage}."
+    },
     "zu_viele_bloecke": {
       "message": "At most {hoechstens} blocks per schedule, {anzahl} were given."
     },

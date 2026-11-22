@@ -298,6 +298,16 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         # in Wochenreihenfolge sortieren
         return [d for d in cls.ALL_DAYS if d in out]
 
+    @classmethod
+    def _tage_einmal(cls, bloecke: list, sprache: str) -> None:
+        """Jeder Wochentag gehört zu höchstens einem Block."""
+        tage = [tag for block in bloecke for tag in block["weekdays"]]
+        doppelt = [tag for tag in cls.ALL_DAYS if tage.count(tag) > 1]
+        if doppelt:
+            raise mit_text(
+                WindhagerValueError, "wochentag_doppelt", tage=cls._fmt_days(doppelt, sprache)
+            )
+
     # Die Anlage nimmt je Tag bzw. Block höchstens sechs Schaltzeiten an.
     # Besser hier ablehnen als die Anlage kommentarlos kürzen lassen.
     MAX_SCHALTPUNKTE = 6
@@ -378,6 +388,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
                 }
                 for b in blocks
             ]
+            self._tage_einmal(value, sprache)
         elif switch_points:
             value = [
                 {

@@ -880,6 +880,9 @@
     "zu_viele_schaltpunkte": {
       "message": "Maximaal {hoechstens} schakelpunten per blok, er zijn er {anzahl} opgegeven."
     },
+    "wochentag_doppelt": {
+      "message": "Elke weekdag mag maar in één blok staan. Meer dan eens opgegeven: {tage}."
+    },
     "zu_viele_bloecke": {
       "message": "Maximaal {hoechstens} blokken per tijdprogramma, er zijn er {anzahl} opgegeven."
     },

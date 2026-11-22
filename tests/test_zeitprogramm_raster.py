@@ -185,5 +185,26 @@ def test_die_fehlertexte_der_aktion_stehen_in_allen_sprachen():
         "translations/nl.json",
     ):
         texte = json.loads((wurzel / datei).read_text(encoding="utf-8"))["exceptions"]
-        for schluessel in ("zu_viele_bloecke", "zeitprogramm_nicht_lesbar"):
+        for schluessel in ("zu_viele_bloecke", "zeitprogramm_nicht_lesbar", "wochentag_doppelt"):
             assert texte[schluessel]["message"], (datei, schluessel)
+
+
+@pytest.mark.parametrize(
+    ("sprache", "tage"),
+    [("de", "Mo, Mi"), ("en", "Mo, We"), ("nl", "Ma, Wo")],
+)
+async def test_ein_wochentag_in_zwei_bloecken_wird_abgewiesen(sprache, tage):
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity, client = _programm("3/61")
+    client.sprache = sprache
+    punkte = [{"time": "06:00", "value": 20}]
+    bloecke = [
+        {"weekdays": ["Mo", "Tu", "We"], "switch_points": punkte},
+        {"weekdays": ["Mo", "We", "Fr"], "switch_points": punkte},
+    ]
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(blocks=bloecke)
+    assert fehler.value.translation_key == "wochentag_doppelt"
+    assert fehler.value.translation_placeholders == {"tage": tage}
+    assert client.objekte == []

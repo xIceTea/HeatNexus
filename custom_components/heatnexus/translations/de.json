@@ -880,6 +880,9 @@
     "zu_viele_schaltpunkte": {
       "message": "Höchstens {hoechstens} Schaltpunkte je Block, angegeben wurden {anzahl}."
     },
+    "wochentag_doppelt": {
+      "message": "Jeder Wochentag darf nur in einem Block stehen. Mehrfach angegeben: {tage}."
+    },
     "zu_viele_bloecke": {
       "message": "Höchstens {hoechstens} Blöcke je Programm, angegeben wurden {anzahl}."
     },
