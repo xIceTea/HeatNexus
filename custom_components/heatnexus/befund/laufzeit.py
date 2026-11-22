@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 import logging
 from typing import Any
@@ -21,7 +22,7 @@ from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
-from ..automatik.verwaltung import Verwaltung, verwaltung_holen
+from ..automatik.verwaltung import Verwaltung, datei_sichern, verwaltung_holen
 from ..const import BEFUND_UMZUG, CONF_HEIZRAUM, DOMAIN, POLL_BEFUND
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
@@ -202,10 +203,20 @@ class Sammler:
         self._wp_lauf: dict[str, float | None] = {}
         # Adressen, die der Befund selbst zum Lesen angemeldet hat; `beenden` meldet sie ab.
         self._abruf: set[str] = set()
+        # Ein unlesbarer Store ohne Kopie bleibt unberührt; der Befund läuft nur im Speicher.
+        self._schreibschutz = False
+        # Teile des Takts, deren Fehler schon als Warnung im Protokoll steht.
+        self._gewarnt: set[str] = set()
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
-        self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
+        try:
+            self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
+        except Exception:  # ein defekter Befund darf die Einrichtung nicht aufhalten
+            _LOGGER.warning(
+                "Befund %s: Speicher nicht lesbar, beginne leer", self.anlage_id, exc_info=True
+            )
+            await self._unlesbar_sichern()
         if self._veraltet():
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
@@ -223,8 +234,17 @@ class Sammler:
             await alter.async_remove()
         return roh
 
+    async def _unlesbar_sichern(self) -> None:
+        """Wie die Automatik: Die unlesbare Datei bleibt als Kopie, bevor ein Speichern sie ersetzt."""
+        try:
+            await self.hass.async_add_executor_job(datei_sichern, self._store.path)
+        except OSError as fehler:
+            _LOGGER.error("Befund %s: Speicher nicht gesichert: %s", self.anlage_id, fehler)
+            self._schreibschutz = True
+
     def speichern(self) -> None:
-        self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)
+        if not self._schreibschutz:
+            self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)
 
     async def beenden(self) -> None:
         if self._aufgabe is not None and not self._aufgabe.done():
@@ -233,7 +253,8 @@ class Sammler:
             for oid in self._abruf:
                 abmelden(oid, POLL_BEFUND)
         self._abruf = set()
-        await self._store.async_save(self.archiv.als_dict())
+        if not self._schreibschutz:
+            await self._store.async_save(self.archiv.als_dict())
 
     # --- Quellen ------------------------------------------------------------
     def kreise(self) -> list[dict[str, Any]]:
@@ -312,17 +333,34 @@ class Sammler:
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
-        pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
-        brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
-        self._abruf_anmelden()
-        self._abgas_lauf = abgaslauf.messen(
-            self.coordinator, self.archiv, self._abgas_lauf, zeit, self._heizraum()
+        c, archiv = self.coordinator, self.archiv
+        self._schritt("pflege", lambda: pflegelauf.messen(c, archiv, zeit.date()), None)
+        self._schritt("brennstoff", lambda: brennstofflauf.messen(c, archiv, zeit.date()), None)
+        self._schritt("abruf", self._abruf_anmelden, None)
+        self._abgas_lauf = self._schritt(
+            "abgas",
+            lambda: abgaslauf.messen(c, archiv, self._abgas_lauf, zeit, self._heizraum()),
+            self._abgas_lauf,
         )
-        self._wp_lauf = waermepumpelauf.messen(self.coordinator, self.archiv, self._wp_lauf, zeit)
+        self._wp_lauf = self._schritt(
+            "waermepumpe",
+            lambda: waermepumpelauf.messen(c, archiv, self._wp_lauf, zeit),
+            self._wp_lauf,
+        )
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
             self.aktualisieren()
+
+    def _schritt[T](self, art: str, schritt: Callable[[], T], sonst: T) -> T:
+        """Ein Teil des Takts; scheitert er, laufen die übrigen weiter, gewarnt wird einmal je Teil."""
+        try:
+            return schritt()
+        except Exception:  # der Befund ist eine Zugabe; ein Teil hält die Stunde nicht auf
+            stufe = logging.DEBUG if art in self._gewarnt else logging.WARNING
+            self._gewarnt.add(art)
+            _LOGGER.log(stufe, "Befund %s: %s fehlgeschlagen", self.anlage_id, art, exc_info=True)
+            return sonst
 
     # --- Nachrechnen ----------------------------------------------------------
     def _reihen(self) -> dict[tuple[str, str], dict[str, str]]:

@@ -1015,3 +1015,114 @@ async def test_ein_fehler_bei_den_kennungen_haelt_den_stand_nicht_auf(hass, anla
     sammler.aktualisieren()
     assert sammler.letzter is not None
     sammler.nachziehen()
+
+
+def _datei_anlegen(pfad: str) -> None:
+    from pathlib import Path
+
+    datei = Path(pfad)
+    datei.parent.mkdir(parents=True, exist_ok=True)
+    datei.write_text('{"version": 9}', encoding="utf-8")
+
+
+def _gesichert(pfad: str) -> list[str]:
+    from pathlib import Path
+
+    datei = Path(pfad)
+    return [g.read_text(encoding="utf-8") for g in datei.parent.glob(f"{datei.name}.kaputt-*")]
+
+
+def _unlesbarer_speicher(monkeypatch, tmp_path) -> None:
+    """Jedes Archiv scheitert beim Lesen; die Datei liegt im Testordner, nicht in der Konfiguration."""
+    from custom_components.heatnexus.befund import laufzeit
+
+    original = laufzeit.speicher
+
+    def speicher(hass, entry_id, host):
+        store = original(hass, entry_id, host)
+
+        async def laden():
+            raise RuntimeError("Fassung unbekannt")
+
+        store.async_load = laden
+        store.__dict__["path"] = str(tmp_path / ".storage" / store.key)
+        return store
+
+    monkeypatch.setattr(laufzeit, "speicher", speicher)
+
+
+async def _starten_als(hass, entry_id: str):
+    from homeassistant.config_entries import ConfigEntryState
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.befund.laufzeit import befund_holen
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id=entry_id, state=ConfigEntryState.LOADED)
+    eintrag.add_to_hass(hass)
+    eintrag.runtime_data = {"coordinators": {"192.0.2.10": Coordinator()}}
+    verwaltung = befund_holen(hass)
+    await verwaltung.eintrag_starten(eintrag)
+    return verwaltung, eintrag
+
+
+async def test_ein_unlesbares_archiv_bleibt_als_kopie(hass, monkeypatch, tmp_path):
+    _unlesbarer_speicher(monkeypatch, tmp_path)
+    pfad = str(tmp_path / ".storage" / "heatnexus.befund_e1_192_0_2_10")
+    await hass.async_add_executor_job(_datei_anlegen, pfad)
+
+    verwaltung, eintrag = await _starten_als(hass, "e1")
+    await verwaltung.eintrag_stoppen(eintrag)
+
+    assert await hass.async_add_executor_job(_gesichert, pfad) == ['{"version": 9}']
+
+
+async def test_ohne_kopie_wird_das_archiv_nicht_ueberschrieben(
+    hass, hass_storage, monkeypatch, tmp_path
+):
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import laufzeit
+
+    _unlesbarer_speicher(monkeypatch, tmp_path)
+
+    def kopie_misslingt(_pfad):
+        raise OSError("Datenträger voll")
+
+    monkeypatch.setattr(laufzeit, "datei_sichern", kopie_misslingt)
+    verwaltung, eintrag = await _starten_als(hass, "e2")
+    sammler = next(iter(verwaltung.sammler.values()))
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    await sammler.messen(jetzt)
+    await sammler.messen(jetzt + timedelta(hours=1))
+    await verwaltung.eintrag_stoppen(eintrag)
+
+    assert "heatnexus.befund_e2_192_0_2_10" not in hass_storage
+
+
+async def test_ein_fehler_im_befundschritt_haelt_die_stunde_nicht_auf(
+    hass, anlage, monkeypatch, caplog
+):
+    import logging
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import pflegelauf
+
+    def kaputt(*_args):
+        raise ValueError("Pflegestand unlesbar")
+
+    monkeypatch.setattr(pflegelauf, "messen", kaputt)
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    gespeichert: list[int] = []
+    monkeypatch.setattr(sammler, "speichern", lambda: gespeichert.append(1))
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in (0, 5, 60, 65):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+
+    assert gespeichert
+    warnungen = [
+        r for r in caplog.records if r.levelno == logging.WARNING and "pflege" in r.getMessage()
+    ]
+    assert len(warnungen) == 1

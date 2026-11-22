@@ -174,6 +174,17 @@ def test_vergleich_zeigt_anstieg_seit_reinigung(ab):
     assert verlust.wert == pytest.approx(22.0 * (0.68 / 14 + 0.0085), abs=0.01)
 
 
+def test_vergleich_nimmt_sieben_tage_ohne_heute(ab):
+    heute = date(2026, 11, 30)
+    bezug = tage(ab, date(2026, 10, 1), 14, 40.0)
+    jetzt = tage(ab, date(2026, 11, 23), 7, 62.0)
+    angefangen = tage(ab, heute, 1, 140.0)
+    dt, _ = ab.vergleich(
+        bezug | jetzt | angefangen, "2026-10-01", heute, ohne_leistung=False, brennstoff_="pellets"
+    )
+    assert dt.wert == pytest.approx(22.0)
+
+
 def test_vergleich_unauffaellig_und_belastbar_mit_zwei_stufen(ab):
     heute = date(2026, 11, 30)
     daten = tage(ab, date(2026, 10, 1), 14, 40.0) | {}

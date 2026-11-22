@@ -155,7 +155,7 @@ def _normalisiert(roh: Any) -> dict[str, Any]:
     return {"heizkreise": ergebnis}
 
 
-def _sichern(pfad: str) -> None:
+def datei_sichern(pfad: str) -> None:
     """Eine unlesbare Datei neben sich kopieren, bevor der nächste Schreibvorgang sie ersetzt."""
     datei = Path(pfad)
     if datei.exists():
@@ -212,7 +212,7 @@ class Verwaltung:
         except Exception:  # eine unlesbare Datei darf das Setup nicht verhindern
             _LOGGER.exception("Automatik: Store %s unlesbar, beginne ohne Einstellungen", STORE_KEY)
         try:
-            await self.hass.async_add_executor_job(_sichern, self._store.path)
+            await self.hass.async_add_executor_job(datei_sichern, self._store.path)
         except OSError as fehler:
             _LOGGER.error("Automatik: Store %s nicht gesichert: %s", STORE_KEY, fehler)
         return None
