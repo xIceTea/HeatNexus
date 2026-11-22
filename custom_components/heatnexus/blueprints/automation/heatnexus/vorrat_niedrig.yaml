@@ -22,10 +22,13 @@ blueprint:
     zustaende:
       name: Zustände, die gemeldet werden
       description: >
-        Genau so schreiben, wie der Sensor sie anzeigt. Die Vorgabe passt zum
-        PuroWIN; „Fehler Vorratsbehälter" lässt sich ergänzen.
+        Genau so schreiben, wie der Sensor sie anzeigt. Die Vorgabe nennt den
+        leeren Behälter des PuroWIN in jeder Sprache von HeatNexus; „Fehler
+        Vorratsbehälter" lässt sich ergänzen.
       default:
         - Vorratsbehälter leer
+        - Fuel hopper empty
+        - Reservoir leeg
       selector:
         text:
           multiple: true

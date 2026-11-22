@@ -62,6 +62,50 @@ async def test_waehrend_des_laufs_liefert_der_abruf_den_bekannten_stand(client, 
     assert gesehen[0]["devices"] == KERN
 
 
+async def test_ein_magerer_abgleich_gilt_nicht_als_vollstaendig(client, monkeypatch, ohne_pause):
+    """Der alte Stand bleibt, aber er wird nicht als Ergebnis der neuen Fassung gespeichert."""
+    bekannt = {f"/1/60/0/9/{n}/0" for n in range(100)}
+    client.oids = set(bekannt)
+    client._vollstaendig = True
+
+    async def discover(nur_kern=False):
+        client.oids = {"/1/60/0/9/0/0"}
+
+    async def nichts():
+        return None
+
+    monkeypatch.setattr(client, "_discover", discover)
+    monkeypatch.setattr(client, "_apply_metadata", nichts)
+
+    ergebnis = await ohne_pause._einlesen_mit_wiederholung(client, "192.0.2.10", True)
+
+    assert ergebnis != ohne_pause.EINLESEN_VOLL
+    assert client.oids == bekannt
+    assert client._vollstaendig is True
+
+
+async def test_nach_einem_magerlauf_nennt_das_protokoll_den_magerschutz(
+    client, monkeypatch, ohne_pause, caplog
+):
+    client.oids = {f"/1/60/0/9/{n}/0" for n in range(100)}
+    client._vollstaendig = True
+
+    async def discover(nur_kern=False):
+        client.oids = {"/1/60/0/9/0/0"}
+
+    async def nichts():
+        return None
+
+    monkeypatch.setattr(client, "_discover", discover)
+    monkeypatch.setattr(client, "_apply_metadata", nichts)
+
+    await ohne_pause._einlesen_mit_wiederholung(client, "192.0.2.10", True)
+
+    (schluss,) = [r.getMessage() for r in caplog.records if "nicht vollständig" in r.getMessage()]
+    assert "Magerschutz" in schluss
+    assert "Metadaten" not in schluss
+
+
 async def _wert(oid):
     return oid, "1"
 
@@ -74,6 +118,7 @@ class _Client:
         self.fehler = fehler
         self.laeufe = 0
         self.erkennung_unvollstaendig = False
+        self.magerlauf = False
         self.stumme_teile = []
 
     async def async_init(self, erzwingen=False):

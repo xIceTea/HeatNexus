@@ -480,3 +480,30 @@ def test_abwesend_laesst_eine_handaenderung_stehen(abwesend, jetzt, stellt_zurue
         modus_abwesend="5",
     )
     assert ergebnis == str(stellt_zurueck)
+
+
+# ---------------------------------------------------------------------------
+# Brennstoffvorrat: der Zustand ist Text in der Sprache des Eintrags
+# ---------------------------------------------------------------------------
+VORRAT = VORLAGEN / "vorrat_niedrig.yaml"
+
+
+def _leer_namen() -> list[str]:
+    """Wie „Vorratsbehälter leer“ (`39/76` = 1) in jeder Sprache heißt."""
+    import json
+
+    paket = VORLAGEN.parent.parent.parent
+    datenbank = json.loads((paket / "device_db.json").read_text(encoding="utf-8"))
+    namen = [datenbank["enums"]["39/76"]["1"]]
+    return namen + [t["enums"]["39/76"]["1"] for t in datenbank.get("sprachen", {}).values()]
+
+
+@pytest.mark.parametrize("zustand", _leer_namen())
+def test_ein_leerer_vorrat_meldet_sich_in_jeder_sprache(zustand):
+    vorrat = yaml.load(VORRAT.read_text(encoding="utf-8"), Loader=_Lader)
+    vorgabe = vorrat["blueprint"]["input"]["zustaende"]["default"]
+    (bedingung,) = vorrat["conditions"]
+    ergebnis = _rendern(
+        bedingung["value_template"], vorrat_zustand=zustand, gemeldete_zustaende=vorgabe
+    )
+    assert ergebnis == "True"

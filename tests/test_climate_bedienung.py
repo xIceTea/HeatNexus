@@ -79,6 +79,33 @@ async def test_ein_gewaehlter_modus_loescht_den_ruecksprung(thermostat):
     assert entitaet._modus_davor is None
 
 
+@pytest.mark.parametrize("modus", ["2", "3", "4", "5", "7"])
+async def test_heizen_laesst_einen_heizenden_kreis_in_seiner_betriebswahl(thermostat, modus):
+    entitaet, koordinator, _ = thermostat
+    koordinator.data["oids"]["/1/15/0/3/50/0"] = modus
+    await entitaet.async_set_hvac_mode("heat")
+    assert koordinator.client.geschrieben == []
+    assert entitaet.preset_mode == modus
+
+
+@pytest.mark.parametrize("modus", ["0", "6"])
+async def test_heizen_schaltet_einen_ausgeschalteten_kreis_auf_programm_1(thermostat, modus):
+    entitaet, koordinator, _ = thermostat
+    koordinator.data["oids"]["/1/15/0/3/50/0"] = modus
+    await entitaet.async_set_hvac_mode("heat")
+    assert koordinator.client.geschrieben == [("/1/15/0/3/50/0", "1")]
+
+
+async def test_heizen_waehrend_einer_vorgabe_verwirft_den_ruecksprung(thermostat):
+    """Der Kreis heizt weiter, nachdem die Vorgabe endet."""
+    entitaet, koordinator, _ = thermostat
+    koordinator.data["oids"]["/1/15/0/3/50/0"] = "1"
+    entitaet._modus_davor = 6
+    await entitaet.async_set_hvac_mode("heat")
+    assert koordinator.client.geschrieben == []
+    assert entitaet._modus_davor is None
+
+
 async def test_ein_schreibfehler_nimmt_die_anzeige_zurueck(thermostat):
     entitaet, koordinator, _ = thermostat
     entitaet._modus_davor = 0
