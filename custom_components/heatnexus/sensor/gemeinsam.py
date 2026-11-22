@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+from enum import IntFlag
+
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+
+
+class SensorMerkmal(IntFlag):
+    """Was ein Sensor an Aktionen ausführt; Home Assistant ruft eine Aktion nur an Sensoren mit ihrem Merkmal."""
+
+    MELDUNGEN_LEEREN = 1
+    STOERSPEICHER = 2
+    ZEITPROGRAMM = 4
+
 
 STATE_CLASS_MAP = {
     "measurement": SensorStateClass.MEASUREMENT,

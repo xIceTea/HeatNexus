@@ -819,3 +819,51 @@ def test_meldungsliste_waechst_nicht_ohne_grenze(sensoren):
     assert len(codes) == grenze
     assert 100 + grenze + 9 in codes  # die anstehende bleibt
     assert 100 not in codes  # die älteste erledigte geht
+
+
+# ---------------------------------------------------------------------------
+# Aktionen am Sensor treffen nur Sensoren mit der passenden Methode
+# ---------------------------------------------------------------------------
+class _Plattform:
+    def __init__(self) -> None:
+        self.dienste: dict[str, tuple[str, object]] = {}
+
+    def async_register_entity_service(self, name, schema, methode, required_features=None):
+        self.dienste[name] = (methode, required_features)
+
+
+def _erreicht(entity, merkmale) -> bool:
+    """Der Filter von Home Assistant: Ohne passendes Merkmal wird die Methode nicht aufgerufen."""
+    if merkmale is None:
+        return True
+    eigene = entity.supported_features
+    return eigene is not None and any(eigene & m == m for m in merkmale)
+
+
+def test_aktionen_erreichen_nur_sensoren_mit_der_methode(sensoren):
+    from custom_components.heatnexus.sensor.stoerspeicher import StoerspeicherSensor
+
+    from .test_stoerspeicher import _koordinator
+
+    plattform = _Plattform()
+    sensoren.dienste_anmelden(plattform)
+    temperatur, _ = _entitaet(sensoren.WindhagerTemperatureSensor, {}, type="temperature")
+    alle = [
+        temperatur,
+        _zeitprogramm(sensoren, []),
+        _liste(sensoren)[0],
+        StoerspeicherSensor(_koordinator(None)),
+    ]
+    assert set(plattform.dienste) == {
+        "meldungen_loeschen",
+        "stoerung_quittieren",
+        "stoerung_zuruecksetzen",
+        "stoerung_loeschen",
+        "set_time_program",
+    }
+    for name, (methode, merkmale) in plattform.dienste.items():
+        for entity in alle:
+            assert _erreicht(entity, merkmale) == hasattr(entity, methode), (
+                name,
+                type(entity).__name__,
+            )

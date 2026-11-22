@@ -21,6 +21,7 @@ from ..const import CONF_STOERUNG_ZURUECKSETZEN, DOMAIN
 from ..entity import steuerung_kennung
 from ..error_texts import parse_messages, unbekannt
 from ..exceptions import WindhagerError, WindhagerValueError, mit_text
+from .gemeinsam import SensorMerkmal
 
 _ZEIT = "%Y-%m-%d %H:%M:%S"
 # Was im Logbuch steht; die Wörter laufen durch das Wörterbuch.
@@ -97,6 +98,7 @@ class StoerspeicherSensor(CoordinatorEntity, SensorEntity):
     _attr_translation_key = "stoerspeicher"
     _attr_icon = "mdi:clipboard-alert-outline"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_supported_features = SensorMerkmal.STOERSPEICHER | SensorMerkmal.MELDUNGEN_LEEREN
     # Die Liste kommt bei jedem Abruf neu von der Steuerung; im Verlauf wäre sie Ballast.
     _unrecorded_attributes = frozenset({"eintraege"})
 

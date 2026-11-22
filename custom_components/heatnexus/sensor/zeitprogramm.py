@@ -19,6 +19,7 @@ from ..const import (
 from ..entity import WindhagerEntity
 from ..error_texts import textsprache
 from ..exceptions import WindhagerValueError, mit_text
+from .gemeinsam import SensorMerkmal
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
 SCHALTPUNKT_SCHEMA = vol.Schema(
@@ -95,6 +96,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_icon = "mdi:calendar-clock"
+    _attr_supported_features = SensorMerkmal.ZEITPROGRAMM
     # Zeitprogramme werden über den object-Endpunkt gelesen, nicht via lookup.
     _register_poll_oid = False
 

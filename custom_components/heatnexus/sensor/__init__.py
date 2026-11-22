@@ -33,7 +33,7 @@ from .ableitungen import (
     WindhagerWarmwasserAbstandSensor,
 )
 from .anlagenzustand import anmelden as anlagenzustand_anmelden
-from .gemeinsam import DEVICE_CLASSES, STATE_CLASS_MAP, anzeigezahl, zahl_aus_zustand
+from .gemeinsam import DEVICE_CLASSES, STATE_CLASS_MAP, SensorMerkmal, anzeigezahl, zahl_aus_zustand
 from .meldungen import (
     WindhagerDeviceStatusSensor,
     WindhagerErrorTextSensor,
@@ -65,30 +65,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     pflege_anmelden(hass, entry, async_add_entities)
     brennstoff_anmelden(hass, entry, async_add_entities)
 
-    platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
-    # Quittieren, Zurücksetzen und Löschen im Störspeicher des Bediengeräts.
-    eintrag = {vol.Required("eintrag"): vol.Coerce(int)}
-    platform.async_register_entity_service("stoerung_quittieren", eintrag, "async_quittieren")
-    platform.async_register_entity_service("stoerung_zuruecksetzen", eintrag, "async_zuruecksetzen")
-    platform.async_register_entity_service("stoerung_loeschen", eintrag, "async_loeschen")
+    dienste_anmelden(platform)
     stoerspeicher_anmelden(hass, entry, async_add_entities)
     anlagenzustand_anmelden(hass, entry, async_add_entities)
     verbindung_anmelden(hass, entry, async_add_entities)
     uhrzeit_anmelden(hass, entry, async_add_entities)
-
-    # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
-    # eine Zeitprogramm-Sensor-Entity. Entweder mehrere "blocks" (volle
-    # Kontrolle, je Block Wochentage + Schaltpunkte) ODER vereinfacht
-    # "switch_points" (+ optional "weekdays", Standard: täglich).
-    platform.async_register_entity_service(
-        "set_time_program",
-        {
-            vol.Optional("weekdays"): [cv.string],
-            vol.Optional("switch_points"): [SCHALTPUNKT_SCHEMA],
-            vol.Optional("blocks"): [BLOCK_SCHEMA],
-        },
-        "async_set_time_program",
-    )
 
     async_setup_entities(
         hass,
@@ -112,6 +93,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "laufzeit": WindhagerLaufzeitSensor,
             "laufzeit_heute": WindhagerLaufzeitSensor,
         },
+    )
+
+
+def dienste_anmelden(platform) -> None:
+    """Die Aktionen am Sensor; jede erreicht nur Sensoren, die sie ausführen können."""
+    platform.async_register_entity_service(
+        "meldungen_loeschen", {}, "leeren", required_features=[SensorMerkmal.MELDUNGEN_LEEREN]
+    )
+    # Quittieren, Zurücksetzen und Löschen im Störspeicher des Bediengeräts.
+    eintrag = {vol.Required("eintrag"): vol.Coerce(int)}
+    stoerspeicher = [SensorMerkmal.STOERSPEICHER]
+    for name, methode in (
+        ("stoerung_quittieren", "async_quittieren"),
+        ("stoerung_zuruecksetzen", "async_zuruecksetzen"),
+        ("stoerung_loeschen", "async_loeschen"),
+    ):
+        platform.async_register_entity_service(
+            name, eintrag, methode, required_features=stoerspeicher
+        )
+
+    # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
+    # eine Zeitprogramm-Sensor-Entity. Entweder mehrere "blocks" (volle
+    # Kontrolle, je Block Wochentage + Schaltpunkte) ODER vereinfacht
+    # "switch_points" (+ optional "weekdays", Standard: täglich).
+    platform.async_register_entity_service(
+        "set_time_program",
+        {
+            vol.Optional("weekdays"): [cv.string],
+            vol.Optional("switch_points"): [SCHALTPUNKT_SCHEMA],
+            vol.Optional("blocks"): [BLOCK_SCHEMA],
+        },
+        "async_set_time_program",
+        required_features=[SensorMerkmal.ZEITPROGRAMM],
     )
 
 
