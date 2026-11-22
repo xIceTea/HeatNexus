@@ -879,6 +879,12 @@
     "zu_viele_schaltpunkte": {
       "message": "At most {hoechstens} switching points per block, {anzahl} were given."
     },
+    "zu_viele_bloecke": {
+      "message": "At most {hoechstens} blocks per schedule, {anzahl} were given."
+    },
+    "zeitprogramm_nicht_lesbar": {
+      "message": "The schedule could not be read before writing. Nothing was written. A later attempt usually succeeds. Data point {oid}."
+    },
     "uhrzeit_ungueltig": {
       "message": "Invalid time: {uhrzeit}"
     },

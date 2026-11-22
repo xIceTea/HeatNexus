@@ -124,3 +124,66 @@ def test_das_panel_nennt_den_bereich_eines_programms(adresse, bereich):
     (karte,) = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
 
     assert karte["bereich"] == bereich
+
+
+async def test_mehr_als_sieben_bloecke_werden_abgewiesen():
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity, client = _programm("3/61")
+    bloecke = [{"weekdays": ["Mo"], "switch_points": [{"time": "06:00", "value": 20}]}] * 8
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(blocks=bloecke)
+    assert fehler.value.translation_key == "zu_viele_bloecke"
+    assert client.objekte == []
+
+
+@pytest.mark.parametrize("antwort", [(None, 0), (None, 503), ([], 200)])
+async def test_ohne_gelesenes_objekt_wird_nichts_geschrieben(antwort):
+    from homeassistant.exceptions import HomeAssistantError
+
+    entity, client = _programm("3/61")
+
+    async def lesen(oid: str):
+        return antwort
+
+    client.fetch_object = lesen
+    with pytest.raises(HomeAssistantError) as fehler:
+        await entity.async_set_time_program(switch_points=[{"time": "06:00", "value": 21}])
+    assert fehler.value.translation_key == "zeitprogramm_nicht_lesbar"
+    assert client.objekte == []
+
+
+@pytest.mark.parametrize(
+    ("sprache", "adresse", "wert", "erwartet"),
+    [
+        ("de", "3/61", 30.3, {"wert": "30,3 °C", "min": "5 °C", "max": "30 °C"}),
+        ("en", "3/61", 30.3, {"wert": "30.3 °C", "min": "5 °C", "max": "30 °C"}),
+        ("nl", "54/15", 60.8, {"wert": "60,8 °C", "min": "0 °C", "max": "60 °C"}),
+    ],
+)
+async def test_ein_wert_ausserhalb_steht_wie_die_uebrigen_werte_da(
+    sprache, adresse, wert, erwartet
+):
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity, client = _programm(adresse)
+    client.sprache = sprache
+    with pytest.raises(ServiceValidationError) as fehler:
+        await entity.async_set_time_program(switch_points=[{"time": "06:00", "value": wert}])
+    assert fehler.value.translation_placeholders == erwartet
+
+
+def test_die_fehlertexte_der_aktion_stehen_in_allen_sprachen():
+    import json
+    from pathlib import Path
+
+    wurzel = Path(__file__).resolve().parents[1] / "custom_components" / "heatnexus"
+    for datei in (
+        "strings.json",
+        "translations/de.json",
+        "translations/en.json",
+        "translations/nl.json",
+    ):
+        texte = json.loads((wurzel / datei).read_text(encoding="utf-8"))["exceptions"]
+        for schluessel in ("zu_viele_bloecke", "zeitprogramm_nicht_lesbar"):
+            assert texte[schluessel]["message"], (datei, schluessel)

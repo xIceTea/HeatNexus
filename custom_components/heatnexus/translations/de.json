@@ -879,6 +879,12 @@
     "zu_viele_schaltpunkte": {
       "message": "Höchstens {hoechstens} Schaltpunkte je Block, angegeben wurden {anzahl}."
     },
+    "zu_viele_bloecke": {
+      "message": "Höchstens {hoechstens} Blöcke je Programm, angegeben wurden {anzahl}."
+    },
+    "zeitprogramm_nicht_lesbar": {
+      "message": "Das Zeitprogramm ließ sich vor dem Schreiben nicht lesen. Es wurde nichts geschrieben. Ein späterer Versuch gelingt meist. Datenpunkt {oid}."
+    },
     "uhrzeit_ungueltig": {
       "message": "Ungültige Uhrzeit: {uhrzeit}"
     },

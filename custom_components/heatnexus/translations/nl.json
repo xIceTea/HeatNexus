@@ -879,6 +879,12 @@
     "zu_viele_schaltpunkte": {
       "message": "Maximaal {hoechstens} schakelpunten per blok, er zijn er {anzahl} opgegeven."
     },
+    "zu_viele_bloecke": {
+      "message": "Maximaal {hoechstens} blokken per tijdprogramma, er zijn er {anzahl} opgegeven."
+    },
+    "zeitprogramm_nicht_lesbar": {
+      "message": "Het tijdprogramma kon voor het schrijven niet worden gelezen. Er is niets geschreven. Een latere poging lukt meestal. Datapunt {oid}."
+    },
     "uhrzeit_ungueltig": {
       "message": "Ongeldige tijd: {uhrzeit}"
     },
