@@ -302,6 +302,7 @@ class WindhagerHttpClient(
         "_texte",
         "_vollstaendig",
         "_struktur",
+        "_schaltstand",
     )
 
     def _stand_sichern(self) -> dict:

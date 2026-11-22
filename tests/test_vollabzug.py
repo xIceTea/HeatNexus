@@ -24,6 +24,22 @@ def client():
     return c
 
 
+async def test_ein_abgebrochener_lauf_stellt_den_schaltstand_wieder_her(client, monkeypatch):
+    bekannt = {"praefixe": {"/1/60/0": 7}, "quellen": {}, "weg": {}}
+    client._schaltstand = bekannt
+
+    async def discover(nur_kern=False):
+        client._schaltstand = {"praefixe": {}, "quellen": {}, "weg": {}}
+        raise OSError("Leitung weg")
+
+    monkeypatch.setattr(client, "_discover", discover)
+
+    with pytest.raises(OSError):
+        await client.async_init()
+
+    assert client._schaltstand == bekannt
+
+
 async def test_ein_abgebrochener_lauf_stellt_den_stand_wieder_her(client, monkeypatch):
     async def discover(nur_kern=False):
         client.devices = [{"id": "halb", "oid": "/1/60/0/2/1/0"}]
