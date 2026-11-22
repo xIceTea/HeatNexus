@@ -248,6 +248,8 @@ UEBERSICHT_ERWARTET = {
         *["tile", "kennwerte"] * 2,
         "kennwerte",
     ],
+    "duowin-infowinplus": [*["leitwert", "kennwerte"] * 2, "puffer", "tile", "kennwerte"],
+    "logwin-puffer": ["leitwert", "kennwerte", "puffer", "tile", "kennwerte"],
     "purowin-uml-puffer": ["leitwert", "kennwerte", "puffer", "tile", "kennwerte"],
     "uml-puffer": ["puffer", "tile", "kennwerte"],
 }

@@ -48,6 +48,31 @@ def test_infinity_ohne_belegte_regelart_behaelt_beide_programmsaetze(geraete, ar
     assert _erfuellt(geraete, regeln["58/78"], {"7/76": art})
 
 
+@pytest.mark.parametrize(
+    ("meta", "zahl"),
+    [
+        ({"value": "1"}, 1),
+        ({"value": "1.0", "enum": "[0,1]"}, 1),
+        ({"value": "-"}, None),
+        ({"value": "0.5"}, None),
+        ({"value": "2", "minValue": "0", "maxValue": "1"}, None),
+        ({"value": "2", "enum": "[0,1]"}, None),
+        (None, None),
+    ],
+)
+def test_ein_schaltwert_zaehlt_nur_lesbar_und_gemeldet(geraete, meta, zahl):
+    assert geraete.schaltwert(meta) == zahl
+
+
+def test_nur_ein_belegter_gegenwert_widerspricht_dem_satz(geraete):
+    freigabe, gegen = {"oid": "29/1", "values": ["1"]}, {"oid": "5/6", "ausser": ["0"]}
+    assert geraete.satz_widerspricht({"value": "0"}, freigabe)
+    assert geraete.satz_widerspricht({"value": "0"}, gegen)
+    assert not geraete.satz_widerspricht({"value": "-"}, freigabe)
+    assert not geraete.satz_widerspricht(None, freigabe)
+    assert not geraete.satz_widerspricht({"value": "4"}, gegen)
+
+
 def test_jede_bedingung_hat_saetze_mit_werten(geraete):
     for fct, regeln in geraete.BEDINGUNGEN.items():
         for adresse, saetze in regeln.items():

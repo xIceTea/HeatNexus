@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from collections.abc import Callable
 import contextlib
 import json
 import logging
@@ -42,11 +43,25 @@ def _nur_anzeige(d: dict) -> bool:
     return gnmn_aus_oid(d.get("oid")) in geraete.NUR_ANZEIGE.get(d.get("fct_type"), ())
 
 
+# Was von den Metadaten eines Schaltwerts für die Neubewertung gebraucht wird.
+_SCHALTFELDER = ("value", "enum", "minValue", "maxValue")
+
+
+def _abdruck(weg_je_praefix: dict[str, set[str]]) -> list[str]:
+    """Die entfallenen Adressen als vergleichbare, speicherbare Liste."""
+    return sorted(f"{p}|{a}" for p, adressen in weg_je_praefix.items() for a in adressen)
+
+
 class MetadatenMixin:
     """Was das Gerät über seine Datenpunkte sagt, und was daraus folgt."""
 
     # writeProt=True turns a writable platform into its read-only sibling
     _READONLY_FALLBACK = READONLY_FALLBACK
+
+    # Stand der Sichtbarkeitsregeln beim Einlesen; der langsame Takt vergleicht dagegen.
+    _schaltstand: dict | None = None
+    _schalt_kandidat: list[str] | None = None
+    _schalt_gemeldet: list[str] | None = None
 
     async def _apply_metadata(self):
         """Read metadata for every OID once and refine the descriptors.
@@ -425,48 +440,83 @@ class MetadatenMixin:
         except (TypeError, ValueError):
             return "string_sensor"
 
+    def _schaltpraefixe(self) -> dict[str, int]:
+        """Je Funktionspräfix der Funktionstyp, dessen Sichtbarkeitsregeln dort gelten."""
+        return {
+            p: d["fct_type"]
+            for d in self.devices
+            if d.get("fct_type") and (p := self._praefix_aus_oid(d.get("oid")))
+        }
+
+    @staticmethod
+    def _regeln(fct: int) -> tuple[dict[str, list[dict]], dict | None]:
+        """Bedingungssätze und Rollenregel eines Funktionstyps."""
+        return {**get_conditions(fct), **geraete.BEDINGUNGEN.get(fct, {})}, ROLLEN_FILTER.get(fct)
+
+    @classmethod
+    def _wegnahme(
+        cls, praefixe: dict[str, int], quelle: Callable[[str], dict | None]
+    ) -> dict[str, set[str]]:
+        """Je Präfix die Adressen ohne Aufgabe; `quelle` liefert die Metadaten einer OID."""
+        return {
+            p: geraete.wegnahme(*cls._regeln(fct), lambda adresse, p=p: quelle(f"{p}/{adresse}/0"))
+            for p, fct in praefixe.items()
+        }
+
+    def _schaltstand_merken(self, praefixe: dict[str, int], meta: dict, weg: dict) -> None:
+        """Festhalten, welche Schaltwerte die Sichtbarkeit bestimmt haben und was entfiel."""
+        quellen = {}
+        for p, fct in praefixe.items():
+            bedingungen, rolle = self._regeln(fct)
+            adressen = {s["oid"] for saetze in bedingungen.values() for s in saetze}
+            for oid in {f"{p}/{a}/0" for a in adressen | ({rolle["quelle"]} if rolle else set())}:
+                if isinstance(m := meta.get(oid), dict):
+                    quellen[oid] = {k: m[k] for k in _SCHALTFELDER if m.get(k) is not None}
+        self._schaltstand = {"praefixe": praefixe, "quellen": quellen, "weg": _abdruck(weg)}
+        self._schalt_kandidat = self._schalt_gemeldet = None
+
+    async def _schaltwerte_pruefen(self) -> None:
+        """Schaltwerte nachlesen; zweimal dieselbe neue Wirkung löst ein Einlesen aus.
+
+        Nur ein lesbarer, gemeldeter Wert zählt; ohne Antwort gilt der Wert vom Einlesen.
+        """
+        stand = self._schaltstand
+        if not stand or not stand["quellen"] or self._geraete_waehrend_einlesen is not None:
+            return
+        quellen = {oid: dict(m) for oid, m in stand["quellen"].items()}
+        offen = [oid for oid in quellen if oid not in self._letzte_werte]
+        antworten = await asyncio.gather(*(self._datapoint_lesen(oid) for oid in offen))
+        frisch = {oid: self._letzte_werte[oid] for oid in quellen if oid in self._letzte_werte}
+        for oid, (daten, status) in zip(offen, antworten, strict=True):
+            if status == 200 and isinstance(daten, dict):
+                frisch[oid] = daten.get("value")
+        for oid, wert in frisch.items():
+            if geraete.schaltwert({**quellen[oid], "value": wert}) is not None:
+                quellen[oid]["value"] = wert
+        abdruck = _abdruck(self._wegnahme(stand["praefixe"], quellen.get))
+        if abdruck == stand["weg"]:
+            self._schalt_kandidat = None
+            return
+        if abdruck == self._schalt_gemeldet:
+            return
+        if abdruck != self._schalt_kandidat:
+            self._schalt_kandidat = abdruck
+            return
+        self._schalt_gemeldet, self._struktur_geaendert = abdruck, True
+        _LOGGER.info(
+            "%s: Nach einer geänderten Einstellung wird die Anlage neu eingelesen.", self.host
+        )
+
     def _rollen_filter(self, meta: dict) -> None:
-        """Datenpunkte verwerfen, die an dieser Anlage keine Aufgabe haben.
+        """Datenpunkte verwerfen, die an dieser Anlage belegt keine Aufgabe haben.
 
         Zwei Quellen: die Bedingungen der Herstellerdatei und `ROLLEN_FILTER`
-        für das, was dort fehlt. Beide brauchen einen lesbaren Schaltwert —
-        ohne ihn bleibt alles stehen.
+        für das, was dort fehlt. Beide brauchen einen lesbaren, gemeldeten
+        Schaltwert — ohne ihn bleibt alles stehen.
         """
-        weg_je_praefix: dict[str, set[str]] = {}
-
-        def wert(praefix: str, adresse: str) -> str | None:
-            return (meta.get(f"{praefix}/{adresse}/0") or {}).get("value")
-
-        for fct_type in {d.get("fct_type") for d in self.devices if d.get("fct_type")}:
-            praefixe = {
-                p
-                for d in self.devices
-                if d.get("fct_type") == fct_type and (p := self._praefix_aus_oid(d.get("oid")))
-            }
-            bedingungen = {**get_conditions(fct_type), **geraete.BEDINGUNGEN.get(fct_type, {})}
-            regel = ROLLEN_FILTER.get(fct_type)
-            for praefix in praefixe:
-                weg = weg_je_praefix.setdefault(praefix, set())
-                # Die Herstellerdatei nennt je Adresse, welche Einstellung sie
-                # freischaltet. Trifft kein Satz zu, ist sie ohne Aufgabe.
-                for adresse, saetze in bedingungen.items():
-                    geprueft = [
-                        (str(wert(praefix, s["oid"])), s)
-                        for s in saetze
-                        if wert(praefix, s["oid"]) is not None
-                    ]
-                    if geprueft and not any(geraete.satz_trifft(ist, s) for ist, s in geprueft):
-                        weg.add(adresse)
-                if not regel:
-                    continue
-                try:
-                    rolle = int(float(wert(praefix, regel["quelle"])))
-                except (TypeError, ValueError):
-                    continue
-                weg |= {
-                    adresse for adresse, erlaubt in regel["nur_bei"].items() if rolle not in erlaubt
-                }
-
+        praefixe = self._schaltpraefixe()
+        weg_je_praefix = self._wegnahme(praefixe, meta.get)
+        self._schaltstand_merken(praefixe, meta, weg_je_praefix)
         if not any(weg_je_praefix.values()):
             return
         behalten, entfallen = [], []
@@ -487,14 +537,14 @@ class MetadatenMixin:
         self.oids -= set(entfallen) - {d.get("oid") for d in behalten}
 
     def _spiegel_verwerfen(self) -> None:
-        """Gespiegelte Werte verwerfen, wenn das Modul, das sie führt, an der Anlage hängt."""
-        vorhanden = {d.get("fct_type") for d in self.devices}
+        """Gespiegelte Werte verwerfen, wenn das Modul an der Anlage dieselbe Adresse selbst führt."""
+        gefuehrt = {(d.get("fct_type"), gnmn_aus_oid(d.get("oid"))) for d in self.devices}
         weg = {
             (an, adresse)
             for modul, spiegel in geraete.SPIEGEL.items()
-            if modul in vorhanden
             for an, adressen in spiegel.items()
             for adresse in adressen
+            if (modul, adresse) in gefuehrt
         }
         if not weg:
             return

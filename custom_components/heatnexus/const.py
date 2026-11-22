@@ -685,17 +685,25 @@ ENUMS: dict[str, dict[int, str]] = {}
 # (verified against connect.windhager.com and the local device).
 # ---------------------------------------------------------------------------
 
-# Zähler, die Läufe zählen – Bezugspunkt für „seit Start". Angegeben als
-# Datenpunktkennung des Herstellers (`gn/mn`), nicht als Baureihe: Was diese
-# Adresse führt, führt sie an jedem Aggregat, das sie kennt.
-STARTZAEHLER = frozenset(
-    {
-        "2/80",  # Anzahl der Brennerstarts
-        "52/56",  # Anzahl Starts (Wärmepumpe)
-        "52/49",  # Anzahl Starts Heizen
-        "52/57",  # Anzahl Starts Kühlen
-    }
-)
+# Zähler, die Läufe zählen – Bezugspunkt für „seit Start" –, und die Betriebsart
+# ihrer Läufe nach dem Herstellernamen; None zählt jeden Lauf. Angegeben als
+# Datenpunktkennung des Herstellers (`gn/mn`), nicht als Baureihe.
+STARTZAEHLER: dict[str, str | None] = {
+    "2/80": None,  # Anzahl der Brennerstarts
+    "52/56": None,  # Anzahl Starts (Wärmepumpe)
+    "52/49": "heizen",  # Anzahl Starts Heizen
+    "52/57": "kuehlen",  # Anzahl Starts Kühlen
+}
+
+# Betriebsart der Zählerstände der Wärmepumpe, wie der Herstellername sie nennt.
+ZAEHLER_BETRIEBSART: dict[str, str] = {
+    "52/50": "heizen",  # Betriebsstunden Heizen
+    "52/59": "heizen",  # Wärmemenge Heizen
+    "52/52": "warmwasser",  # Betriebsstunden Warmwasser
+    "52/61": "warmwasser",  # Wärmemenge Warmwasser
+    "52/54": "kuehlen",  # Betriebsstunden Kühlen
+    "52/63": "kuehlen",  # Energiemenge Kühlen
+}
 
 # Tageswerte, die die Anlage selbst führt. Sie bekommen keine Ableitung, und
 # ihr Gesamtzähler bekommt kein zweites „heute" daneben.

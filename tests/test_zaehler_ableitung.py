@@ -269,6 +269,59 @@ def test_der_startzaehler_der_waermepumpe_ist_der_bezug(waermepumpe):
     assert neue["SN1-heizen-start"]["ausloeser_oid"] == "/1/70/0/52/56/0"
 
 
+def _waermepumpe_mit(client_module, adressen: dict[str, str]):
+    """Eine Wärmepumpe mit den genannten Zählern, in der Reihenfolge der Steuerung."""
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    c.devices = [
+        {
+            "id": f"SN1-{adresse.replace('/', '-')}",
+            "oid": f"/1/70/0/{adresse}/0",
+            "name": name,
+            "state_class": "total_increasing",
+            "device_id": "SN1-70-0",
+        }
+        for adresse, name in adressen.items()
+    ]
+    c._abgeleitete_zaehler()
+    return {
+        d["oid"].split("/")[4] + "/" + d["oid"].split("/")[5]: d["ausloeser_oid"].split("/")[4:6]
+        for d in c.devices
+        if d.get("type") == "zaehler_start"
+    }
+
+
+def test_seit_start_folgt_der_betriebsart_des_zaehlers():
+    """Der Kühlstart steht hinter „Anzahl Starts“; Heizen und Warmwasser zählen ab jedem Start."""
+    from custom_components.heatnexus import client as modul
+
+    bezug = _waermepumpe_mit(
+        modul,
+        {
+            "52/56": "Anzahl Starts",
+            "52/59": "Wärmemenge Heizen",
+            "52/61": "Wärmemenge Warmwasser",
+            "52/63": "Energiemenge Kühlen",
+            "52/57": "Anzahl Starts Kühlen",
+        },
+    )
+    assert bezug == {"52/59": ["52", "56"], "52/61": ["52", "56"], "52/63": ["52", "57"]}
+
+
+def test_mit_heizstarts_zaehlt_heizen_ab_dem_heizstart():
+    from custom_components.heatnexus import client as modul
+
+    bezug = _waermepumpe_mit(
+        modul,
+        {
+            "52/49": "Anzahl Starts Heizen",
+            "52/59": "Wärmemenge Heizen",
+            "52/61": "Wärmemenge Warmwasser",
+            "52/57": "Anzahl Starts Kühlen",
+        },
+    )
+    assert bezug == {"52/59": ["52", "49"], "52/61": ["52", "49"]}
+
+
 def test_kein_zweiter_tageswert_neben_dem_der_anlage(waermepumpe):
     """Die Wärmepumpe führt „Betriebsstunden Heizen heute" selbst."""
     waermepumpe._abgeleitete_zaehler()

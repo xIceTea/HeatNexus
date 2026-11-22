@@ -19,6 +19,7 @@ from ..const import (
     TAGESWERTE,
     TAGESZAEHLER,
     VERBRAUCHER_ABSTAND,
+    ZAEHLER_BETRIEBSART,
 )
 from ..device_db import get_ruecksetzwerte
 from ..kanonisch import ist_ableitung
@@ -204,19 +205,30 @@ class AbleitungenMixin:
         for d in neu:
             self.oids.add(d["oid"])
 
+    @staticmethod
+    def _startbezug(starts: dict[str | None, str], kennung: str) -> str | None:
+        """Der Startzähler, ab dem ein Zählerstand „seit Start“ zählt.
+
+        Zuerst der Start derselben Betriebsart, dann jeder Start, dann der
+        Heizstart. Der Kühlstart gilt nur für Kühlen.
+        """
+        art = ZAEHLER_BETRIEBSART.get(kennung, STARTZAEHLER.get(kennung))
+        if art in starts:
+            return starts[art]
+        return starts.get(None) or (starts.get("heizen") if art != "kuehlen" else None)
+
     def _abgeleitete_zaehler(self) -> None:
         """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Start.
 
         Die Anlage führt nur Gesamtstände. Der Zuwachs entsteht deshalb hier,
         aus derselben Adresse – ohne einen zusätzlichen Abruf.
         """
-        # Startzähler des Geräts sind der Bezugspunkt: Steigt der Stand, läuft
-        # ein neuer Lauf. Welche Adresse das ist, sagt die kuratierte Tabelle.
-        ausloeser = {
-            d["device_id"]: d["oid"]
-            for d in self.devices
-            if d.get("device_id") and self._kennung_aus_oid(d.get("oid")) in STARTZAEHLER
-        }
+        # Startzähler des Geräts je Betriebsart sind der Bezugspunkt: Steigt der
+        # Stand, läuft ein neuer Lauf. Welche Adresse das ist, sagt die Tabelle.
+        starts: dict[str, dict[str | None, str]] = {}
+        for d in self.devices:
+            if d.get("device_id") and (k := self._kennung_aus_oid(d.get("oid"))) in STARTZAEHLER:
+                starts.setdefault(d["device_id"], {})[STARTZAEHLER[k]] = d["oid"]
         # Je Gerät die Stundenzähler, die die Laufzeit aus dem Zustand ersetzt.
         # Sie ist minutengenau und damit die bessere Antwort; jeder andere
         # Stundenzähler desselben Geräts misst etwas anderes und bleibt.
@@ -252,7 +264,7 @@ class AbleitungenMixin:
                 "device_class": d.get("device_class"),
                 "gruppe": gruppe,
             }
-            bezug = ausloeser.get(d.get("device_id"))
+            bezug = self._startbezug(starts.get(d.get("device_id"), {}), kennung)
             # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jeder
             # Start setzte die Basis neu, der Wert bliebe immer null.
             if bezug and bezug != d["oid"]:

@@ -878,12 +878,12 @@ def test_kuehlzeitprogramm_entfaellt_nur_bei_reinem_heizen(client_module, konfig
     assert ("51/108" in namen) is bleibt
 
 
-def _logwin_mit_spiegel(client_module, mit_modul: bool):
+def _logwin_mit_spiegel(client_module, mit_modul: bool, modul_adressen=("0/15", "23/87")):
     """LogWIN (fct 10) mit gespiegeltem Puffer, auf Wunsch neben dem Puffermodul (fct 15)."""
     client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
     eintraege = [(65, 10, "0/7"), (65, 10, "0/15"), (65, 10, "23/87")]
     if mit_modul:
-        eintraege += [(17, 15, "0/15"), (17, 15, "23/87")]
+        eintraege += [(17, 15, adresse) for adresse in modul_adressen]
     client.devices = [
         client_module.WindhagerHttpClient._deskriptor(
             oid=f"/1/{knoten}/0/{adresse}/0", fct_type=fct, name=f"{fct} {adresse}", type="sensor"
@@ -907,6 +907,191 @@ def test_ohne_puffermodul_behaelt_das_logwin_seinen_puffer(client_module):
     client._spiegel_verwerfen()
 
     assert len(client.devices) == 3
+
+
+@pytest.mark.parametrize(
+    ("modul_adressen", "am_logwin"),
+    [
+        ((), {"0/7", "0/15", "23/87"}),
+        (("23/87",), {"0/7", "0/15"}),
+        (("2/9",), {"0/7", "0/15", "23/87"}),
+    ],
+)
+def test_das_logwin_verliert_nur_was_das_puffermodul_selbst_fuehrt(
+    client_module, modul_adressen, am_logwin
+):
+    """Ein Puffermodul ohne lesbare Werte nimmt dem Kessel nichts weg."""
+    client = _logwin_mit_spiegel(client_module, mit_modul=True, modul_adressen=modul_adressen)
+    client._spiegel_verwerfen()
+
+    assert {d["name"][3:] for d in client.devices if d["fct_type"] == 10} == am_logwin
+
+
+@pytest.mark.parametrize("schaltwert", ["-", "-.-", "", "Text"])
+def test_unlesbarer_schaltwert_der_herstellerbedingung_nimmt_nichts_weg(client_module, schaltwert):
+    assert _gefiltert(client_module, 20, ("0/22",), {"29/1": schaltwert}) == {"0/22"}
+
+
+@pytest.mark.parametrize(
+    ("quelle", "bleibt"),
+    [
+        ({"value": "7", "minValue": "0", "maxValue": "1"}, True),
+        ({"value": "7", "enum": "[0,1]"}, True),
+        ({"value": "0", "minValue": "0", "maxValue": "1"}, False),
+        ({"value": "0.0", "enum": "[0,1]"}, False),
+    ],
+)
+def test_herstellerbedingung_nimmt_nur_bei_einem_wert_aus_dem_bereich_weg(
+    client_module, quelle, bleibt
+):
+    """Ein Wert außerhalb dessen, was die Steuerung für die Einstellung meldet, ist kein Gegenbeleg."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid="/1/14/0/0/22/0", fct_type=20, name="0/22", type="sensor"
+        )
+    ]
+    client.oids = {"/1/14/0/0/22/0"}
+    client._rollen_filter({"/1/14/0/29/1/0": quelle})
+
+    assert bool(client.devices) is bleibt
+
+
+@pytest.mark.parametrize(
+    ("werte", "bleibt"),
+    [
+        ({"29/1": "0"}, True),
+        ({"29/1": "0", "29/0": "-"}, True),
+        ({"29/1": "0", "29/0": "1"}, True),
+        ({"29/1": "0", "29/0": "0"}, False),
+    ],
+)
+def test_mehrere_saetze_nehmen_nur_weg_wenn_jeder_widerspricht(client_module, werte, bleibt):
+    """`22/31` gilt mit `29/1` oder `29/0`; ein unbekannter Satz kann die Adresse freischalten."""
+    assert ("22/31" in _gefiltert(client_module, 20, ("22/31",), werte)) is bleibt
+
+
+@pytest.mark.parametrize(
+    "quelle", [{"value": "7"}, {"value": "7", "minValue": "0", "maxValue": "9"}, {"value": "-"}]
+)
+def test_unbelegte_modulfunktion_nimmt_nichts_weg(client_module, quelle):
+    """Die Rollentabelle nennt die Modulfunktionen 0–5; eine andere ist kein Gegenbeleg."""
+    client, _ = _puffer_client(client_module, 0)
+    client._rollen_filter({"/1/16/1/20/4/0": quelle})
+
+    assert len(client.devices) == 4
+
+
+_BETRIEBSART = "/1/20/0/5/6/0"
+
+
+def _warmwasser_eingelesen(client_module, betriebsart: str):
+    """Warmwasser (fct 2) mit Zirkulationswerten, eingelesen bei `5/6` = `betriebsart`."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/20/0/{a}/0", fct_type=2, name=a, type="sensor"
+        )
+        for a in ("0/118", "1/118", "59/18")
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    client._rollen_filter({_BETRIEBSART: {"value": betriebsart, "minValue": "0", "maxValue": "4"}})
+    return client
+
+
+def _steuerung_meldet(client, wert, status=200):
+    client.gelesen = []
+
+    async def lesen(oid):
+        client.gelesen.append(oid)
+        return {"OID": oid, "value": wert}, status
+
+    client._datapoint_lesen = lesen
+
+
+async def test_eine_geaenderte_einstellung_loest_im_zweiten_takt_ein_einlesen_aus(client_module):
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, "0")
+
+    await client._schaltwerte_pruefen()
+    assert client.strukturaenderung_abholen() is False
+    await client._schaltwerte_pruefen()
+    assert client.strukturaenderung_abholen() is True
+    assert client.gelesen == [_BETRIEBSART, _BETRIEBSART]
+
+
+@pytest.mark.parametrize(
+    ("wert", "status"), [("2", 200), ("4", 200), ("-", 200), ("9", 200), (None, 502)]
+)
+async def test_ohne_belegte_wirkung_bleibt_die_einstellung_ruhig(client_module, wert, status):
+    """Gleiche Wirkung, unlesbar, außerhalb des Bereichs oder ohne Antwort: kein Einlesen."""
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, wert, status)
+
+    for _ in range(3):
+        await client._schaltwerte_pruefen()
+
+    assert client.strukturaenderung_abholen() is False
+
+
+async def test_ein_abgefragter_schaltwert_kostet_keine_anfrage(client_module):
+    client = _warmwasser_eingelesen(client_module, "0")
+    _steuerung_meldet(client, "0")
+    client._letzte_werte[_BETRIEBSART] = "2"
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.gelesen == []
+    assert client.strukturaenderung_abholen() is True
+
+
+async def test_der_stand_der_einstellungen_uebersteht_den_neustart(client_module):
+    vorher = _warmwasser_eingelesen(client_module, "0")
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.restore_discovery(vorher.export_discovery())
+    _steuerung_meldet(client, "2")
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.strukturaenderung_abholen() is True
+
+
+async def test_waehrend_eines_einlesens_werden_einstellungen_nicht_verglichen(client_module):
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, "0")
+    client._geraete_waehrend_einlesen = []
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.gelesen == []
+    assert client.strukturaenderung_abholen() is False
+
+
+async def test_der_langsame_takt_prueft_die_einstellungen(client_module, monkeypatch):
+    client = _warmwasser_eingelesen(client_module, "2")
+    geprueft = []
+
+    async def pruefen():
+        geprueft.append(client._tick)
+
+    async def nichts(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(client, "_schaltwerte_pruefen", pruefen)
+    monkeypatch.setattr(client, "_struktur_pruefen", nichts)
+    monkeypatch.setattr(client, "_fetch_stoerspeicher", nichts)
+    monkeypatch.setattr(client, "_systemzeit_lesen", nichts)
+    _steuerung_meldet(client, "2")
+
+    client._tick = 1
+    await client.fetch_all()
+    assert geprueft == []
+    client._tick = client._takte()["slow"]
+    await client.fetch_all()
+    assert len(geprueft) == 1
 
 
 def test_das_puffermodul_fuehrt_seine_betriebsart_als_eigene_entitaet():

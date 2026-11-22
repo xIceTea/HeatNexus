@@ -842,6 +842,7 @@ class ErkennungMixin:
             "geraeteklasse": dict(self.geraeteklasse),
             "zusatzkandidaten": list(self.zusatzkandidaten),
             "struktur": list(self._struktur) if self._struktur is not None else None,
+            "schaltstand": self._schaltstand,
         }
 
     def restore_discovery(self, data: dict) -> None:
@@ -861,6 +862,10 @@ class ErkennungMixin:
         struktur = data.get("struktur")
         self._struktur = list(struktur) if isinstance(struktur, list) else None
         self._struktur_gemeldet = None
+        # Ohne gespeicherten Stand vergleicht erst das nächste Einlesen die Schaltwerte.
+        schaltstand = data.get("schaltstand")
+        self._schaltstand = schaltstand if isinstance(schaltstand, dict) else None
+        self._schalt_kandidat = self._schalt_gemeldet = None
         # Die Auswahl kann sich seit dem Speichern geändert haben.
         for d in self.devices:
             if d.get("type") in self.ZUSATZTYPEN:
