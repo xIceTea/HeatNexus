@@ -1098,3 +1098,31 @@ async def test_ohne_kopie_wird_das_archiv_nicht_ueberschrieben(
     await verwaltung.eintrag_stoppen(eintrag)
 
     assert "heatnexus.befund_e2_192_0_2_10" not in hass_storage
+
+
+async def test_ein_fehler_im_befundschritt_haelt_die_stunde_nicht_auf(
+    hass, anlage, monkeypatch, caplog
+):
+    import logging
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.befund import pflegelauf
+
+    def kaputt(*_args):
+        raise ValueError("Pflegestand unlesbar")
+
+    monkeypatch.setattr(pflegelauf, "messen", kaputt)
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    gespeichert: list[int] = []
+    monkeypatch.setattr(sammler, "speichern", lambda: gespeichert.append(1))
+    jetzt = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    for minute in (0, 5, 60, 65):
+        await sammler.messen(jetzt + timedelta(minutes=minute))
+
+    assert gespeichert
+    warnungen = [
+        r for r in caplog.records if r.levelno == logging.WARNING and "pflege" in r.getMessage()
+    ]
+    assert len(warnungen) == 1

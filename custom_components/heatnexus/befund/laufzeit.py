@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 import logging
 from typing import Any
@@ -204,6 +205,8 @@ class Sammler:
         self._abruf: set[str] = set()
         # Ein unlesbarer Store ohne Kopie bleibt unberührt; der Befund läuft nur im Speicher.
         self._schreibschutz = False
+        # Teile des Takts, deren Fehler schon als Warnung im Protokoll steht.
+        self._gewarnt: set[str] = set()
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
@@ -330,17 +333,34 @@ class Sammler:
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
-        pflegelauf.messen(self.coordinator, self.archiv, zeit.date())
-        brennstofflauf.messen(self.coordinator, self.archiv, zeit.date())
-        self._abruf_anmelden()
-        self._abgas_lauf = abgaslauf.messen(
-            self.coordinator, self.archiv, self._abgas_lauf, zeit, self._heizraum()
+        c, archiv = self.coordinator, self.archiv
+        self._schritt("pflege", lambda: pflegelauf.messen(c, archiv, zeit.date()), None)
+        self._schritt("brennstoff", lambda: brennstofflauf.messen(c, archiv, zeit.date()), None)
+        self._schritt("abruf", self._abruf_anmelden, None)
+        self._abgas_lauf = self._schritt(
+            "abgas",
+            lambda: abgaslauf.messen(c, archiv, self._abgas_lauf, zeit, self._heizraum()),
+            self._abgas_lauf,
         )
-        self._wp_lauf = waermepumpelauf.messen(self.coordinator, self.archiv, self._wp_lauf, zeit)
+        self._wp_lauf = self._schritt(
+            "waermepumpe",
+            lambda: waermepumpelauf.messen(c, archiv, self._wp_lauf, zeit),
+            self._wp_lauf,
+        )
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
             self.aktualisieren()
+
+    def _schritt[T](self, art: str, schritt: Callable[[], T], sonst: T) -> T:
+        """Ein Teil des Takts; scheitert er, laufen die übrigen weiter, gewarnt wird einmal je Teil."""
+        try:
+            return schritt()
+        except Exception:  # der Befund ist eine Zugabe; ein Teil hält die Stunde nicht auf
+            stufe = logging.DEBUG if art in self._gewarnt else logging.WARNING
+            self._gewarnt.add(art)
+            _LOGGER.log(stufe, "Befund %s: %s fehlgeschlagen", self.anlage_id, art, exc_info=True)
+            return sonst
 
     # --- Nachrechnen ----------------------------------------------------------
     def _reihen(self) -> dict[tuple[str, str], dict[str, str]]:
