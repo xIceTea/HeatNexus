@@ -241,6 +241,7 @@
     "error": {
       "bestaetigung_fehlt": "Bevestig dat de regelaar met alles wat eraan hangt moet worden verwijderd.",
       "already_configured": "Dit adres hoort al bij deze verwarmingsinstallatie.",
+      "steuerung_eingerichtet": "Deze regelaar is al ingesteld.",
       "cannot_connect": "Verbinding mislukt",
       "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
       "unknown": "Onverwachte fout. Details staan in het logboek van Home Assistant."

@@ -13,6 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
+    SOURCE_IGNORE,
     SOURCE_RECONFIGURE,
     ConfigEntry,
     ConfigEntryState,
@@ -186,6 +187,18 @@ def _dieselbe_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur:
     return bool(neu) and neu in _seriennummern(entry, system)
 
 
+def _steuerung_eingerichtet(eintraege: list[ConfigEntry], kennung: str) -> bool:
+    """Ob schon ein Eintrag die Steuerung mit dieser Seriennummer abfragt."""
+    return bool(kennung) and any(
+        getattr(e, "source", None) != SOURCE_IGNORE
+        and (
+            kennung in _seriennummern(e, {})
+            or any(s.get("kennung") == kennung for s in e.data.get(CONF_SYSTEMS, []))
+        )
+        for e in eintraege
+    )
+
+
 def _erreichbar(entry: ConfigEntry, host: str) -> bool:
     """Ob die Steuerung unter ihrer eingetragenen Adresse zuletzt geantwortet hat."""
     if entry.state is not ConfigEntryState.LOADED:
@@ -356,6 +369,10 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 if fehler:
                     errors["base"] = fehler
+                elif _steuerung_eingerichtet(
+                    self._async_current_entries(include_ignore=False), anlagenkennung(struktur)
+                ):
+                    return self.async_abort(reason="already_configured")
                 else:
                     self._systeme.append(
                         {
@@ -678,6 +695,10 @@ class WindhagerOptionsFlow(OptionsFlow):
                 )
                 if fehler:
                     errors["base"] = fehler
+                elif _steuerung_eingerichtet(
+                    self.hass.config_entries.async_entries(DOMAIN), anlagenkennung(struktur or [])
+                ):
+                    errors["base"] = "steuerung_eingerichtet"
                 else:
                     neu = {
                         CONF_LABEL: user_input[CONF_LABEL].strip() or host,
