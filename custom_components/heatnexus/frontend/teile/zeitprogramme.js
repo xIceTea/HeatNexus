@@ -652,7 +652,7 @@ export const ZeitprogrammeMixin = (Basis) =>
    */
   _zeitprogrammBearbeiten(programm, rueckmeldung) {
     const zustand = this._zustand(programm.entity);
-    const bloecke = bloeckeLesen(zustand && zustand.attributes && zustand.attributes.blocks);
+    let bloecke = bloeckeLesen(zustand && zustand.attributes && zustand.attributes.blocks);
     if (!bloecke.length) return;
     const grenzen = { ...skala(bloecke, programm.art), bereich: wertebereich(programm) };
 
@@ -709,6 +709,16 @@ export const ZeitprogrammeMixin = (Basis) =>
     speichern.addEventListener("click", async () => {
       if (!editor) {
         dialog._bearbeiten();
+        return;
+      }
+      // Wie der Zeileneditor: Über einen neueren Stand der Anlage wird nicht geschrieben.
+      const aktuell = this._bloecke(programm.entity) || [];
+      if (!gleich(aktuell, bloecke)) {
+        bloecke = aktuell;
+        editor = editorKnoten(bloecke, { grenzen, t: this._t.bind(this) });
+        platz.replaceChildren(bezeichnungFeld.zeile, editor.knoten);
+        meldung.className = "zp-meldung fehler";
+        meldung.textContent = this._t(GEAENDERT);
         return;
       }
       const neu = editor.lesen();
