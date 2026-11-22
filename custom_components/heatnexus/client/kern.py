@@ -175,6 +175,8 @@ class WindhagerHttpClient(
         self._metadaten_luecken: set[str] = set()
         # Teile, deren Menüwurzel ohne Antwort blieb und für die kein Einzelweg greift.
         self._wurzel_luecken: set[str] = set()
+        # Der letzte Lauf fand zu wenig; der alte Stand gilt, ist aber nicht neu bestätigt.
+        self._erkennung_mager = False
         # LON-Adressräume ohne Antwort: Bekanntes bleibt, der Lauf gilt trotzdem als vollständig.
         self._wurzel_ueberbrueckt: set[str] = set()
         # Freie Funktionen aus `/1` mit Namen, dazu jede Menüwurzel ohne Antwort in diesem Lauf.
@@ -206,7 +208,7 @@ class WindhagerHttpClient(
     @property
     def erkennung_unvollstaendig(self) -> bool:
         """Sagen, ob der letzte Erkennungslauf Adressen ohne Antwort zurückließ."""
-        return bool(self._metadaten_luecken or self._wurzel_luecken)
+        return bool(self._metadaten_luecken or self._wurzel_luecken or self._erkennung_mager)
 
     def _verbindung_anlegen(self) -> None:
         """Sitzung, Warteschlangen und Zähler der Anfragen an die Anlage."""
@@ -365,6 +367,7 @@ class WindhagerHttpClient(
 
         begonnen = time.monotonic()
         self.request_count = 0
+        self._erkennung_mager = False
         # Der bisherige Stand als Rückfall, solange er vollständig war.
         vorheriger = self.export_discovery() if self._vollstaendig else None
         stand = self._stand_sichern()
@@ -383,6 +386,7 @@ class WindhagerHttpClient(
         self._vollstaendig = True
 
         if self._erkennung_zu_mager(vorheriger):
+            self._erkennung_mager = True
             self.restore_discovery(vorheriger)
             self._strukturlauf_gescheitert()
             return

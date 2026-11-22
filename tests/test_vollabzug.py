@@ -62,6 +62,28 @@ async def test_waehrend_des_laufs_liefert_der_abruf_den_bekannten_stand(client, 
     assert gesehen[0]["devices"] == KERN
 
 
+async def test_ein_magerer_abgleich_gilt_nicht_als_vollstaendig(client, monkeypatch, ohne_pause):
+    """Der alte Stand bleibt, aber er wird nicht als Ergebnis der neuen Fassung gespeichert."""
+    bekannt = {f"/1/60/0/9/{n}/0" for n in range(100)}
+    client.oids = set(bekannt)
+    client._vollstaendig = True
+
+    async def discover(nur_kern=False):
+        client.oids = {"/1/60/0/9/0/0"}
+
+    async def nichts():
+        return None
+
+    monkeypatch.setattr(client, "_discover", discover)
+    monkeypatch.setattr(client, "_apply_metadata", nichts)
+
+    ergebnis = await ohne_pause._einlesen_mit_wiederholung(client, "192.0.2.10", True)
+
+    assert ergebnis != ohne_pause.EINLESEN_VOLL
+    assert client.oids == bekannt
+    assert client._vollstaendig is True
+
+
 async def _wert(oid):
     return oid, "1"
 
