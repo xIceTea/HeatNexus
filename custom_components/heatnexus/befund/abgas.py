@@ -178,7 +178,7 @@ def _zeitraeume(
     ab = bezug_ab or (mit_daten[0] if mit_daten else None)
     bezug = [d for d in mit_daten if ab and (ab < d if bezug_ab else ab <= d) and d < grenze]
     bezug = bezug[:BEZUG_TAGE]
-    jetzt = [d for d in mit_daten if grenze <= d <= heute.isoformat()]
+    jetzt = [d for d in mit_daten if grenze <= d < heute.isoformat()]
     return bezug, jetzt, (bezug[0] if bezug else ab)
 
 
