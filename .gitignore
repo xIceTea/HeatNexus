@@ -34,3 +34,6 @@ dumps/
 # Abzüge der Sonde
 heatnexus-abzug-*.zip
 sonde-fehler.log
+
+# Ergebnisse von tools/pruefen.py je Baumstand
+.pruefung/
