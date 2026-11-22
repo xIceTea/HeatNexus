@@ -80,6 +80,10 @@ conditions:
   - condition: template
     value_template: >
       {{ anwesende | select('is_state', 'home') | list | count == 0 }}
+  # Ohne Ortung (Neustart, App ohne Verbindung) ist niemand fort.
+  - condition: template
+    value_template: >
+      {{ states(trigger.entity_id) not in ['unavailable', 'unknown'] }}
   - condition: template
     value_template: >
       {{ vorher not in ['None', '', modus_abwesend | string] }}

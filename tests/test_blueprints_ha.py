@@ -150,6 +150,16 @@ async def test_abwesend_senkt_nicht_ab_wenn_die_person_vorher_zurueckkommt(hass)
     assert aufrufe == []
 
 
+@pytest.mark.parametrize("ohne_ortung", ["unavailable", "unknown"])
+async def test_abwesend_senkt_nicht_ab_ohne_ortung(hass, ohne_ortung):
+    """Ein Neustart oder eine App ohne Verbindung ist keine Abwesenheit."""
+    aufrufe = await _abwesend_einrichten(hass)
+    hass.states.async_set("person.a", ohne_ortung)
+    await hass.async_block_till_done()
+    await _nach(hass, 31)
+    assert aufrufe == []
+
+
 def test_eine_automations_yaml_in_fremdem_zeichensatz_bricht_nichts_ab(tmp_path):
     """Ein Umlaut in CP1252 ließ das Setup scheitern; erkannt wird die Vorlage trotzdem."""
     from custom_components.heatnexus import blueprints
