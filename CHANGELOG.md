@@ -6,6 +6,41 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Geändert
+
+- Nach einer geänderten Einstellung erscheinen und entfallen passende Werte ohne „Anlage neu erkennen“.
+- Auskühlzeit und Befund „Wärmespeicher“ bleiben leer, bis das Hausmodell freigegeben ist.
+- AeroWIN: Der Zusatzwert „Anzahl Starts seit Start“ entfällt.
+
+### Behoben
+
+- Das Einschalten eines Heizkreises behält eine heizende Betriebswahl.
+- Werte bleiben sichtbar, wenn eine Einstellung unlesbar ist oder einen unbekannten Wert meldet.
+- Ein unvollständiger Abgleich nach einem Update wird beim nächsten Start wiederholt.
+- Eine bereits eingerichtete Steuerung lässt sich kein zweites Mal einrichten.
+- Aktionen wie „Störung quittieren“ weisen einen unpassenden Sensor mit einer Meldung ab.
+- Die Sonde schwärzt im Protokoll auch die Adresse einer gescheiterten Anlage.
+- AeroWIN: Die Werte „seit Start“ zählen ab dem passenden Startzähler.
+- LogWIN, DuoWIN: Puffertemperaturen und Beladegrad am Kessel bleiben, wenn das Puffermodul sie nicht liefert.
+
+**Zeitprogramme**
+- „Zeitprogramm setzen“ nimmt höchstens sieben Blöcke an und schreibt nur nach erfolgreichem Lesen.
+- Ein Wert außerhalb des Bereichs erscheint mit Einheit und Dezimalzeichen der Sprache.
+- Der Programmdialog speichert nicht über einen neueren Stand der Anlage.
+- An einem Tag ohne Block gilt in Panel und Automatik der Wert davor.
+- Sammelzeilen zeigen vor der ersten Schaltzeit „je nach Vortag“, wenn die Vortage abweichen.
+
+**Auswertung**
+- Der Abgaswächter wertet die letzten sieben vollen Tage aus.
+- Der Brennstoffverbrauch verteilt sich über Tage ohne Zählerstand.
+- Ein unlesbares Archiv der Auswertung wird gesichert, bevor es neu entsteht.
+
+**Vorlagen**
+- „Abwesenheit“ senkt auch in einer anderen Zone ab, bei fehlender Ortung nicht.
+- „Vorrat niedrig“ meldet den leeren Behälter in jeder Sprache.
+
 ## [1.16.0] - 2026-11-21
 
 ### Highlight: Pflege, Abgas und Brennstoff im Blick
