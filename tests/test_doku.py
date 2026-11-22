@@ -48,3 +48,19 @@ def test_die_vorlagen_nennen_die_adresse_der_kopie():
     text = (WURZEL / "docs" / "_includes" / "VORLAGEN.md").read_text(encoding="utf-8")
     treffer = re.search(r"(?ms)^### Dashboard ausgeben\s*$(.*?)(?=^#|\Z)", text)
     assert treffer and "`/heatnexus/`" in treffer.group(1)
+
+
+def _plaketten(datei: str) -> list[str]:
+    """Ziel jeder Plakette in der Kopfzeile: der Link, sonst das Bild."""
+    kopf = next(
+        z for z in (WURZEL / datei).read_text(encoding="utf-8").splitlines() if z.startswith("[![")
+    )
+    return [
+        link or bild for bild, link in re.findall(r"!\[[^\]]*\]\(([^)]+)\)(?:\]\(([^)]+)\))?", kopf)
+    ]
+
+
+def test_beide_readmes_fuehren_dieselben_plaketten():
+    """Deutsch und Englisch zeigen in der Kopfzeile dieselben Plaketten in derselben Reihenfolge."""
+    deutsch, englisch = _plaketten("README.md"), _plaketten("README.en.md")
+    assert deutsch and deutsch == englisch
