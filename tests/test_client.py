@@ -982,6 +982,118 @@ def test_unbelegte_modulfunktion_nimmt_nichts_weg(client_module, quelle):
     assert len(client.devices) == 4
 
 
+_BETRIEBSART = "/1/20/0/5/6/0"
+
+
+def _warmwasser_eingelesen(client_module, betriebsart: str):
+    """Warmwasser (fct 2) mit Zirkulationswerten, eingelesen bei `5/6` = `betriebsart`."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/20/0/{a}/0", fct_type=2, name=a, type="sensor"
+        )
+        for a in ("0/118", "1/118", "59/18")
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    client._rollen_filter({_BETRIEBSART: {"value": betriebsart, "minValue": "0", "maxValue": "4"}})
+    return client
+
+
+def _steuerung_meldet(client, wert, status=200):
+    client.gelesen = []
+
+    async def lesen(oid):
+        client.gelesen.append(oid)
+        return {"OID": oid, "value": wert}, status
+
+    client._datapoint_lesen = lesen
+
+
+async def test_eine_geaenderte_einstellung_loest_im_zweiten_takt_ein_einlesen_aus(client_module):
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, "0")
+
+    await client._schaltwerte_pruefen()
+    assert client.strukturaenderung_abholen() is False
+    await client._schaltwerte_pruefen()
+    assert client.strukturaenderung_abholen() is True
+    assert client.gelesen == [_BETRIEBSART, _BETRIEBSART]
+
+
+@pytest.mark.parametrize(
+    ("wert", "status"), [("2", 200), ("4", 200), ("-", 200), ("9", 200), (None, 502)]
+)
+async def test_ohne_belegte_wirkung_bleibt_die_einstellung_ruhig(client_module, wert, status):
+    """Gleiche Wirkung, unlesbar, außerhalb des Bereichs oder ohne Antwort: kein Einlesen."""
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, wert, status)
+
+    for _ in range(3):
+        await client._schaltwerte_pruefen()
+
+    assert client.strukturaenderung_abholen() is False
+
+
+async def test_ein_abgefragter_schaltwert_kostet_keine_anfrage(client_module):
+    client = _warmwasser_eingelesen(client_module, "0")
+    _steuerung_meldet(client, "0")
+    client._letzte_werte[_BETRIEBSART] = "2"
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.gelesen == []
+    assert client.strukturaenderung_abholen() is True
+
+
+async def test_der_stand_der_einstellungen_uebersteht_den_neustart(client_module):
+    vorher = _warmwasser_eingelesen(client_module, "0")
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.restore_discovery(vorher.export_discovery())
+    _steuerung_meldet(client, "2")
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.strukturaenderung_abholen() is True
+
+
+async def test_waehrend_eines_einlesens_werden_einstellungen_nicht_verglichen(client_module):
+    client = _warmwasser_eingelesen(client_module, "2")
+    _steuerung_meldet(client, "0")
+    client._geraete_waehrend_einlesen = []
+
+    await client._schaltwerte_pruefen()
+    await client._schaltwerte_pruefen()
+
+    assert client.gelesen == []
+    assert client.strukturaenderung_abholen() is False
+
+
+async def test_der_langsame_takt_prueft_die_einstellungen(client_module, monkeypatch):
+    client = _warmwasser_eingelesen(client_module, "2")
+    geprueft = []
+
+    async def pruefen():
+        geprueft.append(client._tick)
+
+    async def nichts(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(client, "_schaltwerte_pruefen", pruefen)
+    monkeypatch.setattr(client, "_struktur_pruefen", nichts)
+    monkeypatch.setattr(client, "_fetch_stoerspeicher", nichts)
+    monkeypatch.setattr(client, "_systemzeit_lesen", nichts)
+    _steuerung_meldet(client, "2")
+
+    client._tick = 1
+    await client.fetch_all()
+    assert geprueft == []
+    client._tick = client._takte()["slow"]
+    await client.fetch_all()
+    assert len(geprueft) == 1
+
+
 def test_das_puffermodul_fuehrt_seine_betriebsart_als_eigene_entitaet():
     """Neben der abgeleiteten Pufferladung: Der Verlauf soll 14, 15 und 16 unterscheiden."""
     from custom_components.heatnexus.geraete import umschaltung

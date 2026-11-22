@@ -782,6 +782,7 @@ class AbrufMixin:
         status, antwort = await self._meldungen_lesen()
         if langsam_faellig:
             await self._struktur_pruefen(antwort)
+            await self._schaltwerte_pruefen()
         stoerspeicher = await self._fetch_stoerspeicher(status)
         systemzeit = await self._systemzeit_lesen() if langsam_faellig else self._systemzeit
         faellig = self._faellig(tick)
