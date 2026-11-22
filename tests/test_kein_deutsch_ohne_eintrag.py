@@ -56,7 +56,7 @@ AUSNAHMEN_DATEI = {
     "automatik/tagesansicht.py": "Sätze aus Teilen; Wächter test_jede_begruendung_kommt_auf_englisch_an",
 }
 # Ein Text, der nur ins Protokoll geht; der Name steht am Ort der Zuweisung.
-NUR_PROTOKOLL = {"Metadaten unvollständig"}
+NUR_PROTOKOLL = {"Metadaten unvollständig", "Magerschutz, der bekannte Stand bleibt"}
 AUSNAHMEN_KONSTANTE = {
     "ERROR_TEXTS": "deutscher Rückfall; fremde Sprachen nehmen error_texts_<s>.json",
     "SPRACHE_BESCHRIFTUNG": "Rückfall der Auswahlliste; übersetzt über translations/*/selector",

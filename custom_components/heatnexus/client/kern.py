@@ -210,6 +210,11 @@ class WindhagerHttpClient(
         """Sagen, ob der letzte Erkennungslauf Adressen ohne Antwort zurückließ."""
         return bool(self._metadaten_luecken or self._wurzel_luecken or self._erkennung_mager)
 
+    @property
+    def magerlauf(self) -> bool:
+        """Sagen, ob der letzte Lauf zu wenig fand und der alte Stand stehen blieb."""
+        return self._erkennung_mager
+
     def _verbindung_anlegen(self) -> None:
         """Sitzung, Warteschlangen und Zähler der Anfragen an die Anlage."""
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)

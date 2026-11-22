@@ -37,6 +37,9 @@ VOLLABZUG_PAUSEN = (60, 300)
 EINLESEN_VOLL = "voll"
 EINLESEN_LUECKEN = "luecken"
 EINLESEN_FEHLER = "fehler"
+# Gründe eines Laufs mit Lücken; sie gehen nur ins Protokoll.
+GRUND_METADATEN = "Metadaten unvollständig"
+GRUND_MAGERSCHUTZ = "Magerschutz, der bekannte Stand bleibt"
 
 TEXT_LAEUFT = (
     "**{titel}** wird gerade vollständig eingelesen.\n\n"
@@ -215,7 +218,8 @@ async def _einlesen_mit_wiederholung(client, host: str, erzwingen: bool) -> str:
         else:
             if not client.erkennung_unvollstaendig:
                 return EINLESEN_VOLL
-            ergebnis, grund = EINLESEN_LUECKEN, "Metadaten unvollständig"
+            grund = GRUND_MAGERSCHUTZ if client.magerlauf else GRUND_METADATEN
+            ergebnis = EINLESEN_LUECKEN
         if pause is None:
             _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, grund)
             return ergebnis
