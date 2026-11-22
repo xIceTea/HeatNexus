@@ -300,3 +300,15 @@ async def test_die_waermemengen_behalten_ihren_zuwachs_seit_start(umfang):
     }
     assert {"52/59", "52/61"} <= seit_start
     assert not {"52/50", "52/52"} & seit_start
+
+
+@pytest.mark.parametrize("umfang", sorted(UMFAENGE))
+async def test_seit_start_zaehlt_ab_dem_passenden_start(umfang):
+    """Heizen und Warmwasser zählen ab dem letzten Start, nicht ab dem letzten Kühlstart."""
+    erg = await _lauf("biowin-hybrid", umfang)
+    bezug = {
+        d["oid"].split("/1/60/1/")[-1].rsplit("/", 1)[0]: d.get("ausloeser_oid")
+        for d in erg["devices"]
+        if d.get("type") == "zaehler_start" and d["oid"].startswith("/1/60/1/")
+    }
+    assert bezug == {"52/59": "/1/60/1/52/56/0", "52/61": "/1/60/1/52/56/0"}
