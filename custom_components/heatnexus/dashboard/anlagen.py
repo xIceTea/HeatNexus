@@ -27,6 +27,7 @@ from ..const import (
     KESSELWERT_LEISTUNG,
     QUELLEN_RANG,
     QUELLEN_SYMBOLE,
+    QUELLEN_TEMPERATUREN,
 )
 from ..helpers import enum_texte, knoten, mustername
 from ..kanonisch import gnmn, ist_ableitung
@@ -181,7 +182,7 @@ def _deutsche_namen(hass: HomeAssistant, beschreibungen: list[dict[str, Any]]):
 
 
 def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
-    """Bauart, Laufrad und Temperatur je Gerätekennung der Wärmequellen.
+    """Bauart, Laufrad und Temperaturen je Gerätekennung der Wärmequellen.
 
     Sie stehen in den Subeinträgen, nicht im Abzug der Anlage, und tragen
     deshalb keinen Funktionstyp.
@@ -198,7 +199,7 @@ def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
                     {
                         "art": beschreibung["art"],
                         "pumpe": bool(beschreibung.get("pumpe")),
-                        "temperatur": beschreibung.get("temperatur"),
+                        **{feld: beschreibung.get(feld) for feld in QUELLEN_TEMPERATUREN},
                     },
                 )
     return zuordnung
@@ -325,7 +326,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
         "klasse": klasse,
         "art": art,
         "quellenpumpe": bool(quelle.get("pumpe")),
-        "temperatur": quelle.get("temperatur"),
+        **{feld: quelle.get(feld) for feld in QUELLEN_TEMPERATUREN},
         "rang": rang(fct, art),
         "symbol": symbol(fct, art),
         "kesselart_wahl": kesselart,

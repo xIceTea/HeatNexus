@@ -73,6 +73,8 @@ QUELLE_SOLAR = "solar"
 QUELLE_HEIZSTAB = "heizstab"
 QUELLE_FREMD = "fremdquelle"
 QUELLE_WAERMEPUMPE = "waermepumpe"
+# Temperaturen, die eine Wärmequelle freiwillig ins Schaubild bringt, in dieser Reihenfolge.
+QUELLEN_TEMPERATUREN = ("temperatur", "vorlauf", "ruecklauf")
 QUELLEN_ARTEN = {
     QUELLE_SOLAR: "Solaranlage",
     QUELLE_HEIZSTAB: "Heizstab",

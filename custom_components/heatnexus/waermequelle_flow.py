@@ -25,7 +25,14 @@ from homeassistant.helpers.selector import (
 import voluptuous as vol
 
 from . import bedingung, waermequelle
-from .const import CONF_LABEL, CONF_SYSTEMS, QUELLE_SOLAR, QUELLEN_ARTEN, QUELLEN_MAX
+from .const import (
+    CONF_LABEL,
+    CONF_SYSTEMS,
+    QUELLE_SOLAR,
+    QUELLEN_ARTEN,
+    QUELLEN_MAX,
+    QUELLEN_TEMPERATUREN,
+)
 from .texte import woerterbuch_des_eintrags
 
 # Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
@@ -54,10 +61,15 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
                 )
             ),
             vol.Required("pumpe", default=bool(vorhanden.get("pumpe", False))): bool,
-            # Freiwillig, auch aus fremden Integrationen; das Schaubild zeigt den Wert in der Quelle.
-            vol.Optional(
-                "temperatur", description={"suggested_value": vorhanden.get("temperatur")}
-            ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="temperature")),
+            # Freiwillig, auch aus fremden Integrationen; das Schaubild zeigt die Werte in der Quelle.
+            **{
+                vol.Optional(feld, description={"suggested_value": vorhanden.get(feld)}): (
+                    EntitySelector(
+                        EntitySelectorConfig(domain="sensor", device_class="temperature")
+                    )
+                )
+                for feld in QUELLEN_TEMPERATUREN
+            },
             vol.Required(
                 "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
             ): SelectSelector(
@@ -147,13 +159,18 @@ def regel_schema(
     return vol.Schema(felder)
 
 
+def _temperaturen(user_input: Mapping[str, Any]) -> dict[str, Any]:
+    """Die gewählten Temperaturen; ein geleertes Feld steht als None."""
+    return {feld: user_input.get(feld) or None for feld in QUELLEN_TEMPERATUREN}
+
+
 def eingabe_als_stand(user_input: Mapping[str, Any]) -> dict[str, Any]:
     """Die Eingabe in die Form bringen, die das Formular als Vorgabe liest."""
     return {
         "name": user_input.get("name", ""),
         "art": user_input.get("art", QUELLE_SOLAR),
         "pumpe": bool(user_input.get("pumpe", False)),
-        "temperatur": user_input.get("temperatur") or None,
+        **_temperaturen(user_input),
         "bedingung": {
             "art": user_input.get("bedingung_art"),
             "quelle": user_input.get("quelle"),
@@ -188,7 +205,7 @@ def stand_als_eingabe(stand: Mapping[str, Any]) -> dict[str, Any]:
         "name": stand.get("name", ""),
         "art": stand.get("art", QUELLE_SOLAR),
         "pumpe": bool(stand.get("pumpe", False)),
-        "temperatur": stand.get("temperatur"),
+        **{feld: stand.get(feld) for feld in QUELLEN_TEMPERATUREN},
         "bedingung_art": regel.get("art"),
         "quelle": regel.get("quelle"),
         "gegen": regel.get("gegen"),
@@ -221,7 +238,7 @@ def quelle_aus_eingabe(
         or uebersetzt(QUELLEN_ARTEN.get(art, "Wärmequelle")),
         "art": art,
         "pumpe": bool(user_input.get("pumpe", False)),
-        "temperatur": user_input.get("temperatur") or None,
+        **_temperaturen(user_input),
         "bedingung": waermequelle.bedingung_pruefen(regel),
     }, {}
 
@@ -367,8 +384,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
             "pumpe": quelle["pumpe"],
             "bedingung": quelle["bedingung"],
         }
-        if quelle["temperatur"]:
-            daten["temperatur"] = quelle["temperatur"]
+        daten.update({feld: quelle[feld] for feld in QUELLEN_TEMPERATUREN if quelle[feld]})
         if self._aendern:
             ergebnis = self.async_update_and_abort(
                 eintrag,

@@ -15,7 +15,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import bedingung, texte
-from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, SUBEINTRAG_QUELLE
+from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, QUELLEN_TEMPERATUREN, SUBEINTRAG_QUELLE
 from .entity import steuerung_kennung, steuerung_verweis
 from .registrierung import untereintraege
 
@@ -106,7 +106,7 @@ def der_anlage(entry: ConfigEntry, host: str) -> list[dict[str, Any]]:
                 "name": sub.title,
                 "art": daten["art"],
                 "pumpe": bool(daten.get("pumpe")),
-                "temperatur": daten.get("temperatur") or None,
+                **{feld: daten.get(feld) or None for feld in QUELLEN_TEMPERATUREN},
                 "bedingung": dict(daten.get("bedingung") or {}),
                 "subentry_id": sub.subentry_id,
             }
@@ -180,7 +180,7 @@ def beschreibungen(entry: ConfigEntry, coordinator: Any) -> list[dict[str, Any]]
             "name": q.get("name"),
             "art": q["art"],
             "pumpe": bool(q.get("pumpe")),
-            "temperatur": q.get("temperatur"),
+            **{feld: q.get(feld) for feld in QUELLEN_TEMPERATUREN},
             "bedingung": dict(q.get("bedingung") or {}),
             "subentry_id": q.get("subentry_id"),
         }

@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Für eine Wärmequelle lässt sich eine Temperatur wählen, die das Schaubild anzeigt.
+- Das Schaubild zeigt an einer Wärmequelle Temperatur, Vorlauf und Rücklauf nach Wahl.
 
 ### Geändert
 

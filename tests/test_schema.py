@@ -1833,7 +1833,7 @@ def test_eine_quelle_wird_ohne_messwert_gezeichnet(werte, art):
     ("art", "beschriftung"),
     [
         ("solar", "Kollektor"),
-        ("waermepumpe", "Vorlauf"),
+        ("waermepumpe", "Temperatur"),
         ("heizstab", "Temperatur"),
         ("fremdquelle", "Temperatur"),
     ],
@@ -1846,6 +1846,24 @@ def test_die_gewaehlte_temperatur_steht_in_der_quelle(werte, art, beschriftung):
     assert module[0]["werte"] == [
         {"entity_id": "sensor.fremd_kollektor", "beschriftung": beschriftung}
     ]
+
+
+def test_vorlauf_und_ruecklauf_folgen_der_temperatur_der_quelle(werte):
+    teil = {
+        **_quelle("Solaranlage", "solar"),
+        "temperatur": "sensor.kollektor",
+        "vorlauf": "sensor.solar_vl",
+        "ruecklauf": "sensor.solar_rl",
+    }
+
+    modul = werte.zeichenbare_module([teil])[0]
+
+    assert [(w["entity_id"], w["beschriftung"]) for w in modul["werte"]] == [
+        ("sensor.kollektor", "Kollektor"),
+        ("sensor.solar_vl", "Vorlauf"),
+        ("sensor.solar_rl", "Rücklauf"),
+    ]
+    assert modul["quelle"] is True
 
 
 def test_ohne_gewaehlte_temperatur_bleibt_die_quelle_ohne_zahl(werte):

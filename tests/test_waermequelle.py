@@ -74,7 +74,7 @@ def _eintrag(quellen, host="192.0.2.10"):
                 "art": q["art"],
                 "pumpe": q.get("pumpe", False),
                 "bedingung": q["bedingung"],
-                **({"temperatur": q["temperatur"]} if q.get("temperatur") else {}),
+                **{feld: q[feld] for feld in ("temperatur", "vorlauf", "ruecklauf") if q.get(feld)},
             },
         )
         for i, q in enumerate(quellen)
@@ -102,11 +102,14 @@ def test_die_beschreibung_traegt_die_wahl_zum_laufrad(modul):
 
 def test_die_beschreibung_traegt_die_gewaehlte_temperatur(modul):
     mit = modul.beschreibungen(
-        _eintrag([{**SOLAR, "temperatur": "sensor.kollektor"}]), _koordinator()
+        _eintrag([{**SOLAR, "temperatur": "sensor.kollektor", "ruecklauf": "sensor.rl"}]),
+        _koordinator(),
     )
     ohne = modul.beschreibungen(_eintrag([SOLAR]), _koordinator())
 
     assert mit[0]["temperatur"] == "sensor.kollektor"
+    assert mit[0]["vorlauf"] is None
+    assert mit[0]["ruecklauf"] == "sensor.rl"
     assert ohne[0]["temperatur"] is None
 
 
@@ -653,11 +656,19 @@ async def test_die_temperatur_der_quelle_laesst_sich_setzen_und_leeren(hass):
         "quelle": "sensor.solarstatus",
     }
 
-    await _aendern(hass, eintrag, sub, {**felder, "temperatur": "sensor.kollektor"})
-    assert eintrag.subentries[sub.subentry_id].data["temperatur"] == "sensor.kollektor"
+    temperaturen = {
+        "temperatur": "sensor.kollektor",
+        "vorlauf": "sensor.solar_vl",
+        "ruecklauf": "sensor.solar_rl",
+    }
+
+    await _aendern(hass, eintrag, sub, {**felder, **temperaturen})
+    daten = eintrag.subentries[sub.subentry_id].data
+    assert {feld: daten[feld] for feld in temperaturen} == temperaturen
 
     await _aendern(hass, eintrag, sub, felder)
-    assert eintrag.subentries[sub.subentry_id].data.get("temperatur") is None
+    daten = eintrag.subentries[sub.subentry_id].data
+    assert not any(daten.get(feld) for feld in temperaturen)
 
 
 async def test_ein_ersatzzustand_steht_nicht_zur_wahl(hass):

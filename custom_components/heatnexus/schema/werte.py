@@ -17,6 +17,7 @@ from ..const import (
     QUELLE_SOLAR,
     QUELLE_WAERMEPUMPE,
     QUELLEN_ARTEN,
+    QUELLEN_TEMPERATUREN,
 )
 from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
@@ -144,8 +145,9 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
 }
 
 
-# Beschriftung der Temperatur, die eine angelegte Wärmequelle mitbringt.
-QUELLENTEMPERATUR = {QUELLE_SOLAR: "Kollektor", QUELLE_WAERMEPUMPE: "Vorlauf"}
+# Beschriftung der Temperaturen, die eine angelegte Wärmequelle mitbringt.
+QUELLENTEMPERATUR = {QUELLE_SOLAR: "Kollektor"}
+QUELLENLEITUNGEN = {"vorlauf": "Vorlauf", "ruecklauf": "Rücklauf"}
 
 
 # Arten, die auch ohne Messwert im Bild stehen; ihren Zustand zeigen Lampen.
@@ -532,11 +534,15 @@ def _gewaehlte_werte(
 
 
 def _quellentemperatur(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Die Temperatur, die in den Optionen einer Wärmequelle gewählt ist."""
-    entity = teil.get("temperatur")
-    if not (teil.get("art") and entity):
+    """Die Temperaturen, die in den Optionen einer Wärmequelle gewählt sind."""
+    if not teil.get("art"):
         return []
-    return [{"entity_id": entity, "beschriftung": QUELLENTEMPERATUR.get(teil["art"], "Temperatur")}]
+    namen = {"temperatur": QUELLENTEMPERATUR.get(teil["art"], "Temperatur"), **QUELLENLEITUNGEN}
+    return [
+        {"entity_id": teil[feld], "beschriftung": namen[feld]}
+        for feld in QUELLEN_TEMPERATUREN
+        if teil.get(feld)
+    ]
 
 
 def _entitaet_wenn(
@@ -600,6 +606,7 @@ def _hauptmodul(
         # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
         # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
         "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
+        "quelle": ist_quelle,
         "mischer": _mischer(entitaeten, art),
         # Die Temperatur, die tatsächlich in den Heizkörper geht.
         # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn

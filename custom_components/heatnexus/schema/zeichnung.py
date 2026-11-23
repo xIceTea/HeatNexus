@@ -52,6 +52,9 @@ WERT_HOEHEN_STANDARD = (170, 250)
 
 WERT_HOEHE_EINZELN = 206
 
+# Drei Werte einer Wärmequelle: Temperatur, Vorlauf und Rücklauf untereinander.
+WERT_HOEHEN_DREI = (150, 206, 262)
+
 # Feste Stellen (x im Modul, y) je Kesselart und Beschriftung, wo die Zeichnung
 # dafür freie Fläche hat: an der Wärmepumpe über dem Lüfter und im Anzeigefeld.
 WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
@@ -472,17 +475,25 @@ BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art
 IMMER_BESCHRIFTET = frozenset({"COP"})
 
 
+def _wert_hoehen(modul: dict[str, Any]) -> tuple[int, ...]:
+    """Zwei Werte ober- und unterhalb der Mitte, einer mittig, drei untereinander."""
+    anzahl = len(modul["werte"])
+    if anzahl > 2:
+        return WERT_HOEHEN_DREI
+    if anzahl == 2:
+        return WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
+    return (WERT_HOEHE_EINZELN,)
+
+
 def beschriftungen(
     x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
 ) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
     kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
-    # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
-    hoehen = (
-        WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
-        if len(modul["werte"]) > 1
-        else (WERT_HOEHE_EINZELN,)
-    )
+    # Mehrere Werte einer Quelle sind sonst nicht zu unterscheiden.
+    if modul.get("quelle") and len(modul["werte"]) > 1:
+        kurz = kurz | {w["beschriftung"] for w in modul["werte"]}
+    hoehen = _wert_hoehen(modul)
 
     stellen = WERT_STELLEN.get(modul.get("kesselart") or "", {})
     elemente = []
