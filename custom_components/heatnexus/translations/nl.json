@@ -796,12 +796,14 @@
             "name": "Naam",
             "art": "Soort",
             "pumpe": "Pomp in het schema tonen",
+            "temperatur": "Temperatuur in het schema",
             "bedingung_art": "Voorwaarde",
             "quelle": "Entiteit"
           },
           "data_description": {
             "quelle": "De waarde die over de bron beslist.",
             "pumpe": "Tekent een pompwaaier in de leiding van de bron zolang ze warmte levert.",
+            "temperatur": "Het schema toont deze waarde in de tekening van de bron, bijvoorbeeld de collectortemperatuur van een zonneboilersysteem.",
             "name": "Onder deze naam verschijnt de bron in HeatNexus.",
             "art": "Bepaalt hoe de bron in het schema wordt getekend.",
             "bedingung_art": "Bepaalt waaraan HeatNexus herkent dat de bron warmte levert: aan een toestand, een drempel of het verschil tussen twee sensoren. De waarden volgen in de volgende stap."

@@ -350,7 +350,7 @@ async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, anlagen):
 
     zuordnung = anlagen.quellen_nach_geraet(hass)
 
-    assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True}
+    assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True, "temperatur": None}
 
 
 async def test_das_geraet_einer_quelle_steht_in_der_anlage(hass, anlagen):

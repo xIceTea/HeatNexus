@@ -796,12 +796,14 @@
             "name": "Name",
             "art": "Type",
             "pumpe": "Show pump in the diagram",
+            "temperatur": "Temperature in the diagram",
             "bedingung_art": "Condition",
             "quelle": "Entity"
           },
           "data_description": {
             "quelle": "The value that decides about the source.",
             "pumpe": "Draws an impeller in the pipe of the source while it delivers heat.",
+            "temperatur": "The diagram shows this value in the drawing of the source, for example the collector temperature of a solar system.",
             "name": "The source appears under this name in HeatNexus.",
             "art": "Sets how the source is drawn in the diagram.",
             "bedingung_art": "Sets how HeatNexus recognises that the source delivers heat: by a state, a threshold or the difference between two sensors. The values follow in the next step."

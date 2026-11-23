@@ -106,6 +106,7 @@ def der_anlage(entry: ConfigEntry, host: str) -> list[dict[str, Any]]:
                 "name": sub.title,
                 "art": daten["art"],
                 "pumpe": bool(daten.get("pumpe")),
+                "temperatur": daten.get("temperatur") or None,
                 "bedingung": dict(daten.get("bedingung") or {}),
                 "subentry_id": sub.subentry_id,
             }
@@ -179,6 +180,7 @@ def beschreibungen(entry: ConfigEntry, coordinator: Any) -> list[dict[str, Any]]
             "name": q.get("name"),
             "art": q["art"],
             "pumpe": bool(q.get("pumpe")),
+            "temperatur": q.get("temperatur"),
             "bedingung": dict(q.get("bedingung") or {}),
             "subentry_id": q.get("subentry_id"),
         }

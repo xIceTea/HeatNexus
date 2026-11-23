@@ -181,7 +181,7 @@ def _deutsche_namen(hass: HomeAssistant, beschreibungen: list[dict[str, Any]]):
 
 
 def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
-    """Bauart und Laufrad je Gerätekennung der Wärmequellen.
+    """Bauart, Laufrad und Temperatur je Gerätekennung der Wärmequellen.
 
     Sie stehen in den Subeinträgen, nicht im Abzug der Anlage, und tragen
     deshalb keinen Funktionstyp.
@@ -195,7 +195,11 @@ def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
             for beschreibung in waermequelle.beschreibungen(entry, coordinator):
                 zuordnung.setdefault(
                     beschreibung["id"],
-                    {"art": beschreibung["art"], "pumpe": bool(beschreibung.get("pumpe"))},
+                    {
+                        "art": beschreibung["art"],
+                        "pumpe": bool(beschreibung.get("pumpe")),
+                        "temperatur": beschreibung.get("temperatur"),
+                    },
                 )
     return zuordnung
 
@@ -321,6 +325,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
         "klasse": klasse,
         "art": art,
         "quellenpumpe": bool(quelle.get("pumpe")),
+        "temperatur": quelle.get("temperatur"),
         "rang": rang(fct, art),
         "symbol": symbol(fct, art),
         "kesselart_wahl": kesselart,

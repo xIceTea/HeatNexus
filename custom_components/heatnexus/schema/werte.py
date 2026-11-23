@@ -11,7 +11,13 @@ import re
 from typing import Any
 
 from .. import geraete
-from ..const import KESSELART_AUTO, QUELLE_FREMD, QUELLE_WAERMEPUMPE, QUELLEN_ARTEN
+from ..const import (
+    KESSELART_AUTO,
+    QUELLE_FREMD,
+    QUELLE_SOLAR,
+    QUELLE_WAERMEPUMPE,
+    QUELLEN_ARTEN,
+)
 from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
@@ -136,6 +142,10 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
         (r"^cop aktuell$", "COP", ()),
     ),
 }
+
+
+# Beschriftung der Temperatur, die eine angelegte Wärmequelle mitbringt.
+QUELLENTEMPERATUR = {QUELLE_SOLAR: "Kollektor", QUELLE_WAERMEPUMPE: "Vorlauf"}
 
 
 # Arten, die auch ohne Messwert im Bild stehen; ihren Zustand zeigen Lampen.
@@ -521,6 +531,14 @@ def _gewaehlte_werte(
     return werte
 
 
+def _quellentemperatur(teil: dict[str, Any]) -> list[dict[str, Any]]:
+    """Die Temperatur, die in den Optionen einer Wärmequelle gewählt ist."""
+    entity = teil.get("temperatur")
+    if not (teil.get("art") and entity):
+        return []
+    return [{"entity_id": entity, "beschriftung": QUELLENTEMPERATUR.get(teil["art"], "Temperatur")}]
+
+
 def _entitaet_wenn(
     bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
 ) -> str | None:
@@ -666,7 +684,7 @@ def zeichenbare_module(
             _gewaehlte_werte(teil, art, kesselwert, gewaehlt)
             if gewaehlt is not None
             else _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
-        )
+        ) + _quellentemperatur(teil)
         # Das Pumpen-/Relaismodul wird auch ohne Messwert gezeichnet: Seine
         # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
         # der anderen Seite – im Schaubild sagt die Zahl nichts. Dass das Modul

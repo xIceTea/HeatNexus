@@ -796,12 +796,14 @@
             "name": "Name",
             "art": "Bauart",
             "pumpe": "Pumpe im Schaubild zeigen",
+            "temperatur": "Temperatur im Schaubild",
             "bedingung_art": "Bedingung",
             "quelle": "Entität"
           },
           "data_description": {
             "quelle": "Der Wert, der über die Quelle entscheidet.",
             "pumpe": "Zeichnet ein Laufrad in die Leitung der Quelle, solange sie liefert.",
+            "temperatur": "Das Schaubild zeigt diesen Wert in der Zeichnung der Quelle, zum Beispiel die Kollektortemperatur einer Solaranlage.",
             "name": "Unter diesem Namen erscheint die Quelle in HeatNexus.",
             "art": "Legt fest, wie die Quelle im Schaubild gezeichnet wird.",
             "bedingung_art": "Legt fest, woran HeatNexus erkennt, dass die Quelle liefert: an einem Zustand, an einer Schwelle oder an der Differenz zweier Fühler. Die Werte folgen im nächsten Schritt."

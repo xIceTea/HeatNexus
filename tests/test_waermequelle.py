@@ -74,6 +74,7 @@ def _eintrag(quellen, host="192.0.2.10"):
                 "art": q["art"],
                 "pumpe": q.get("pumpe", False),
                 "bedingung": q["bedingung"],
+                **({"temperatur": q["temperatur"]} if q.get("temperatur") else {}),
             },
         )
         for i, q in enumerate(quellen)
@@ -97,6 +98,36 @@ def test_die_beschreibung_traegt_die_wahl_zum_laufrad(modul):
 
     assert mit[0]["pumpe"] is True
     assert ohne[0]["pumpe"] is False
+
+
+def test_die_beschreibung_traegt_die_gewaehlte_temperatur(modul):
+    mit = modul.beschreibungen(
+        _eintrag([{**SOLAR, "temperatur": "sensor.kollektor"}]), _koordinator()
+    )
+    ohne = modul.beschreibungen(_eintrag([SOLAR]), _koordinator())
+
+    assert mit[0]["temperatur"] == "sensor.kollektor"
+    assert ohne[0]["temperatur"] is None
+
+
+@pytest.mark.parametrize(
+    ("eingabe", "erwartet"), [("sensor.kollektor", "sensor.kollektor"), ("", None)]
+)
+def test_die_eingabe_uebernimmt_die_temperatur_nur_wenn_gewaehlt(eingabe, erwartet):
+    from custom_components.heatnexus.waermequelle_flow import quelle_aus_eingabe
+
+    quelle, fehler = quelle_aus_eingabe(
+        {
+            "name": "Solaranlage",
+            "art": "solar",
+            "bedingung_art": "zustand",
+            "quelle": "binary_sensor.solarpumpe",
+            "temperatur": eingabe,
+        }
+    )
+
+    assert fehler == {}
+    assert quelle["temperatur"] == erwartet
 
 
 def test_eine_quelle_unbekannter_bauart_wird_nicht_gebaut(modul):
@@ -592,6 +623,41 @@ async def test_beim_aendern_bleibt_die_kennung_der_quelle(hass):
     assert geaendert.data["host"] == "192.0.2.10"
     assert geaendert.data["pumpe"] is False
     assert geaendert.data["bedingung"]["zustaende"] == ["Solaranlage aktiv"]
+
+
+async def _aendern(hass, eintrag, sub, erster_schritt):
+    """Eine Quelle mit den Feldern des ersten Schritts zu Ende ändern."""
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE),
+        context={"source": "reconfigure", "subentry_id": sub.subentry_id},
+    )
+    await hass.config_entries.subentries.async_configure(ablauf["flow_id"], erster_schritt)
+    await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"], {"zustaende": ["Solaranlage aktiv"]}
+    )
+    await hass.async_block_till_done()
+    return ablauf
+
+
+async def test_die_temperatur_der_quelle_laesst_sich_setzen_und_leeren(hass):
+    hass.states.async_set("sensor.solarstatus", "Solaranlage aktiv")
+    eintrag, sub, ablauf = await _aenderung_beginnen(hass, KLARTEXT)
+    hass.config_entries.subentries.async_abort(ablauf["flow_id"])
+    felder = {
+        "name": "Solaranlage",
+        "art": "solar",
+        "pumpe": True,
+        "bedingung_art": "zustand",
+        "quelle": "sensor.solarstatus",
+    }
+
+    await _aendern(hass, eintrag, sub, {**felder, "temperatur": "sensor.kollektor"})
+    assert eintrag.subentries[sub.subentry_id].data["temperatur"] == "sensor.kollektor"
+
+    await _aendern(hass, eintrag, sub, felder)
+    assert eintrag.subentries[sub.subentry_id].data.get("temperatur") is None
 
 
 async def test_ein_ersatzzustand_steht_nicht_zur_wahl(hass):

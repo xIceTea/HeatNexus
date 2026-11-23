@@ -1829,6 +1829,40 @@ def test_eine_quelle_wird_ohne_messwert_gezeichnet(werte, art):
     assert [m["art"] for m in module] == [art]
 
 
+@pytest.mark.parametrize(
+    ("art", "beschriftung"),
+    [
+        ("solar", "Kollektor"),
+        ("waermepumpe", "Vorlauf"),
+        ("heizstab", "Temperatur"),
+        ("fremdquelle", "Temperatur"),
+    ],
+)
+def test_die_gewaehlte_temperatur_steht_in_der_quelle(werte, art, beschriftung):
+    teil = {**_quelle("Quelle", art), "temperatur": "sensor.fremd_kollektor"}
+
+    module = werte.zeichenbare_module([teil])
+
+    assert module[0]["werte"] == [
+        {"entity_id": "sensor.fremd_kollektor", "beschriftung": beschriftung}
+    ]
+
+
+def test_ohne_gewaehlte_temperatur_bleibt_die_quelle_ohne_zahl(werte):
+    module = werte.zeichenbare_module([_quelle("Solaranlage", "solar")])
+
+    assert module[0]["werte"] == []
+
+
+def test_die_temperatur_der_quelle_bleibt_bei_eigener_werteauswahl(werte):
+    """Die Auswahl im Schaubild kennt nur eigene Entitäten; die Temperatur kommt dazu."""
+    teil = {**_quelle("Solaranlage", "solar"), "temperatur": "sensor.fremd_kollektor"}
+
+    module = werte.zeichenbare_module([teil], auswahl={"Solaranlage": []})
+
+    assert [w["entity_id"] for w in module[0]["werte"]] == ["sensor.fremd_kollektor"]
+
+
 def test_die_bauart_der_quelle_sticht_den_funktionstyp(werte):
     teil = {**_quelle("Heizstab", "heizstab"), "fct_type": 16}
 

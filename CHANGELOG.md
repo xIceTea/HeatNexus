@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Für eine Wärmequelle lässt sich eine Temperatur wählen, die das Schaubild anzeigt.
+
 ### Geändert
 
 - Nach einer geänderten Einstellung erscheinen und entfallen passende Werte ohne „Anlage neu erkennen“.
